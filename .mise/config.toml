@@ -28,7 +28,7 @@ golangci-lint = "2.14.0"
 restic = "0.19.1"
 
 gh = "2.102.0"
-"github:git-town/git-town" = "22.7.1"
+"github:git-town/git-town" = "v24.1.0"
 
 k3d = "5.9.0"
 kubectl = "1.37.1"
