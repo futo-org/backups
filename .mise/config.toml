@@ -40,7 +40,7 @@ tilt = "0.37.7"
 # Python matching its requires-python, so the host's Python version (3.12 on
 # GitHub runners, 3.14 on dev machines) doesn't matter.
 kubeconform = "0.8.0"
-kustomize = "5.8.1"            # flux-local shells out to it
+kustomize = "5.8.2"            # flux-local shells out to it
 flux2 = "2.9.5"                # ...and to the flux CLI
 uv = "0.12.12"
 
