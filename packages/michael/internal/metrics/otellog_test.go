@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/rs/zerolog"
+	"go.opentelemetry.io/otel/attribute"
 	otellog "go.opentelemetry.io/otel/log"
 	sdklog "go.opentelemetry.io/otel/sdk/log"
 )
@@ -76,8 +77,8 @@ func TestOTLPLogWriter_InfoLog(t *testing.T) {
 
 	// Check attributes contain our structured fields
 	attrs := map[string]string{}
-	rec.WalkAttributes(func(kv otellog.KeyValue) bool {
-		attrs[kv.Key] = kv.Value.AsString()
+	rec.WalkAttributes(func(kv attribute.KeyValue) bool {
+		attrs[string(kv.Key)] = kv.Value.AsString()
 		return true
 	})
 
@@ -118,8 +119,8 @@ func TestOTLPLogWriter_ErrorLog(t *testing.T) {
 	}
 
 	attrs := map[string]string{}
-	rec.WalkAttributes(func(kv otellog.KeyValue) bool {
-		attrs[kv.Key] = kv.Value.AsString()
+	rec.WalkAttributes(func(kv attribute.KeyValue) bool {
+		attrs[string(kv.Key)] = kv.Value.AsString()
 		return true
 	})
 	if attrs["error"] != "connection refused" {
@@ -196,8 +197,8 @@ func TestOTLPLogWriter_NumericAttributes(t *testing.T) {
 	}
 
 	found := map[string]bool{}
-	records[0].WalkAttributes(func(kv otellog.KeyValue) bool {
-		found[kv.Key] = true
+	records[0].WalkAttributes(func(kv attribute.KeyValue) bool {
+		found[string(kv.Key)] = true
 		return true
 	})
 

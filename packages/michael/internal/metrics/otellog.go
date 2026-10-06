@@ -7,6 +7,7 @@ import (
 
 	"michael/internal/config"
 
+	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/exporters/otlp/otlplog/otlploghttp"
 	otellog "go.opentelemetry.io/otel/log"
 	sdklog "go.opentelemetry.io/otel/sdk/log"
@@ -88,11 +89,11 @@ func (w *OTLPLogWriter) Write(p []byte) (int, error) {
 
 	// Message
 	if msg, ok := entry["message"].(string); ok {
-		record.SetBody(otellog.StringValue(msg))
+		record.SetBody(attribute.StringValue(msg))
 	}
 
 	// All other fields as attributes
-	attrs := make([]otellog.KeyValue, 0, len(entry))
+	attrs := make([]attribute.KeyValue, 0, len(entry))
 	for k, v := range entry {
 		switch k {
 		case "level", "time", "message", "caller":
@@ -100,14 +101,14 @@ func (w *OTLPLogWriter) Write(p []byte) (int, error) {
 		}
 		switch val := v.(type) {
 		case string:
-			attrs = append(attrs, otellog.String(k, val))
+			attrs = append(attrs, attribute.String(k, val))
 		case float64:
-			attrs = append(attrs, otellog.Float64(k, val))
+			attrs = append(attrs, attribute.Float64(k, val))
 		case bool:
-			attrs = append(attrs, otellog.Bool(k, val))
+			attrs = append(attrs, attribute.Bool(k, val))
 		default:
 			if b, err := json.Marshal(val); err == nil {
-				attrs = append(attrs, otellog.String(k, string(b)))
+				attrs = append(attrs, attribute.String(k, string(b)))
 			}
 		}
 	}
