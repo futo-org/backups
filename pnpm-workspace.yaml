@@ -107,7 +107,7 @@ catalog:
   postgres: ^3.4.8
   prettier: ^3.9.6
   prettier-plugin-organize-imports: ^4.3.0
-  prettier-plugin-svelte: ^3.4.1
+  prettier-plugin-svelte: ^4.0.0
   prettier-plugin-tailwindcss: ^0.8.1
   publint: ^0.3.25
   reflect-metadata: ^0.2.2
