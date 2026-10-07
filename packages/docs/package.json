@@ -1,7 +1,7 @@
 {
   "name": "docs",
   "private": true,
-  "version": "0.50.2",
+  "version": "0.50.3",
   "type": "module",
   "files": [
     "build"
