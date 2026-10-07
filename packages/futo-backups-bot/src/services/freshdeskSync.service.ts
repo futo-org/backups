@@ -2,17 +2,17 @@ import { LoggerRepository } from '@common/server/otel';
 import { Injectable } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { AttachmentBuilder, ChatInputCommandInteraction, EmbedBuilder, Message, MessageFlags } from 'discord.js';
-import { env } from 'src/env';
-import { Messages } from 'src/messages';
-import { DiscordRepository } from 'src/repositories/discord.repository';
+import { env } from 'src/env.js';
+import { Messages } from 'src/messages.js';
+import { DiscordRepository } from 'src/repositories/discord.repository.js';
 import {
   FreshdeskConversation,
   FreshdeskRepository,
   TICKET_STATUS_RESOLVED,
-} from 'src/repositories/freshdesk.repository';
-import { TicketMapping, YuccaApiRepository } from 'src/repositories/yuccaApi.repository';
-import { MirrorMessage, escapeHtml, groupForMirror, toHtmlBody } from 'src/utils/mirror';
-import { isStaff } from 'src/utils/staff';
+} from 'src/repositories/freshdesk.repository.js';
+import { TicketMapping, YuccaApiRepository } from 'src/repositories/yuccaApi.repository.js';
+import { MirrorMessage, escapeHtml, groupForMirror, toHtmlBody } from 'src/utils/mirror.js';
+import { isStaff } from 'src/utils/staff.js';
 
 const POLL_LOOKBACK_MS = 15 * 60_000;
 const MAPPING_CACHE_TTL_MS = 60_000;

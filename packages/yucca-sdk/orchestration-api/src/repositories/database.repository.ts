@@ -2,9 +2,9 @@ import { Injectable } from '@nestjs/common';
 import { FileMigrationProvider, Kysely, Migrator, sql } from 'kysely';
 import { InjectKysely } from 'nestjs-kysely';
 import { join } from 'node:path';
-import { DB } from '../schema';
-import { LoggingRepository } from './logging.repository';
-import { StorageRepository } from './storage.repository';
+import { DB } from '../schema/index.js';
+import { LoggingRepository } from './logging.repository.js';
+import { StorageRepository } from './storage.repository.js';
 
 @Injectable()
 export class DatabaseRepository {
@@ -71,7 +71,7 @@ export class DatabaseRepository {
           readdir: this.storage.readdir,
         },
         path: { join },
-        migrationFolder: join(__dirname, '..', 'schema/migrations'),
+        migrationFolder: join(import.meta.dirname, '..', 'schema/migrations'),
       }),
     });
   }

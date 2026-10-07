@@ -2,9 +2,9 @@ import { Controller, Get, NotFoundException, Param, Res, Sse } from '@nestjs/com
 import { ApiOkResponse, ApiParam } from '@nestjs/swagger';
 import { type Response } from 'express';
 import { Observable } from 'rxjs';
-import { RunResponseDto } from '../dto/repository.dto';
-import { RunHistoryRepository } from '../repositories/runHistory.repository';
-import { StorageRepository } from '../repositories/storage.repository';
+import { RunResponseDto } from '../dto/repository.dto.js';
+import { RunHistoryRepository } from '../repositories/runHistory.repository.js';
+import { StorageRepository } from '../repositories/storage.repository.js';
 
 @Controller('/yucca/logs')
 export class RunHistoryController {

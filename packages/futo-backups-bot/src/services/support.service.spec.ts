@@ -1,8 +1,9 @@
+import { jest } from '@jest/globals';
 import { ThreadChannel } from 'discord.js';
-import { ComponentId } from 'src/enum';
-import { InviteService } from 'src/services/invite.service';
-import { SupportService } from 'src/services/support.service';
-import { Mocks, newMocks } from '../../test/mocks';
+import { ComponentId } from 'src/enum.js';
+import { InviteService } from 'src/services/invite.service.js';
+import { SupportService } from 'src/services/support.service.js';
+import { Mocks, newMocks } from '../../test/mocks.js';
 
 const link = { userId: 'user-1', discordUserId: '123456789', discordUsername: 'someone' };
 

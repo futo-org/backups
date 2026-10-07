@@ -1,13 +1,13 @@
 import { Injectable, OnApplicationBootstrap } from '@nestjs/common';
-import { BootstrapRepository } from '../repositories/bootstrap.repository';
-import { ConfigRepository } from '../repositories/config.repository';
-import { DatabaseRepository } from '../repositories/database.repository';
-import { LoggingRepository } from '../repositories/logging.repository';
-import { ModuleConfigRepository } from '../repositories/moduleConfig.repository';
-import { discardStateCacheDirectory } from '../utils/cache';
-import { ConfigService } from './config.service';
-import { RunHistoryService } from './runHistory.service';
-import { ScheduleService } from './schedule.service';
+import { BootstrapRepository } from '../repositories/bootstrap.repository.js';
+import { ConfigRepository } from '../repositories/config.repository.js';
+import { DatabaseRepository } from '../repositories/database.repository.js';
+import { LoggingRepository } from '../repositories/logging.repository.js';
+import { ModuleConfigRepository } from '../repositories/moduleConfig.repository.js';
+import { discardStateCacheDirectory } from '../utils/cache.js';
+import { ConfigService } from './config.service.js';
+import { RunHistoryService } from './runHistory.service.js';
+import { ScheduleService } from './schedule.service.js';
 
 @Injectable()
 export class BootstrapService implements OnApplicationBootstrap {

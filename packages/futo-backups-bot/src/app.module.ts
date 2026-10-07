@@ -2,17 +2,17 @@ import { LoggerRepository, LoggingInterceptor, OtelModule, WideContextRepository
 import { Module } from '@nestjs/common';
 import { APP_INTERCEPTOR } from '@nestjs/core';
 import { ScheduleModule } from '@nestjs/schedule';
-import { InternalController } from './controllers/internal.controller';
-import { WebhookController } from './controllers/webhook.controller';
-import { ColumboRepository } from './repositories/columbo.repository';
-import { DiscordRepository } from './repositories/discord.repository';
-import { FreshdeskRepository } from './repositories/freshdesk.repository';
-import { TranscriptStorageRepository } from './repositories/transcriptStorage.repository';
-import { YuccaApiRepository } from './repositories/yuccaApi.repository';
-import { FreshdeskSyncService } from './services/freshdeskSync.service';
-import { InviteService } from './services/invite.service';
-import { SupportService } from './services/support.service';
-import { SweepService } from './services/sweep.service';
+import { InternalController } from './controllers/internal.controller.js';
+import { WebhookController } from './controllers/webhook.controller.js';
+import { ColumboRepository } from './repositories/columbo.repository.js';
+import { DiscordRepository } from './repositories/discord.repository.js';
+import { FreshdeskRepository } from './repositories/freshdesk.repository.js';
+import { TranscriptStorageRepository } from './repositories/transcriptStorage.repository.js';
+import { YuccaApiRepository } from './repositories/yuccaApi.repository.js';
+import { FreshdeskSyncService } from './services/freshdeskSync.service.js';
+import { InviteService } from './services/invite.service.js';
+import { SupportService } from './services/support.service.js';
+import { SweepService } from './services/sweep.service.js';
 
 export const imports = [ScheduleModule.forRoot()];
 

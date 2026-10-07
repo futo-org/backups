@@ -1,12 +1,12 @@
 import { OnGatewayConnection, WebSocketGateway, WebSocketServer } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
-import { BackendDto } from '../dto/backend.dto';
-import { IntegrationsResponseDto } from '../dto/integrations.dto';
-import { LocalRepositoryDto, RunDto } from '../dto/repository.dto';
-import { RunningTaskDto } from '../dto/runningTasks.dto';
-import { ScheduleDto } from '../dto/schedule.dto';
-import { ModuleConfigRepository } from '../repositories/moduleConfig.repository';
-import { SessionService } from '../services/session.service';
+import { BackendDto } from '../dto/backend.dto.js';
+import { IntegrationsResponseDto } from '../dto/integrations.dto.js';
+import { LocalRepositoryDto, RunDto } from '../dto/repository.dto.js';
+import { RunningTaskDto } from '../dto/runningTasks.dto.js';
+import { ScheduleDto } from '../dto/schedule.dto.js';
+import { ModuleConfigRepository } from '../repositories/moduleConfig.repository.js';
+import { SessionService } from '../services/session.service.js';
 
 export type GatewayEvent =
   | {

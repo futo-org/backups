@@ -1,11 +1,11 @@
 import { mkdtemp } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { ConfigRepository } from 'src/repositories/config.repository';
-import { DatabaseRepository } from 'src/repositories/database.repository';
-import { RepositoryService } from 'src/services/repository.service';
-import { ScheduleService } from 'src/services/schedule.service';
-import { createTestingModule, TestContext } from './testUtils';
+import { ConfigRepository } from '../src/repositories/config.repository.js';
+import { DatabaseRepository } from '../src/repositories/database.repository.js';
+import { RepositoryService } from '../src/services/repository.service.js';
+import { ScheduleService } from '../src/services/schedule.service.js';
+import { createTestingModule, TestContext } from './testUtils.js';
 
 let ctx: TestContext;
 

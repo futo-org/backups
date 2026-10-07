@@ -17,7 +17,7 @@ async function migrateToLatest(): Promise<Migrated> {
     provider: new FileMigrationProvider({
       fs: { readdir },
       path: { join },
-      migrationFolder: join(__dirname, '..', 'src/schema/migrations'),
+      migrationFolder: join(import.meta.dirname, '..', 'src/schema/migrations'),
     }),
   });
 

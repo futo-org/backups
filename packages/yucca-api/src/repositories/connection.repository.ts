@@ -1,8 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { Insertable, Kysely } from 'kysely';
 import { InjectKysely } from 'nestjs-kysely';
-import { DB } from 'src/schema';
-import { ConnectionTable } from 'src/schema/tables/connection.table';
+import { DB } from 'src/schema/index.js';
+import { ConnectionTable } from 'src/schema/tables/connection.table.js';
 
 @Injectable()
 export class ConnectionRepository {

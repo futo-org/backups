@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import EventIterator from 'event-iterator';
+import { EventIterator } from 'event-iterator';
 import { Kysely } from 'kysely';
 import { InjectKysely } from 'nestjs-kysely';
 import { randomUUID } from 'node:crypto';
@@ -7,14 +7,14 @@ import { type WriteStream } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { from } from 'rxjs';
 import { Tail } from 'tail';
-import { TaskStatus } from '../enum';
-import { EventsGateway } from '../events/events.gateway';
-import { DB } from '../schema';
-import { type RunType } from '../schema/tables/runHistory.table';
-import { getTaskStatus, writeError } from '../utils/errors';
-import { LoggingRepository } from './logging.repository';
-import { ModuleConfigRepository } from './moduleConfig.repository';
-import { StorageRepository } from './storage.repository';
+import { TaskStatus } from '../enum.js';
+import { EventsGateway } from '../events/events.gateway.js';
+import { DB } from '../schema/index.js';
+import { type RunType } from '../schema/tables/runHistory.table.js';
+import { getTaskStatus, writeError } from '../utils/errors.js';
+import { LoggingRepository } from './logging.repository.js';
+import { ModuleConfigRepository } from './moduleConfig.repository.js';
+import { StorageRepository } from './storage.repository.js';
 
 @Injectable()
 export class RunHistoryRepository {

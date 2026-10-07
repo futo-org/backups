@@ -1,8 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { Insertable, Kysely } from 'kysely';
 import { InjectKysely } from 'nestjs-kysely';
-import { DB } from '../schema';
-import { RepositoryPathTable } from '../schema/tables/repositoryPath.table';
+import { DB } from '../schema/index.js';
+import { RepositoryPathTable } from '../schema/tables/repositoryPath.table.js';
 
 @Injectable()
 export class RepositoryPathRepository {

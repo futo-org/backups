@@ -1,5 +1,5 @@
-import { AllowlistService } from 'src/services/allowlist.service';
-import { Mocks, newMocks } from '../../test/mocks';
+import { AllowlistService } from 'src/services/allowlist.service.js';
+import { Mocks, newMocks } from '../../test/mocks.js';
 
 const row = (overrides: object = {}) => ({
   id: 'entry-1',

@@ -97,7 +97,7 @@ echo "==> launch orchestration-api as a separate local process (:22676)"
 # Discovery runs the real chain: meta pod well-known -> /api/meta -> api_root.
 # setsid gives it a process group cleanup can reap whole.
 FUTO_BACKUPS_WELL_KNOWN_URL="http://localhost:8080/.well-known/yucca.json" \
-NODE_OPTIONS="--require $HERE/hostmap.cjs" \
+NODE_OPTIONS="--loader $HERE/hostmap.mjs" \
   setsid mise run //packages/yucca-sdk/orchestration-api:dev >/tmp/yucca-e2e-orch.log 2>&1 &
 ORCH_PGID="$(ps -o pgid= -p $! 2>/dev/null | tr -d ' ')"
 
@@ -124,7 +124,7 @@ source packages/yucca-api/.mise/tasks/env
 # Three, not one per suite: orchestration-api alone runs ~105s and gates the
 # phase, so a fourth worker adds no wall-clock — only a fourth CPU consumer on a
 # runner that is already hosting the cluster these suites drive.
-NODE_OPTIONS="--experimental-vm-modules --require $HERE/hostmap.cjs" \
+NODE_OPTIONS="--experimental-vm-modules --import $HERE/hostmap.mjs" \
   pnpm --filter e2e exec jest --maxWorkers=3
 
 grep -q "Minted a new token" /tmp/yucca-e2e-orch.log || {

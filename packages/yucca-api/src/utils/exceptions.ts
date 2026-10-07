@@ -1,5 +1,5 @@
 import { ForbiddenException } from '@nestjs/common';
-import { TicketAction } from 'src/enum';
+import { TicketAction } from 'src/enum.js';
 
 export class EmailNotAllowedException extends ForbiddenException {
   constructor() {

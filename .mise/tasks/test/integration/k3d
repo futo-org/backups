@@ -54,7 +54,7 @@ export POSTGRES_HOST POSTGRES_PORT POSTGRES_USERNAME POSTGRES_PASSWORD POSTGRES_
 # apps it boots). Same split-horizon glue as the e2e runner.
 export OIDC_ISSUER=http://yucca-mock-oidc:8092
 export OIDC_DEVICE_ISSUER=http://yucca-mock-oidc:8092
-export NODE_OPTIONS="--require $PWD/packages/e2e/k3d/hostmap.cjs${NODE_OPTIONS:+ ${NODE_OPTIONS}}"
+export NODE_OPTIONS="--import $PWD/packages/e2e/k3d/hostmap.mjs${NODE_OPTIONS:+ ${NODE_OPTIONS}}"
 
 echo "==> run the database-backed integration suites"
 # yucca-api and yucca-admin-api are serial against each other: both reset the

@@ -1,8 +1,8 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
-import { SettingsEntryResponseDto, SettingsListResponseDto } from 'src/dto/settings.dto';
-import { SettingsRepository } from 'src/repositories/settings.repository';
-import { TopologyRepository } from 'src/repositories/topology.repository';
-import { configOverridesSchema, parseSettingsScope } from 'src/utils/settings';
+import { SettingsEntryResponseDto, SettingsListResponseDto } from 'src/dto/settings.dto.js';
+import { SettingsRepository } from 'src/repositories/settings.repository.js';
+import { TopologyRepository } from 'src/repositories/topology.repository.js';
+import { configOverridesSchema, parseSettingsScope } from 'src/utils/settings.js';
 
 @Injectable()
 export class SettingsService {

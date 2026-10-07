@@ -1,6 +1,6 @@
 import { ResticBackupCommandCouldNotReadSourceDataError } from '@futo-org/restic-wrapper';
 import { WriteStream } from 'node:fs';
-import { TaskStatus } from '../enum';
+import { TaskStatus } from '../enum.js';
 
 export class TaskCancelledError extends Error {
   constructor() {

@@ -1,6 +1,6 @@
 import { z } from 'zod';
-import { YUCCA_WELL_KNOWN } from './const';
-import { evaluateConnectionsMath } from './utils/connectionsMath';
+import { YUCCA_WELL_KNOWN } from './const.js';
+import { evaluateConnectionsMath } from './utils/connectionsMath.js';
 
 const metaConfigSchema = z
   .object({

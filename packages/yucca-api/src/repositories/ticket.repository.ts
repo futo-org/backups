@@ -1,10 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import { Insertable, Kysely } from 'kysely';
 import { InjectKysely } from 'nestjs-kysely';
-import { TicketAction } from 'src/enum';
-import { DB } from 'src/schema';
-import { TicketTable } from 'src/schema/tables/ticket.table';
-import { meterJson, metricsJson } from './repository.repository';
+import { TicketAction } from 'src/enum.js';
+import { DB } from 'src/schema/index.js';
+import { TicketTable } from 'src/schema/tables/ticket.table.js';
+import { meterJson, metricsJson } from './repository.repository.js';
 
 @Injectable()
 export class TicketRepository {

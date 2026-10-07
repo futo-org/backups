@@ -1,8 +1,9 @@
-import { ComponentId } from 'src/enum';
-import { env } from 'src/env';
-import { Messages } from 'src/messages';
-import { InviteService } from 'src/services/invite.service';
-import { Mocks, newMocks } from '../../test/mocks';
+import { jest } from '@jest/globals';
+import { ComponentId } from 'src/enum.js';
+import { env } from 'src/env.js';
+import { Messages } from 'src/messages.js';
+import { InviteService } from 'src/services/invite.service.js';
+import { Mocks, newMocks } from '../../test/mocks.js';
 
 const okInvite = { status: 'ok', code: 'token', expiresAt: new Date(Date.now() + 600_000), remaining: null } as const;
 

@@ -1,5 +1,5 @@
 import { Controller, Post } from '@nestjs/common';
-import { DevelopmentService } from '../services/development.service';
+import { DevelopmentService } from '../services/development.service.js';
 
 @Controller('/yucca/debug')
 export class DevelopmentController {

@@ -1,11 +1,11 @@
-import { ModuleConfigRepository } from 'src/repositories/moduleConfig.repository';
-import { RepositoryIntegrationImmichRepository } from 'src/repositories/repositoryIntegrationImmich.repository';
-import { RepositoryPathRepository } from 'src/repositories/repositoryPath.repository';
-import { IntegrationsService } from 'src/services/integrations.service';
-import { RepositoryService } from 'src/services/repository.service';
-import { ScheduleService } from 'src/services/schedule.service';
-import { newImmichHooksMock } from './mocks';
-import { createTestingModule, TestContext } from './testUtils';
+import { ModuleConfigRepository } from '../src/repositories/moduleConfig.repository.js';
+import { RepositoryIntegrationImmichRepository } from '../src/repositories/repositoryIntegrationImmich.repository.js';
+import { RepositoryPathRepository } from '../src/repositories/repositoryPath.repository.js';
+import { IntegrationsService } from '../src/services/integrations.service.js';
+import { RepositoryService } from '../src/services/repository.service.js';
+import { ScheduleService } from '../src/services/schedule.service.js';
+import { newImmichHooksMock } from './mocks.js';
+import { createTestingModule, TestContext } from './testUtils.js';
 
 let ctx: TestContext;
 

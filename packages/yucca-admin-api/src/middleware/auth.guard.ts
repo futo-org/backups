@@ -9,9 +9,9 @@ import {
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { Request } from 'express';
-import { AuthDto } from 'src/dto/auth.dto';
-import { MetadataKey } from 'src/enum';
-import { AuthService } from 'src/services/auth.service';
+import { AuthDto } from 'src/dto/auth.dto.js';
+import { MetadataKey } from 'src/enum.js';
+import { AuthService } from 'src/services/auth.service.js';
 
 export const AuthRoute = (options = {}): MethodDecorator => {
   return applyDecorators(SetMetadata(MetadataKey.Auth, options));

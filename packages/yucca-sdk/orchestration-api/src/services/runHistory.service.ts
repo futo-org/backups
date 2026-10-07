@@ -1,10 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import { Observable } from 'rxjs';
-import { TaskStatus, TaskType } from '../enum';
-import { BackendRepository } from '../repositories/backend.repository';
-import { RepositoryRepository } from '../repositories/repository.repository';
-import { RunHistoryRepository } from '../repositories/runHistory.repository';
-import { TelemetryService } from './telemetry.service';
+import { TaskStatus, TaskType } from '../enum.js';
+import { BackendRepository } from '../repositories/backend.repository.js';
+import { RepositoryRepository } from '../repositories/repository.repository.js';
+import { RunHistoryRepository } from '../repositories/runHistory.repository.js';
+import { TelemetryService } from './telemetry.service.js';
 
 @Injectable()
 export class RunHistoryService {

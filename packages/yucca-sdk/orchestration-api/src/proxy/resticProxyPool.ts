@@ -1,9 +1,9 @@
 import { Injectable, OnApplicationBootstrap, OnApplicationShutdown } from '@nestjs/common';
 import { OnEvent } from '@nestjs/event-emitter';
-import { InternalEvent } from '../enum';
-import type { ModuleConfig } from '../moduleConfig';
-import { ModuleConfigRepository } from '../repositories/moduleConfig.repository';
-import { ResticProxy, ResticProxyThrottle, UNTHROTTLED } from './resticProxy';
+import { InternalEvent } from '../enum.js';
+import type { ModuleConfig } from '../moduleConfig.js';
+import { ModuleConfigRepository } from '../repositories/moduleConfig.repository.js';
+import { ResticProxy, ResticProxyThrottle, UNTHROTTLED } from './resticProxy.js';
 
 @Injectable()
 export class ResticProxyPool implements OnApplicationBootstrap, OnApplicationShutdown {

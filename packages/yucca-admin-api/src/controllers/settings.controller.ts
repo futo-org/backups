@@ -1,8 +1,8 @@
 import { Body, Controller, Delete, Get, HttpCode, HttpStatus, Param, Put } from '@nestjs/common';
 import { ApiBody, ApiOkResponse } from '@nestjs/swagger';
-import { SettingsEntryResponseDto, SettingsListResponseDto, SettingsValueDto } from 'src/dto/settings.dto';
-import { AuthRoute } from 'src/middleware/auth.guard';
-import { SettingsService } from 'src/services/settings.service';
+import { SettingsEntryResponseDto, SettingsListResponseDto, SettingsValueDto } from 'src/dto/settings.dto.js';
+import { AuthRoute } from 'src/middleware/auth.guard.js';
+import { SettingsService } from 'src/services/settings.service.js';
 
 @Controller('/settings')
 export class SettingsController {

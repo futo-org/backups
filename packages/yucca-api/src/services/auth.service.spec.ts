@@ -1,9 +1,10 @@
+import { jest } from '@jest/globals';
 import { UnauthorizedException } from '@nestjs/common';
-import { AuthDto } from 'src/dto/auth.dto';
-import { TicketAction } from 'src/enum';
-import { env } from 'src/env';
-import { Mocks, newMocks } from '../../test/mocks';
-import { AuthService } from './auth.service';
+import { AuthDto } from 'src/dto/auth.dto.js';
+import { TicketAction } from 'src/enum.js';
+import { env } from 'src/env.js';
+import { Mocks, newMocks } from '../../test/mocks.js';
+import { AuthService } from './auth.service.js';
 
 const mockAuth: AuthDto = {
   id: 'user',

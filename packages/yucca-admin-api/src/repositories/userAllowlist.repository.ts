@@ -1,9 +1,9 @@
 import { Injectable } from '@nestjs/common';
 import { Insertable, Kysely, Updateable } from 'kysely';
 import { InjectKysely } from 'nestjs-kysely';
-import { DB } from 'src/schema';
-import { UserAllowlistTable } from 'src/schema/tables/userAllowlist.table';
-import { toCursorPage } from 'src/utils/pagination';
+import { DB } from 'src/schema/index.js';
+import { UserAllowlistTable } from 'src/schema/tables/userAllowlist.table.js';
+import { toCursorPage } from 'src/utils/pagination.js';
 
 @Injectable()
 export class UserAllowlistRepository {

@@ -5,9 +5,9 @@ import {
   DiscordInviteBatchCancelResponseDto,
   DiscordInviteBatchListResponseDto,
   DiscordInviteClaimListResponseDto,
-} from 'src/dto/discordInvite.dto';
-import { AuthRoute } from 'src/middleware/auth.guard';
-import { DiscordInviteService } from 'src/services/discordInvite.service';
+} from 'src/dto/discordInvite.dto.js';
+import { AuthRoute } from 'src/middleware/auth.guard.js';
+import { DiscordInviteService } from 'src/services/discordInvite.service.js';
 
 @Controller('/discord-invites')
 export class DiscordInviteController {

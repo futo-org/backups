@@ -5,11 +5,11 @@ import { KyselyModule } from 'nestjs-kysely';
 import { mkdtemp } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { ModuleConfigProvider } from 'src/moduleConfig';
-import { ConfigRepository } from 'src/repositories/config.repository';
-import { DatabaseRepository } from 'src/repositories/database.repository';
-import { LoggingRepository } from 'src/repositories/logging.repository';
-import { StorageRepository } from 'src/repositories/storage.repository';
+import { ModuleConfigProvider } from '../src/moduleConfig.js';
+import { ConfigRepository } from '../src/repositories/config.repository.js';
+import { DatabaseRepository } from '../src/repositories/database.repository.js';
+import { LoggingRepository } from '../src/repositories/logging.repository.js';
+import { StorageRepository } from '../src/repositories/storage.repository.js';
 
 type Boot = {
   config: ConfigRepository;

@@ -1,5 +1,5 @@
 import { Column, ForeignKeyColumn, type Generated, Table } from '@immich/sql-tools';
-import { UserTable } from './user.table';
+import { UserTable } from './user.table.js';
 
 @Table({ name: 'discordLinks' })
 export class DiscordLinkTable {

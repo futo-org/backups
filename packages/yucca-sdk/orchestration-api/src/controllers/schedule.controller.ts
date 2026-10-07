@@ -6,8 +6,8 @@ import {
   ScheduleListResponseDto,
   ScheduleUpdateRequestDto,
   ScheduleUpdateResponseDto,
-} from '../dto/schedule.dto';
-import { ScheduleService } from '../services/schedule.service';
+} from '../dto/schedule.dto.js';
+import { ScheduleService } from '../services/schedule.service.js';
 
 @Controller('/yucca/schedule')
 export class ScheduleController {

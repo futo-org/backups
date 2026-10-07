@@ -3,11 +3,11 @@ import { LoggerRepository, MetricService } from '@common/server/otel';
 import { Injectable, OnApplicationBootstrap } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { Gauge } from '@opentelemetry/api';
-import { env } from 'src/env';
-import { ConnectionMetricsRepository } from 'src/repositories/connectionMetrics.repository';
-import { MeterRepository } from 'src/repositories/meter.repository';
-import { RepositoryRepository } from 'src/repositories/repository.repository';
-import { RgwFleetRepository } from 'src/repositories/rgwFleet.repository';
+import { env } from 'src/env.js';
+import { ConnectionMetricsRepository } from 'src/repositories/connectionMetrics.repository.js';
+import { MeterRepository } from 'src/repositories/meter.repository.js';
+import { RepositoryRepository } from 'src/repositories/repository.repository.js';
+import { RgwFleetRepository } from 'src/repositories/rgwFleet.repository.js';
 
 @Injectable()
 export class MetricsService implements OnApplicationBootstrap {

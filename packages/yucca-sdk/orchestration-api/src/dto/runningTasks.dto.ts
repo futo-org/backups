@@ -1,6 +1,6 @@
 import { createZodDto } from 'nestjs-zod';
 import { z } from 'zod';
-import { TaskStatus, TaskType } from '../enum';
+import { TaskStatus, TaskType } from '../enum.js';
 
 export const TaskStatusSchema = z.enum(TaskStatus).meta({ id: 'TaskStatus' });
 export const TaskTypeSchema = z.enum(TaskType).meta({ id: 'TaskType' });

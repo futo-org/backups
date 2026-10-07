@@ -1,13 +1,13 @@
 import { Body, Controller, Post, Req, Res, Sse } from '@nestjs/common';
 import { ApiBody, ApiCreatedResponse, ApiOkResponse } from '@nestjs/swagger';
 import { type Request, type Response } from 'express';
-import { SESSION_TTL_MS } from '../const';
-import { CreateSessionRequestDto, DeviceFlowEventDto } from '../dto/auth.dto';
-import { TicketCreateRequestDto, TicketCreateResponseDto } from '../dto/ticket.dto';
-import { CookieName } from '../enum';
-import { PublicRoute } from '../middleware/session.guard';
-import { AuthService } from '../services/auth.service';
-import { SessionService } from '../services/session.service';
+import { SESSION_TTL_MS } from '../const.js';
+import { CreateSessionRequestDto, DeviceFlowEventDto } from '../dto/auth.dto.js';
+import { TicketCreateRequestDto, TicketCreateResponseDto } from '../dto/ticket.dto.js';
+import { CookieName } from '../enum.js';
+import { PublicRoute } from '../middleware/session.guard.js';
+import { AuthService } from '../services/auth.service.js';
+import { SessionService } from '../services/session.service.js';
 
 @Controller('/yucca/auth')
 export class AuthController {

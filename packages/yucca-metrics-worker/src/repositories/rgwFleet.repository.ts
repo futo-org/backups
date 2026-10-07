@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
-import { env } from 'src/env';
-import { RgwRepository } from 'src/repositories/rgw.repository';
-import { Topology, TopologyRepository } from 'src/repositories/topology.repository';
+import { env } from 'src/env.js';
+import { RgwRepository } from 'src/repositories/rgw.repository.js';
+import { Topology, TopologyRepository } from 'src/repositories/topology.repository.js';
 
 export type FleetCluster = { siteCode: string; clusterCode: string; rgw: RgwRepository };
 

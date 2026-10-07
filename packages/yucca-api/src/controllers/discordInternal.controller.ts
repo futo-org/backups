@@ -26,9 +26,9 @@ import {
   DiscordTicketListDto,
   DiscordTicketUpdateDto,
   DiscordUserSummaryDto,
-} from 'src/dto/discord.dto';
-import { InternalGuard } from 'src/middleware/internal.guard';
-import { DiscordService } from 'src/services/discord.service';
+} from 'src/dto/discord.dto.js';
+import { InternalGuard } from 'src/middleware/internal.guard.js';
+import { DiscordService } from 'src/services/discord.service.js';
 
 @Controller('/internal/discord')
 @UseGuards(InternalGuard)

@@ -1,7 +1,7 @@
 import { Column, ForeignKeyColumn, type Generated, Table } from '@immich/sql-tools';
-import { AuditAction } from 'src/enum';
-import { audit_action_enum } from '../enums';
-import { UserTable } from './user.table';
+import { AuditAction } from 'src/enum.js';
+import { audit_action_enum } from '../enums.js';
+import { UserTable } from './user.table.js';
 
 export interface AuditLogDetail {
   ticket: { id: string; validAt: Date | null };

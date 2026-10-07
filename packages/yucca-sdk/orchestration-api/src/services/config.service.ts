@@ -1,8 +1,8 @@
 import { Injectable } from '@nestjs/common';
-import { ConfigResponseDto, ConfigUpdateRequestDto } from '../dto/config.dto';
-import { UNTHROTTLED } from '../proxy/resticProxy';
-import { ConfigRepository } from '../repositories/config.repository';
-import { ModuleConfigRepository } from '../repositories/moduleConfig.repository';
+import { ConfigResponseDto, ConfigUpdateRequestDto } from '../dto/config.dto.js';
+import { UNTHROTTLED } from '../proxy/resticProxy.js';
+import { ConfigRepository } from '../repositories/config.repository.js';
+import { ModuleConfigRepository } from '../repositories/moduleConfig.repository.js';
 
 @Injectable()
 export class ConfigService {

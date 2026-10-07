@@ -1,7 +1,7 @@
 import { LoggerRepository } from '@common/server/otel';
 import { BadRequestException, Body, Controller, HttpCode, HttpStatus, Post, UseGuards } from '@nestjs/common';
-import { FreshdeskWebhookGuard } from 'src/middleware/freshdeskWebhook.guard';
-import { FreshdeskSyncService } from 'src/services/freshdeskSync.service';
+import { FreshdeskWebhookGuard } from 'src/middleware/freshdeskWebhook.guard.js';
+import { FreshdeskSyncService } from 'src/services/freshdeskSync.service.js';
 import { z } from 'zod';
 
 const pingSchema = z.object({

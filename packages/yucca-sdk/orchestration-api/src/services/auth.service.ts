@@ -9,18 +9,18 @@ import { EventIterator } from 'event-iterator';
 import { createEventSource, EventSourceClient } from 'eventsource-client';
 import { hostname } from 'node:os';
 import { from } from 'rxjs';
-import { REPOSITORY_DEFAULT_CLOUD_UUID } from '../const';
-import { DeviceFlowEventDto } from '../dto/auth.dto';
-import { TicketCreateResponseDto } from '../dto/ticket.dto';
-import { BackendType, CookieName, DeviceFlowEventType, DeviceFlowFailureReason } from '../enum';
-import { EventsGateway } from '../events/events.gateway';
-import { BackendRepository } from '../repositories/backend.repository';
-import { ConfigRepository } from '../repositories/config.repository';
-import { ModuleConfigRepository } from '../repositories/moduleConfig.repository';
-import { RepositoryRepository } from '../repositories/repository.repository';
-import { yuccaWellKnown } from '../wellKnown';
-import { SessionService } from './session.service';
-import { TelemetryService } from './telemetry.service';
+import { REPOSITORY_DEFAULT_CLOUD_UUID } from '../const.js';
+import { DeviceFlowEventDto } from '../dto/auth.dto.js';
+import { TicketCreateResponseDto } from '../dto/ticket.dto.js';
+import { BackendType, CookieName, DeviceFlowEventType, DeviceFlowFailureReason } from '../enum.js';
+import { EventsGateway } from '../events/events.gateway.js';
+import { BackendRepository } from '../repositories/backend.repository.js';
+import { ConfigRepository } from '../repositories/config.repository.js';
+import { ModuleConfigRepository } from '../repositories/moduleConfig.repository.js';
+import { RepositoryRepository } from '../repositories/repository.repository.js';
+import { yuccaWellKnown } from '../wellKnown.js';
+import { SessionService } from './session.service.js';
+import { TelemetryService } from './telemetry.service.js';
 
 @Injectable()
 export class AuthService {

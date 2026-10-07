@@ -1,13 +1,13 @@
 import { FileMigrationProvider, Kysely, Migrator, sql } from 'kysely';
 import { readdir } from 'node:fs/promises';
 import { join } from 'node:path';
-import { BackupStatus } from 'src/enum';
-import { ConnectionRepository } from 'src/repositories/connection.repository';
-import { CryptoRepository } from 'src/repositories/crypto.repository';
-import { RepositoryRepository } from 'src/repositories/repository.repository';
-import { UserRepository } from 'src/repositories/user.repository';
-import { DB } from 'src/schema';
-import { getKyselyConfig } from 'src/utils/database';
+import { BackupStatus } from 'src/enum.js';
+import { ConnectionRepository } from 'src/repositories/connection.repository.js';
+import { CryptoRepository } from 'src/repositories/crypto.repository.js';
+import { RepositoryRepository } from 'src/repositories/repository.repository.js';
+import { UserRepository } from 'src/repositories/user.repository.js';
+import { DB } from 'src/schema/index.js';
+import { getKyselyConfig } from 'src/utils/database.js';
 
 describe('AllowCancelledBackupStatus migration', () => {
   const schema = `migration_test_${new CryptoRepository().randomHex(8)}`;
@@ -35,7 +35,7 @@ describe('AllowCancelledBackupStatus migration', () => {
       provider: new FileMigrationProvider({
         fs: { readdir },
         path: { join },
-        migrationFolder: join(__dirname, '..', 'src/schema/migrations'),
+        migrationFolder: join(import.meta.dirname, '..', 'src/schema/migrations'),
       }),
     });
 

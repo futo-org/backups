@@ -1,7 +1,7 @@
 import { Injectable, OnModuleInit } from '@nestjs/common';
-import { env } from 'src/env';
-import { StorageRepository } from 'src/repositories/storage.repository';
-import { TopologyRepository } from 'src/repositories/topology.repository';
+import { env } from 'src/env.js';
+import { StorageRepository } from 'src/repositories/storage.repository.js';
+import { TopologyRepository } from 'src/repositories/topology.repository.js';
 
 @Injectable()
 export class TopologyService implements OnModuleInit {

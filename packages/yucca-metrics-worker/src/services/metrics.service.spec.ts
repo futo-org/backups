@@ -1,4 +1,5 @@
-import { MetricsService } from './metrics.service';
+import { jest } from '@jest/globals';
+import { MetricsService } from './metrics.service.js';
 
 const bucketStats = (entries: Array<{ bucket: string; bytes: number; objects: number }>) =>
   (async function* () {

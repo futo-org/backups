@@ -1,6 +1,6 @@
 import { Controller, Delete, HttpCode, HttpStatus, Param } from '@nestjs/common';
-import { AuthRoute } from 'src/middleware/auth.guard';
-import { SessionService } from 'src/services/session.service';
+import { AuthRoute } from 'src/middleware/auth.guard.js';
+import { SessionService } from 'src/services/session.service.js';
 
 @Controller('/session')
 export class SessionController {

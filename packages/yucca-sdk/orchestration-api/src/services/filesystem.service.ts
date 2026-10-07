@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { dirname, resolve, sep } from 'node:path';
-import { FilesystemListingRequestDto, FilesystemListingResponseDto } from '../dto/filesystem.dto';
-import { StorageRepository } from '../repositories/storage.repository';
+import { FilesystemListingRequestDto, FilesystemListingResponseDto } from '../dto/filesystem.dto.js';
+import { StorageRepository } from '../repositories/storage.repository.js';
 
 @Injectable()
 export class FilesystemService {

@@ -1,5 +1,5 @@
 import { Column, ForeignKeyColumn, type Generated, Table } from '@immich/sql-tools';
-import { UserAllowlistTable } from './userAllowlist.table';
+import { UserAllowlistTable } from './userAllowlist.table.js';
 
 @Table({ name: 'discordLinkRequests' })
 export class DiscordLinkRequestTable {

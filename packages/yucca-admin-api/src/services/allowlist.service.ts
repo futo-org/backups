@@ -11,11 +11,11 @@ import {
   AllowlistInviteRequestDto,
   AllowlistListQueryDto,
   AllowlistListResponseDto,
-} from 'src/dto/allowlist.dto';
-import { env } from 'src/env';
-import { UserAllowlistRepository } from 'src/repositories/userAllowlist.repository';
-import { generateInviteCode } from 'src/utils/invite-code';
-import { resolveLimit } from 'src/utils/pagination';
+} from 'src/dto/allowlist.dto.js';
+import { env } from 'src/env.js';
+import { UserAllowlistRepository } from 'src/repositories/userAllowlist.repository.js';
+import { generateInviteCode } from 'src/utils/invite-code.js';
+import { resolveLimit } from 'src/utils/pagination.js';
 
 @Injectable()
 export class AllowlistService {

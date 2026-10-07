@@ -1,6 +1,9 @@
+import { jest } from '@jest/globals';
 export const createRepository = jest.fn();
 export const createResticUrl = jest.fn();
+export const createTicket = jest.fn();
 export const deleteRepository = jest.fn();
+export const adoptRepositories = jest.fn();
 export const getAuth = jest.fn();
 export const getRepositories = jest.fn();
 export const getRepository = jest.fn();

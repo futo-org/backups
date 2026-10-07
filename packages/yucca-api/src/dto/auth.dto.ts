@@ -1,5 +1,5 @@
 import { createZodDto } from 'nestjs-zod';
-import { DeviceFlowEventType, DeviceFlowFailureReason } from 'src/enum';
+import { DeviceFlowEventType, DeviceFlowFailureReason } from 'src/enum.js';
 import { z } from 'zod';
 
 const AuthSchema = z

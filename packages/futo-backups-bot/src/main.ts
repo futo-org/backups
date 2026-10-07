@@ -1,8 +1,8 @@
 import '@common/server/otel';
 
 import { NestFactory } from '@nestjs/core';
-import { AppModule } from './app.module';
-import { env } from './env';
+import { AppModule } from './app.module.js';
+import { env } from './env.js';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);

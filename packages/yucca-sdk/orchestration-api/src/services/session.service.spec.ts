@@ -1,7 +1,6 @@
+import { jest } from '@jest/globals';
 import { JwtService } from '@nestjs/jwt';
-import { SessionService } from './session.service';
-
-jest.mock('@futo-org/backups-api-client', () => ({}));
+import { SessionService } from './session.service.js';
 
 describe(SessionService.name, () => {
   const userId = 'a06b5b4e-3d21-4d3f-9d4b-c0ffee000001';

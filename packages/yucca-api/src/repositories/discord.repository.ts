@@ -1,11 +1,11 @@
 import { Injectable } from '@nestjs/common';
 import { Insertable, Kysely, Selectable, Updateable, sql } from 'kysely';
 import { InjectKysely } from 'nestjs-kysely';
-import { DB } from 'src/schema';
-import { DiscordInviteBatchTable } from 'src/schema/tables/discordInviteBatch.table';
-import { DiscordLinkRequestTable } from 'src/schema/tables/discordLinkRequest.table';
-import { DiscordTicketTable } from 'src/schema/tables/discordTicket.table';
-import { UserAllowlistTable } from 'src/schema/tables/userAllowlist.table';
+import { DB } from 'src/schema/index.js';
+import { DiscordInviteBatchTable } from 'src/schema/tables/discordInviteBatch.table.js';
+import { DiscordLinkRequestTable } from 'src/schema/tables/discordLinkRequest.table.js';
+import { DiscordTicketTable } from 'src/schema/tables/discordTicket.table.js';
+import { UserAllowlistTable } from 'src/schema/tables/userAllowlist.table.js';
 
 export type InviteClaimResult =
   | { status: 'linked' | 'used' | 'unknownBatch' | 'exhausted' | 'cancelled' }

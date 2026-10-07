@@ -1,6 +1,6 @@
 import { AnyThreadChannel, ThreadChannel } from 'discord.js';
-import { SweepService } from 'src/services/sweep.service';
-import { Mocks, newMocks } from '../../test/mocks';
+import { SweepService } from 'src/services/sweep.service.js';
+import { Mocks, newMocks } from '../../test/mocks.js';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 

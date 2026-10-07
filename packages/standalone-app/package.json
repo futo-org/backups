@@ -14,7 +14,7 @@
     "dev": "vite dev --port 36067",
     "dev:server": "tsx watch src/server/main.ts",
     "build:ui": "vite build",
-    "build:server": "tsc -p tsconfig.server.json && echo '{\"type\":\"commonjs\"}' > dist/package.json",
+    "build:server": "tsc -p tsconfig.server.json",
     "build": "npm run build:ui && npm run build:server",
     "start": "node dist/main.js",
     "check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",

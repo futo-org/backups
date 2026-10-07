@@ -8,9 +8,9 @@ import {
   AllowlistInviteRequestDto,
   AllowlistListQueryDto,
   AllowlistListResponseDto,
-} from 'src/dto/allowlist.dto';
-import { AuthRoute } from 'src/middleware/auth.guard';
-import { AllowlistService } from 'src/services/allowlist.service';
+} from 'src/dto/allowlist.dto.js';
+import { AuthRoute } from 'src/middleware/auth.guard.js';
+import { AllowlistService } from 'src/services/allowlist.service.js';
 
 @Controller('/allowlist')
 export class AllowlistController {

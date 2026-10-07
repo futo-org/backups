@@ -1,8 +1,8 @@
 import { Body, Controller, Get, Param, Post } from '@nestjs/common';
 import { ApiCreatedResponse, ApiOkResponse } from '@nestjs/swagger';
-import { ColumboInvestigateRequestDto, ColumboInvestigationDto } from 'src/dto/columbo.dto';
-import { AuthRoute } from 'src/middleware/auth.guard';
-import { ColumboService } from 'src/services/columbo.service';
+import { ColumboInvestigateRequestDto, ColumboInvestigationDto } from 'src/dto/columbo.dto.js';
+import { AuthRoute } from 'src/middleware/auth.guard.js';
+import { ColumboService } from 'src/services/columbo.service.js';
 
 @Controller('/columbo')
 export class ColumboController {

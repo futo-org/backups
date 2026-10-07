@@ -1,7 +1,4 @@
 {
-  "ts-node": {
-    "require": ["tsconfig-paths/register"]
-  },
   "compilerOptions": {
     "module": "nodenext",
     "moduleResolution": "nodenext",
@@ -22,8 +19,7 @@
     "noImplicitAny": true,
     "strictBindCallApply": false,
     "noFallthroughCasesInSwitch": false,
-    "baseUrl": ".",
-    "paths": { "src/*": ["src/*"] },
+    "rootDir": ".",
     "outDir": "dist",
     "types": ["@types/node", "@types/jest"]
   },

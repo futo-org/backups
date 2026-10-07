@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
-import { SessionListResponseDto } from 'src/dto/session.dto';
-import { SessionRepository } from 'src/repositories/session.repository';
+import { SessionListResponseDto } from 'src/dto/session.dto.js';
+import { SessionRepository } from 'src/repositories/session.repository.js';
 
 @Injectable()
 export class SessionService {

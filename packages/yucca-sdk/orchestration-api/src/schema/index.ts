@@ -1,12 +1,12 @@
-import { BackendTable } from './tables/backend.table';
-import { ConfigTable } from './tables/config.table';
-import { RepositoryTable } from './tables/repository.table';
-import { RepositoryIntegrationImmichTable } from './tables/repositoryIntegrationImmich.table';
-import { RepositoryLocalMetricsTable } from './tables/repositoryLocalMetrics.table';
-import { RepositoryPathTable } from './tables/repositoryPath.table';
-import { RepositoryScheduleTable } from './tables/repositorySchedule.table';
-import { RunHistoryTable } from './tables/runHistory.table';
-import { ScheduleTable } from './tables/schedule.table';
+import { BackendTable } from './tables/backend.table.js';
+import { ConfigTable } from './tables/config.table.js';
+import { RepositoryTable } from './tables/repository.table.js';
+import { RepositoryIntegrationImmichTable } from './tables/repositoryIntegrationImmich.table.js';
+import { RepositoryLocalMetricsTable } from './tables/repositoryLocalMetrics.table.js';
+import { RepositoryPathTable } from './tables/repositoryPath.table.js';
+import { RepositoryScheduleTable } from './tables/repositorySchedule.table.js';
+import { RunHistoryTable } from './tables/runHistory.table.js';
+import { ScheduleTable } from './tables/schedule.table.js';
 
 export interface DB {
   backends: BackendTable;

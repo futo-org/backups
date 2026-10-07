@@ -1,5 +1,5 @@
 import { Generated } from 'kysely';
-import { BackendType } from '../../enum';
+import { BackendType } from '../../enum.js';
 
 export type BackendConfiguration =
   | {

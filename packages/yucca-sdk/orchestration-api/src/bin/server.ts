@@ -1,6 +1,6 @@
 import { NestFactory } from '@nestjs/core';
 import { ZodValidationPipe } from 'nestjs-zod';
-import { LoggingRepository, ORCHESTRATION_PORT, OrchestrationApiModule } from '../src';
+import { LoggingRepository, ORCHESTRATION_PORT, OrchestrationApiModule } from '../index.js';
 
 async function bootstrap() {
   const databaseDumpConfig = { enabled: true, keepLastAmount: 14 };
@@ -22,20 +22,21 @@ async function bootstrap() {
             },
           ],
           hooks: {
-            async createDatabaseBackup() {
-              return 'dev-database-backup.sql';
+            createDatabaseBackup() {
+              return Promise.resolve('dev-database-backup.sql');
             },
             async cleanupDatabaseBackups() {},
-            async getImmichDatabaseDumpConfig() {
-              return databaseDumpConfig;
+            getImmichDatabaseDumpConfig() {
+              return Promise.resolve(databaseDumpConfig);
             },
-            async configureImmichDatabaseDump(config) {
+            configureImmichDatabaseDump(config) {
               Object.assign(databaseDumpConfig, config);
+              return Promise.resolve();
             },
-            async enterMaintenanceRollback(repositoryId, snapshotId, backupFileName) {
-              return {
+            enterMaintenanceRollback(repositoryId, snapshotId, backupFileName) {
+              return Promise.resolve({
                 jwt: [repositoryId, snapshotId, backupFileName].join(':'),
-              };
+              });
             },
           },
         },

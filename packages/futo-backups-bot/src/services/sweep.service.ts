@@ -1,10 +1,10 @@
 import { LoggerRepository } from '@common/server/otel';
 import { Injectable } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
-import { env } from 'src/env';
-import { DiscordRepository } from 'src/repositories/discord.repository';
-import { TranscriptStorageRepository } from 'src/repositories/transcriptStorage.repository';
-import { formatTranscript } from 'src/utils/transcript';
+import { env } from 'src/env.js';
+import { DiscordRepository } from 'src/repositories/discord.repository.js';
+import { TranscriptStorageRepository } from 'src/repositories/transcriptStorage.repository.js';
+import { formatTranscript } from 'src/utils/transcript.js';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 

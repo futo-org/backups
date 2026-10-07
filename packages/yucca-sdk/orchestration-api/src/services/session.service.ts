@@ -1,12 +1,12 @@
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { parse as parseCookies } from 'cookie';
-import { REPOSITORY_DEFAULT_CLOUD_UUID, SESSION_TTL_MS } from '../const';
-import { BackendType, CookieName } from '../enum';
-import { BackendRepository } from '../repositories/backend.repository';
-import { ConfigRepository } from '../repositories/config.repository';
-import { ModuleConfigRepository } from '../repositories/moduleConfig.repository';
-import { BackendConfiguration } from '../schema/tables/backend.table';
+import { REPOSITORY_DEFAULT_CLOUD_UUID, SESSION_TTL_MS } from '../const.js';
+import { BackendType, CookieName } from '../enum.js';
+import { BackendRepository } from '../repositories/backend.repository.js';
+import { ConfigRepository } from '../repositories/config.repository.js';
+import { ModuleConfigRepository } from '../repositories/moduleConfig.repository.js';
+import { BackendConfiguration } from '../schema/tables/backend.table.js';
 
 export type CloudConfiguration = BackendConfiguration & { type: BackendType.Yucca };
 

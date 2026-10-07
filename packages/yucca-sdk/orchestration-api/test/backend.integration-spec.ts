@@ -1,6 +1,6 @@
-import { BackendRepository } from 'src/repositories/backend.repository';
-import { BackendService } from 'src/services/backend.service';
-import { createTestingModule, TestContext } from './testUtils';
+import { BackendRepository } from '../src/repositories/backend.repository.js';
+import { BackendService } from '../src/services/backend.service.js';
+import { createTestingModule, TestContext } from './testUtils.js';
 
 let ctx: TestContext;
 

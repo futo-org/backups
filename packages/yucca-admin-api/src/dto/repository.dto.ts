@@ -1,8 +1,8 @@
 import { ConnectionTypes, isoDatetimeToDate } from '@common/server';
 import { createZodDto } from 'nestjs-zod';
-import { CursorPaginationSchema } from 'src/dto/pagination.dto';
+import { CursorPaginationSchema } from 'src/dto/pagination.dto.js';
 import { z } from 'zod';
-import { BackupStatusSchema } from './metrics.dto';
+import { BackupStatusSchema } from './metrics.dto.js';
 
 const RepositoryOwnerSchema = z
   .object({

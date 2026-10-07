@@ -1,9 +1,9 @@
 import { Controller, Get, HttpCode, HttpStatus, Param, Post } from '@nestjs/common';
 import { ApiOkResponse } from '@nestjs/swagger';
-import { AuthDto } from 'src/dto/auth.dto';
-import { DiscordInviteResponseDto, DiscordLinkRequestResponseDto } from 'src/dto/discord.dto';
-import { Auth, AuthRoute } from 'src/middleware/auth.guard';
-import { DiscordService } from 'src/services/discord.service';
+import { AuthDto } from 'src/dto/auth.dto.js';
+import { DiscordInviteResponseDto, DiscordLinkRequestResponseDto } from 'src/dto/discord.dto.js';
+import { Auth, AuthRoute } from 'src/middleware/auth.guard.js';
+import { DiscordService } from 'src/services/discord.service.js';
 
 @Controller('/discord')
 export class DiscordController {

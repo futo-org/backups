@@ -1,6 +1,6 @@
 import { isoDatetimeToDate } from '@common/server';
 import { createZodDto } from 'nestjs-zod';
-import { CursorPaginationSchema } from 'src/dto/pagination.dto';
+import { CursorPaginationSchema } from 'src/dto/pagination.dto.js';
 import { z } from 'zod';
 
 const UserSchema = z

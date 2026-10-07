@@ -4,9 +4,9 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { randomUUID } from 'node:crypto';
 import request from 'supertest';
 import { App } from 'supertest/types';
-import { controllers, imports, providers } from '../src/app.module';
-import { newMetricServiceMock } from './mocks';
-import { testUtils } from './testUtils';
+import { controllers, imports, providers } from '../src/app.module.js';
+import { newMetricServiceMock } from './mocks.js';
+import { testUtils } from './testUtils.js';
 
 describe('ConnectionController (e2e)', () => {
   let app: INestApplication<App>;

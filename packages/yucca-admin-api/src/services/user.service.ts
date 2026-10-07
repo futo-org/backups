@@ -7,11 +7,11 @@ import {
   UserListResponseDto,
   UserUpdateRequestDto,
   UserUpdateResponseDto,
-} from 'src/dto/user.dto';
-import { DiscordLinkRepository } from 'src/repositories/discordLink.repository';
-import { SessionRepository } from 'src/repositories/session.repository';
-import { UserRepository } from 'src/repositories/user.repository';
-import { resolveLimit } from 'src/utils/pagination';
+} from 'src/dto/user.dto.js';
+import { DiscordLinkRepository } from 'src/repositories/discordLink.repository.js';
+import { SessionRepository } from 'src/repositories/session.repository.js';
+import { UserRepository } from 'src/repositories/user.repository.js';
+import { resolveLimit } from 'src/utils/pagination.js';
 
 @Injectable()
 export class UserService {

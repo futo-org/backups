@@ -1,7 +1,7 @@
 import { isoDatetimeToDate } from '@common/server';
 import { createZodDto } from 'nestjs-zod';
 import { z } from 'zod';
-import { BackupStatusSchema } from './metrics.dto';
+import { BackupStatusSchema } from './metrics.dto.js';
 
 const RepositorySchema = z
   .object({

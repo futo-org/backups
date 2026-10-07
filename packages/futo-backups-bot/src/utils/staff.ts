@@ -1,5 +1,5 @@
 import { ButtonInteraction, ChatInputCommandInteraction } from 'discord.js';
-import { env } from 'src/env';
+import { env } from 'src/env.js';
 
 export const isStaff = (interaction: ButtonInteraction | ChatInputCommandInteraction): boolean => {
   const roles = interaction.member?.roles;

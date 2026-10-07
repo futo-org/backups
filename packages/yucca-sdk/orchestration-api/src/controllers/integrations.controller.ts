@@ -7,11 +7,11 @@ import {
   ImmichBackupStatusDto,
   ImmichRollbackRequestDto,
   IntegrationsResponseDto,
-} from '../dto/integrations.dto';
+} from '../dto/integrations.dto.js';
 
 import { type Response } from 'express';
-import { ImmichCookie } from '../enum';
-import { IntegrationsService } from '../services/integrations.service';
+import { ImmichCookie } from '../enum.js';
+import { IntegrationsService } from '../services/integrations.service.js';
 
 @Controller('/yucca/integrations')
 export class IntegrationsController {

@@ -1,8 +1,8 @@
 import { CallHandler, ExecutionContext, HttpException, Injectable, NestInterceptor } from '@nestjs/common';
-import { PATH_METADATA } from '@nestjs/common/constants';
+import { PATH_METADATA } from '@nestjs/common/constants.js';
 import { Request } from 'express';
 import { Observable, catchError, throwError } from 'rxjs';
-import { TelemetryService } from '../services/telemetry.service';
+import { TelemetryService } from '../services/telemetry.service.js';
 
 @Injectable()
 export class TelemetryErrorInterceptor implements NestInterceptor {

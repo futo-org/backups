@@ -1,6 +1,6 @@
 import type { Socket } from 'socket.io';
-import { GatewayEvent } from './events/events.gateway';
-import type { ResticProxyThrottle } from './proxy/resticProxy';
+import { GatewayEvent } from './events/events.gateway.js';
+import type { ResticProxyThrottle } from './proxy/resticProxy.js';
 
 export const ModuleConfigProvider = Symbol('ModuleConfig');
 

@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
-import { RunningTaskListResponse } from '../dto/runningTasks.dto';
-import { RunningTasksRepository } from '../repositories/runningTasks.repository';
+import { RunningTaskListResponse } from '../dto/runningTasks.dto.js';
+import { RunningTasksRepository } from '../repositories/runningTasks.repository.js';
 
 @Injectable()
 export class RunningTasksService {

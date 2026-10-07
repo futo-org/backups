@@ -1,8 +1,8 @@
 import { createZodDto } from 'nestjs-zod';
 import { z } from 'zod';
-import { BackendSchema } from './backend.dto';
-import { LocalRepositorySchema, RetentionPolicySchema, RunSchema } from './repository.dto';
-import { ScheduleSchema } from './schedule.dto';
+import { BackendSchema } from './backend.dto.js';
+import { LocalRepositorySchema, RetentionPolicySchema, RunSchema } from './repository.dto.js';
+import { ScheduleSchema } from './schedule.dto.js';
 
 const LibrariesSchema = z.union([z.literal('all'), z.array(z.string())]);
 

@@ -1,5 +1,5 @@
-import { MetaService } from 'src/services/meta.service';
-import { Mocks, newMocks } from '../../test/mocks';
+import { MetaService } from 'src/services/meta.service.js';
+import { Mocks, newMocks } from '../../test/mocks.js';
 
 describe(MetaService.name, () => {
   let sut: MetaService;

@@ -1,5 +1,5 @@
 import { Column, ForeignKeyColumn, type Generated, Table } from '@immich/sql-tools';
-import { RepositoryTable } from './repository.table';
+import { RepositoryTable } from './repository.table.js';
 
 @Table({ name: 'repositoryMeter' })
 export class RepositoryMeterTable {

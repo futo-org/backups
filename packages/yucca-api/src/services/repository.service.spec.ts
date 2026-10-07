@@ -1,8 +1,8 @@
 import { BadRequestException, UnauthorizedException } from '@nestjs/common';
-import { AuthDto } from 'src/dto/auth.dto';
-import { TicketAction } from 'src/enum';
-import { RepositoryService } from 'src/services/repository.service';
-import { Mocks, newMocks } from '../../test/mocks';
+import { AuthDto } from 'src/dto/auth.dto.js';
+import { TicketAction } from 'src/enum.js';
+import { RepositoryService } from 'src/services/repository.service.js';
+import { Mocks, newMocks } from '../../test/mocks.js';
 
 const auth = { id: 'b6b7c231-6dc0-4bdc-82c1-92677b1e6c1c', features: {} } as AuthDto;
 

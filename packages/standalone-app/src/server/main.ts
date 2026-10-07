@@ -5,7 +5,7 @@ import express from 'express';
 import { ZodValidationPipe } from 'nestjs-zod';
 import { mkdir, stat } from 'node:fs/promises';
 import { resolve } from 'node:path';
-import { readEnv } from './env';
+import { readEnv } from './env.js';
 
 async function bootstrap() {
   const env = readEnv();

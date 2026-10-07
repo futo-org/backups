@@ -1,7 +1,7 @@
 import { Column, ForeignKeyColumn, Table } from '@immich/sql-tools';
-import { BackupStatus } from 'src/enum';
-import { backup_status_enum } from '../enums';
-import { RepositoryTable } from './repository.table';
+import { BackupStatus } from 'src/enum.js';
+import { backup_status_enum } from '../enums.js';
+import { RepositoryTable } from './repository.table.js';
 
 @Table({ name: 'repositoryMetrics' })
 export class RepositoryMetricsTable {

@@ -1,7 +1,7 @@
 import { Body, Controller, Get, Put } from '@nestjs/common';
 import { ApiOkResponse } from '@nestjs/swagger';
-import { ConfigResponseDto, ConfigUpdateRequestDto } from '../dto/config.dto';
-import { ConfigService } from '../services/config.service';
+import { ConfigResponseDto, ConfigUpdateRequestDto } from '../dto/config.dto.js';
+import { ConfigService } from '../services/config.service.js';
 
 @Controller('/yucca/config')
 export class ConfigController {

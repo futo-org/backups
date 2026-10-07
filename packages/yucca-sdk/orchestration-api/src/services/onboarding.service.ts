@@ -1,13 +1,13 @@
 import { Injectable } from '@nestjs/common';
-import { CurrentRecoveryKeyResponse, OnboardingStatusResponseDto } from '../dto/onboarding.dto';
-import { BootstrapStatus, TelemetryLevel } from '../enum';
-import { BackendRepository } from '../repositories/backend.repository';
-import { BootstrapRepository } from '../repositories/bootstrap.repository';
-import { ConfigRepository } from '../repositories/config.repository';
-import { RepositoryRepository } from '../repositories/repository.repository';
-import { ScheduleRepository } from '../repositories/schedule.repository';
-import { Session, SessionService } from './session.service';
-import { TelemetryService } from './telemetry.service';
+import { CurrentRecoveryKeyResponse, OnboardingStatusResponseDto } from '../dto/onboarding.dto.js';
+import { BootstrapStatus, TelemetryLevel } from '../enum.js';
+import { BackendRepository } from '../repositories/backend.repository.js';
+import { BootstrapRepository } from '../repositories/bootstrap.repository.js';
+import { ConfigRepository } from '../repositories/config.repository.js';
+import { RepositoryRepository } from '../repositories/repository.repository.js';
+import { ScheduleRepository } from '../repositories/schedule.repository.js';
+import { Session, SessionService } from './session.service.js';
+import { TelemetryService } from './telemetry.service.js';
 
 @Injectable()
 export class OnboardingService {

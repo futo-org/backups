@@ -13,9 +13,9 @@ import {
 import { randomUUID } from 'node:crypto';
 import { mkdir, readdir, stat } from 'node:fs/promises';
 import { resolve } from 'node:path';
-import { BackendType } from '../enum';
-import { BackendConfiguration } from '../schema/tables/backend.table';
-import { Backend } from './backend';
+import { BackendType } from '../enum.js';
+import { BackendConfiguration } from '../schema/tables/backend.table.js';
+import { Backend } from './backend.js';
 
 export class LocalBackend extends Backend {
   constructor(protected readonly configuration: BackendConfiguration & { type: BackendType.Local }) {

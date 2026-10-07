@@ -4,7 +4,7 @@ import { randomUUID } from 'node:crypto';
 import { type WriteStream } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { Observable } from 'rxjs';
-import { FilesystemListingRequestDto, FilesystemListingResponseDto } from '../dto/filesystem.dto';
+import { FilesystemListingRequestDto, FilesystemListingResponseDto } from '../dto/filesystem.dto.js';
 import {
   GetSnapshotResponseDto,
   ListSnapshotsResponseDto,
@@ -23,28 +23,29 @@ import {
   RepositoryUpdateResponseDto,
   RepositoryWithMetricsDto,
   RunHistoryResponseDto,
-} from '../dto/repository.dto';
-import { BackendType, ResticTagPrefix, TaskStatus, TaskType } from '../enum';
-import { EventsGateway } from '../events/events.gateway';
-import type { ImmichIntegration } from '../moduleConfig';
-import { BackendRepository } from '../repositories/backend.repository';
-import { ConfigRepository, ResticPlacement } from '../repositories/config.repository';
-import { DatabaseRepository } from '../repositories/database.repository';
-import { LoggingRepository } from '../repositories/logging.repository';
-import { ModuleConfigRepository } from '../repositories/moduleConfig.repository';
-import { RepositoryRepository } from '../repositories/repository.repository';
-import { RepositoryIntegrationImmichRepository } from '../repositories/repositoryIntegrationImmich.repository';
-import { RepositoryLocalMetricsRepository } from '../repositories/repositoryLocalMetrics.repository';
-import { RepositoryPathRepository } from '../repositories/repositoryPath.repository';
-import { ResticRepository } from '../repositories/restic.repository';
-import { RunHistoryRepository } from '../repositories/runHistory.repository';
-import { RunningTasksRepository } from '../repositories/runningTasks.repository';
-import { StorageRepository } from '../repositories/storage.repository';
-import { RepositoryLocalMetricsTable } from '../schema/tables/repositoryLocalMetrics.table';
-import { getTaskStatus, TaskWarningsError } from '../utils/errors';
-import { DEFAULT_RETENTION_POLICY, RetentionPolicy } from '../utils/restic';
-import { BootstrapService } from './bootstrap.service';
-import { TelemetryService } from './telemetry.service';
+} from '../dto/repository.dto.js';
+import { BackendType, ResticTagPrefix, TaskStatus, TaskType } from '../enum.js';
+import { EventsGateway } from '../events/events.gateway.js';
+import type { ImmichIntegration } from '../moduleConfig.js';
+import { BackendRepository } from '../repositories/backend.repository.js';
+import { ConfigRepository, ResticPlacement } from '../repositories/config.repository.js';
+import { DatabaseRepository } from '../repositories/database.repository.js';
+import { LoggingRepository } from '../repositories/logging.repository.js';
+import { ModuleConfigRepository } from '../repositories/moduleConfig.repository.js';
+import { RepositoryRepository } from '../repositories/repository.repository.js';
+import { RepositoryIntegrationImmichRepository } from '../repositories/repositoryIntegrationImmich.repository.js';
+import { RepositoryLocalMetricsRepository } from '../repositories/repositoryLocalMetrics.repository.js';
+import { RepositoryPathRepository } from '../repositories/repositoryPath.repository.js';
+import { ResticRepository } from '../repositories/restic.repository.js';
+import { RunHistoryRepository } from '../repositories/runHistory.repository.js';
+import { RunningTasksRepository } from '../repositories/runningTasks.repository.js';
+import { StorageRepository } from '../repositories/storage.repository.js';
+import { RepositoryLocalMetricsTable } from '../schema/tables/repositoryLocalMetrics.table.js';
+import { getTaskStatus, TaskWarningsError } from '../utils/errors.js';
+import { DEFAULT_RETENTION_POLICY, RetentionPolicy } from '../utils/restic.js';
+import type { CircularDependency } from '../utils/types.js';
+import { BootstrapService } from './bootstrap.service.js';
+import { TelemetryService } from './telemetry.service.js';
 
 @Injectable()
 export class RepositoryService {
@@ -63,7 +64,7 @@ export class RepositoryService {
     private readonly moduleConfig: ModuleConfigRepository,
     private readonly storage: StorageRepository,
     @Inject(forwardRef(() => BootstrapService))
-    private readonly bootstrap: BootstrapService,
+    private readonly bootstrap: CircularDependency<BootstrapService>,
     private readonly telemetry: TelemetryService,
     private readonly logger: LoggingRepository,
   ) {

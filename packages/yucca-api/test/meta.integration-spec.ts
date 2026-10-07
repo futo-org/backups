@@ -4,11 +4,11 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { Kysely } from 'kysely';
 import request from 'supertest';
 import { App } from 'supertest/types';
-import { controllers, imports, providers } from '../src/app.module';
-import { DB } from '../src/schema';
-import { getKyselyConfig } from '../src/utils/database';
-import { newMetricServiceMock } from './mocks';
-import { testUtils } from './testUtils';
+import { controllers, imports, providers } from '../src/app.module.js';
+import { DB } from '../src/schema/index.js';
+import { getKyselyConfig } from '../src/utils/database.js';
+import { newMetricServiceMock } from './mocks.js';
+import { testUtils } from './testUtils.js';
 
 describe('MetaController (e2e)', () => {
   let app: INestApplication<App>;

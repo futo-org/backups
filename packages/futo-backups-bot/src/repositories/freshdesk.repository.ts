@@ -1,7 +1,7 @@
 import { LoggerRepository } from '@common/server/otel';
 import { Injectable } from '@nestjs/common';
-import { env } from 'src/env';
-import { escapeHtml } from 'src/utils/mirror';
+import { env } from 'src/env.js';
+import { escapeHtml } from 'src/utils/mirror.js';
 import { z } from 'zod';
 
 export const TICKET_STATUS_OPEN = 2;

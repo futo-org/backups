@@ -1,9 +1,9 @@
 import { Injectable } from '@nestjs/common';
 import { Kysely, Updateable } from 'kysely';
 import { InjectKysely } from 'nestjs-kysely';
-import { RepositoryMetricsDto } from '../dto/repository.dto';
-import { DB } from '../schema';
-import { RepositoryLocalMetricsTable } from '../schema/tables/repositoryLocalMetrics.table';
+import { RepositoryMetricsDto } from '../dto/repository.dto.js';
+import { DB } from '../schema/index.js';
+import { RepositoryLocalMetricsTable } from '../schema/tables/repositoryLocalMetrics.table.js';
 
 @Injectable()
 export class RepositoryLocalMetricsRepository {

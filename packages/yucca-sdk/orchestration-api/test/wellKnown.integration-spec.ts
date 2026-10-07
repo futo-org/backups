@@ -1,4 +1,5 @@
-import { YuccaWellKnown } from '../src/wellKnown';
+import { jest } from '@jest/globals';
+import { YuccaWellKnown } from '../src/wellKnown.js';
 
 const meta = {
   api_root: 'https://backups.futo.cloud/api',

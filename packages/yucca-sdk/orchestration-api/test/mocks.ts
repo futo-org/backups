@@ -1,5 +1,6 @@
-import type { ImmichIntegration } from 'src/moduleConfig';
-import type { ResticRepository } from 'src/repositories/restic.repository';
+import { jest } from '@jest/globals';
+import type { ImmichIntegration } from '../src/moduleConfig.js';
+import type { ResticRepository } from '../src/repositories/restic.repository.js';
 
 export type RepositoryInterface<T extends object> = Pick<T, keyof T>;
 

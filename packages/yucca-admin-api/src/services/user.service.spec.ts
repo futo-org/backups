@@ -1,6 +1,6 @@
 import { NotFoundException } from '@nestjs/common';
-import { UserService } from 'src/services/user.service';
-import { Mocks, newMocks } from '../../test/mocks';
+import { UserService } from 'src/services/user.service.js';
+import { Mocks, newMocks } from '../../test/mocks.js';
 
 describe(UserService.name, () => {
   let sut: UserService;

@@ -1,10 +1,10 @@
 import { backup, forget, init, keyList, ls, prune, restore, snapshots, stats, unlock } from '@futo-org/restic-wrapper';
 import { Injectable } from '@nestjs/common';
 import { Writable } from 'node:stream';
-import { RepositorySnapshotRestoreRequestDto } from '../dto/repository.dto';
-import { createSampledLogWriter, RetentionPolicy } from '../utils/restic';
-import { ConfigRepository, ResticPlacement } from './config.repository';
-import { ModuleConfigRepository } from './moduleConfig.repository';
+import { RepositorySnapshotRestoreRequestDto } from '../dto/repository.dto.js';
+import { createSampledLogWriter, RetentionPolicy } from '../utils/restic.js';
+import { ConfigRepository, ResticPlacement } from './config.repository.js';
+import { ModuleConfigRepository } from './moduleConfig.repository.js';
 
 @Injectable()
 export class ResticRepository {

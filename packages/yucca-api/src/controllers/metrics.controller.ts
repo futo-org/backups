@@ -1,15 +1,15 @@
 import { Body, Controller, Get, HttpCode, HttpStatus, Param, Patch, Post, Query } from '@nestjs/common';
 import { ApiOkResponse, ApiTags } from '@nestjs/swagger';
-import { AuthDto } from 'src/dto/auth.dto';
+import { AuthDto } from 'src/dto/auth.dto.js';
 import {
   RepositoryMetricsHistoryListResponseDto,
   SubmitBackupEndRequestDto,
   SubmitStructuredLogRequestDto,
   SubmitUpdateSizeRequestDto,
-} from 'src/dto/metrics.dto';
-import { CursorPaginationDto } from 'src/dto/pagination.dto';
-import { Auth, AuthRoute } from 'src/middleware/auth.guard';
-import { MetricsService } from 'src/services/metrics.service';
+} from 'src/dto/metrics.dto.js';
+import { CursorPaginationDto } from 'src/dto/pagination.dto.js';
+import { Auth, AuthRoute } from 'src/middleware/auth.guard.js';
+import { MetricsService } from 'src/services/metrics.service.js';
 
 @ApiTags('metrics')
 @Controller('/metrics')

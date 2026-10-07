@@ -1,6 +1,7 @@
+import { jest } from '@jest/globals';
 import { EventEmitter } from 'node:events';
-import { ResticProxy, UNTHROTTLED } from './resticProxy';
-import { ResticProxyPool } from './resticProxyPool';
+import { ResticProxy, UNTHROTTLED } from './resticProxy.js';
+import { ResticProxyPool } from './resticProxyPool.js';
 
 type FakeProxy = {
   process: EventEmitter;

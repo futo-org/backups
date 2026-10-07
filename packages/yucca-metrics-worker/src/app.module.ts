@@ -3,15 +3,15 @@ import { Module } from '@nestjs/common';
 import { APP_INTERCEPTOR } from '@nestjs/core';
 import { ScheduleModule } from '@nestjs/schedule';
 import { KyselyModule } from 'nestjs-kysely';
-import { ConnectionMetricsRepository } from './repositories/connectionMetrics.repository';
-import { MeterRepository } from './repositories/meter.repository';
-import { RepositoryRepository } from './repositories/repository.repository';
-import { RgwFleetRepository } from './repositories/rgwFleet.repository';
-import { StorageRepository } from './repositories/storage.repository';
-import { TopologyRepository } from './repositories/topology.repository';
-import { MetricsService } from './services/metrics.service';
-import { TopologyService } from './services/topology.service';
-import { getKyselyConfig } from './utils/database';
+import { ConnectionMetricsRepository } from './repositories/connectionMetrics.repository.js';
+import { MeterRepository } from './repositories/meter.repository.js';
+import { RepositoryRepository } from './repositories/repository.repository.js';
+import { RgwFleetRepository } from './repositories/rgwFleet.repository.js';
+import { StorageRepository } from './repositories/storage.repository.js';
+import { TopologyRepository } from './repositories/topology.repository.js';
+import { MetricsService } from './services/metrics.service.js';
+import { TopologyService } from './services/topology.service.js';
+import { getKyselyConfig } from './utils/database.js';
 
 export const imports = [KyselyModule.forRoot(getKyselyConfig()), ScheduleModule.forRoot()];
 

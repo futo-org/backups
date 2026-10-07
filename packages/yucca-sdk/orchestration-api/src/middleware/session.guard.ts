@@ -1,8 +1,8 @@
 import { CanActivate, ExecutionContext, Injectable, SetMetadata, UnauthorizedException } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { Request } from 'express';
-import { MetadataKey } from '../enum';
-import { Session, SessionService } from '../services/session.service';
+import { MetadataKey } from '../enum.js';
+import { Session, SessionService } from '../services/session.service.js';
 
 export const PublicRoute = (): MethodDecorator => SetMetadata(MetadataKey.PublicRoute, true);
 

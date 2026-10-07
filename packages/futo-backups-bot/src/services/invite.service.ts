@@ -9,12 +9,12 @@ import {
   MessageFlags,
   User,
 } from 'discord.js';
-import { ComponentId } from 'src/enum';
-import { env } from 'src/env';
-import { Messages } from 'src/messages';
-import { DiscordRepository } from 'src/repositories/discord.repository';
-import { YuccaApiRepository } from 'src/repositories/yuccaApi.repository';
-import { isStaff } from 'src/utils/staff';
+import { ComponentId } from 'src/enum.js';
+import { env } from 'src/env.js';
+import { Messages } from 'src/messages.js';
+import { DiscordRepository } from 'src/repositories/discord.repository.js';
+import { YuccaApiRepository } from 'src/repositories/yuccaApi.repository.js';
+import { isStaff } from 'src/utils/staff.js';
 
 @Injectable()
 export class InviteService {

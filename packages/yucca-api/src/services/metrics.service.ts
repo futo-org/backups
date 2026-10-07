@@ -1,18 +1,18 @@
 import { LoggerRepository, MetricService } from '@common/server/otel';
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { Gauge } from '@opentelemetry/api';
-import { AuthDto } from 'src/dto/auth.dto';
+import { AuthDto } from 'src/dto/auth.dto.js';
 import {
   SubmitBackupEndRequestDto,
   SubmitStructuredLogRequestDto,
   SubmitUpdateSizeRequestDto,
-} from 'src/dto/metrics.dto';
-import { CursorPaginationDto } from 'src/dto/pagination.dto';
-import { BackupStatus } from 'src/enum';
-import { RepositoryRepository } from 'src/repositories/repository.repository';
-import { RepositoryMetricsRepository } from 'src/repositories/repositoryMetrics.repository';
-import { RepositoryMetricsHistoryRepository } from 'src/repositories/repositoryMetricsHistory.repository';
-import { resolveLimit } from 'src/utils/pagination';
+} from 'src/dto/metrics.dto.js';
+import { CursorPaginationDto } from 'src/dto/pagination.dto.js';
+import { BackupStatus } from 'src/enum.js';
+import { RepositoryRepository } from 'src/repositories/repository.repository.js';
+import { RepositoryMetricsRepository } from 'src/repositories/repositoryMetrics.repository.js';
+import { RepositoryMetricsHistoryRepository } from 'src/repositories/repositoryMetricsHistory.repository.js';
+import { resolveLimit } from 'src/utils/pagination.js';
 
 const toUnixSeconds = (date: Date) => Math.floor(date.getTime() / 1000);
 

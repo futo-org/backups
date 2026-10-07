@@ -1,23 +1,23 @@
 import { Database } from '@immich/sql-tools';
-import { audit_action_enum, ticket_action_enum } from './enums';
-import { AuditLogTable } from './tables/auditLog.table';
-import { ConnectionTable } from './tables/connection.table';
-import { ConnectionMetricsTable } from './tables/connectionMetrics.table';
-import { DiscordInviteBatchTable } from './tables/discordInviteBatch.table';
-import { DiscordLinkTable } from './tables/discordLink.table';
-import { DiscordLinkRequestTable } from './tables/discordLinkRequest.table';
-import { DiscordTicketTable } from './tables/discordTicket.table';
-import { RepositoryTable } from './tables/repository.table';
-import { RepositoryMeterTable } from './tables/repositoryMeter.table';
-import { RepositoryMeterHistoryTable } from './tables/repositoryMeterHistory.table';
-import { RepositoryMetricsTable } from './tables/repositoryMetrics.table';
-import { RepositoryMetricsHistoryTable } from './tables/repositoryMetricsHistory.table';
-import { SessionTable } from './tables/session.table';
-import { SettingsTable } from './tables/settings.table';
-import { TicketTable } from './tables/ticket.table';
-import { UserTable } from './tables/user.table';
-import { UserAllowlistTable } from './tables/userAllowlist.table';
-import { UserFeatureFlagOverrideTable } from './tables/userFeatureFlagOverride.table';
+import { audit_action_enum, ticket_action_enum } from './enums.js';
+import { AuditLogTable } from './tables/auditLog.table.js';
+import { ConnectionTable } from './tables/connection.table.js';
+import { ConnectionMetricsTable } from './tables/connectionMetrics.table.js';
+import { DiscordInviteBatchTable } from './tables/discordInviteBatch.table.js';
+import { DiscordLinkTable } from './tables/discordLink.table.js';
+import { DiscordLinkRequestTable } from './tables/discordLinkRequest.table.js';
+import { DiscordTicketTable } from './tables/discordTicket.table.js';
+import { RepositoryTable } from './tables/repository.table.js';
+import { RepositoryMeterTable } from './tables/repositoryMeter.table.js';
+import { RepositoryMeterHistoryTable } from './tables/repositoryMeterHistory.table.js';
+import { RepositoryMetricsTable } from './tables/repositoryMetrics.table.js';
+import { RepositoryMetricsHistoryTable } from './tables/repositoryMetricsHistory.table.js';
+import { SessionTable } from './tables/session.table.js';
+import { SettingsTable } from './tables/settings.table.js';
+import { TicketTable } from './tables/ticket.table.js';
+import { UserTable } from './tables/user.table.js';
+import { UserAllowlistTable } from './tables/userAllowlist.table.js';
+import { UserFeatureFlagOverrideTable } from './tables/userFeatureFlagOverride.table.js';
 
 @Database({ name: 'yucca' })
 export class ImmichDatabase {

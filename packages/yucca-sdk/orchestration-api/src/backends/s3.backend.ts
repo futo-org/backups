@@ -10,9 +10,9 @@ import {
   TicketCreateRequestDto,
   TicketCreateResponseDto,
 } from '@futo-org/backups-api-client';
-import { BackendType } from '../enum';
-import { BackendConfiguration } from '../schema/tables/backend.table';
-import { Backend } from './backend';
+import { BackendType } from '../enum.js';
+import { BackendConfiguration } from '../schema/tables/backend.table.js';
+import { Backend } from './backend.js';
 
 export class S3Backend extends Backend {
   constructor(protected readonly configuration: BackendConfiguration & { type: BackendType.S3 }) {

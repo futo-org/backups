@@ -1,7 +1,7 @@
 import { Controller, Get, Param, Post } from '@nestjs/common';
 import { ApiOkResponse, ApiParam } from '@nestjs/swagger';
-import { RunningTaskListResponse } from '../dto/runningTasks.dto';
-import { RunningTasksService } from '../services/runningTasks.service';
+import { RunningTaskListResponse } from '../dto/runningTasks.dto.js';
+import { RunningTasksService } from '../services/runningTasks.service.js';
 
 @Controller('/yucca/tasks')
 export class RunningTasksController {

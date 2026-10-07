@@ -2,10 +2,10 @@ import { Injectable } from '@nestjs/common';
 import { ExpressionBuilder, Insertable, Kysely, Updateable } from 'kysely';
 import { jsonBuildObject } from 'kysely/helpers/postgres';
 import { InjectKysely } from 'nestjs-kysely';
-import { BackupStatus } from 'src/enum';
-import { DB } from 'src/schema';
-import { RepositoryTable } from 'src/schema/tables/repository.table';
-import { toCursorPage } from 'src/utils/pagination';
+import { BackupStatus } from 'src/enum.js';
+import { DB } from 'src/schema/index.js';
+import { RepositoryTable } from 'src/schema/tables/repository.table.js';
+import { toCursorPage } from 'src/utils/pagination.js';
 
 const ownerJson = (eb: ExpressionBuilder<DB, 'repositories' | 'users'>) =>
   jsonBuildObject({

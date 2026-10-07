@@ -15,8 +15,8 @@ import {
   TextChannel,
   ThreadChannel,
 } from 'discord.js';
-import { env } from 'src/env';
-import { TranscriptMessage } from 'src/utils/transcript';
+import { env } from 'src/env.js';
+import { TranscriptMessage } from 'src/utils/transcript.js';
 
 const THREAD_AUTO_ARCHIVE_MINUTES = 10_080;
 const CANNOT_MESSAGE_USER = 50_007;

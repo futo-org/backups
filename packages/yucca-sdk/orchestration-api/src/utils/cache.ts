@@ -1,8 +1,8 @@
 import { existsSync } from 'node:fs';
 import { rm } from 'node:fs/promises';
 import { resolve } from 'node:path';
-import type { ModuleConfig } from '../moduleConfig';
-import { LoggingRepository } from '../repositories/logging.repository';
+import type { ModuleConfig } from '../moduleConfig.js';
+import { LoggingRepository } from '../repositories/logging.repository.js';
 
 export async function discardStateCacheDirectory(
   config: Pick<ModuleConfig, 'statePath' | 'cachePath'>,

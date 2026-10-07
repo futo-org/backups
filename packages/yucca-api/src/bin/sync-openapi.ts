@@ -1,7 +1,7 @@
 import { NestFactory } from '@nestjs/core';
 import { NestExpressApplication } from '@nestjs/platform-express';
-import { AppModule } from 'src/app.module';
-import { useSwagger } from 'src/utils/openapi';
+import { AppModule } from 'src/app.module.js';
+import { useSwagger } from 'src/utils/openapi.js';
 
 async function main() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule, { preview: true });

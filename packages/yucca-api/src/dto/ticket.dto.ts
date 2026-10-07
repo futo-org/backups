@@ -1,7 +1,7 @@
 import { createZodDto } from 'nestjs-zod';
-import { TicketAction } from 'src/enum';
+import { TicketAction } from 'src/enum.js';
 import { z } from 'zod';
-import { RepositoryMeterSchema, RepositoryMetricsSchema } from './repository.dto';
+import { RepositoryMeterSchema, RepositoryMetricsSchema } from './repository.dto.js';
 
 const TicketActionSchema = z.enum(TicketAction).meta({ id: 'TicketAction' });
 

@@ -1,8 +1,8 @@
 import { JwtService } from '@nestjs/jwt';
 import { createHash, createPublicKey } from 'node:crypto';
-import { env } from 'src/env';
-import { Mocks, newMocks } from '../../test/mocks';
-import { AuthService } from './auth.service';
+import { env } from 'src/env.js';
+import { Mocks, newMocks } from '../../test/mocks.js';
+import { AuthService } from './auth.service.js';
 
 // Real JwtService over the local-dev keypair: the CLI-flow tests exercise
 // actual ES256 mint/verify rather than mocked crypto.

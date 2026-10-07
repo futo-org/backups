@@ -1,9 +1,9 @@
 import { Injectable } from '@nestjs/common';
-import { ResticTagPrefix } from '../enum';
-import { EventsGateway, GatewayEvent } from '../events/events.gateway';
-import type { ImmichIntegration } from '../moduleConfig';
-import { ModuleConfigRepository } from '../repositories/moduleConfig.repository';
-import { RepositoryService } from './repository.service';
+import { ResticTagPrefix } from '../enum.js';
+import { EventsGateway, GatewayEvent } from '../events/events.gateway.js';
+import type { ImmichIntegration } from '../moduleConfig.js';
+import { ModuleConfigRepository } from '../repositories/moduleConfig.repository.js';
+import { RepositoryService } from './repository.service.js';
 
 @Injectable()
 export class YuccaService {

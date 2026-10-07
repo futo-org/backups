@@ -1,14 +1,15 @@
 import type { EmailRepository } from '@common/server/email';
 import type { LoggerRepository, WideContextRepository } from '@common/server/otel';
-import type { ColumboRepository } from 'src/repositories/columbo.repository';
-import type { DatabaseRepository } from 'src/repositories/database.repository';
-import type { DiscordInviteRepository } from 'src/repositories/discordInvite.repository';
-import type { DiscordLinkRepository } from 'src/repositories/discordLink.repository';
-import type { FutoBackupsBotRepository } from 'src/repositories/futoBackupsBot.repository';
-import type { OidcRepository } from 'src/repositories/oidc.repository';
-import type { SessionRepository } from 'src/repositories/session.repository';
-import type { UserRepository } from 'src/repositories/user.repository';
-import type { UserAllowlistRepository } from 'src/repositories/userAllowlist.repository';
+import { jest } from '@jest/globals';
+import type { ColumboRepository } from 'src/repositories/columbo.repository.js';
+import type { DatabaseRepository } from 'src/repositories/database.repository.js';
+import type { DiscordInviteRepository } from 'src/repositories/discordInvite.repository.js';
+import type { DiscordLinkRepository } from 'src/repositories/discordLink.repository.js';
+import type { FutoBackupsBotRepository } from 'src/repositories/futoBackupsBot.repository.js';
+import type { OidcRepository } from 'src/repositories/oidc.repository.js';
+import type { SessionRepository } from 'src/repositories/session.repository.js';
+import type { UserRepository } from 'src/repositories/user.repository.js';
+import type { UserAllowlistRepository } from 'src/repositories/userAllowlist.repository.js';
 
 export type RepositoryInterface<T extends object> = Pick<T, keyof T>;
 

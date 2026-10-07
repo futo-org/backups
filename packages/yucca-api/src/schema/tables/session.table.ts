@@ -1,6 +1,6 @@
 import { Column, ForeignKeyColumn, type Generated, Table } from '@immich/sql-tools';
-import { ConnectionTable } from './connection.table';
-import { UserTable } from './user.table';
+import { ConnectionTable } from './connection.table.js';
+import { UserTable } from './user.table.js';
 
 @Table({ name: 'sessions' })
 export class SessionTable {

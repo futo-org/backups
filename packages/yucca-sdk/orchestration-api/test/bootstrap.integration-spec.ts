@@ -1,15 +1,16 @@
 import { submitMetricBackupEnd, submitStructuredLog } from '@futo-org/backups-api-client';
+import { jest } from '@jest/globals';
 import { randomUUID } from 'node:crypto';
-import { REPOSITORY_DEFAULT_CLOUD_UUID } from 'src/const';
-import { BackendType, BootstrapStatus, TaskStatus, TaskType } from 'src/enum';
-import { BackendRepository } from 'src/repositories/backend.repository';
-import { BootstrapRepository } from 'src/repositories/bootstrap.repository';
-import { ConfigRepository } from 'src/repositories/config.repository';
-import { RepositoryRepository } from 'src/repositories/repository.repository';
-import { RunHistoryRepository } from 'src/repositories/runHistory.repository';
-import { type RunType } from 'src/schema/tables/runHistory.table';
-import { BootstrapService } from 'src/services/bootstrap.service';
-import { createTestingModule, TestContext, waitFor } from './testUtils';
+import { REPOSITORY_DEFAULT_CLOUD_UUID } from '../src/const.js';
+import { BackendType, BootstrapStatus, TaskStatus, TaskType } from '../src/enum.js';
+import { BackendRepository } from '../src/repositories/backend.repository.js';
+import { BootstrapRepository } from '../src/repositories/bootstrap.repository.js';
+import { ConfigRepository } from '../src/repositories/config.repository.js';
+import { RepositoryRepository } from '../src/repositories/repository.repository.js';
+import { RunHistoryRepository } from '../src/repositories/runHistory.repository.js';
+import { type RunType } from '../src/schema/tables/runHistory.table.js';
+import { BootstrapService } from '../src/services/bootstrap.service.js';
+import { createTestingModule, TestContext, waitFor } from './testUtils.js';
 
 const apiSubmitMetricBackupEnd = submitMetricBackupEnd as jest.Mock;
 const apiSubmitStructuredLog = submitStructuredLog as jest.Mock;

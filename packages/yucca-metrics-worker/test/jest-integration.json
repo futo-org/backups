@@ -4,10 +4,21 @@
   "testEnvironment": "node",
   "testRegex": ".integration-spec.ts$",
   "transform": {
-    "^.+\\.(t|j)s$": "ts-jest"
+    "^.+\\.ts$": [
+      "ts-jest",
+      {
+        "useESM": true
+      }
+    ]
   },
   "moduleNameMapper": {
-    "^src/(.*)$": "<rootDir>/../src/$1"
+    "^src/(.*)\\.js$": "<rootDir>/../src/$1",
+    "^(\\.{1,2}/.*)\\.js$": "$1"
   },
-  "forceExit": true
+  "forceExit": true,
+  "extensionsToTreatAsEsm": [".ts"],
+  "setupFilesAfterEnv": [
+    "<rootDir>/../../../packages/e2e/k3d/hostmap.mjs",
+    "<rootDir>/../../common/test/load-nestjs-before-nestjs-otel.ts"
+  ]
 }

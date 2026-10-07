@@ -4,12 +4,12 @@ import { InjectKysely } from 'nestjs-kysely';
 import { randomBytes } from 'node:crypto';
 import { availableParallelism } from 'node:os';
 import { resolve } from 'node:path';
-import { ConfigurationKey } from '../enum';
-import { type ModuleConfig, ModuleConfigProvider } from '../moduleConfig';
-import type { ResticProxyThrottle } from '../proxy/resticProxy';
-import { DB } from '../schema';
-import { yuccaWellKnown } from '../wellKnown';
-import { LoggingRepository } from './logging.repository';
+import { ConfigurationKey } from '../enum.js';
+import { type ModuleConfig, ModuleConfigProvider } from '../moduleConfig.js';
+import type { ResticProxyThrottle } from '../proxy/resticProxy.js';
+import { DB } from '../schema/index.js';
+import { yuccaWellKnown } from '../wellKnown.js';
+import { LoggingRepository } from './logging.repository.js';
 
 export type ResticPlacement = { siteCode: string | null; storageClusterCode: string | null };
 

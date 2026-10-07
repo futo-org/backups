@@ -1,9 +1,9 @@
 import { Injectable } from '@nestjs/common';
 import { Kysely } from 'kysely';
 import { InjectKysely } from 'nestjs-kysely';
-import { Backend } from '../backends/backend';
-import { DB } from '../schema';
-import { BackendConfiguration } from '../schema/tables/backend.table';
+import { createBackend } from '../backends/createBackend.js';
+import { DB } from '../schema/index.js';
+import { BackendConfiguration } from '../schema/tables/backend.table.js';
 
 @Injectable()
 export class BackendRepository {
@@ -28,7 +28,7 @@ export class BackendRepository {
         id,
         configuration: JSON.parse(configuration) as BackendConfiguration,
       }))
-      .map(({ id, configuration }) => ({ id, configuration, backend: Backend.from(configuration) }));
+      .map(({ id, configuration }) => ({ id, configuration, backend: createBackend(configuration) }));
   }
 
   async getBackend(id: string) {
@@ -40,7 +40,7 @@ export class BackendRepository {
       return {
         id: backend.id,
         configuration,
-        backend: Backend.from(configuration),
+        backend: createBackend(configuration),
       };
     }
   }

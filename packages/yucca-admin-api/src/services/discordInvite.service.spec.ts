@@ -1,6 +1,6 @@
 import { ConflictException, NotFoundException } from '@nestjs/common';
-import { DiscordInviteService } from 'src/services/discordInvite.service';
-import { Mocks, newMocks } from '../../test/mocks';
+import { DiscordInviteService } from 'src/services/discordInvite.service.js';
+import { Mocks, newMocks } from '../../test/mocks.js';
 
 const claim = {
   id: 'claim-1',

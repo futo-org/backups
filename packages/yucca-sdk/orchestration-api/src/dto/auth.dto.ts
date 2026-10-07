@@ -1,6 +1,6 @@
 import { createZodDto } from 'nestjs-zod';
 import { z } from 'zod';
-import { DeviceFlowEventType, DeviceFlowFailureReason } from '../enum';
+import { DeviceFlowEventType, DeviceFlowFailureReason } from '../enum.js';
 
 const DeviceFlowEventSchema = z
   .object({

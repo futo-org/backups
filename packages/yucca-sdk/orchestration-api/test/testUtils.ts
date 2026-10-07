@@ -10,13 +10,13 @@ import { randomUUID } from 'node:crypto';
 import { mkdir, mkdtemp } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { BackendType } from 'src/enum';
-import { EventsGateway, GatewayEvent } from 'src/events/events.gateway';
-import { ModuleConfigProvider } from 'src/moduleConfig';
-import { controllers, repositories, services } from 'src/orchestrationApi.module';
-import { BackendRepository } from 'src/repositories/backend.repository';
-import { ResticRepository } from 'src/repositories/restic.repository';
-import { newResticRepositoryMock, RepositoryInterface } from './mocks';
+import { BackendType } from '../src/enum.js';
+import { EventsGateway, GatewayEvent } from '../src/events/events.gateway.js';
+import { ModuleConfigProvider } from '../src/moduleConfig.js';
+import { controllers, repositories, services } from '../src/orchestrationApi.module.js';
+import { BackendRepository } from '../src/repositories/backend.repository.js';
+import { ResticRepository } from '../src/repositories/restic.repository.js';
+import { newResticRepositoryMock, RepositoryInterface } from './mocks.js';
 
 type GatewayListener = (event: GatewayEvent) => void;
 

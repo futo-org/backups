@@ -1,6 +1,6 @@
 import { WriteStream } from 'node:fs';
-import { TaskStatus } from '../enum';
-import { getTaskStatus, TaskWarningsError, writeError } from './errors';
+import { TaskStatus } from '../enum.js';
+import { getTaskStatus, TaskWarningsError, writeError } from './errors.js';
 
 const collectWrites = (error: unknown) => {
   const lines: string[] = [];

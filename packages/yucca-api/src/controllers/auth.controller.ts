@@ -3,14 +3,14 @@ import { ApiCreatedResponse, ApiOkResponse, ApiQuery } from '@nestjs/swagger';
 import { type Request, type Response } from 'express';
 import { Duration } from 'luxon';
 import { type Observable } from 'rxjs';
-import { AuthDto, DeviceFlowEventDto } from 'src/dto/auth.dto';
-import { TicketCreateRequestDto, TicketCreateResponseDto, TicketDto } from 'src/dto/ticket.dto';
-import { CookieName } from 'src/enum';
-import { env } from 'src/env';
-import { Auth, AuthRoute } from 'src/middleware/auth.guard';
-import { AuthService } from 'src/services/auth.service';
-import { EmailNotAllowedException } from 'src/utils/exceptions';
-import { isInAppPath } from 'src/utils/redirect';
+import { AuthDto, DeviceFlowEventDto } from 'src/dto/auth.dto.js';
+import { TicketCreateRequestDto, TicketCreateResponseDto, TicketDto } from 'src/dto/ticket.dto.js';
+import { CookieName } from 'src/enum.js';
+import { env } from 'src/env.js';
+import { Auth, AuthRoute } from 'src/middleware/auth.guard.js';
+import { AuthService } from 'src/services/auth.service.js';
+import { EmailNotAllowedException } from 'src/utils/exceptions.js';
+import { isInAppPath } from 'src/utils/redirect.js';
 
 @Controller('/auth')
 export class AuthController {

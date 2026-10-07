@@ -1,9 +1,9 @@
 import { Injectable } from '@nestjs/common';
 import { Insertable, Kysely, Updateable } from 'kysely';
 import { InjectKysely } from 'nestjs-kysely';
-import { DB } from 'src/schema';
-import { UserTable } from 'src/schema/tables/user.table';
-import { toCursorPage } from 'src/utils/pagination';
+import { DB } from 'src/schema/index.js';
+import { UserTable } from 'src/schema/tables/user.table.js';
+import { toCursorPage } from 'src/utils/pagination.js';
 
 @Injectable()
 export class UserRepository {

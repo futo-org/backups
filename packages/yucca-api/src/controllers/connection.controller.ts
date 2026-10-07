@@ -1,16 +1,16 @@
 import { Body, Controller, Delete, Get, HttpCode, HttpStatus, Param, Patch, Post } from '@nestjs/common';
 import { ApiCreatedResponse, ApiOkResponse } from '@nestjs/swagger';
 import { ZodSerializerDto } from 'nestjs-zod';
-import { AuthDto } from 'src/dto/auth.dto';
+import { AuthDto } from 'src/dto/auth.dto.js';
 import {
   ConnectionAdoptRequestDto,
   ConnectionCreateRequestDto,
   ConnectionListResponseDto,
   ConnectionResponseDto,
   ConnectionUpdateRequestDto,
-} from 'src/dto/connection.dto';
-import { Auth, AuthRoute } from 'src/middleware/auth.guard';
-import { ConnectionService } from 'src/services/connection.service';
+} from 'src/dto/connection.dto.js';
+import { Auth, AuthRoute } from 'src/middleware/auth.guard.js';
+import { ConnectionService } from 'src/services/connection.service.js';
 
 @Controller('/connections')
 export class ConnectionController {

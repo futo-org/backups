@@ -1,5 +1,6 @@
-import { FreshdeskSyncService } from 'src/services/freshdeskSync.service';
-import { Mocks, newMocks } from '../../test/mocks';
+import { jest } from '@jest/globals';
+import { FreshdeskSyncService } from 'src/services/freshdeskSync.service.js';
+import { Mocks, newMocks } from '../../test/mocks.js';
 
 const mapping = {
   id: 'map-1',

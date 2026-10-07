@@ -1,4 +1,4 @@
-import { TaskStatus } from '../../enum';
+import { TaskStatus } from '../../enum.js';
 
 export class RepositoryLocalMetricsTable {
   id!: string;

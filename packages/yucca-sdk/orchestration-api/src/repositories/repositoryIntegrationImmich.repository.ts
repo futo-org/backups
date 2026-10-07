@@ -1,8 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { Kysely } from 'kysely';
 import { InjectKysely } from 'nestjs-kysely';
-import { DB } from '../schema';
-import { ImmichRepositoryConfig } from '../schema/tables/repositoryIntegrationImmich.table';
+import { DB } from '../schema/index.js';
+import { ImmichRepositoryConfig } from '../schema/tables/repositoryIntegrationImmich.table.js';
 
 @Injectable()
 export class RepositoryIntegrationImmichRepository {

@@ -1,3 +1,4 @@
+import { jest } from '@jest/globals';
 import { Logger } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import Database from 'better-sqlite3';
@@ -6,12 +7,12 @@ import { KyselyModule } from 'nestjs-kysely';
 import { copyFile, mkdtemp } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { ModuleConfigProvider } from 'src/moduleConfig';
-import { openStateDatabase } from 'src/orchestrationApi.module';
-import { ConfigRepository } from 'src/repositories/config.repository';
-import { DatabaseRepository } from 'src/repositories/database.repository';
-import { LoggingRepository } from 'src/repositories/logging.repository';
-import { StorageRepository } from 'src/repositories/storage.repository';
+import { ModuleConfigProvider } from '../src/moduleConfig.js';
+import { openStateDatabase } from '../src/orchestrationApi.module.js';
+import { ConfigRepository } from '../src/repositories/config.repository.js';
+import { DatabaseRepository } from '../src/repositories/database.repository.js';
+import { LoggingRepository } from '../src/repositories/logging.repository.js';
+import { StorageRepository } from '../src/repositories/storage.repository.js';
 
 interface Boot {
   config: ConfigRepository;

@@ -1,7 +1,7 @@
 import { ConflictException, NotFoundException } from '@nestjs/common';
-import { AuthDto } from 'src/dto/auth.dto';
-import { DiscordService } from 'src/services/discord.service';
-import { Mocks, newMocks } from '../../test/mocks';
+import { AuthDto } from 'src/dto/auth.dto.js';
+import { DiscordService } from 'src/services/discord.service.js';
+import { Mocks, newMocks } from '../../test/mocks.js';
 
 describe(DiscordService.name, () => {
   let sut: DiscordService;

@@ -3,7 +3,7 @@ import { DocumentBuilder, SwaggerCustomOptions, SwaggerDocumentOptions, SwaggerM
 import { cleanupOpenApiDoc } from 'nestjs-zod';
 import { writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
-import { OrchestrationApiModule } from '../src';
+import { OrchestrationApiModule } from '../index.js';
 
 async function main() {
   const app = await NestFactory.create<NestApplication>(

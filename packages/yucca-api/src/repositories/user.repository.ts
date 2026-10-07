@@ -2,8 +2,8 @@ import { Injectable } from '@nestjs/common';
 import { Insertable, Kysely, sql, Updateable } from 'kysely';
 import { jsonArrayFrom } from 'kysely/helpers/postgres';
 import { InjectKysely } from 'nestjs-kysely';
-import { DB } from 'src/schema';
-import { UserTable } from 'src/schema/tables/user.table';
+import { DB } from 'src/schema/index.js';
+import { UserTable } from 'src/schema/tables/user.table.js';
 
 @Injectable()
 export class UserRepository {

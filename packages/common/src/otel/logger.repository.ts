@@ -1,6 +1,9 @@
 import { Injectable, Scope } from '@nestjs/common';
-import pino from 'pino';
+import { createRequire } from 'node:module';
 import { otelEnv } from './env.js';
+
+const patchedRequire = createRequire(import.meta.url);
+const pino = patchedRequire('pino') as typeof import('pino');
 
 @Injectable({ scope: Scope.DEFAULT })
 export class LoggerRepository {

@@ -7,7 +7,7 @@
 
     // Environment Settings
     // See also https://aka.ms/tsconfig/module
-    "module": "commonjs",
+    "module": "nodenext",
     "target": "esnext",
     // For nodejs:
     "lib": ["esnext"],
@@ -43,5 +43,6 @@
     "moduleDetection": "force",
     "skipLibCheck": true,
     "noImplicitAny": true
-  }
+  },
+  "include": ["src"]
 }

@@ -1,9 +1,9 @@
 import { BadRequestException, Injectable, Post } from '@nestjs/common';
 import { Kysely, sql } from 'kysely';
 import { InjectKysely } from 'nestjs-kysely';
-import { ModuleConfigRepository } from '../repositories/moduleConfig.repository';
-import { DB } from '../schema';
-import { BootstrapService } from './bootstrap.service';
+import { ModuleConfigRepository } from '../repositories/moduleConfig.repository.js';
+import { DB } from '../schema/index.js';
+import { BootstrapService } from './bootstrap.service.js';
 
 @Injectable()
 export class DevelopmentService {

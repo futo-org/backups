@@ -1,8 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { Kysely, Updateable } from 'kysely';
 import { InjectKysely } from 'nestjs-kysely';
-import { DB } from 'src/schema';
-import { RepositoryMetricsTable } from 'src/schema/tables/repositoryMetrics.table';
+import { DB } from 'src/schema/index.js';
+import { RepositoryMetricsTable } from 'src/schema/tables/repositoryMetrics.table.js';
 
 @Injectable()
 export class RepositoryMetricsRepository {

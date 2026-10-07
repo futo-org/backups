@@ -1,11 +1,13 @@
-import { createResticUrl } from '@futo-org/backups-api-client';
-import { BackendType } from '../enum';
-import { ResticProxy } from '../proxy/resticProxy';
-import { ResticProxyPool } from '../proxy/resticProxyPool';
-import { LoggingRepository } from '../repositories/logging.repository';
-import { YuccaBackend } from './yucca.backend';
+import { jest } from '@jest/globals';
 
-jest.mock('@futo-org/backups-api-client', () => ({ createResticUrl: jest.fn() }));
+jest.unstable_mockModule('@futo-org/backups-api-client', () => import('../../test/mocks/yucca-api-client.js'));
+
+const { createResticUrl } = await import('@futo-org/backups-api-client');
+const { BackendType } = await import('../enum.js');
+const { ResticProxy } = await import('../proxy/resticProxy.js');
+const { ResticProxyPool } = await import('../proxy/resticProxyPool.js');
+const { LoggingRepository } = await import('../repositories/logging.repository.js');
+const { YuccaBackend } = await import('./yucca.backend.js');
 
 function newBackend() {
   return new YuccaBackend({ type: BackendType.Yucca, url: 'https://yucca.test', accessToken: 'access-token' });

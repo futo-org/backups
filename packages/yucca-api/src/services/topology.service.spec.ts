@@ -1,6 +1,7 @@
-import { env } from 'src/env';
-import { TopologyRepository } from 'src/repositories/topology.repository';
-import { TopologyService } from 'src/services/topology.service';
+import { jest } from '@jest/globals';
+import { env } from 'src/env.js';
+import { TopologyRepository } from 'src/repositories/topology.repository.js';
+import { TopologyService } from 'src/services/topology.service.js';
 
 describe(TopologyService.name, () => {
   it('loads the topology file into the repository on init', async () => {

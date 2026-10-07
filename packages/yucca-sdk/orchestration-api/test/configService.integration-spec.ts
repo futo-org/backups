@@ -1,12 +1,12 @@
 import { EventEmitter2 } from '@nestjs/event-emitter';
-import { ConfigController } from 'src/controllers/config.controller';
-import { InternalEvent } from 'src/enum';
-import { ModuleConfig } from 'src/moduleConfig';
-import { UNTHROTTLED } from 'src/proxy/resticProxy';
-import { ConfigRepository } from 'src/repositories/config.repository';
-import { ModuleConfigRepository } from 'src/repositories/moduleConfig.repository';
-import { ConfigService } from 'src/services/config.service';
-import { createTestingModule, TestContext } from './testUtils';
+import { ConfigController } from '../src/controllers/config.controller.js';
+import { InternalEvent } from '../src/enum.js';
+import { ModuleConfig } from '../src/moduleConfig.js';
+import { UNTHROTTLED } from '../src/proxy/resticProxy.js';
+import { ConfigRepository } from '../src/repositories/config.repository.js';
+import { ModuleConfigRepository } from '../src/repositories/moduleConfig.repository.js';
+import { ConfigService } from '../src/services/config.service.js';
+import { createTestingModule, TestContext } from './testUtils.js';
 
 let ctx: TestContext;
 

@@ -1,4 +1,4 @@
-import { evaluateConnectionsMath, isValidConnectionsMath } from '../src/utils/connectionsMath';
+import { evaluateConnectionsMath, isValidConnectionsMath } from '../src/utils/connectionsMath.js';
 
 describe('evaluateConnectionsMath', () => {
   it.each([

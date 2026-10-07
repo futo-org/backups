@@ -1,8 +1,8 @@
 import { Column, ForeignKeyColumn, type Generated, Table } from '@immich/sql-tools';
-import { TicketAction } from 'src/enum';
-import { ticket_action_enum } from '../enums';
-import { RepositoryTable } from './repository.table';
-import { UserTable } from './user.table';
+import { TicketAction } from 'src/enum.js';
+import { ticket_action_enum } from '../enums.js';
+import { RepositoryTable } from './repository.table.js';
+import { UserTable } from './user.table.js';
 
 @Table({ name: 'tickets' })
 export class TicketTable {

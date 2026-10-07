@@ -1,14 +1,14 @@
 import { Body, Controller, Get, Param, Post } from '@nestjs/common';
 import { ApiCreatedResponse, ApiOkResponse } from '@nestjs/swagger';
-import { AuthDto } from 'src/dto/auth.dto';
+import { AuthDto } from 'src/dto/auth.dto.js';
 import {
   FeatureEnableBatchRequestDto,
   FeatureEnableBatchResponseDto,
   FeatureFlagListResponseDto,
   FeatureUsersResponseDto,
-} from 'src/dto/features.dto';
-import { Auth, AuthRoute } from 'src/middleware/auth.guard';
-import { FeaturesService } from 'src/services/features.service';
+} from 'src/dto/features.dto.js';
+import { Auth, AuthRoute } from 'src/middleware/auth.guard.js';
+import { FeaturesService } from 'src/services/features.service.js';
 
 @Controller('/features')
 export class FeaturesController {

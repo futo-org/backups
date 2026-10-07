@@ -1,17 +1,18 @@
 import { createRepository, createResticUrl, getRepository } from '@futo-org/backups-api-client';
 import { ResticBackupCommandCouldNotReadSourceDataError } from '@futo-org/restic-wrapper';
+import { jest } from '@jest/globals';
 import { randomUUID } from 'node:crypto';
 import { mkdir, readdir } from 'node:fs/promises';
-import { BackendType, TaskStatus } from 'src/enum';
-import { ResticProxyPool } from 'src/proxy/resticProxyPool';
-import { BackendRepository } from 'src/repositories/backend.repository';
-import { ModuleConfigRepository } from 'src/repositories/moduleConfig.repository';
-import { RepositoryIntegrationImmichRepository } from 'src/repositories/repositoryIntegrationImmich.repository';
-import { IntegrationsService } from 'src/services/integrations.service';
-import { RepositoryService } from 'src/services/repository.service';
-import { YuccaService } from 'src/services/yucca.service';
-import { newImmichHooksMock } from './mocks';
-import { createTestingModule, TestContext, waitForEvent } from './testUtils';
+import { BackendType, TaskStatus } from '../src/enum.js';
+import { ResticProxyPool } from '../src/proxy/resticProxyPool.js';
+import { BackendRepository } from '../src/repositories/backend.repository.js';
+import { ModuleConfigRepository } from '../src/repositories/moduleConfig.repository.js';
+import { RepositoryIntegrationImmichRepository } from '../src/repositories/repositoryIntegrationImmich.repository.js';
+import { IntegrationsService } from '../src/services/integrations.service.js';
+import { RepositoryService } from '../src/services/repository.service.js';
+import { YuccaService } from '../src/services/yucca.service.js';
+import { newImmichHooksMock } from './mocks.js';
+import { createTestingModule, TestContext, waitForEvent } from './testUtils.js';
 
 let ctx: TestContext;
 

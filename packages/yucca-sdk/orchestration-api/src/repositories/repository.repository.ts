@@ -1,9 +1,9 @@
 import { Injectable } from '@nestjs/common';
 import { Kysely, Updateable } from 'kysely';
 import { InjectKysely } from 'nestjs-kysely';
-import { DB } from '../schema';
-import { RepositoryTable } from '../schema/tables/repository.table';
-import { RetentionPolicy } from '../utils/restic';
+import { DB } from '../schema/index.js';
+import { RepositoryTable } from '../schema/tables/repository.table.js';
+import { RetentionPolicy } from '../utils/restic.js';
 
 type RepositoryRow = {
   id: string;

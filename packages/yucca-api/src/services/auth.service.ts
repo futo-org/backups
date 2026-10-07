@@ -2,28 +2,28 @@ import { connectionTypeFlag, isConnectionType, resolveFeatures } from '@common/s
 import { LoggerRepository, WideContextRepository } from '@common/server/otel';
 import { BadRequestException, Injectable, InternalServerErrorException, UnauthorizedException } from '@nestjs/common';
 import { parse } from 'cookie';
-import EventIterator from 'event-iterator';
+import { EventIterator } from 'event-iterator';
 import { Request } from 'express';
 import { IncomingHttpHeaders } from 'node:http';
 import * as client from 'openid-client';
 import { UserInfoResponse } from 'openid-client';
 import { from } from 'rxjs';
-import { AuthDto } from 'src/dto/auth.dto';
-import { TicketCreateRequestDto, TicketCreateResponseDto, TicketDto } from 'src/dto/ticket.dto';
-import { CookieName, DeviceFlowEventType, DeviceFlowFailureReason, TicketAction } from 'src/enum';
-import { env } from 'src/env';
-import { ConnectionRepository } from 'src/repositories/connection.repository';
-import { CryptoRepository } from 'src/repositories/crypto.repository';
-import { DiscordRepository } from 'src/repositories/discord.repository';
-import { OidcRepository } from 'src/repositories/oidc.repository';
-import { RepositoryRepository } from 'src/repositories/repository.repository';
-import { SessionRepository } from 'src/repositories/session.repository';
-import { TicketRepository } from 'src/repositories/ticket.repository';
-import { UserRepository } from 'src/repositories/user.repository';
-import { UserAllowlistRepository } from 'src/repositories/userAllowlist.repository';
-import { EmailNotAllowedException, FeatureNotEnabledException, TicketRequiredException } from 'src/utils/exceptions';
+import { AuthDto } from 'src/dto/auth.dto.js';
+import { TicketCreateRequestDto, TicketCreateResponseDto, TicketDto } from 'src/dto/ticket.dto.js';
+import { CookieName, DeviceFlowEventType, DeviceFlowFailureReason, TicketAction } from 'src/enum.js';
+import { env } from 'src/env.js';
+import { ConnectionRepository } from 'src/repositories/connection.repository.js';
+import { CryptoRepository } from 'src/repositories/crypto.repository.js';
+import { DiscordRepository } from 'src/repositories/discord.repository.js';
+import { OidcRepository } from 'src/repositories/oidc.repository.js';
+import { RepositoryRepository } from 'src/repositories/repository.repository.js';
+import { SessionRepository } from 'src/repositories/session.repository.js';
+import { TicketRepository } from 'src/repositories/ticket.repository.js';
+import { UserRepository } from 'src/repositories/user.repository.js';
+import { UserAllowlistRepository } from 'src/repositories/userAllowlist.repository.js';
+import { EmailNotAllowedException, FeatureNotEnabledException, TicketRequiredException } from 'src/utils/exceptions.js';
 
-import { isInAppPath } from 'src/utils/redirect';
+import { isInAppPath } from 'src/utils/redirect.js';
 
 @Injectable()
 export class AuthService {

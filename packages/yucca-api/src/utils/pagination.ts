@@ -1,4 +1,4 @@
-import { DEFAULT_PAGE_SIZE } from 'src/dto/pagination.dto';
+import { DEFAULT_PAGE_SIZE } from 'src/dto/pagination.dto.js';
 
 export interface CursorPage<T> {
   items: T[];

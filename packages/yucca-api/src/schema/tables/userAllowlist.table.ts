@@ -1,5 +1,5 @@
 import { Column, ForeignKeyColumn, type Generated, Table } from '@immich/sql-tools';
-import { DiscordInviteBatchTable } from './discordInviteBatch.table';
+import { DiscordInviteBatchTable } from './discordInviteBatch.table.js';
 
 @Table({ name: 'userAllowlist' })
 export class UserAllowlistTable {

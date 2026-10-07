@@ -1,4 +1,4 @@
-import { TaskStatus, TaskType } from '../../enum';
+import { TaskStatus, TaskType } from '../../enum.js';
 
 export type RunType = TaskType.Backup | TaskType.Restore | TaskType.Forget;
 

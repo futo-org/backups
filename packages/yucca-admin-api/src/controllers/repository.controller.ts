@@ -9,9 +9,9 @@ import {
   RepositoryUpdateRequestDto,
   RepositoryUpdateResponseDto,
   RepositoryUrlResponseDto,
-} from 'src/dto/repository.dto';
-import { AuthRoute } from 'src/middleware/auth.guard';
-import { RepositoryService } from 'src/services/repository.service';
+} from 'src/dto/repository.dto.js';
+import { AuthRoute } from 'src/middleware/auth.guard.js';
+import { RepositoryService } from 'src/services/repository.service.js';
 
 @Controller('/repository')
 export class RepositoryController {

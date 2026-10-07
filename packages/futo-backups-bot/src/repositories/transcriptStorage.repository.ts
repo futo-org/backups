@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { AwsClient } from 'aws4fetch';
-import { env } from 'src/env';
+import { env } from 'src/env.js';
 
 @Injectable()
 export class TranscriptStorageRepository {

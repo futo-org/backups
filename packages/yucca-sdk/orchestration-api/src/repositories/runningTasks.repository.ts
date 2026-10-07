@@ -1,8 +1,8 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { RunningTaskDto } from '../dto/runningTasks.dto';
-import { TaskType } from '../enum';
-import { EventsGateway } from '../events/events.gateway';
-import { TaskCancelledError } from '../utils/errors';
+import { RunningTaskDto } from '../dto/runningTasks.dto.js';
+import { TaskType } from '../enum.js';
+import { EventsGateway } from '../events/events.gateway.js';
+import { TaskCancelledError } from '../utils/errors.js';
 
 @Injectable()
 export class RunningTasksRepository {

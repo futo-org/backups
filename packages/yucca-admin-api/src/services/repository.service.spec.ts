@@ -1,7 +1,8 @@
+import { jest } from '@jest/globals';
 import { JwtService } from '@nestjs/jwt';
 import { createPublicKey } from 'node:crypto';
-import { env } from 'src/env';
-import { RepositoryService } from './repository.service';
+import { env } from 'src/env.js';
+import { RepositoryService } from './repository.service.js';
 
 const newJwtService = () =>
   new JwtService({

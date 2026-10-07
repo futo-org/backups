@@ -1,7 +1,7 @@
 import { Controller, Get, Query } from '@nestjs/common';
 import { ApiOkResponse, ApiQuery } from '@nestjs/swagger';
-import { FilesystemListingRequestDto, FilesystemListingResponseDto } from '../dto/filesystem.dto';
-import { FilesystemService } from '../services/filesystem.service';
+import { FilesystemListingRequestDto, FilesystemListingResponseDto } from '../dto/filesystem.dto.js';
+import { FilesystemService } from '../services/filesystem.service.js';
 
 @Controller('/yucca/fs')
 export class FilesystemController {

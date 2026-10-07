@@ -1,9 +1,9 @@
 import { Injectable } from '@nestjs/common';
 import { Insertable, Kysely } from 'kysely';
 import { InjectKysely } from 'nestjs-kysely';
-import { DB } from 'src/schema';
-import { RepositoryMetricsHistoryTable } from 'src/schema/tables/repositoryMetricsHistory.table';
-import { toCursorPage } from 'src/utils/pagination';
+import { DB } from 'src/schema/index.js';
+import { RepositoryMetricsHistoryTable } from 'src/schema/tables/repositoryMetricsHistory.table.js';
+import { toCursorPage } from 'src/utils/pagination.js';
 
 @Injectable()
 export class RepositoryMetricsHistoryRepository {

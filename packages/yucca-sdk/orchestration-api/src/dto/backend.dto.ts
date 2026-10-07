@@ -1,6 +1,6 @@
 import { createZodDto } from 'nestjs-zod';
 import { z } from 'zod';
-import { BackendType } from '../enum';
+import { BackendType } from '../enum.js';
 
 export const BackendTypeSchema = z.enum(BackendType).meta({ id: 'BackendType' });
 

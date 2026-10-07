@@ -1,4 +1,4 @@
-import { parseTopology, TopologyRepository } from 'src/repositories/topology.repository';
+import { parseTopology, TopologyRepository } from 'src/repositories/topology.repository.js';
 
 const validTopology = () => ({
   schema_version: 1,

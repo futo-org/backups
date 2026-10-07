@@ -1,6 +1,6 @@
 import { Injectable, OnApplicationBootstrap } from '@nestjs/common';
-import { DatabaseLock } from 'src/enum';
-import { DatabaseRepository } from 'src/repositories/database.repository';
+import { DatabaseLock } from 'src/enum.js';
+import { DatabaseRepository } from 'src/repositories/database.repository.js';
 
 @Injectable()
 export class DatabaseService implements OnApplicationBootstrap {

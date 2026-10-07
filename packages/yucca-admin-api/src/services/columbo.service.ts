@@ -1,7 +1,7 @@
 import { Injectable, NotFoundException, NotImplementedException } from '@nestjs/common';
-import { ColumboInvestigateRequestDto, ColumboInvestigationDto } from 'src/dto/columbo.dto';
-import { ColumboJob, ColumboRepository } from 'src/repositories/columbo.repository';
-import { UserRepository } from 'src/repositories/user.repository';
+import { ColumboInvestigateRequestDto, ColumboInvestigationDto } from 'src/dto/columbo.dto.js';
+import { ColumboJob, ColumboRepository } from 'src/repositories/columbo.repository.js';
+import { UserRepository } from 'src/repositories/user.repository.js';
 
 @Injectable()
 export class ColumboService {

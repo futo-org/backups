@@ -2,13 +2,13 @@ import { WideContextRepository } from '@common/server/otel';
 import { BadRequestException, Injectable, Scope, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { Selectable } from 'kysely';
-import { AuthDto } from 'src/dto/auth.dto';
-import { RepositoryCreateRequestDto, RepositoryUpdateRequestDto } from 'src/dto/repository.dto';
-import { AuditAction } from 'src/enum';
-import { ConnectionRepository } from 'src/repositories/connection.repository';
-import { RepositoryRepository } from 'src/repositories/repository.repository';
-import { TopologyRepository } from 'src/repositories/topology.repository';
-import { TicketTable } from 'src/schema/tables/ticket.table';
+import { AuthDto } from 'src/dto/auth.dto.js';
+import { RepositoryCreateRequestDto, RepositoryUpdateRequestDto } from 'src/dto/repository.dto.js';
+import { AuditAction } from 'src/enum.js';
+import { ConnectionRepository } from 'src/repositories/connection.repository.js';
+import { RepositoryRepository } from 'src/repositories/repository.repository.js';
+import { TopologyRepository } from 'src/repositories/topology.repository.js';
+import { TicketTable } from 'src/schema/tables/ticket.table.js';
 
 @Injectable({ scope: Scope.REQUEST })
 export class RepositoryService {

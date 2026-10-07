@@ -1,16 +1,17 @@
 import type { LoggerRepository, WideContextRepository } from '@common/server/otel';
-import type { ConnectionRepository } from 'src/repositories/connection.repository';
-import type { CryptoRepository } from 'src/repositories/crypto.repository';
-import type { DatabaseRepository } from 'src/repositories/database.repository';
-import type { DiscordRepository } from 'src/repositories/discord.repository';
-import type { OidcRepository } from 'src/repositories/oidc.repository';
-import type { RepositoryRepository } from 'src/repositories/repository.repository';
-import type { SessionRepository } from 'src/repositories/session.repository';
-import type { SettingsRepository } from 'src/repositories/settings.repository';
-import type { TicketRepository } from 'src/repositories/ticket.repository';
-import type { TopologyRepository } from 'src/repositories/topology.repository';
-import type { UserRepository } from 'src/repositories/user.repository';
-import type { UserAllowlistRepository } from 'src/repositories/userAllowlist.repository';
+import { jest } from '@jest/globals';
+import type { ConnectionRepository } from 'src/repositories/connection.repository.js';
+import type { CryptoRepository } from 'src/repositories/crypto.repository.js';
+import type { DatabaseRepository } from 'src/repositories/database.repository.js';
+import type { DiscordRepository } from 'src/repositories/discord.repository.js';
+import type { OidcRepository } from 'src/repositories/oidc.repository.js';
+import type { RepositoryRepository } from 'src/repositories/repository.repository.js';
+import type { SessionRepository } from 'src/repositories/session.repository.js';
+import type { SettingsRepository } from 'src/repositories/settings.repository.js';
+import type { TicketRepository } from 'src/repositories/ticket.repository.js';
+import type { TopologyRepository } from 'src/repositories/topology.repository.js';
+import type { UserRepository } from 'src/repositories/user.repository.js';
+import type { UserAllowlistRepository } from 'src/repositories/userAllowlist.repository.js';
 
 export type RepositoryInterface<T extends object> = Pick<T, keyof T>;
 

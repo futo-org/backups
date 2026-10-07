@@ -1,7 +1,8 @@
+import { jest } from '@jest/globals';
 import { availableParallelism } from 'node:os';
-import { yuccaWellKnown } from '../wellKnown';
-import { ConfigRepository } from './config.repository';
-import { LoggingRepository } from './logging.repository';
+import { yuccaWellKnown } from '../wellKnown.js';
+import { ConfigRepository } from './config.repository.js';
+import { LoggingRepository } from './logging.repository.js';
 
 describe(ConfigRepository.name, () => {
   const db = {

@@ -1,6 +1,6 @@
 import { OnModuleInit } from '@nestjs/common';
 import * as client from 'openid-client';
-import { env } from 'src/env';
+import { env } from 'src/env.js';
 
 export class OidcRepository implements OnModuleInit {
   private config!: client.Configuration;

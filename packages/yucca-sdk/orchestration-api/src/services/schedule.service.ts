@@ -3,30 +3,31 @@ import { SchedulerRegistry } from '@nestjs/schedule';
 import { CronJob, CronTime } from 'cron';
 import { Updateable } from 'kysely';
 import { randomUUID } from 'node:crypto';
-import { ActiveScheduleItemDto } from '../dto/runningTasks.dto';
+import { ActiveScheduleItemDto } from '../dto/runningTasks.dto.js';
 import {
   ScheduleCreateRequestDto,
   ScheduleCreateResponseDto,
   ScheduleListResponseDto,
   ScheduleUpdateRequestDto,
   ScheduleUpdateResponseDto,
-} from '../dto/schedule.dto';
-import { TaskStatus, TaskType } from '../enum';
-import { EventsGateway } from '../events/events.gateway';
-import { ModuleConfigRepository } from '../repositories/moduleConfig.repository';
-import { RepositoryIntegrationImmichRepository } from '../repositories/repositoryIntegrationImmich.repository';
-import { RunningTasksRepository } from '../repositories/runningTasks.repository';
-import { ScheduleRepository } from '../repositories/schedule.repository';
-import { ScheduleTable } from '../schema/tables/schedule.table';
-import { getTaskStatus } from '../utils/errors';
-import { RepositoryService } from './repository.service';
-import { TelemetryService } from './telemetry.service';
+} from '../dto/schedule.dto.js';
+import { TaskStatus, TaskType } from '../enum.js';
+import { EventsGateway } from '../events/events.gateway.js';
+import { ModuleConfigRepository } from '../repositories/moduleConfig.repository.js';
+import { RepositoryIntegrationImmichRepository } from '../repositories/repositoryIntegrationImmich.repository.js';
+import { RunningTasksRepository } from '../repositories/runningTasks.repository.js';
+import { ScheduleRepository } from '../repositories/schedule.repository.js';
+import { ScheduleTable } from '../schema/tables/schedule.table.js';
+import { getTaskStatus } from '../utils/errors.js';
+import type { CircularDependency } from '../utils/types.js';
+import { RepositoryService } from './repository.service.js';
+import { TelemetryService } from './telemetry.service.js';
 
 @Injectable()
 export class ScheduleService {
   constructor(
     @Inject(forwardRef(() => RepositoryService))
-    private readonly repository: RepositoryService,
+    private readonly repository: CircularDependency<RepositoryService>,
     private readonly events: EventsGateway,
     private readonly schedule: ScheduleRepository,
     private readonly schedulerRegistry: SchedulerRegistry,

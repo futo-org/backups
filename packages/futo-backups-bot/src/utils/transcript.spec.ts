@@ -1,4 +1,4 @@
-import { formatTranscript } from 'src/utils/transcript';
+import { formatTranscript } from 'src/utils/transcript.js';
 
 describe('formatTranscript', () => {
   it('orders messages oldest first and lists attachments', () => {

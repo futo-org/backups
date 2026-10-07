@@ -1,6 +1,6 @@
 import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { Duration } from 'luxon';
-import { AuthDto } from 'src/dto/auth.dto';
+import { AuthDto } from 'src/dto/auth.dto.js';
 import {
   DiscordInviteBatchCreateDto,
   DiscordInviteBatchDto,
@@ -18,9 +18,9 @@ import {
   DiscordTicketListDto,
   DiscordTicketUpdateDto,
   DiscordUserSummaryDto,
-} from 'src/dto/discord.dto';
-import { CryptoRepository } from 'src/repositories/crypto.repository';
-import { DiscordRepository } from 'src/repositories/discord.repository';
+} from 'src/dto/discord.dto.js';
+import { CryptoRepository } from 'src/repositories/crypto.repository.js';
+import { DiscordRepository } from 'src/repositories/discord.repository.js';
 
 const LINK_REQUEST_TTL = Duration.fromObject({ minutes: 10 });
 

@@ -1,11 +1,11 @@
 import { ResticBackupCommandCouldNotReadSourceDataError } from '@futo-org/restic-wrapper';
 import { SchedulerRegistry } from '@nestjs/schedule';
-import { TaskStatus } from 'src/enum';
-import { ModuleConfigRepository } from 'src/repositories/moduleConfig.repository';
-import { RepositoryIntegrationImmichRepository } from 'src/repositories/repositoryIntegrationImmich.repository';
-import { RepositoryService } from 'src/services/repository.service';
-import { ScheduleService } from 'src/services/schedule.service';
-import { createTestingModule, TestContext, waitFor, waitForEvent } from './testUtils';
+import { TaskStatus } from '../src/enum.js';
+import { ModuleConfigRepository } from '../src/repositories/moduleConfig.repository.js';
+import { RepositoryIntegrationImmichRepository } from '../src/repositories/repositoryIntegrationImmich.repository.js';
+import { RepositoryService } from '../src/services/repository.service.js';
+import { ScheduleService } from '../src/services/schedule.service.js';
+import { createTestingModule, TestContext, waitFor, waitForEvent } from './testUtils.js';
 
 let ctx: TestContext;
 

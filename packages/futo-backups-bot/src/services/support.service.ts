@@ -18,15 +18,15 @@ import {
   ThreadChannel,
   User,
 } from 'discord.js';
-import { ComponentId } from 'src/enum';
-import { env } from 'src/env';
-import { Messages } from 'src/messages';
-import { ColumboRepository } from 'src/repositories/columbo.repository';
-import { DiscordRepository } from 'src/repositories/discord.repository';
-import { DiscordLink, UserSummary, YuccaApiRepository } from 'src/repositories/yuccaApi.repository';
-import { FreshdeskSyncService } from 'src/services/freshdeskSync.service';
-import { InviteService } from 'src/services/invite.service';
-import { isStaff } from 'src/utils/staff';
+import { ComponentId } from 'src/enum.js';
+import { env } from 'src/env.js';
+import { Messages } from 'src/messages.js';
+import { ColumboRepository } from 'src/repositories/columbo.repository.js';
+import { DiscordRepository } from 'src/repositories/discord.repository.js';
+import { DiscordLink, UserSummary, YuccaApiRepository } from 'src/repositories/yuccaApi.repository.js';
+import { FreshdeskSyncService } from 'src/services/freshdeskSync.service.js';
+import { InviteService } from 'src/services/invite.service.js';
+import { isStaff } from 'src/utils/staff.js';
 
 const LINK_POLL_INTERVAL_MS = 5000;
 const LINK_LOOKUP_TIMEOUT_MS = 2000;

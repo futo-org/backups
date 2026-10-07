@@ -1,6 +1,6 @@
 import { CanActivate, ExecutionContext, Injectable, UnauthorizedException } from '@nestjs/common';
 import { createHash, timingSafeEqual } from 'node:crypto';
-import { env } from 'src/env';
+import { env } from 'src/env.js';
 
 export const INTERNAL_SECRET_HEADER = 'x-internal-secret';
 

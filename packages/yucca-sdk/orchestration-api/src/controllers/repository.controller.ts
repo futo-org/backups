@@ -1,6 +1,6 @@
 import { Body, Controller, Delete, Get, Param, Patch, Post, Put, Query } from '@nestjs/common';
 import { ApiCreatedResponse, ApiOkResponse, ApiParam, ApiQuery } from '@nestjs/swagger';
-import { FilesystemListingRequestDto, FilesystemListingResponseDto } from '../dto/filesystem.dto';
+import { FilesystemListingRequestDto, FilesystemListingResponseDto } from '../dto/filesystem.dto.js';
 import {
   ListSnapshotsResponseDto,
   LogResponseDto,
@@ -15,8 +15,8 @@ import {
   RepositoryUpdateRequestDto,
   RepositoryUpdateResponseDto,
   RunHistoryResponseDto,
-} from '../dto/repository.dto';
-import { RepositoryService } from '../services/repository.service';
+} from '../dto/repository.dto.js';
+import { RepositoryService } from '../services/repository.service.js';
 
 @Controller('/yucca/repository')
 export class RepositoryController {

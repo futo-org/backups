@@ -1,8 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { Insertable, Kysely, Updateable } from 'kysely';
 import { InjectKysely } from 'nestjs-kysely';
-import { DB } from '../schema';
-import { ScheduleTable } from '../schema/tables/schedule.table';
+import { DB } from '../schema/index.js';
+import { ScheduleTable } from '../schema/tables/schedule.table.js';
 
 @Injectable()
 export class ScheduleRepository {

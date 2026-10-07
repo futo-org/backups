@@ -1,7 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
-import { InternalEvent } from '../enum';
-import { type ModuleConfig, ModuleConfigProvider } from '../moduleConfig';
+import { InternalEvent } from '../enum.js';
+import { type ModuleConfig, ModuleConfigProvider } from '../moduleConfig.js';
 
 @Injectable()
 export class ModuleConfigRepository {

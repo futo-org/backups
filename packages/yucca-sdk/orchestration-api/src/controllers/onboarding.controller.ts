@@ -4,9 +4,9 @@ import {
   CurrentRecoveryKeyResponse,
   ImportRecoveryKeyRequest,
   OnboardingStatusResponseDto,
-} from '../dto/onboarding.dto';
-import { PublicRoute, type SessionRequest } from '../middleware/session.guard';
-import { OnboardingService } from '../services/onboarding.service';
+} from '../dto/onboarding.dto.js';
+import { PublicRoute, type SessionRequest } from '../middleware/session.guard.js';
+import { OnboardingService } from '../services/onboarding.service.js';
 
 @Controller('/yucca/onboarding')
 export class OnboardingController {

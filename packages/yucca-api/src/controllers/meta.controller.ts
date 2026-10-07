@@ -1,7 +1,7 @@
 import { Controller, Get } from '@nestjs/common';
 import { ApiOkResponse } from '@nestjs/swagger';
-import { MetaResponseDto } from 'src/dto/meta.dto';
-import { MetaService } from 'src/services/meta.service';
+import { MetaResponseDto } from 'src/dto/meta.dto.js';
+import { MetaService } from 'src/services/meta.service.js';
 
 @Controller('/meta')
 export class MetaController {

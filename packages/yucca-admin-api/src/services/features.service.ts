@@ -1,7 +1,7 @@
 import { featureFlagByKey, featureFlagDefs, resolveFeatures } from '@common/server';
 import { LoggerRepository, WideContextRepository } from '@common/server/otel';
 import { BadRequestException, Injectable } from '@nestjs/common';
-import { AuthDto } from 'src/dto/auth.dto';
+import { AuthDto } from 'src/dto/auth.dto.js';
 import {
   FeatureEnableBatchRequestDto,
   FeatureEnableBatchResponseDto,
@@ -9,8 +9,8 @@ import {
   FeatureOverrideSetRequestDto,
   FeatureUsersResponseDto,
   UserFeaturesResponseDto,
-} from 'src/dto/features.dto';
-import { FeatureFlagRepository } from 'src/repositories/featureFlag.repository';
+} from 'src/dto/features.dto.js';
+import { FeatureFlagRepository } from 'src/repositories/featureFlag.repository.js';
 
 @Injectable()
 export class FeaturesService {

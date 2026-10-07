@@ -7,23 +7,23 @@ import {
   ImmichBackupStatusDto,
   ImmichRollbackRequestDto,
   IntegrationsResponseDto,
-} from '../dto/integrations.dto';
-import { InternalEvent, TaskType } from '../enum';
-import { EventsGateway } from '../events/events.gateway';
-import type { ImmichIntegration, ModuleConfig } from '../moduleConfig';
-import { ConfigRepository } from '../repositories/config.repository';
-import { LockRepository } from '../repositories/lock.repository';
-import { ModuleConfigRepository } from '../repositories/moduleConfig.repository';
-import { RepositoryRepository } from '../repositories/repository.repository';
-import { RepositoryIntegrationImmichRepository } from '../repositories/repositoryIntegrationImmich.repository';
-import { RepositoryPathRepository } from '../repositories/repositoryPath.repository';
-import { RunHistoryRepository } from '../repositories/runHistory.repository';
-import { ScheduleRepository } from '../repositories/schedule.repository';
-import { ImmichRepositoryConfig } from '../schema/tables/repositoryIntegrationImmich.table';
-import { BackendService } from './backend.service';
-import { RepositoryService } from './repository.service';
-import { ScheduleService } from './schedule.service';
-import { TelemetryService } from './telemetry.service';
+} from '../dto/integrations.dto.js';
+import { InternalEvent, TaskType } from '../enum.js';
+import { EventsGateway } from '../events/events.gateway.js';
+import type { ImmichIntegration, ModuleConfig } from '../moduleConfig.js';
+import { ConfigRepository } from '../repositories/config.repository.js';
+import { LockRepository } from '../repositories/lock.repository.js';
+import { ModuleConfigRepository } from '../repositories/moduleConfig.repository.js';
+import { RepositoryRepository } from '../repositories/repository.repository.js';
+import { RepositoryIntegrationImmichRepository } from '../repositories/repositoryIntegrationImmich.repository.js';
+import { RepositoryPathRepository } from '../repositories/repositoryPath.repository.js';
+import { RunHistoryRepository } from '../repositories/runHistory.repository.js';
+import { ScheduleRepository } from '../repositories/schedule.repository.js';
+import { ImmichRepositoryConfig } from '../schema/tables/repositoryIntegrationImmich.table.js';
+import { BackendService } from './backend.service.js';
+import { RepositoryService } from './repository.service.js';
+import { ScheduleService } from './schedule.service.js';
+import { TelemetryService } from './telemetry.service.js';
 
 @Injectable()
 export class IntegrationsService {

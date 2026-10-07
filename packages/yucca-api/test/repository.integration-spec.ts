@@ -1,12 +1,12 @@
 import { MetricService } from '@common/server/otel';
 import { INestApplication } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
-import { TicketAction } from 'src/enum';
+import { TicketAction } from 'src/enum.js';
 import request from 'supertest';
 import { App } from 'supertest/types';
-import { controllers, imports, providers } from '../src/app.module';
-import { newMetricServiceMock } from './mocks';
-import { testUtils } from './testUtils';
+import { controllers, imports, providers } from '../src/app.module.js';
+import { newMetricServiceMock } from './mocks.js';
+import { testUtils } from './testUtils.js';
 
 describe('RepositoryController (e2e)', () => {
   let app: INestApplication<App>;

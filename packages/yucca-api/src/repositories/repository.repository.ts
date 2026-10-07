@@ -2,9 +2,9 @@ import { Injectable } from '@nestjs/common';
 import { ExpressionBuilder, Insertable, Kysely, Updateable } from 'kysely';
 import { jsonBuildObject } from 'kysely/helpers/postgres';
 import { InjectKysely } from 'nestjs-kysely';
-import { DB } from 'src/schema';
-import { AuditLogTable } from 'src/schema/tables/auditLog.table';
-import { RepositoryTable } from 'src/schema/tables/repository.table';
+import { DB } from 'src/schema/index.js';
+import { AuditLogTable } from 'src/schema/tables/auditLog.table.js';
+import { RepositoryTable } from 'src/schema/tables/repository.table.js';
 
 type RepositoryMetricsJson = {
   sizeBytes: number;

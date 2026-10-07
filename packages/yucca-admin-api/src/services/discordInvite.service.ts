@@ -6,9 +6,9 @@ import {
   DiscordInviteBatchListResponseDto,
   DiscordInviteClaimDto,
   DiscordInviteClaimListResponseDto,
-} from 'src/dto/discordInvite.dto';
-import { DiscordInviteRepository } from 'src/repositories/discordInvite.repository';
-import { FutoBackupsBotRepository } from 'src/repositories/futoBackupsBot.repository';
+} from 'src/dto/discordInvite.dto.js';
+import { DiscordInviteRepository } from 'src/repositories/discordInvite.repository.js';
+import { FutoBackupsBotRepository } from 'src/repositories/futoBackupsBot.repository.js';
 
 @Injectable()
 export class DiscordInviteService {

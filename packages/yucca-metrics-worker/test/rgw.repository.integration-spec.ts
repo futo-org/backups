@@ -1,6 +1,6 @@
 import { AwsClient } from 'aws4fetch';
-import { env } from 'src/env';
-import { type BucketStats, RgwRepository } from 'src/repositories/rgw.repository';
+import { env } from 'src/env.js';
+import { type BucketStats, RgwRepository } from 'src/repositories/rgw.repository.js';
 
 describe('RgwRepository (integration)', () => {
   let repository: RgwRepository;

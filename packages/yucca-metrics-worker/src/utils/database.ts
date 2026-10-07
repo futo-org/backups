@@ -1,7 +1,7 @@
 import { KyselyConfig } from 'kysely';
 import { PostgresJSDialect } from 'kysely-postgres-js';
 import postgres, { Notice } from 'postgres';
-import { env } from 'src/env';
+import { env } from 'src/env.js';
 
 export const getKyselyConnectionParameters = () => ({
   connectionType: 'parts' as const,

@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { BootstrapStatus } from '../enum';
+import { BootstrapStatus } from '../enum.js';
 
 @Injectable()
 export class BootstrapRepository {

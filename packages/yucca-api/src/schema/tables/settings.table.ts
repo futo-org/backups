@@ -1,5 +1,5 @@
 import { Column, type Generated, Table } from '@immich/sql-tools';
-import type { ConfigOverrides } from 'src/utils/settings';
+import type { ConfigOverrides } from 'src/utils/settings.js';
 
 @Table({ name: 'settings' })
 export class SettingsTable {

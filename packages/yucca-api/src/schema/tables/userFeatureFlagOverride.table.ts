@@ -1,5 +1,5 @@
 import { Column, ForeignKeyColumn, type Generated, Table, Unique } from '@immich/sql-tools';
-import { UserTable } from './user.table';
+import { UserTable } from './user.table.js';
 
 @Table({ name: 'userFeatureFlagOverride' })
 @Unique({ columns: ['userId', 'flag'] })

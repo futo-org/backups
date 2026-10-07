@@ -3,10 +3,10 @@ import { ApiCreatedResponse, ApiOkResponse, ApiQuery } from '@nestjs/swagger';
 import { parse } from 'cookie';
 import { type Request, type Response } from 'express';
 import { Duration } from 'luxon';
-import { AuthDto, CliTokenRequestDto, CliTokenResponseDto } from 'src/dto/auth.dto';
-import { CookieName } from 'src/enum';
-import { Auth, AuthRoute } from 'src/middleware/auth.guard';
-import { AuthService, type CliLoginParams } from 'src/services/auth.service';
+import { AuthDto, CliTokenRequestDto, CliTokenResponseDto } from 'src/dto/auth.dto.js';
+import { CookieName } from 'src/enum.js';
+import { Auth, AuthRoute } from 'src/middleware/auth.guard.js';
+import { AuthService, type CliLoginParams } from 'src/services/auth.service.js';
 
 @Controller('/auth')
 export class AuthController {

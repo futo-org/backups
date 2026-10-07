@@ -35,6 +35,7 @@
       "^src/(.*)$": "<rootDir>/src/$1"
     },
     "setupFilesAfterEnv": [
+      "<rootDir>/k3d/hostmap.mjs",
       "jest-extended/all"
     ],
     "testTimeout": 15000,

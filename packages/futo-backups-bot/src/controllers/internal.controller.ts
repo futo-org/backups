@@ -1,7 +1,7 @@
 import { BadRequestException, Body, Controller, HttpCode, HttpStatus, Post, UseGuards } from '@nestjs/common';
-import { InternalGuard } from 'src/middleware/internal.guard';
-import { InviteService } from 'src/services/invite.service';
-import { SupportService } from 'src/services/support.service';
+import { InternalGuard } from 'src/middleware/internal.guard.js';
+import { InviteService } from 'src/services/invite.service.js';
+import { SupportService } from 'src/services/support.service.js';
 import { z } from 'zod';
 
 const closeDropSchema = z.object({

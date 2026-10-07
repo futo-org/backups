@@ -1,4 +1,4 @@
-import { MirrorMessage, escapeHtml, groupForMirror, toHtmlBody } from 'src/utils/mirror';
+import { MirrorMessage, escapeHtml, groupForMirror, toHtmlBody } from 'src/utils/mirror.js';
 
 const message = (id: string, authorId: string, overrides: Partial<MirrorMessage> = {}): MirrorMessage => ({
   id,

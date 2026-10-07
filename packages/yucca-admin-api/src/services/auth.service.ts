@@ -5,10 +5,10 @@ import { parse } from 'cookie';
 import { Request } from 'express';
 import { createHash } from 'node:crypto';
 import { IncomingHttpHeaders } from 'node:http';
-import { AuthDto, CliTokenResponseDto } from 'src/dto/auth.dto';
-import { CookieName, JwtAudience } from 'src/enum';
-import { env } from 'src/env';
-import { OidcRepository } from 'src/repositories/oidc.repository';
+import { AuthDto, CliTokenResponseDto } from 'src/dto/auth.dto.js';
+import { CookieName, JwtAudience } from 'src/enum.js';
+import { env } from 'src/env.js';
+import { OidcRepository } from 'src/repositories/oidc.repository.js';
 
 // Loopback-flow parameters set by the CLI on /auth/cli/login, carried through
 // the OIDC dance in the CliLogin cookie.

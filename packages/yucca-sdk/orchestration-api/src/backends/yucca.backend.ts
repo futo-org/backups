@@ -16,12 +16,12 @@ import {
   TicketCreateResponseDto,
   updateRepository,
 } from '@futo-org/backups-api-client';
-import { BackendType, CookieName } from '../enum';
-import { ResticProxyPool } from '../proxy/resticProxyPool';
-import { LoggingRepository } from '../repositories/logging.repository';
-import { BackendConfiguration } from '../schema/tables/backend.table';
-import { yuccaWellKnown } from '../wellKnown';
-import { Backend } from './backend';
+import { BackendType, CookieName } from '../enum.js';
+import { ResticProxyPool } from '../proxy/resticProxyPool.js';
+import { LoggingRepository } from '../repositories/logging.repository.js';
+import { BackendConfiguration } from '../schema/tables/backend.table.js';
+import { yuccaWellKnown } from '../wellKnown.js';
+import { Backend } from './backend.js';
 
 export class YuccaBackend extends Backend {
   private readonly logger = LoggingRepository.create(YuccaBackend.name);

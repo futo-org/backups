@@ -1,6 +1,6 @@
 import { createZodDto } from 'nestjs-zod';
 import { z } from 'zod';
-import { TicketAction } from '../enum';
+import { TicketAction } from '../enum.js';
 
 const TicketCreateRequestSchema = z
   .object({

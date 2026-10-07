@@ -1,10 +1,11 @@
 import type { LoggerRepository } from '@common/server/otel';
-import type { ColumboRepository } from 'src/repositories/columbo.repository';
-import type { DiscordRepository } from 'src/repositories/discord.repository';
-import type { FreshdeskRepository } from 'src/repositories/freshdesk.repository';
-import type { TranscriptStorageRepository } from 'src/repositories/transcriptStorage.repository';
-import type { YuccaApiRepository } from 'src/repositories/yuccaApi.repository';
-import type { FreshdeskSyncService } from 'src/services/freshdeskSync.service';
+import { jest } from '@jest/globals';
+import type { ColumboRepository } from 'src/repositories/columbo.repository.js';
+import type { DiscordRepository } from 'src/repositories/discord.repository.js';
+import type { FreshdeskRepository } from 'src/repositories/freshdesk.repository.js';
+import type { TranscriptStorageRepository } from 'src/repositories/transcriptStorage.repository.js';
+import type { YuccaApiRepository } from 'src/repositories/yuccaApi.repository.js';
+import type { FreshdeskSyncService } from 'src/services/freshdeskSync.service.js';
 
 export type RepositoryInterface<T extends object> = Pick<T, keyof T>;
 

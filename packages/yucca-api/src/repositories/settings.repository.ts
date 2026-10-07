@@ -1,8 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { Kysely } from 'kysely';
 import { InjectKysely } from 'nestjs-kysely';
-import { DB } from 'src/schema';
-import type { ConfigOverrides } from 'src/utils/settings';
+import { DB } from 'src/schema/index.js';
+import type { ConfigOverrides } from 'src/utils/settings.js';
 
 @Injectable()
 export class SettingsRepository {

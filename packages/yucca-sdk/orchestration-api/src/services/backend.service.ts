@@ -1,11 +1,11 @@
 import { Injectable } from '@nestjs/common';
 import { randomUUID } from 'node:crypto';
-import { Backend } from '../backends/backend';
-import { BackendResponseDto, BackendsResponseDto, CreateLocalBackendRequestDto } from '../dto/backend.dto';
-import { BackendType } from '../enum';
-import { EventsGateway } from '../events/events.gateway';
-import { BackendRepository } from '../repositories/backend.repository';
-import { TelemetryService } from './telemetry.service';
+import { createBackend } from '../backends/createBackend.js';
+import { BackendResponseDto, BackendsResponseDto, CreateLocalBackendRequestDto } from '../dto/backend.dto.js';
+import { BackendType } from '../enum.js';
+import { EventsGateway } from '../events/events.gateway.js';
+import { BackendRepository } from '../repositories/backend.repository.js';
+import { TelemetryService } from './telemetry.service.js';
 
 @Injectable()
 export class BackendService {
@@ -20,7 +20,7 @@ export class BackendService {
 
     const error = await Promise.all(
       backends.map((backend) =>
-        Backend.from(backend.configuration)
+        createBackend(backend.configuration)
           .checkOnline()
           .then(() => void 0)
           .catch((error) => error),

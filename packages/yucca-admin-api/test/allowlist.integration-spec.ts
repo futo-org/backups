@@ -1,13 +1,14 @@
 import { EmailMessage, EmailRepository } from '@common/server/email';
 import { MetricService } from '@common/server/otel';
+import { jest } from '@jest/globals';
 import { INestApplication } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
-import { OidcRepository } from 'src/repositories/oidc.repository';
+import { OidcRepository } from 'src/repositories/oidc.repository.js';
 import request from 'supertest';
 import { App } from 'supertest/types';
-import { controllers, imports, providers } from '../src/app.module';
-import { newMetricServiceMock } from './mocks';
-import { testUtils } from './testUtils';
+import { controllers, imports, providers } from '../src/app.module.js';
+import { newMetricServiceMock } from './mocks.js';
+import { testUtils } from './testUtils.js';
 
 const authCookie = ['yucca-admin-sub=admin', 'yucca-admin-access-token=token'];
 

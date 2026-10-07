@@ -1,16 +1,16 @@
 import { connectionTypeFlag } from '@common/server';
 import { BadRequestException, Injectable, NotFoundException, Scope, UnauthorizedException } from '@nestjs/common';
-import { AuthDto } from 'src/dto/auth.dto';
+import { AuthDto } from 'src/dto/auth.dto.js';
 import {
   ConnectionAdoptRequestDto,
   ConnectionCreateRequestDto,
   ConnectionListResponseDto,
   ConnectionResponseDto,
   ConnectionUpdateRequestDto,
-} from 'src/dto/connection.dto';
-import { ConnectionRepository } from 'src/repositories/connection.repository';
-import { RepositoryRepository } from 'src/repositories/repository.repository';
-import { FeatureNotEnabledException } from 'src/utils/exceptions';
+} from 'src/dto/connection.dto.js';
+import { ConnectionRepository } from 'src/repositories/connection.repository.js';
+import { RepositoryRepository } from 'src/repositories/repository.repository.js';
+import { FeatureNotEnabledException } from 'src/utils/exceptions.js';
 
 @Injectable({ scope: Scope.REQUEST })
 export class ConnectionService {

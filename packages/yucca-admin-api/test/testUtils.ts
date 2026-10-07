@@ -1,7 +1,7 @@
 import { Kysely } from 'kysely';
 import { randomUUID } from 'node:crypto';
-import { DB } from 'src/schema';
-import { getKyselyConfig } from 'src/utils/database';
+import { DB } from 'src/schema/index.js';
+import { getKyselyConfig } from 'src/utils/database.js';
 
 let db: Kysely<DB>;
 

@@ -1,9 +1,9 @@
 import { Injectable } from '@nestjs/common';
-import { MetaResponseDto } from 'src/dto/meta.dto';
-import { env } from 'src/env';
-import { SettingsRepository } from 'src/repositories/settings.repository';
-import { TopologyRepository } from 'src/repositories/topology.repository';
-import { DEFAULT_CONFIG } from 'src/utils/settings';
+import { MetaResponseDto } from 'src/dto/meta.dto.js';
+import { env } from 'src/env.js';
+import { SettingsRepository } from 'src/repositories/settings.repository.js';
+import { TopologyRepository } from 'src/repositories/topology.repository.js';
+import { DEFAULT_CONFIG } from 'src/utils/settings.js';
 
 @Injectable()
 export class MetaService {

@@ -7,23 +7,23 @@
   "types": "dist/index.d.ts",
   "scripts": {
     "build": "nest build",
-    "test": "jest",
-    "test:integration": "jest --config ./test/jest-integration.json --runInBand",
-    "dev": "nodemon bin/server.ts",
-    "start": "ts-node bin/server.ts",
-    "sync:openapi": "ts-node bin/sync-openapi.ts"
+    "test": "NODE_OPTIONS='--experimental-vm-modules' jest",
+    "test:integration": "NODE_OPTIONS='--experimental-vm-modules' jest --config ./test/jest-integration.json --runInBand",
+    "dev": "nest start --watch --entryFile bin/server",
+    "start": "node dist/bin/server.js",
+    "sync:openapi": "nest build && node dist/bin/sync-openapi.js"
   },
   "keywords": [],
   "author": "",
   "license": "Source First License 1.1",
   "packageManager": "pnpm@10.28.1",
   "peerDependencies": {
-    "@nestjs/common": "^11.0.0",
-    "@nestjs/core": "^11.0.0",
-    "@nestjs/platform-socket.io": "^11.0.0",
-    "@nestjs/schedule": "^6.0.0",
-    "@nestjs/swagger": "^11.0.0",
-    "@nestjs/websockets": "^11.0.0"
+    "@nestjs/common": "^12.0.0",
+    "@nestjs/core": "^12.0.0",
+    "@nestjs/platform-socket.io": "^12.0.0",
+    "@nestjs/schedule": "^12.0.0",
+    "@nestjs/swagger": "^12.0.0",
+    "@nestjs/websockets": "^12.0.0"
   },
   "dependencies": {
     "@futo-org/restic-wrapper": "catalog:",
@@ -46,6 +46,7 @@
     "@futo-org/backups-api-client": "workspace:^"
   },
   "devDependencies": {
+    "@jest/globals": "catalog:",
     "@nestjs/cli": "catalog:",
     "@nestjs/common": "catalog:",
     "@nestjs/core": "catalog:",
@@ -61,14 +62,12 @@
     "@types/node": "catalog:",
     "@types/tail": "catalog:",
     "jest": "catalog:",
-    "nodemon": "catalog:",
     "ts-jest": "catalog:",
-    "ts-loader": "catalog:",
-    "ts-node": "catalog:",
-    "tsconfig-paths": "catalog:"
+    "ts-loader": "catalog:"
   },
   "files": [
-    "dist"
+    "dist",
+    "!dist/bin"
   ],
   "jest": {
     "moduleFileExtensions": [
@@ -79,15 +78,30 @@
     "rootDir": "src",
     "testRegex": ".*\\.spec\\.ts$",
     "transform": {
-      "^.+\\.(t|j)s$": "ts-jest"
+      "^.+\\.ts$": [
+        "ts-jest",
+        {
+          "useESM": true
+        }
+      ]
     },
     "moduleNameMapper": {
-      "^src/(.*)$": "<rootDir>/$1"
+      "^(\\.{1,2}/.*)\\.js$": "$1"
     },
     "collectCoverageFrom": [
       "**/*.(t|j)s"
     ],
     "coverageDirectory": "../coverage",
-    "testEnvironment": "node"
+    "testEnvironment": "node",
+    "extensionsToTreatAsEsm": [
+      ".ts"
+    ]
+  },
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
   }
 }

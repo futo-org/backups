@@ -1,13 +1,14 @@
 import { submitStructuredLog } from '@futo-org/backups-api-client';
+import { jest } from '@jest/globals';
 import { setTimeout as delay } from 'node:timers/promises';
-import { version } from '../package.json';
-import { REPOSITORY_DEFAULT_CLOUD_UUID } from '../src/const';
-import { BackendType } from '../src/enum';
-import { BackendRepository } from '../src/repositories/backend.repository';
-import { ConfigRepository } from '../src/repositories/config.repository';
-import { TelemetryService } from '../src/services/telemetry.service';
-import { yuccaWellKnown } from '../src/wellKnown';
-import { createTestingModule, TestContext, waitFor } from './testUtils';
+import packageJson from '../package.json' with { type: 'json' };
+import { REPOSITORY_DEFAULT_CLOUD_UUID } from '../src/const.js';
+import { BackendType } from '../src/enum.js';
+import { BackendRepository } from '../src/repositories/backend.repository.js';
+import { ConfigRepository } from '../src/repositories/config.repository.js';
+import { TelemetryService } from '../src/services/telemetry.service.js';
+import { yuccaWellKnown } from '../src/wellKnown.js';
+import { createTestingModule, TestContext, waitFor } from './testUtils.js';
 
 const apiSubmitStructuredLog = submitStructuredLog as jest.Mock;
 
@@ -54,7 +55,7 @@ describe('Telemetry', () => {
     expect(apiSubmitStructuredLog).toHaveBeenCalledWith(
       {
         summary: 'Running backup',
-        data: expect.objectContaining({ repositoryId: 'abc', version }),
+        data: expect.objectContaining({ repositoryId: 'abc', version: packageJson.version }),
       },
       expect.any(Object),
     );
@@ -68,7 +69,10 @@ describe('Telemetry', () => {
 
     expect(apiSubmitStructuredLog).toHaveBeenCalledTimes(1);
     expect(apiSubmitStructuredLog).toHaveBeenCalledWith(
-      { summary: 'Telemetry consent', data: expect.objectContaining({ consent: 'full', version }) },
+      {
+        summary: 'Telemetry consent',
+        data: expect.objectContaining({ consent: 'full', version: packageJson.version }),
+      },
       expect.any(Object),
     );
   });

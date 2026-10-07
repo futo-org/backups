@@ -4,9 +4,9 @@ import { FileMigrationProvider, Kysely, Migrator, sql } from 'kysely';
 import { InjectKysely } from 'nestjs-kysely';
 import { readdir } from 'node:fs/promises';
 import { join } from 'node:path';
-import { DatabaseLock } from 'src/enum';
-import { env } from 'src/env';
-import { DB } from 'src/schema';
+import { DatabaseLock } from 'src/enum.js';
+import { env } from 'src/env.js';
+import { DB } from 'src/schema/index.js';
 
 @Injectable()
 export class DatabaseRepository {
@@ -82,7 +82,7 @@ export class DatabaseRepository {
           readdir,
         },
         path: { join },
-        migrationFolder: join(__dirname, '..', 'schema/migrations'),
+        migrationFolder: join(import.meta.dirname, '..', 'schema/migrations'),
       }),
     });
   }

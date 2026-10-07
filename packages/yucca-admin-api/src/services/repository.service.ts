@@ -9,13 +9,13 @@ import {
   RepositoryUpdateRequestDto,
   RepositoryUpdateResponseDto,
   RepositoryUrlResponseDto,
-} from 'src/dto/repository.dto';
-import { env } from 'src/env';
-import { ConnectionRepository } from 'src/repositories/connection.repository';
-import { RepositoryRepository } from 'src/repositories/repository.repository';
-import { TopologyRepository } from 'src/repositories/topology.repository';
-import { UserRepository } from 'src/repositories/user.repository';
-import { resolveLimit } from 'src/utils/pagination';
+} from 'src/dto/repository.dto.js';
+import { env } from 'src/env.js';
+import { ConnectionRepository } from 'src/repositories/connection.repository.js';
+import { RepositoryRepository } from 'src/repositories/repository.repository.js';
+import { TopologyRepository } from 'src/repositories/topology.repository.js';
+import { UserRepository } from 'src/repositories/user.repository.js';
+import { resolveLimit } from 'src/utils/pagination.js';
 
 const serviceUser = {
   sub: 'yucca-admin-service',

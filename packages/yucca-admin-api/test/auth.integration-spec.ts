@@ -3,12 +3,12 @@ import { INestApplication } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { parse } from 'cookie';
 import { createHash } from 'node:crypto';
-import { env } from 'src/env';
+import { env } from 'src/env.js';
 import request from 'supertest';
 import { App } from 'supertest/types';
-import { controllers, imports, providers } from '../src/app.module';
-import { newMetricServiceMock } from './mocks';
-import { testUtils } from './testUtils';
+import { controllers, imports, providers } from '../src/app.module.js';
+import { newMetricServiceMock } from './mocks.js';
+import { testUtils } from './testUtils.js';
 
 describe('AuthController (e2e)', () => {
   let app: INestApplication<App>;

@@ -1,6 +1,6 @@
 import { NotFoundException, NotImplementedException } from '@nestjs/common';
-import { ColumboService } from 'src/services/columbo.service';
-import { Mocks, newMocks } from '../../test/mocks';
+import { ColumboService } from 'src/services/columbo.service.js';
+import { Mocks, newMocks } from '../../test/mocks.js';
 
 describe(ColumboService.name, () => {
   let sut: ColumboService;

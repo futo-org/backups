@@ -1,9 +1,9 @@
 import { Body, Controller, Delete, Get, HttpCode, HttpStatus, Param, Patch, Put, Query } from '@nestjs/common';
 import { ApiOkResponse } from '@nestjs/swagger';
-import { AuthDto } from 'src/dto/auth.dto';
-import { ConnectionListResponseDto } from 'src/dto/connection.dto';
-import { FeatureOverrideDto, FeatureOverrideSetRequestDto, UserFeaturesResponseDto } from 'src/dto/features.dto';
-import { SessionListResponseDto } from 'src/dto/session.dto';
+import { AuthDto } from 'src/dto/auth.dto.js';
+import { ConnectionListResponseDto } from 'src/dto/connection.dto.js';
+import { FeatureOverrideDto, FeatureOverrideSetRequestDto, UserFeaturesResponseDto } from 'src/dto/features.dto.js';
+import { SessionListResponseDto } from 'src/dto/session.dto.js';
 import {
   UserDiscordLinkDto,
   UserDiscordLinkRequestDto,
@@ -12,12 +12,12 @@ import {
   UserListResponseDto,
   UserUpdateRequestDto,
   UserUpdateResponseDto,
-} from 'src/dto/user.dto';
-import { Auth, AuthRoute } from 'src/middleware/auth.guard';
-import { ConnectionRepository } from 'src/repositories/connection.repository';
-import { FeaturesService } from 'src/services/features.service';
-import { SessionService } from 'src/services/session.service';
-import { UserService } from 'src/services/user.service';
+} from 'src/dto/user.dto.js';
+import { Auth, AuthRoute } from 'src/middleware/auth.guard.js';
+import { ConnectionRepository } from 'src/repositories/connection.repository.js';
+import { FeaturesService } from 'src/services/features.service.js';
+import { SessionService } from 'src/services/session.service.js';
+import { UserService } from 'src/services/user.service.js';
 
 @Controller('/user')
 export class UserController {

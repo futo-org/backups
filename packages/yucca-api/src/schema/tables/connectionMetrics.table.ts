@@ -1,5 +1,5 @@
 import { Column, ForeignKeyColumn, type Generated, Table } from '@immich/sql-tools';
-import { ConnectionTable } from './connection.table';
+import { ConnectionTable } from './connection.table.js';
 
 @Table({ name: 'connectionMetrics' })
 export class ConnectionMetricsTable {

@@ -1,12 +1,12 @@
 import { Kysely } from 'kysely';
-import { TicketAction } from 'src/enum';
-import { ConnectionRepository } from 'src/repositories/connection.repository';
-import { CryptoRepository } from 'src/repositories/crypto.repository';
-import { RepositoryRepository } from 'src/repositories/repository.repository';
-import { SessionRepository } from 'src/repositories/session.repository';
-import { UserRepository } from 'src/repositories/user.repository';
-import { DB } from 'src/schema';
-import { getKyselyConfig } from 'src/utils/database';
+import { TicketAction } from 'src/enum.js';
+import { ConnectionRepository } from 'src/repositories/connection.repository.js';
+import { CryptoRepository } from 'src/repositories/crypto.repository.js';
+import { RepositoryRepository } from 'src/repositories/repository.repository.js';
+import { SessionRepository } from 'src/repositories/session.repository.js';
+import { UserRepository } from 'src/repositories/user.repository.js';
+import { DB } from 'src/schema/index.js';
+import { getKyselyConfig } from 'src/utils/database.js';
 
 let db: Kysely<DB>;
 

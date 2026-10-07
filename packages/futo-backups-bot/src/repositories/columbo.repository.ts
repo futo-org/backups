@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { env } from 'src/env';
+import { env } from 'src/env.js';
 
 export type InvestigationRequest = {
   ticketThreadId: string;

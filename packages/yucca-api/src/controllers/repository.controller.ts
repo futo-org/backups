@@ -1,7 +1,7 @@
 import { Body, Controller, Delete, Get, Param, Patch, Post, Query, Req } from '@nestjs/common';
 import { ApiCreatedResponse, ApiOkResponse, ApiQuery } from '@nestjs/swagger';
 import { type Request } from 'express';
-import { AuthDto } from 'src/dto/auth.dto';
+import { AuthDto } from 'src/dto/auth.dto.js';
 import {
   RepositoryCreateRequestDto,
   RepositoryCreateResponseDto,
@@ -10,11 +10,11 @@ import {
   RepositoryListResponseDto,
   RepositoryUpdateRequestDto,
   RepositoryUpdateResponseDto,
-} from 'src/dto/repository.dto';
-import { TicketAction } from 'src/enum';
-import { Auth, AuthRoute } from 'src/middleware/auth.guard';
-import { AuthService } from 'src/services/auth.service';
-import { RepositoryService } from 'src/services/repository.service';
+} from 'src/dto/repository.dto.js';
+import { TicketAction } from 'src/enum.js';
+import { Auth, AuthRoute } from 'src/middleware/auth.guard.js';
+import { AuthService } from 'src/services/auth.service.js';
+import { RepositoryService } from 'src/services/repository.service.js';
 
 @Controller('/repository')
 export class RepositoryController {

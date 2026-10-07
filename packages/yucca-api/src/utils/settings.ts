@@ -1,4 +1,4 @@
-import { isValidConnectionsMath } from 'src/utils/connectionsMath';
+import { isValidConnectionsMath } from 'src/utils/connectionsMath.js';
 import { z } from 'zod';
 
 export const configOverridesSchema = z

@@ -1,9 +1,9 @@
 import { Injectable } from '@nestjs/common';
-import { Backend } from '../backends/backend';
-import { REPOSITORY_DEFAULT_CLOUD_UUID } from '../const';
-import { BackendRepository } from '../repositories/backend.repository';
-import { ConfigRepository } from '../repositories/config.repository';
-import { LoggingRepository } from '../repositories/logging.repository';
+import { createBackend } from '../backends/createBackend.js';
+import { REPOSITORY_DEFAULT_CLOUD_UUID } from '../const.js';
+import { BackendRepository } from '../repositories/backend.repository.js';
+import { ConfigRepository } from '../repositories/config.repository.js';
+import { LoggingRepository } from '../repositories/logging.repository.js';
 
 function serializeErrors(data: object): object {
   return Object.fromEntries(
@@ -15,7 +15,7 @@ function serializeErrors(data: object): object {
   );
 }
 
-import { version } from '../../package.json';
+import packageJson from '../../package.json' with { type: 'json' };
 
 @Injectable()
 export class TelemetryService {
@@ -44,10 +44,10 @@ export class TelemetryService {
           throw new Error('No production backend configured');
         }
 
-        const backend = Backend.from(result.configuration);
+        const backend = createBackend(result.configuration);
         backend.submitStructuredLog(summary, {
           ...serializeErrors(data),
-          version,
+          version: packageJson.version,
         });
       })
       .catch(() => this.logger.warn('No production backend configured, skipping structured log.', summary));
