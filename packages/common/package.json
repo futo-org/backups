@@ -2,7 +2,7 @@
   "private": true,
   "name": "@common/server",
   "type": "module",
-  "version": "0.50.3",
+  "version": "0.50.4",
   "description": "Common code for the NestJS applications",
   "keywords": [],
   "author": "",
