@@ -1,5 +1,5 @@
 import { Body, Controller, Post, Req, Res, Sse } from '@nestjs/common';
-import { ApiBody, ApiCreatedResponse, ApiOkResponse } from '@nestjs/swagger';
+import { ApiBody, ApiCreatedResponse, ApiOkResponse, ApiOperation } from '@nestjs/swagger';
 import { type Request, type Response } from 'express';
 import { SESSION_TTL_MS } from '../const.js';
 import { CreateSessionRequestDto, DeviceFlowEventDto } from '../dto/auth.dto.js';
@@ -18,6 +18,10 @@ export class AuthController {
 
   @Sse('/oidc/device')
   @ApiOkResponse({ type: DeviceFlowEventDto })
+  @ApiOperation({
+    summary: 'Connect a FUTO Backups account',
+    description: 'Connect an existing FUTO Backups account to this server.',
+  })
   connectDeviceFlow() {
     return this.auth.deviceFlow(false);
   }
@@ -25,6 +29,10 @@ export class AuthController {
   @Sse('/session/device')
   @PublicRoute()
   @ApiOkResponse({ type: DeviceFlowEventDto })
+  @ApiOperation({
+    summary: 'Sign in with FUTO Backups account',
+    description: 'Log into standalone backups app using the associated cloud account.',
+  })
   sessionDeviceFlow() {
     return this.auth.deviceFlow(true);
   }
@@ -32,6 +40,11 @@ export class AuthController {
   @Post('/session')
   @PublicRoute()
   @ApiBody({ type: CreateSessionRequestDto })
+  @ApiOperation({
+    summary: 'Create session',
+    description: 'Use existing session token to create a session on your device.',
+  })
+  @ApiCreatedResponse()
   async createSession(
     @Body() dto: CreateSessionRequestDto,
     @Req() request: Request,
@@ -50,6 +63,10 @@ export class AuthController {
 
   @Post('/ticket')
   @ApiCreatedResponse({ type: TicketCreateResponseDto })
+  @ApiOperation({
+    summary: 'Create a ticket',
+    description: 'Create a ticket to perform a protected repository action.',
+  })
   async createTicket(@Body() dto: TicketCreateRequestDto): Promise<TicketCreateResponseDto> {
     return await this.auth.createTicket(dto);
   }

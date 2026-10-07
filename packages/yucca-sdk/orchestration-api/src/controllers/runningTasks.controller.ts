@@ -1,5 +1,5 @@
 import { Controller, Get, Param, Post } from '@nestjs/common';
-import { ApiOkResponse, ApiParam } from '@nestjs/swagger';
+import { ApiCreatedResponse, ApiOkResponse, ApiOperation, ApiParam } from '@nestjs/swagger';
 import { RunningTaskListResponse } from '../dto/runningTasks.dto.js';
 import { RunningTasksService } from '../services/runningTasks.service.js';
 
@@ -9,12 +9,21 @@ export class RunningTasksController {
 
   @Get()
   @ApiOkResponse({ type: RunningTaskListResponse })
+  @ApiOperation({
+    summary: 'List running tasks',
+    description: 'List the tasks running on this server.',
+  })
   getRunningTasks(): RunningTaskListResponse {
     return this.service.getTasks();
   }
 
   @Post('/:parentId/cancel')
   @ApiParam({ name: 'parentId', type: String })
+  @ApiOperation({
+    summary: 'Cancel a task',
+    description: 'Cancel a running task and its subtasks.',
+  })
+  @ApiCreatedResponse()
   cancelTask(@Param('parentId') parentId: string): void {
     this.service.cancelTask(parentId);
   }

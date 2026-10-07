@@ -3,6 +3,7 @@
   "paths": {
     "/api/yucca/auth/oidc/device": {
       "get": {
+        "description": "Stream the OIDC device flow that links this server to a FUTO Backups account.",
         "operationId": "connectDeviceFlow",
         "parameters": [],
         "responses": {
@@ -17,6 +18,7 @@
             }
           }
         },
+        "summary": "Connect a FUTO Backups account",
         "tags": [
           "Auth"
         ]
@@ -24,6 +26,7 @@
     },
     "/api/yucca/auth/session/device": {
       "get": {
+        "description": "Stream the OIDC device flow that verifies the user and issues a session token.",
         "operationId": "sessionDeviceFlow",
         "parameters": [],
         "responses": {
@@ -38,6 +41,7 @@
             }
           }
         },
+        "summary": "Sign in with the device flow",
         "tags": [
           "Auth"
         ]
@@ -45,6 +49,7 @@
     },
     "/api/yucca/auth/session": {
       "post": {
+        "description": "Validate a session token and store it in the session cookie.",
         "operationId": "createSession",
         "parameters": [],
         "requestBody": {
@@ -62,6 +67,7 @@
             "description": ""
           }
         },
+        "summary": "Create a session",
         "tags": [
           "Auth"
         ]
@@ -69,6 +75,7 @@
     },
     "/api/yucca/auth/ticket": {
       "post": {
+        "description": "Create a ticket for a protected repository action and return the URL where the user confirms it.",
         "operationId": "createTicket",
         "parameters": [],
         "requestBody": {
@@ -93,6 +100,7 @@
             }
           }
         },
+        "summary": "Create a ticket",
         "tags": [
           "Auth"
         ]
@@ -100,6 +108,7 @@
     },
     "/api/yucca/backend": {
       "get": {
+        "description": "List the storage backends configured on this server.",
         "operationId": "getBackends",
         "parameters": [],
         "responses": {
@@ -114,6 +123,7 @@
             }
           }
         },
+        "summary": "List backends",
         "tags": [
           "Backend"
         ]
@@ -121,6 +131,7 @@
     },
     "/api/yucca/backend/local": {
       "post": {
+        "description": "Add a storage backend that writes to a path on this server.",
         "operationId": "createLocalBackend",
         "parameters": [],
         "requestBody": {
@@ -145,6 +156,7 @@
             }
           }
         },
+        "summary": "Create a local backend",
         "tags": [
           "Backend"
         ]
@@ -152,6 +164,7 @@
     },
     "/api/yucca/config": {
       "get": {
+        "description": "Retrieve the current orchestrator configuration.",
         "operationId": "getConfig",
         "parameters": [],
         "responses": {
@@ -166,11 +179,13 @@
             }
           }
         },
+        "summary": "Get orchestrator configuration",
         "tags": [
           "Config"
         ]
       },
       "put": {
+        "description": "Update the orchestrator configuration.",
         "operationId": "updateConfig",
         "parameters": [],
         "requestBody": {
@@ -195,6 +210,7 @@
             }
           }
         },
+        "summary": "Update orchestrator configuration",
         "tags": [
           "Config"
         ]
@@ -202,6 +218,7 @@
     },
     "/api/yucca/debug/reset": {
       "post": {
+        "description": "Delete all orchestrator state. Only available in development mode.",
         "operationId": "resetOrchestrator",
         "parameters": [],
         "responses": {
@@ -209,6 +226,7 @@
             "description": ""
           }
         },
+        "summary": "Reset the orchestrator",
         "tags": [
           "Development"
         ]
@@ -216,6 +234,7 @@
     },
     "/api/yucca/fs": {
       "get": {
+        "description": "List the files and folders at a path on this server.",
         "operationId": "getFileListing",
         "parameters": [
           {
@@ -239,6 +258,7 @@
             }
           }
         },
+        "summary": "List files",
         "tags": [
           "Filesystem"
         ]
@@ -246,6 +266,7 @@
     },
     "/api/yucca/integrations": {
       "get": {
+        "description": "Retrieve the configuration and state of each integration.",
         "operationId": "getIntegrations",
         "parameters": [],
         "responses": {
@@ -260,6 +281,7 @@
             }
           }
         },
+        "summary": "Get integrations",
         "tags": [
           "Integrations"
         ]
@@ -267,6 +289,7 @@
     },
     "/api/yucca/integrations/immich/status": {
       "get": {
+        "description": "Retrieve the backup status of the Immich integration.",
         "operationId": "getImmichBackupStatus",
         "parameters": [],
         "responses": {
@@ -281,6 +304,7 @@
             }
           }
         },
+        "summary": "Get Immich backup status",
         "tags": [
           "Integrations"
         ]
@@ -288,6 +312,7 @@
     },
     "/api/yucca/integrations/immich": {
       "post": {
+        "description": "Set up backups for the Immich integration.",
         "operationId": "configureImmichIntegration",
         "parameters": [],
         "requestBody": {
@@ -312,6 +337,7 @@
             }
           }
         },
+        "summary": "Configure the Immich integration",
         "tags": [
           "Integrations"
         ]
@@ -319,6 +345,7 @@
     },
     "/api/yucca/integrations/immich/database-dump/ignore-warning": {
       "post": {
+        "description": "Stop warning that Immich database dumps are not configured.",
         "operationId": "ignoreImmichDatabaseDumpWarning",
         "parameters": [],
         "responses": {
@@ -326,6 +353,7 @@
             "description": ""
           }
         },
+        "summary": "Ignore the database dump warning",
         "tags": [
           "Integrations"
         ]
@@ -333,6 +361,7 @@
     },
     "/api/yucca/integrations/immich/database-dump": {
       "post": {
+        "description": "Configure the Immich database dumps included in backups.",
         "operationId": "configureImmichDatabaseDump",
         "parameters": [],
         "requestBody": {
@@ -350,6 +379,7 @@
             "description": ""
           }
         },
+        "summary": "Configure Immich database dumps",
         "tags": [
           "Integrations"
         ]
@@ -357,6 +387,7 @@
     },
     "/api/yucca/integrations/immich/rollback": {
       "post": {
+        "description": "Put Immich into maintenance mode and restore it from a snapshot.",
         "operationId": "startImmichRollback",
         "parameters": [],
         "requestBody": {
@@ -374,6 +405,7 @@
             "description": ""
           }
         },
+        "summary": "Roll Immich back to a snapshot",
         "tags": [
           "Integrations"
         ]
@@ -381,6 +413,7 @@
     },
     "/api/yucca/onboarding": {
       "get": {
+        "description": "Retrieve which onboarding steps this server has completed.",
         "operationId": "onboardingStatus",
         "parameters": [],
         "responses": {
@@ -395,6 +428,7 @@
             }
           }
         },
+        "summary": "Get onboarding status",
         "tags": [
           "Onboarding"
         ]
@@ -402,6 +436,7 @@
     },
     "/api/yucca/onboarding/recovery-key": {
       "get": {
+        "description": "Retrieve the recovery key that encrypts the backups of this server.",
         "operationId": "currentRecoveryKey",
         "parameters": [],
         "responses": {
@@ -416,11 +451,13 @@
             }
           }
         },
+        "summary": "Get the recovery key",
         "tags": [
           "Onboarding"
         ]
       },
       "put": {
+        "description": "Replace the recovery key with one from an earlier installation.",
         "operationId": "importRecoveryKey",
         "parameters": [],
         "requestBody": {
@@ -438,11 +475,13 @@
             "description": ""
           }
         },
+        "summary": "Import a recovery key",
         "tags": [
           "Onboarding"
         ]
       },
       "post": {
+        "description": "Record that the user has saved the recovery key.",
         "operationId": "confirmRecoveryKey",
         "parameters": [],
         "responses": {
@@ -450,6 +489,7 @@
             "description": ""
           }
         },
+        "summary": "Confirm the recovery key",
         "tags": [
           "Onboarding"
         ]
@@ -457,6 +497,7 @@
     },
     "/api/yucca/onboarding/skip": {
       "post": {
+        "description": "Skip the optional configuration steps of onboarding.",
         "operationId": "skipOnboardingExtraConfig",
         "parameters": [],
         "responses": {
@@ -464,6 +505,7 @@
             "description": ""
           }
         },
+        "summary": "Skip optional onboarding",
         "tags": [
           "Onboarding"
         ]
@@ -471,6 +513,7 @@
     },
     "/api/yucca/onboarding/telemetry": {
       "post": {
+        "description": "Record that the user consents to sending telemetry.",
         "operationId": "enableTelemetry",
         "parameters": [],
         "responses": {
@@ -478,6 +521,7 @@
             "description": ""
           }
         },
+        "summary": "Enable telemetry",
         "tags": [
           "Onboarding"
         ]
@@ -485,6 +529,7 @@
     },
     "/api/yucca/onboarding/report-error": {
       "post": {
+        "description": "Send the current startup error to telemetry.",
         "operationId": "reportError",
         "parameters": [],
         "responses": {
@@ -492,6 +537,7 @@
             "description": ""
           }
         },
+        "summary": "Report a startup error",
         "tags": [
           "Onboarding"
         ]
@@ -499,6 +545,7 @@
     },
     "/api/yucca/repository": {
       "post": {
+        "description": "Create a backup repository on a backend.",
         "operationId": "createRepository",
         "parameters": [
           {
@@ -532,11 +579,13 @@
             }
           }
         },
+        "summary": "Create a repository",
         "tags": [
           "Repository"
         ]
       },
       "get": {
+        "description": "List the backup repositories known to this server.",
         "operationId": "getRepositories",
         "parameters": [],
         "responses": {
@@ -551,6 +600,7 @@
             }
           }
         },
+        "summary": "List repositories",
         "tags": [
           "Repository"
         ]
@@ -558,6 +608,7 @@
     },
     "/api/yucca/repository/inspect": {
       "get": {
+        "description": "List repositories on a backend that are not configured on this server.",
         "operationId": "inspectRepositories",
         "parameters": [
           {
@@ -581,6 +632,7 @@
             }
           }
         },
+        "summary": "List unconfigured repositories",
         "tags": [
           "Repository"
         ]
@@ -588,6 +640,7 @@
     },
     "/api/yucca/repository/{id}": {
       "patch": {
+        "description": "Update the settings of a repository.",
         "operationId": "updateRepository",
         "parameters": [
           {
@@ -629,11 +682,13 @@
             }
           }
         },
+        "summary": "Update a repository",
         "tags": [
           "Repository"
         ]
       },
       "delete": {
+        "description": "Remove a repository from this server.",
         "operationId": "deleteRepository",
         "parameters": [
           {
@@ -650,11 +705,13 @@
             "description": ""
           }
         },
+        "summary": "Remove a repository",
         "tags": [
           "Repository"
         ]
       },
       "post": {
+        "description": "Start a backup to a repository and return the ID of its run log.",
         "operationId": "createBackup",
         "parameters": [
           {
@@ -678,6 +735,7 @@
             }
           }
         },
+        "summary": "Start a backup",
         "tags": [
           "Repository"
         ]
@@ -685,6 +743,7 @@
     },
     "/api/yucca/repository/{id}/import": {
       "get": {
+        "description": "Check that an existing repository on a backend can be opened with the recovery key.",
         "operationId": "checkImportRepository",
         "parameters": [
           {
@@ -716,11 +775,13 @@
             }
           }
         },
+        "summary": "Check a repository import",
         "tags": [
           "Repository"
         ]
       },
       "post": {
+        "description": "Add an existing repository on a backend to this server.",
         "operationId": "importRepository",
         "parameters": [
           {
@@ -752,6 +813,7 @@
             }
           }
         },
+        "summary": "Import a repository",
         "tags": [
           "Repository"
         ]
@@ -759,6 +821,7 @@
     },
     "/api/yucca/repository/{id}/backend": {
       "put": {
+        "description": "Change the backend that stores a repository.",
         "operationId": "reconfigureRepositoryPrimaryBackend",
         "parameters": [
           {
@@ -792,6 +855,7 @@
             }
           }
         },
+        "summary": "Change the primary backend",
         "tags": [
           "Repository"
         ]
@@ -799,6 +863,7 @@
     },
     "/api/yucca/repository/{id}/runs": {
       "get": {
+        "description": "List the backup, prune and restore runs of a repository.",
         "operationId": "getRunHistory",
         "parameters": [
           {
@@ -822,6 +887,7 @@
             }
           }
         },
+        "summary": "List repository runs",
         "tags": [
           "Repository"
         ]
@@ -829,6 +895,7 @@
     },
     "/api/yucca/repository/{id}/snapshots": {
       "get": {
+        "description": "List the snapshots in a repository.",
         "operationId": "getSnapshots",
         "parameters": [
           {
@@ -852,6 +919,7 @@
             }
           }
         },
+        "summary": "List snapshots",
         "tags": [
           "Repository"
         ]
@@ -859,6 +927,7 @@
     },
     "/api/yucca/repository/{id}/snapshots/prune": {
       "post": {
+        "description": "Remove snapshots outside the retention policy and return the ID of the run log.",
         "operationId": "pruneRepository",
         "parameters": [
           {
@@ -882,6 +951,7 @@
             }
           }
         },
+        "summary": "Prune a repository",
         "tags": [
           "Repository"
         ]
@@ -889,6 +959,7 @@
     },
     "/api/yucca/repository/{id}/snapshots/{snapshot}": {
       "post": {
+        "description": "Restore files from a snapshot and return the ID of the run log.",
         "operationId": "restoreSnapshot",
         "parameters": [
           {
@@ -930,11 +1001,13 @@
             }
           }
         },
+        "summary": "Restore a snapshot",
         "tags": [
           "Repository"
         ]
       },
       "delete": {
+        "description": "Remove a snapshot from a repository.",
         "operationId": "forgetSnapshot",
         "parameters": [
           {
@@ -966,6 +1039,7 @@
             }
           }
         },
+        "summary": "Delete a snapshot",
         "tags": [
           "Repository"
         ]
@@ -973,6 +1047,7 @@
     },
     "/api/yucca/repository/{id}/snapshots/{snapshot}/restore-from-point": {
       "post": {
+        "description": "Restore files from a snapshot in a repository that is not configured on this server.",
         "operationId": "restoreFromPoint",
         "parameters": [
           {
@@ -1022,6 +1097,7 @@
             }
           }
         },
+        "summary": "Restore from an unconfigured repository",
         "tags": [
           "Repository"
         ]
@@ -1029,6 +1105,7 @@
     },
     "/api/yucca/repository/{id}/snapshots/{snapshot}/listing": {
       "get": {
+        "description": "List the files and folders at a path in a snapshot.",
         "operationId": "getSnapshotListing",
         "parameters": [
           {
@@ -1068,6 +1145,7 @@
             }
           }
         },
+        "summary": "List snapshot files",
         "tags": [
           "Repository"
         ]
@@ -1075,6 +1153,7 @@
     },
     "/api/yucca/logs/{id}": {
       "get": {
+        "description": "Retrieve a run and its status.",
         "operationId": "getRun",
         "parameters": [
           {
@@ -1098,6 +1177,7 @@
             }
           }
         },
+        "summary": "Get a run",
         "tags": [
           "RunHistory"
         ]
@@ -1105,6 +1185,7 @@
     },
     "/api/yucca/logs/{id}/download": {
       "get": {
+        "description": "Download the log of a run as JSON Lines.",
         "operationId": "downloadRunLog",
         "parameters": [
           {
@@ -1129,6 +1210,7 @@
             "description": ""
           }
         },
+        "summary": "Download a run log",
         "tags": [
           "RunHistory"
         ]
@@ -1136,6 +1218,7 @@
     },
     "/api/yucca/logs/{id}/stream": {
       "get": {
+        "description": "Stream the log of a run as server-sent events.",
         "operationId": "logStreamSse",
         "parameters": [
           {
@@ -1149,9 +1232,17 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "A stream of run log events.",
+            "content": {
+              "text/event-stream": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
           }
         },
+        "summary": "Stream a run log",
         "tags": [
           "RunHistory"
         ]
@@ -1159,6 +1250,7 @@
     },
     "/api/yucca/tasks": {
       "get": {
+        "description": "List the tasks running on this server.",
         "operationId": "getRunningTasks",
         "parameters": [],
         "responses": {
@@ -1173,6 +1265,7 @@
             }
           }
         },
+        "summary": "List running tasks",
         "tags": [
           "RunningTasks"
         ]
@@ -1180,6 +1273,7 @@
     },
     "/api/yucca/tasks/{parentId}/cancel": {
       "post": {
+        "description": "Cancel a running task and its subtasks.",
         "operationId": "cancelTask",
         "parameters": [
           {
@@ -1196,6 +1290,7 @@
             "description": ""
           }
         },
+        "summary": "Cancel a task",
         "tags": [
           "RunningTasks"
         ]
@@ -1203,6 +1298,7 @@
     },
     "/api/yucca/schedule": {
       "post": {
+        "description": "Create a backup schedule for one or more repositories.",
         "operationId": "createSchedule",
         "parameters": [],
         "requestBody": {
@@ -1227,11 +1323,13 @@
             }
           }
         },
+        "summary": "Create a schedule",
         "tags": [
           "Schedule"
         ]
       },
       "get": {
+        "description": "List the backup schedules.",
         "operationId": "getSchedules",
         "parameters": [],
         "responses": {
@@ -1246,6 +1344,7 @@
             }
           }
         },
+        "summary": "List schedules",
         "tags": [
           "Schedule"
         ]
@@ -1253,6 +1352,7 @@
     },
     "/api/yucca/schedule/{id}": {
       "patch": {
+        "description": "Update a backup schedule.",
         "operationId": "updateSchedule",
         "parameters": [
           {
@@ -1286,11 +1386,13 @@
             }
           }
         },
+        "summary": "Update a schedule",
         "tags": [
           "Schedule"
         ]
       },
       "delete": {
+        "description": "Delete a backup schedule.",
         "operationId": "removeSchedule",
         "parameters": [
           {
@@ -1307,6 +1409,7 @@
             "description": ""
           }
         },
+        "summary": "Delete a schedule",
         "tags": [
           "Schedule"
         ]

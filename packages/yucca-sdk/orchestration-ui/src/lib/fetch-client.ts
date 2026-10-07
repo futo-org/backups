@@ -333,6 +333,9 @@ export type ScheduleUpdateRequestDto = {
 export type ScheduleUpdateResponseDto = {
     schedule: ScheduleDto;
 };
+/**
+ * Connect a FUTO Backups account
+ */
 export function connectDeviceFlow(opts?: Oazapfts.RequestOpts) {
     return oazapfts.ok(oazapfts.fetchJson<{
         status: 200;
@@ -341,6 +344,9 @@ export function connectDeviceFlow(opts?: Oazapfts.RequestOpts) {
         ...opts
     }));
 }
+/**
+ * Sign in with the device flow
+ */
 export function sessionDeviceFlow(opts?: Oazapfts.RequestOpts) {
     return oazapfts.ok(oazapfts.fetchJson<{
         status: 200;
@@ -349,6 +355,9 @@ export function sessionDeviceFlow(opts?: Oazapfts.RequestOpts) {
         ...opts
     }));
 }
+/**
+ * Create a session
+ */
 export function createSession(createSessionRequestDto: CreateSessionRequestDto, opts?: Oazapfts.RequestOpts) {
     return oazapfts.ok(oazapfts.fetchText("/api/yucca/auth/session", oazapfts.json({
         ...opts,
@@ -356,6 +365,9 @@ export function createSession(createSessionRequestDto: CreateSessionRequestDto, 
         body: createSessionRequestDto
     })));
 }
+/**
+ * Create a ticket
+ */
 export function createTicket(ticketCreateRequestDto: TicketCreateRequestDto, opts?: Oazapfts.RequestOpts) {
     return oazapfts.ok(oazapfts.fetchJson<{
         status: 201;
@@ -366,6 +378,9 @@ export function createTicket(ticketCreateRequestDto: TicketCreateRequestDto, opt
         body: ticketCreateRequestDto
     })));
 }
+/**
+ * List backends
+ */
 export function getBackends(opts?: Oazapfts.RequestOpts) {
     return oazapfts.ok(oazapfts.fetchJson<{
         status: 200;
@@ -374,6 +389,9 @@ export function getBackends(opts?: Oazapfts.RequestOpts) {
         ...opts
     }));
 }
+/**
+ * Create a local backend
+ */
 export function createLocalBackend(createLocalBackendRequestDto: CreateLocalBackendRequestDto, opts?: Oazapfts.RequestOpts) {
     return oazapfts.ok(oazapfts.fetchJson<{
         status: 201;
@@ -384,6 +402,9 @@ export function createLocalBackend(createLocalBackendRequestDto: CreateLocalBack
         body: createLocalBackendRequestDto
     })));
 }
+/**
+ * Get orchestrator configuration
+ */
 export function getConfig(opts?: Oazapfts.RequestOpts) {
     return oazapfts.ok(oazapfts.fetchJson<{
         status: 200;
@@ -392,6 +413,9 @@ export function getConfig(opts?: Oazapfts.RequestOpts) {
         ...opts
     }));
 }
+/**
+ * Update orchestrator configuration
+ */
 export function updateConfig(configUpdateRequestDto: ConfigUpdateRequestDto, opts?: Oazapfts.RequestOpts) {
     return oazapfts.ok(oazapfts.fetchJson<{
         status: 200;
@@ -402,12 +426,18 @@ export function updateConfig(configUpdateRequestDto: ConfigUpdateRequestDto, opt
         body: configUpdateRequestDto
     })));
 }
+/**
+ * Reset the orchestrator
+ */
 export function resetOrchestrator(opts?: Oazapfts.RequestOpts) {
     return oazapfts.ok(oazapfts.fetchText("/api/yucca/debug/reset", {
         ...opts,
         method: "POST"
     }));
 }
+/**
+ * List files
+ */
 export function getFileListing({ path }: {
     path?: string;
 } = {}, opts?: Oazapfts.RequestOpts) {
@@ -420,6 +450,9 @@ export function getFileListing({ path }: {
         ...opts
     }));
 }
+/**
+ * Get integrations
+ */
 export function getIntegrations(opts?: Oazapfts.RequestOpts) {
     return oazapfts.ok(oazapfts.fetchJson<{
         status: 200;
@@ -428,6 +461,9 @@ export function getIntegrations(opts?: Oazapfts.RequestOpts) {
         ...opts
     }));
 }
+/**
+ * Get Immich backup status
+ */
 export function getImmichBackupStatus(opts?: Oazapfts.RequestOpts) {
     return oazapfts.ok(oazapfts.fetchJson<{
         status: 200;
@@ -436,6 +472,9 @@ export function getImmichBackupStatus(opts?: Oazapfts.RequestOpts) {
         ...opts
     }));
 }
+/**
+ * Configure the Immich integration
+ */
 export function configureImmichIntegration(configureImmichIntegrationRequestDto: ConfigureImmichIntegrationRequestDto, opts?: Oazapfts.RequestOpts) {
     return oazapfts.ok(oazapfts.fetchJson<{
         status: 201;
@@ -446,12 +485,18 @@ export function configureImmichIntegration(configureImmichIntegrationRequestDto:
         body: configureImmichIntegrationRequestDto
     })));
 }
+/**
+ * Ignore the database dump warning
+ */
 export function ignoreImmichDatabaseDumpWarning(opts?: Oazapfts.RequestOpts) {
     return oazapfts.ok(oazapfts.fetchText("/api/yucca/integrations/immich/database-dump/ignore-warning", {
         ...opts,
         method: "POST"
     }));
 }
+/**
+ * Configure Immich database dumps
+ */
 export function configureImmichDatabaseDump(configureImmichDatabaseDumpRequestDto: ConfigureImmichDatabaseDumpRequestDto, opts?: Oazapfts.RequestOpts) {
     return oazapfts.ok(oazapfts.fetchText("/api/yucca/integrations/immich/database-dump", oazapfts.json({
         ...opts,
@@ -459,6 +504,9 @@ export function configureImmichDatabaseDump(configureImmichDatabaseDumpRequestDt
         body: configureImmichDatabaseDumpRequestDto
     })));
 }
+/**
+ * Roll Immich back to a snapshot
+ */
 export function startImmichRollback(immichRollbackRequestDto: ImmichRollbackRequestDto, opts?: Oazapfts.RequestOpts) {
     return oazapfts.ok(oazapfts.fetchText("/api/yucca/integrations/immich/rollback", oazapfts.json({
         ...opts,
@@ -466,6 +514,9 @@ export function startImmichRollback(immichRollbackRequestDto: ImmichRollbackRequ
         body: immichRollbackRequestDto
     })));
 }
+/**
+ * Get onboarding status
+ */
 export function onboardingStatus(opts?: Oazapfts.RequestOpts) {
     return oazapfts.ok(oazapfts.fetchJson<{
         status: 200;
@@ -474,6 +525,9 @@ export function onboardingStatus(opts?: Oazapfts.RequestOpts) {
         ...opts
     }));
 }
+/**
+ * Get the recovery key
+ */
 export function currentRecoveryKey(opts?: Oazapfts.RequestOpts) {
     return oazapfts.ok(oazapfts.fetchJson<{
         status: 200;
@@ -482,6 +536,9 @@ export function currentRecoveryKey(opts?: Oazapfts.RequestOpts) {
         ...opts
     }));
 }
+/**
+ * Import a recovery key
+ */
 export function importRecoveryKey(importRecoveryKeyRequest: ImportRecoveryKeyRequest, opts?: Oazapfts.RequestOpts) {
     return oazapfts.ok(oazapfts.fetchText("/api/yucca/onboarding/recovery-key", oazapfts.json({
         ...opts,
@@ -489,30 +546,45 @@ export function importRecoveryKey(importRecoveryKeyRequest: ImportRecoveryKeyReq
         body: importRecoveryKeyRequest
     })));
 }
+/**
+ * Confirm the recovery key
+ */
 export function confirmRecoveryKey(opts?: Oazapfts.RequestOpts) {
     return oazapfts.ok(oazapfts.fetchText("/api/yucca/onboarding/recovery-key", {
         ...opts,
         method: "POST"
     }));
 }
+/**
+ * Skip optional onboarding
+ */
 export function skipOnboardingExtraConfig(opts?: Oazapfts.RequestOpts) {
     return oazapfts.ok(oazapfts.fetchText("/api/yucca/onboarding/skip", {
         ...opts,
         method: "POST"
     }));
 }
+/**
+ * Enable telemetry
+ */
 export function enableTelemetry(opts?: Oazapfts.RequestOpts) {
     return oazapfts.ok(oazapfts.fetchText("/api/yucca/onboarding/telemetry", {
         ...opts,
         method: "POST"
     }));
 }
+/**
+ * Report a startup error
+ */
 export function reportError(opts?: Oazapfts.RequestOpts) {
     return oazapfts.ok(oazapfts.fetchText("/api/yucca/onboarding/report-error", {
         ...opts,
         method: "POST"
     }));
 }
+/**
+ * Create a repository
+ */
 export function createRepository(repositoryCreateRequestDto: RepositoryCreateRequestDto, { backend }: {
     backend?: string;
 } = {}, opts?: Oazapfts.RequestOpts) {
@@ -527,6 +599,9 @@ export function createRepository(repositoryCreateRequestDto: RepositoryCreateReq
         body: repositoryCreateRequestDto
     })));
 }
+/**
+ * List repositories
+ */
 export function getRepositories(opts?: Oazapfts.RequestOpts) {
     return oazapfts.ok(oazapfts.fetchJson<{
         status: 200;
@@ -535,6 +610,9 @@ export function getRepositories(opts?: Oazapfts.RequestOpts) {
         ...opts
     }));
 }
+/**
+ * List unconfigured repositories
+ */
 export function inspectRepositories({ backend }: {
     backend?: string;
 } = {}, opts?: Oazapfts.RequestOpts) {
@@ -547,6 +625,9 @@ export function inspectRepositories({ backend }: {
         ...opts
     }));
 }
+/**
+ * Update a repository
+ */
 export function updateRepository(id: string, repositoryUpdateRequestDto: RepositoryUpdateRequestDto, { backend }: {
     backend?: string;
 } = {}, opts?: Oazapfts.RequestOpts) {
@@ -561,12 +642,18 @@ export function updateRepository(id: string, repositoryUpdateRequestDto: Reposit
         body: repositoryUpdateRequestDto
     })));
 }
+/**
+ * Remove a repository
+ */
 export function deleteRepository(id: string, opts?: Oazapfts.RequestOpts) {
     return oazapfts.ok(oazapfts.fetchText(`/api/yucca/repository/${encodeURIComponent(id)}`, {
         ...opts,
         method: "DELETE"
     }));
 }
+/**
+ * Start a backup
+ */
 export function createBackup(id: string, opts?: Oazapfts.RequestOpts) {
     return oazapfts.ok(oazapfts.fetchJson<{
         status: 201;
@@ -576,6 +663,9 @@ export function createBackup(id: string, opts?: Oazapfts.RequestOpts) {
         method: "POST"
     }));
 }
+/**
+ * Check a repository import
+ */
 export function checkImportRepository(id: string, backend: string, opts?: Oazapfts.RequestOpts) {
     return oazapfts.ok(oazapfts.fetchJson<{
         status: 200;
@@ -586,6 +676,9 @@ export function checkImportRepository(id: string, backend: string, opts?: Oazapf
         ...opts
     }));
 }
+/**
+ * Import a repository
+ */
 export function importRepository(id: string, backend: string, opts?: Oazapfts.RequestOpts) {
     return oazapfts.ok(oazapfts.fetchJson<{
         status: 201;
@@ -597,6 +690,9 @@ export function importRepository(id: string, backend: string, opts?: Oazapfts.Re
         method: "POST"
     }));
 }
+/**
+ * Change the primary backend
+ */
 export function reconfigureRepositoryPrimaryBackend(id: string, repositoryPrimaryBackendReconfigureRequestDto: RepositoryPrimaryBackendReconfigureRequestDto, opts?: Oazapfts.RequestOpts) {
     return oazapfts.ok(oazapfts.fetchJson<{
         status: 200;
@@ -607,6 +703,9 @@ export function reconfigureRepositoryPrimaryBackend(id: string, repositoryPrimar
         body: repositoryPrimaryBackendReconfigureRequestDto
     })));
 }
+/**
+ * List repository runs
+ */
 export function getRunHistory(id: string, opts?: Oazapfts.RequestOpts) {
     return oazapfts.ok(oazapfts.fetchJson<{
         status: 200;
@@ -615,6 +714,9 @@ export function getRunHistory(id: string, opts?: Oazapfts.RequestOpts) {
         ...opts
     }));
 }
+/**
+ * List snapshots
+ */
 export function getSnapshots(id: string, opts?: Oazapfts.RequestOpts) {
     return oazapfts.ok(oazapfts.fetchJson<{
         status: 200;
@@ -623,6 +725,9 @@ export function getSnapshots(id: string, opts?: Oazapfts.RequestOpts) {
         ...opts
     }));
 }
+/**
+ * Prune a repository
+ */
 export function pruneRepository(id: string, opts?: Oazapfts.RequestOpts) {
     return oazapfts.ok(oazapfts.fetchJson<{
         status: 201;
@@ -632,6 +737,9 @@ export function pruneRepository(id: string, opts?: Oazapfts.RequestOpts) {
         method: "POST"
     }));
 }
+/**
+ * Restore a snapshot
+ */
 export function restoreSnapshot(id: string, snapshot: string, repositorySnapshotRestoreRequestDto: RepositorySnapshotRestoreRequestDto, opts?: Oazapfts.RequestOpts) {
     return oazapfts.ok(oazapfts.fetchJson<{
         status: 201;
@@ -642,6 +750,9 @@ export function restoreSnapshot(id: string, snapshot: string, repositorySnapshot
         body: repositorySnapshotRestoreRequestDto
     })));
 }
+/**
+ * Delete a snapshot
+ */
 export function forgetSnapshot(id: string, snapshot: string, opts?: Oazapfts.RequestOpts) {
     return oazapfts.ok(oazapfts.fetchJson<{
         status: 200;
@@ -651,6 +762,9 @@ export function forgetSnapshot(id: string, snapshot: string, opts?: Oazapfts.Req
         method: "DELETE"
     }));
 }
+/**
+ * Restore from an unconfigured repository
+ */
 export function restoreFromPoint(id: string, snapshot: string, backend: string, repositorySnapshotRestoreFromPointRequestDto: RepositorySnapshotRestoreFromPointRequestDto, opts?: Oazapfts.RequestOpts) {
     return oazapfts.ok(oazapfts.fetchJson<{
         status: 201;
@@ -663,6 +777,9 @@ export function restoreFromPoint(id: string, snapshot: string, backend: string, 
         body: repositorySnapshotRestoreFromPointRequestDto
     })));
 }
+/**
+ * List snapshot files
+ */
 export function getSnapshotListing(id: string, snapshot: string, { path }: {
     path?: string;
 } = {}, opts?: Oazapfts.RequestOpts) {
@@ -675,6 +792,9 @@ export function getSnapshotListing(id: string, snapshot: string, { path }: {
         ...opts
     }));
 }
+/**
+ * Get a run
+ */
 export function getRun(id: string, opts?: Oazapfts.RequestOpts) {
     return oazapfts.ok(oazapfts.fetchJson<{
         status: 200;
@@ -683,6 +803,9 @@ export function getRun(id: string, opts?: Oazapfts.RequestOpts) {
         ...opts
     }));
 }
+/**
+ * Download a run log
+ */
 export function downloadRunLog(id: string, opts?: Oazapfts.RequestOpts) {
     return oazapfts.ok(oazapfts.fetchBlob<{
         status: 200;
@@ -691,11 +814,17 @@ export function downloadRunLog(id: string, opts?: Oazapfts.RequestOpts) {
         ...opts
     }));
 }
+/**
+ * Stream a run log
+ */
 export function logStreamSse(id: string, opts?: Oazapfts.RequestOpts) {
     return oazapfts.ok(oazapfts.fetchText(`/api/yucca/logs/${encodeURIComponent(id)}/stream`, {
         ...opts
     }));
 }
+/**
+ * List running tasks
+ */
 export function getRunningTasks(opts?: Oazapfts.RequestOpts) {
     return oazapfts.ok(oazapfts.fetchJson<{
         status: 200;
@@ -704,12 +833,18 @@ export function getRunningTasks(opts?: Oazapfts.RequestOpts) {
         ...opts
     }));
 }
+/**
+ * Cancel a task
+ */
 export function cancelTask(parentId: string, opts?: Oazapfts.RequestOpts) {
     return oazapfts.ok(oazapfts.fetchText(`/api/yucca/tasks/${encodeURIComponent(parentId)}/cancel`, {
         ...opts,
         method: "POST"
     }));
 }
+/**
+ * Create a schedule
+ */
 export function createSchedule(scheduleCreateRequestDto: ScheduleCreateRequestDto, opts?: Oazapfts.RequestOpts) {
     return oazapfts.ok(oazapfts.fetchJson<{
         status: 201;
@@ -720,6 +855,9 @@ export function createSchedule(scheduleCreateRequestDto: ScheduleCreateRequestDt
         body: scheduleCreateRequestDto
     })));
 }
+/**
+ * List schedules
+ */
 export function getSchedules(opts?: Oazapfts.RequestOpts) {
     return oazapfts.ok(oazapfts.fetchJson<{
         status: 200;
@@ -728,6 +866,9 @@ export function getSchedules(opts?: Oazapfts.RequestOpts) {
         ...opts
     }));
 }
+/**
+ * Update a schedule
+ */
 export function updateSchedule(id: string, scheduleUpdateRequestDto: ScheduleUpdateRequestDto, opts?: Oazapfts.RequestOpts) {
     return oazapfts.ok(oazapfts.fetchJson<{
         status: 200;
@@ -738,6 +879,9 @@ export function updateSchedule(id: string, scheduleUpdateRequestDto: ScheduleUpd
         body: scheduleUpdateRequestDto
     })));
 }
+/**
+ * Delete a schedule
+ */
 export function removeSchedule(id: string, opts?: Oazapfts.RequestOpts) {
     return oazapfts.ok(oazapfts.fetchText(`/api/yucca/schedule/${encodeURIComponent(id)}`, {
         ...opts,
