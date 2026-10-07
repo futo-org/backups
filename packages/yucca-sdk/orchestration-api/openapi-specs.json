@@ -1733,14 +1733,10 @@
             "nullable": true
           },
           "lastBackupStatus": {
-            "type": "string",
-            "enum": [
-              "incomplete",
-              "complete",
-              "warn",
-              "failed",
-              "cancelled",
-              null
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/BackupStatus"
+              }
             ],
             "nullable": true
           },
@@ -1758,6 +1754,16 @@
         },
         "required": [
           "sizeBytes"
+        ]
+      },
+      "BackupStatus": {
+        "type": "string",
+        "enum": [
+          "incomplete",
+          "complete",
+          "warn",
+          "failed",
+          "cancelled"
         ]
       },
       "RepositoryMeterDto": {

@@ -3,7 +3,9 @@ import { z } from 'zod';
 import { TaskStatus, TaskType } from '../enum';
 import { BackendTypeSchema } from './backend.dto';
 
-const BackupStatusSchema = z.enum(['incomplete', 'complete', 'warn', 'failed', 'cancelled']);
+const BackupStatusSchema = z
+  .enum(['incomplete', 'complete', 'warn', 'failed', 'cancelled'])
+  .meta({ id: 'BackupStatus' });
 
 export const RetentionPolicySchema = z
   .object({

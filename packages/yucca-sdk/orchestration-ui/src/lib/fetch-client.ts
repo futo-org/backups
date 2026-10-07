@@ -96,10 +96,11 @@ export type IntegrationsResponseDto = {
     immichState?: ImmichStateDto;
     immichIntegration?: ImmichIntegrationDto;
 };
+export type BackupStatus = "incomplete" | "complete" | "warn" | "failed" | "cancelled";
 export type RepositoryMetricsDto = {
     lastStarted?: string | null;
     lastBackup?: string | null;
-    lastBackupStatus?: ("incomplete" | "complete" | "warn" | "failed" | "cancelled" | null) | null;
+    lastBackupStatus?: (BackupStatus) | null;
     lastBackupDuration?: number | null;
     sizeBytes: number;
 };

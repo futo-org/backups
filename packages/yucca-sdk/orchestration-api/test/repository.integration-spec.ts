@@ -9,6 +9,7 @@ import { ModuleConfigRepository } from 'src/repositories/moduleConfig.repository
 import { RepositoryIntegrationImmichRepository } from 'src/repositories/repositoryIntegrationImmich.repository';
 import { IntegrationsService } from 'src/services/integrations.service';
 import { RepositoryService } from 'src/services/repository.service';
+import { YuccaService } from 'src/services/yucca.service';
 import { newImmichHooksMock } from './mocks';
 import { createTestingModule, TestContext, waitForEvent } from './testUtils';
 
@@ -55,6 +56,21 @@ const backupWithHooks = async (hooks: Partial<ReturnType<typeof newImmichHooksMo
   try {
     const { task } = await repositoryService.createBackup(repositoryId);
     await task;
+  } finally {
+    await teardown();
+  }
+};
+
+const restoreSnapshotTaggedWith = async (tags: string[] | undefined) => {
+  const { repositoryId, teardown } = await configureImmich({});
+  ctx.resticMock.snapshot.mockResolvedValue([{ id: 'snapshot-1', time: new Date(), tags }] as never);
+
+  try {
+    const { task, immichBackupFileName } = await ctx.module
+      .get(YuccaService)
+      .restoreSnapshotInplace(repositoryId, 'snapshot-1');
+    await task;
+    return immichBackupFileName;
   } finally {
     await teardown();
   }
@@ -243,6 +259,18 @@ describe('Repository', () => {
           expect.objectContaining({ message: 'Database backup cleanup failed: Error: locked' }),
         ],
       });
+    });
+  });
+
+  describe('in-place snapshot restore', () => {
+    it('returns the database dump file name tagged on the snapshot', async () => {
+      await expect(
+        restoreSnapshotTaggedWith(['other=value', 'yucca.v1.immichBackupFileName=dump.sql.gz']),
+      ).resolves.toBe('dump.sql.gz');
+    });
+
+    it('returns no database dump file name for an untagged snapshot', async () => {
+      await expect(restoreSnapshotTaggedWith(undefined)).resolves.toBeUndefined();
     });
   });
 
