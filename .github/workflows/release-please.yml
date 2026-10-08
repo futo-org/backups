@@ -32,6 +32,9 @@ jobs:
         with:
           app-id: ${{ secrets.PUSH_O_MATIC_APP_ID }}
           private-key: ${{ secrets.PUSH_O_MATIC_APP_KEY }}
+          permission-contents: write
+          permission-pull-requests: write
+          permission-issues: write
 
       - id: rp
         uses: googleapis/release-please-action@16a9c90856f42705d54a6fda1823352bdc62cf38 # v4.4.0
