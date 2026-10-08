@@ -126,7 +126,7 @@
 
     const libraries = integration.configuration.libraries;
 
-    if (libraries === "all") {
+    if (libraries.includes("all")) {
       librariesMode = "all";
     } else if (libraries.length === 0) {
       librariesMode = "none";
@@ -195,7 +195,7 @@
       backupConfiguration,
       libraries:
         librariesMode === "all"
-          ? "all"
+          ? ["all"]
           : librariesMode === "none"
             ? []
             : [...selectedLibraries],

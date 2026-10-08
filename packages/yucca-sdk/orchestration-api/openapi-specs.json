@@ -1749,20 +1749,11 @@
             "type": "boolean"
           },
           "libraries": {
-            "anyOf": [
-              {
-                "type": "string",
-                "enum": [
-                  "all"
-                ]
-              },
-              {
-                "type": "array",
-                "items": {
-                  "type": "string"
-                }
-              }
-            ]
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "IDs of the external libraries to back up. Use [\"all\"] to back up every library, including ones added later."
           }
         },
         "required": [
@@ -2133,20 +2124,11 @@
             "type": "boolean"
           },
           "libraries": {
-            "anyOf": [
-              {
-                "type": "string",
-                "enum": [
-                  "all"
-                ]
-              },
-              {
-                "type": "array",
-                "items": {
-                  "type": "string"
-                }
-              }
-            ]
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "IDs of the external libraries to back up. Use [\"all\"] to back up every library, including ones added later."
           },
           "retentionPolicy": {
             "allOf": [
@@ -2667,7 +2649,7 @@
             "type": "string"
           },
           "status": {
-            "$ref": "#/components/schemas/TaskStatus"
+            "$ref": "#/components/schemas/RunningTaskStatus"
           }
         },
         "required": [
@@ -2675,7 +2657,7 @@
           "status"
         ]
       },
-      "TaskStatus": {
+      "RunningTaskStatus": {
         "type": "string",
         "enum": [
           "incomplete",

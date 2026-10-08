@@ -36,7 +36,7 @@ const configureImmich = async (hooks: Partial<ReturnType<typeof newImmichHooksMo
     cron: '0 2 * * *',
     dataFolders: ['upload'],
     backupConfiguration: false,
-    libraries: 'all',
+    libraries: ['all'],
   });
 
   const integration = await immichRepository.get();

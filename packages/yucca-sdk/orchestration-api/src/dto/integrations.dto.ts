@@ -4,7 +4,11 @@ import { BackendSchema } from './backend.dto.js';
 import { LocalRepositorySchema, RetentionPolicySchema, RunSchema } from './repository.dto.js';
 import { ScheduleSchema } from './schedule.dto.js';
 
-const LibrariesSchema = z.union([z.literal('all'), z.array(z.string())]);
+const LibrariesSchema = z
+  .array(z.string())
+  .describe(
+    'IDs of the external libraries to back up. Use ["all"] to back up every library, including ones added later.',
+  );
 
 const ImmichLibrarySchema = z
   .object({

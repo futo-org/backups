@@ -229,7 +229,7 @@ describe('Schedule', () => {
     await immichRepository.upsert(repository.id, schedule.id, {
       dataFolders: [],
       backupConfiguration: false,
-      libraries: 'all',
+      libraries: ['all'],
     });
 
     await expect(scheduleService.removeSchedule(schedule.id)).rejects.toThrow('Schedule managed by Immich integration');

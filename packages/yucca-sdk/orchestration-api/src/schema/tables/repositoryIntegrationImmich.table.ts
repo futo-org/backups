@@ -1,7 +1,7 @@
 export type ImmichRepositoryConfig = {
   dataFolders: string[];
   backupConfiguration: boolean;
-  libraries: 'all' | string[];
+  libraries: string[];
 };
 
 export class RepositoryIntegrationImmichTable {

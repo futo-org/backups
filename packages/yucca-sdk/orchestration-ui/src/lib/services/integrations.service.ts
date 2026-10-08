@@ -59,7 +59,7 @@ export const useConfigureAndStartImmichIntegration = () =>
           cron: IMMICH_DEFAULT_CRON,
           dataFolders: immichState.dataFolders,
           backupConfiguration: true,
-          libraries: 'all',
+          libraries: ['all'],
         });
 
         return { repositoryId };

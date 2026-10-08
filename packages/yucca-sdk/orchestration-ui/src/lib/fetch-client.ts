@@ -85,7 +85,8 @@ export type ImmichStateDto = {
 export type ImmichIntegrationConfigurationDto = {
     dataFolders: string[];
     backupConfiguration: boolean;
-    libraries: "all" | string[];
+    /** IDs of the external libraries to back up. Use ["all"] to back up every library, including ones added later. */
+    libraries: string[];
 };
 export type ImmichIntegrationDto = {
     id: string;
@@ -181,7 +182,8 @@ export type ConfigureImmichIntegrationRequestDto = {
     cron: string;
     dataFolders: string[];
     backupConfiguration: boolean;
-    libraries: "all" | string[];
+    /** IDs of the external libraries to back up. Use ["all"] to back up every library, including ones added later. */
+    libraries: string[];
     retentionPolicy?: (RetentionPolicyDto) | null;
     paused?: boolean;
     repositoryId?: string;
@@ -298,10 +300,10 @@ export type RunResponseDto = {
     run: RunDto;
 };
 export type TaskType = "schedule" | "restore" | "backup" | "forget";
-export type TaskStatus = "incomplete" | "complete" | "warn" | "failed" | "cancelled";
+export type RunningTaskStatus = "incomplete" | "complete" | "warn" | "failed" | "cancelled";
 export type ActiveScheduleItemDto = {
     repositoryId: string;
-    status: TaskStatus;
+    status: RunningTaskStatus;
 };
 export type RunningTaskDto = {
     parentId: string;

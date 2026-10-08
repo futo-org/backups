@@ -28,7 +28,7 @@ describe('Integrations', () => {
         cron: '0 2 * * *',
         dataFolders: [],
         backupConfiguration: false,
-        libraries: 'all',
+        libraries: ['all'],
       }),
     ).rejects.toThrow('Immich integration is not enabled');
   });
@@ -53,7 +53,7 @@ describe('Integrations', () => {
       cron: '0 2 * * *',
       dataFolders: ['upload'],
       backupConfiguration: false,
-      libraries: 'all',
+      libraries: ['all'],
     });
 
     const integration = await immichRepository.get();
@@ -62,6 +62,7 @@ describe('Integrations', () => {
 
     const config = await integrationsService.getIntegrationsConfig();
     expect(config.immichIntegration).toBeDefined();
+    expect(config.immichState).toEqual({ dataPath: '/data/immich', dataFolders: ['upload', 'library'], libraries: [] });
 
     await immichRepository.delete();
     moduleConfig.update({ immichIntegration: undefined });
@@ -111,6 +112,42 @@ describe('Integrations', () => {
     moduleConfig.update({ immichIntegration: undefined });
   });
 
+  it('syncs repository paths from every Immich library when libraries is ["all"]', async () => {
+    const moduleConfig = ctx.module.get(ModuleConfigRepository);
+    const integrationsService = ctx.module.get(IntegrationsService);
+    const immichRepository = ctx.module.get(RepositoryIntegrationImmichRepository);
+    const repositoryPaths = ctx.module.get(RepositoryPathRepository);
+
+    moduleConfig.update({
+      immichIntegration: {
+        dataPath: '/data/immich',
+        dataFolders: ['upload'],
+        libraries: [
+          { id: 'lib-1', name: 'Photos', importPaths: ['/mnt/photos'], exclusionPatterns: [] },
+          { id: 'lib-2', name: 'Videos', importPaths: ['/mnt/videos'], exclusionPatterns: [] },
+        ],
+        hooks: newImmichHooksMock(),
+      },
+    });
+
+    await integrationsService.configureImmichIntegration({
+      name: 'Immich All Libraries',
+      worm: false,
+      cron: '0 2 * * *',
+      dataFolders: ['upload'],
+      backupConfiguration: false,
+      libraries: ['all'],
+    });
+
+    const integration = await immichRepository.get();
+    const paths = await repositoryPaths.get(integration!.id);
+
+    expect(paths).toEqual(expect.arrayContaining(['/mnt/photos', '/mnt/videos']));
+
+    await immichRepository.delete();
+    moduleConfig.update({ immichIntegration: undefined });
+  });
+
   it('updates existing Immich integration instead of creating new', async () => {
     const moduleConfig = ctx.module.get(ModuleConfigRepository);
     const integrationsService = ctx.module.get(IntegrationsService);
@@ -132,7 +169,7 @@ describe('Integrations', () => {
       cron: '0 2 * * *',
       dataFolders: ['upload'],
       backupConfiguration: false,
-      libraries: 'all',
+      libraries: ['all'],
     });
 
     const firstIntegration = await immichRepository.get();
@@ -143,7 +180,7 @@ describe('Integrations', () => {
       cron: '0 4 * * *',
       dataFolders: ['upload'],
       backupConfiguration: false,
-      libraries: 'all',
+      libraries: ['all'],
     });
 
     const secondIntegration = await immichRepository.get();
@@ -154,6 +191,49 @@ describe('Integrations', () => {
     const { schedules } = await scheduleService.getSchedules();
     const immichSchedule = schedules.find((entry) => entry.id === secondIntegration?.scheduleId);
     expect(immichSchedule?.cron).toBe('0 4 * * *');
+
+    await immichRepository.delete();
+    moduleConfig.update({ immichIntegration: undefined });
+  });
+
+  it('treats an integration stored with the legacy all value as every library', async () => {
+    const moduleConfig = ctx.module.get(ModuleConfigRepository);
+    const integrationsService = ctx.module.get(IntegrationsService);
+    const immichRepository = ctx.module.get(RepositoryIntegrationImmichRepository);
+    const repositoryPaths = ctx.module.get(RepositoryPathRepository);
+
+    moduleConfig.update({
+      immichIntegration: {
+        dataPath: '/data/immich',
+        dataFolders: ['upload'],
+        libraries: [
+          { id: 'lib-1', name: 'Photos', importPaths: ['/mnt/photos'], exclusionPatterns: [] },
+          { id: 'lib-2', name: 'Videos', importPaths: ['/mnt/videos'], exclusionPatterns: [] },
+        ],
+        hooks: newImmichHooksMock(),
+      },
+    });
+
+    await integrationsService.configureImmichIntegration({
+      name: 'Immich Backup',
+      worm: false,
+      cron: '0 2 * * *',
+      dataFolders: ['upload'],
+      backupConfiguration: false,
+      libraries: [],
+    });
+
+    const integration = await immichRepository.get();
+    await immichRepository.upsert(integration!.id, integration!.scheduleId, {
+      ...integration!.configuration,
+      libraries: 'all' as never,
+    });
+
+    await expect(immichRepository.get()).resolves.toMatchObject({ configuration: { libraries: ['all'] } });
+
+    await integrationsService.onModuleConfigUpdate(moduleConfig.get());
+    const paths = await repositoryPaths.get(integration!.id);
+    expect(paths).toEqual(expect.arrayContaining(['/mnt/photos', '/mnt/videos']));
 
     await immichRepository.delete();
     moduleConfig.update({ immichIntegration: undefined });
@@ -181,7 +261,7 @@ describe('Integrations', () => {
       cron: '0 2 * * *',
       dataFolders: ['upload'],
       backupConfiguration: false,
-      libraries: 'all' as const,
+      libraries: ['all'],
     };
 
     await integrationsService.configureImmichIntegration(configuration);

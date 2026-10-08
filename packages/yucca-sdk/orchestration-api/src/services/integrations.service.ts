@@ -60,7 +60,9 @@ export class IntegrationsService {
     const immichIntegration = await this.repositoryIntegrationImmich.get();
 
     return {
-      immichState,
+      immichState: immichState
+        ? { dataPath: immichState.dataPath, dataFolders: immichState.dataFolders, libraries: immichState.libraries }
+        : undefined,
       immichIntegration,
     };
   }
@@ -228,7 +230,7 @@ export class IntegrationsService {
       paths.push(this.moduleConfig.get().statePath);
     }
 
-    if (config.libraries === 'all') {
+    if (config.libraries.includes('all')) {
       for (const library of immich.libraries) {
         paths.push(...library.importPaths);
       }

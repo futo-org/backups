@@ -1014,7 +1014,7 @@ describe('Immich integration', () => {
       cron: '* * * * *',
       dataFolders: ['upload'],
       backupConfiguration: false,
-      libraries: 'all',
+      libraries: ['all'],
     });
 
     await expect(event).resolves.toEqual({
@@ -1025,7 +1025,7 @@ describe('Immich integration', () => {
           scheduleId: expect.any(String),
           configuration: expect.objectContaining({
             backupConfiguration: false,
-            libraries: 'all',
+            libraries: ['all'],
           }),
         }),
       }),
@@ -1034,7 +1034,7 @@ describe('Immich integration', () => {
     await expect(sdk.getIntegrations()).resolves.toEqual(
       expect.objectContaining({
         immichIntegration: expect.objectContaining({
-          configuration: expect.objectContaining({ libraries: 'all' }),
+          configuration: expect.objectContaining({ libraries: ['all'] }),
         }),
       }),
     );

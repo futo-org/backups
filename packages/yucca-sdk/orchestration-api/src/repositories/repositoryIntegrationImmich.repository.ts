@@ -14,10 +14,17 @@ export class RepositoryIntegrationImmichRepository {
       return;
     }
 
+    const configuration = JSON.parse(integration.configuration) as Omit<ImmichRepositoryConfig, 'libraries'> & {
+      libraries: 'all' | string[];
+    };
+
     return {
       id: integration.id,
       scheduleId: integration.scheduleId,
-      configuration: JSON.parse(integration.configuration) as ImmichRepositoryConfig,
+      configuration: {
+        ...configuration,
+        libraries: configuration.libraries === 'all' ? ['all'] : configuration.libraries,
+      } satisfies ImmichRepositoryConfig,
     };
   }
 

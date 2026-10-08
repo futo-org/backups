@@ -3,4 +3,4 @@
 #MISE depends=["//packages/...:check"]
 set -e
 
-pnpm exec eslint "**/src/**/*.ts" --max-warnings 0
+NODE_OPTIONS="--max-old-space-size=4096" pnpm exec eslint "**/src/**/*.ts" --max-warnings 0
