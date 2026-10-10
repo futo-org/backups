@@ -384,7 +384,7 @@ describe('AuthController (e2e)', () => {
       it('refuses a repository owned by someone else', async () => {
         const other = await testUtils.createUser('other', 'other@example.com', 'other');
 
-        await startTicket(other.session.accessToken, repository.id).expect(401);
+        await startTicket(other.session.accessToken, repository.id).expect(404);
       });
 
       it('rejects an unknown action', async () => {

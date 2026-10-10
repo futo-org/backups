@@ -5,6 +5,7 @@ import { InjectKysely } from 'nestjs-kysely';
 import { DB } from 'src/schema/index.js';
 import { AuditLogTable } from 'src/schema/tables/auditLog.table.js';
 import { RepositoryTable } from 'src/schema/tables/repository.table.js';
+import { z } from 'zod';
 
 type RepositoryMetricsJson = {
   sizeBytes: number;
@@ -48,32 +49,33 @@ export class RepositoryRepository {
     return this.get(row.id);
   }
 
-  get(id: string) {
+  private select() {
     return this.db
       .selectFrom('repositories')
       .innerJoin('connections', 'connections.id', 'repositories.connectionId')
       .leftJoin('repositoryMetrics', 'repositoryMetrics.id', 'repositories.id')
       .leftJoin('repositoryMeter', 'repositoryMeter.repositoryId', 'repositories.id')
-      .where('repositories.id', '=', id)
       .selectAll('repositories')
       .select('connections.type as connectionType')
       .select(metricsJson)
-      .select(meterJson)
-      .executeTakeFirstOrThrow();
+      .select(meterJson);
+  }
+
+  get(id: string) {
+    return this.select().where('repositories.id', '=', id).executeTakeFirstOrThrow();
+  }
+
+  async find(id: string) {
+    // Postgres rejects a malformed uuid outright (a 500); it cannot name a repository, so it is simply not found.
+    if (!z.guid().safeParse(id).success) {
+      return;
+    }
+
+    return this.select().where('repositories.id', '=', id).executeTakeFirst();
   }
 
   getByUser(userId: string) {
-    return this.db
-      .selectFrom('repositories')
-      .innerJoin('connections', 'connections.id', 'repositories.connectionId')
-      .leftJoin('repositoryMetrics', 'repositoryMetrics.id', 'repositories.id')
-      .leftJoin('repositoryMeter', 'repositoryMeter.repositoryId', 'repositories.id')
-      .where('repositories.userId', '=', userId)
-      .selectAll('repositories')
-      .select('connections.type as connectionType')
-      .select(metricsJson)
-      .select(meterJson)
-      .execute();
+    return this.select().where('repositories.userId', '=', userId).execute();
   }
 
   async update(id: string, repository: Updateable<RepositoryTable>) {

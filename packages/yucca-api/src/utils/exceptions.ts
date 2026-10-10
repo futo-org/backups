@@ -1,4 +1,4 @@
-import { ForbiddenException } from '@nestjs/common';
+import { ForbiddenException, NotFoundException } from '@nestjs/common';
 import { TicketAction } from 'src/enum.js';
 
 export class EmailNotAllowedException extends ForbiddenException {
@@ -16,5 +16,11 @@ export class FeatureNotEnabledException extends ForbiddenException {
 export class TicketRequiredException extends ForbiddenException {
   constructor(action: TicketAction) {
     super(`Action '${action}' has not been confirmed`);
+  }
+}
+
+export class RepositoryNotFoundException extends NotFoundException {
+  constructor(id: string) {
+    super(`No repository with id ${id}`);
   }
 }

@@ -87,6 +87,32 @@ describe('MetricsController (e2e)', () => {
     });
   });
 
+  describe('POST /metrics/submit/:repositoryId/backup/start', () => {
+    it('returns 404 for an unknown repository id', async () => {
+      await request(app.getHttpServer())
+        .post('/api/metrics/submit/d906ba15-8878-43cb-9234-2589b0218f64/backup/start')
+        .set('Cookie', `yucca-access-token=${session.accessToken}`)
+        .expect(404);
+    });
+
+    it('returns 404 for a malformed repository id', async () => {
+      await request(app.getHttpServer())
+        .post('/api/metrics/submit/not-a-uuid/backup/start')
+        .set('Cookie', `yucca-access-token=${session.accessToken}`)
+        .expect(404);
+    });
+
+    it("returns 404 for another user's repository", async () => {
+      const other = await testUtils.createUser('bar', 'other@example.com', 'bar');
+      const foreign = await testUtils.createRepository(other.user.id);
+
+      await request(app.getHttpServer())
+        .post(`/api/metrics/submit/${foreign.id}/backup/start`)
+        .set('Cookie', `yucca-access-token=${session.accessToken}`)
+        .expect(404);
+    });
+  });
+
   describe('GET /metrics/:repositoryId/history', () => {
     it('reflects submitted metric changes in history', async () => {
       await request(app.getHttpServer())

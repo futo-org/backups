@@ -1,4 +1,4 @@
-import { BadRequestException, UnauthorizedException } from '@nestjs/common';
+import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { AuthDto } from 'src/dto/auth.dto.js';
 import { TicketAction } from 'src/enum.js';
 import { RepositoryService } from 'src/services/repository.service.js';
@@ -92,7 +92,7 @@ describe(RepositoryService.name, () => {
 
   describe('createUrl', () => {
     it('mints a URL from the site rest_url with a storageCluster claim', async () => {
-      mocks.repository.get.mockResolvedValue({
+      mocks.repository.find.mockResolvedValue({
         id: repoId,
         userId: auth.id,
         worm: true,
@@ -116,11 +116,25 @@ describe(RepositoryService.name, () => {
       });
       expect(url).toBe(`rest:https://restic:signed-token@rest.htz-fsn1.backups.futo.cloud/${repoId}`);
     });
+
+    it('rejects an unknown repository id as not found', async () => {
+      mocks.repository.find.mockResolvedValue(undefined);
+
+      await expect(sut.createUrl(auth, repoId)).rejects.toThrow(NotFoundException);
+      expect(mocks.jwt.signAsync).not.toHaveBeenCalled();
+    });
+
+    it('rejects a repository owned by someone else as not found', async () => {
+      mocks.repository.find.mockResolvedValue({ ...repository, userId: 'someone-else' } as never);
+
+      await expect(sut.createUrl(auth, repoId)).rejects.toThrow(NotFoundException);
+      expect(mocks.jwt.signAsync).not.toHaveBeenCalled();
+    });
   });
 
   describe('update', () => {
     it('refuses to disable write-only through a plain update', async () => {
-      mocks.repository.get.mockResolvedValue({ id: repoId, userId: auth.id, worm: true } as never);
+      mocks.repository.find.mockResolvedValue({ id: repoId, userId: auth.id, worm: true } as never);
 
       await expect(sut.update(auth, repoId, { worm: false })).rejects.toThrow(BadRequestException);
       expect(mocks.repository.update).not.toHaveBeenCalled();
@@ -129,21 +143,21 @@ describe(RepositoryService.name, () => {
 
   describe('disableWorm', () => {
     it('rejects a repository owned by someone else', async () => {
-      mocks.repository.get.mockResolvedValue({ ...repository, userId: 'someone-else', worm: true } as never);
+      mocks.repository.find.mockResolvedValue({ ...repository, userId: 'someone-else', worm: true } as never);
 
-      await expect(sut.disableWorm(ticket, repoId)).rejects.toThrow(UnauthorizedException);
+      await expect(sut.disableWorm(ticket, repoId)).rejects.toThrow(NotFoundException);
       expect(mocks.repository.disableWorm).not.toHaveBeenCalled();
     });
 
     it('rejects a repository that is not write-only', async () => {
-      mocks.repository.get.mockResolvedValue({ ...repository, worm: false } as never);
+      mocks.repository.find.mockResolvedValue({ ...repository, worm: false } as never);
 
       await expect(sut.disableWorm(ticket, repoId)).rejects.toThrow(BadRequestException);
       expect(mocks.repository.disableWorm).not.toHaveBeenCalled();
     });
 
     it('clears the worm flag and records who confirmed it', async () => {
-      mocks.repository.get.mockResolvedValue({ ...repository, worm: true } as never);
+      mocks.repository.find.mockResolvedValue({ ...repository, worm: true } as never);
 
       await sut.disableWorm(ticket, repoId);
 
@@ -157,14 +171,14 @@ describe(RepositoryService.name, () => {
 
   describe('delete', () => {
     it('rejects a repository owned by someone else', async () => {
-      mocks.repository.get.mockResolvedValue({ ...repository, userId: 'someone-else' } as never);
+      mocks.repository.find.mockResolvedValue({ ...repository, userId: 'someone-else' } as never);
 
-      await expect(sut.delete(ticket, repoId)).rejects.toThrow(UnauthorizedException);
+      await expect(sut.delete(ticket, repoId)).rejects.toThrow(NotFoundException);
       expect(mocks.repository.delete).not.toHaveBeenCalled();
     });
 
     it('deletes a write-only repository and records who confirmed it', async () => {
-      mocks.repository.get.mockResolvedValue({ ...repository, worm: true } as never);
+      mocks.repository.find.mockResolvedValue({ ...repository, worm: true } as never);
 
       await sut.delete(ticket, repoId);
 

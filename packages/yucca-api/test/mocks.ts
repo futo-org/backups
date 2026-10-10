@@ -104,6 +104,7 @@ export const newRepositoryRepositoryMock = (): jest.Mocked<RepositoryInterface<R
   return {
     create: jest.fn(),
     get: jest.fn(),
+    find: jest.fn(),
     getByUser: jest.fn(),
     update: jest.fn(),
     disableWorm: jest.fn(),

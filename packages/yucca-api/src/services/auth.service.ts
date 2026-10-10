@@ -24,6 +24,7 @@ import { UserAllowlistRepository } from 'src/repositories/userAllowlist.reposito
 import { EmailNotAllowedException, FeatureNotEnabledException, TicketRequiredException } from 'src/utils/exceptions.js';
 
 import { isInAppPath } from 'src/utils/redirect.js';
+import { ensureOwned } from 'src/utils/repository.js';
 
 @Injectable()
 export class AuthService {
@@ -133,10 +134,7 @@ export class AuthService {
   }
 
   async createTicket(auth: AuthDto, dto: TicketCreateRequestDto): Promise<TicketCreateResponseDto> {
-    const repository = await this.repository.get(dto.repositoryId);
-    if (repository.userId !== auth.id) {
-      throw new UnauthorizedException();
-    }
+    ensureOwned(await this.repository.find(dto.repositoryId), auth.id, dto.repositoryId);
 
     const oidcState = this.crypto.randomHex(32);
     const oidcCodeVerifier = client.randomPKCECodeVerifier();

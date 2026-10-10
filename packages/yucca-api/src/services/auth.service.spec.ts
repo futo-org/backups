@@ -1,5 +1,5 @@
 import { jest } from '@jest/globals';
-import { UnauthorizedException } from '@nestjs/common';
+import { NotFoundException } from '@nestjs/common';
 import { AuthDto } from 'src/dto/auth.dto.js';
 import { TicketAction } from 'src/enum.js';
 import { env } from 'src/env.js';
@@ -558,14 +558,21 @@ describe(AuthService.name, () => {
     const dto = { action: TicketAction.DeleteRepository, repositoryId: 'repository' };
 
     it('should refuse a repository owned by someone else', async () => {
-      mocks.repository.get.mockResolvedValue({ id: 'repository', userId: 'someone-else' } as never);
+      mocks.repository.find.mockResolvedValue({ id: 'repository', userId: 'someone-else' } as never);
 
-      await expect(sut.createTicket(mockAuth, dto)).rejects.toThrow(UnauthorizedException);
+      await expect(sut.createTicket(mockAuth, dto)).rejects.toThrow(NotFoundException);
+      expect(mocks.ticket.create).not.toHaveBeenCalled();
+    });
+
+    it('should refuse an unknown repository', async () => {
+      mocks.repository.find.mockResolvedValue(undefined);
+
+      await expect(sut.createTicket(mockAuth, dto)).rejects.toThrow(NotFoundException);
       expect(mocks.ticket.create).not.toHaveBeenCalled();
     });
 
     it('should store a pending ticket and send the browser to the IdP', async () => {
-      mocks.repository.get.mockResolvedValue({ id: 'repository', userId: mockAuth.id } as never);
+      mocks.repository.find.mockResolvedValue({ id: 'repository', userId: mockAuth.id } as never);
       mocks.crypto.randomHex.mockReturnValue('random');
       mocks.oidc.authorizeTicket.mockResolvedValue({ redirectTo: new URL('https://idp.example.test/authorize') });
 

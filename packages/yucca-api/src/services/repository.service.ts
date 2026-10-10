@@ -1,5 +1,5 @@
 import { WideContextRepository } from '@common/server/otel';
-import { BadRequestException, Injectable, Scope, UnauthorizedException } from '@nestjs/common';
+import { BadRequestException, Injectable, Scope } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { Selectable } from 'kysely';
 import { AuthDto } from 'src/dto/auth.dto.js';
@@ -9,6 +9,7 @@ import { ConnectionRepository } from 'src/repositories/connection.repository.js'
 import { RepositoryRepository } from 'src/repositories/repository.repository.js';
 import { TopologyRepository } from 'src/repositories/topology.repository.js';
 import { TicketTable } from 'src/schema/tables/ticket.table.js';
+import { ensureOwned } from 'src/utils/repository.js';
 
 @Injectable({ scope: Scope.REQUEST })
 export class RepositoryService {
@@ -44,12 +45,7 @@ export class RepositoryService {
   }
 
   private async getOwned(userId: string, id: string) {
-    const repository = await this.repositoryRepository.get(id);
-    if (repository.userId !== userId) {
-      throw new UnauthorizedException();
-    }
-
-    return repository;
+    return ensureOwned(await this.repositoryRepository.find(id), userId, id);
   }
 
   async getAll(auth: AuthDto) {

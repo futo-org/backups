@@ -1,5 +1,5 @@
 import { LoggerRepository, MetricService } from '@common/server/otel';
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { Gauge } from '@opentelemetry/api';
 import { AuthDto } from 'src/dto/auth.dto.js';
 import {
@@ -13,6 +13,7 @@ import { RepositoryRepository } from 'src/repositories/repository.repository.js'
 import { RepositoryMetricsRepository } from 'src/repositories/repositoryMetrics.repository.js';
 import { RepositoryMetricsHistoryRepository } from 'src/repositories/repositoryMetricsHistory.repository.js';
 import { resolveLimit } from 'src/utils/pagination.js';
+import { ensureOwned } from 'src/utils/repository.js';
 
 const toUnixSeconds = (date: Date) => Math.floor(date.getTime() / 1000);
 
@@ -49,10 +50,7 @@ export class MetricsService {
   }
 
   async submitBackupStart(auth: AuthDto, repositoryId: string) {
-    const repository = await this.repositories.get(repositoryId);
-    if (repository.userId !== auth.id) {
-      throw new UnauthorizedException();
-    }
+    ensureOwned(await this.repositories.find(repositoryId), auth.id, repositoryId);
 
     const now = new Date();
     await this.metrics.save(repositoryId, {
@@ -70,10 +68,7 @@ export class MetricsService {
   }
 
   async submitBackupEnd(auth: AuthDto, repositoryId: string, { durationMs, status }: SubmitBackupEndRequestDto) {
-    const repository = await this.repositories.get(repositoryId);
-    if (repository.userId !== auth.id) {
-      throw new UnauthorizedException();
-    }
+    ensureOwned(await this.repositories.find(repositoryId), auth.id, repositoryId);
 
     const now = new Date();
     await this.metrics.save(repositoryId, {
@@ -98,10 +93,7 @@ export class MetricsService {
   }
 
   async submitRepositorySize(auth: AuthDto, repositoryId: string, dto: SubmitUpdateSizeRequestDto) {
-    const repository = await this.repositories.get(repositoryId);
-    if (repository.userId !== auth.id) {
-      throw new UnauthorizedException();
-    }
+    ensureOwned(await this.repositories.find(repositoryId), auth.id, repositoryId);
 
     await this.metrics.save(repositoryId, { sizeBytes: dto.sizeBytes });
     await this.history.create({ repositoryId, sizeBytes: dto.sizeBytes });
@@ -118,10 +110,7 @@ export class MetricsService {
   }
 
   async listHistory(auth: AuthDto, repositoryId: string, query: CursorPaginationDto) {
-    const repository = await this.repositories.get(repositoryId);
-    if (repository.userId !== auth.id) {
-      throw new UnauthorizedException();
-    }
+    ensureOwned(await this.repositories.find(repositoryId), auth.id, repositoryId);
 
     return this.history.list({
       repositoryId,
