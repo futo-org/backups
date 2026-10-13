@@ -17,6 +17,7 @@ import {
 } from '$lib/fetch-client';
 import { getProvider } from '$lib/providers';
 import { queryClient } from '$lib/query-client';
+import { snapshotKeys } from '$lib/services/snapshot.service';
 import { handleError } from '$lib/utils/handle-error';
 import { createTicket } from '@futo-org/backups-api-client';
 import { modalManager, toastManager, type ActionItem } from '@immich/ui';
@@ -166,6 +167,10 @@ export const useReconfigureRepositoryPrimaryBackend = () =>
     () => ({
       mutationFn: ({ id, backendId }: { id: string; backendId: string }) =>
         reconfigureRepositoryPrimaryBackend(id, { backendId }),
+      onSuccess: (_, { id }) =>
+        queryClient.invalidateQueries({
+          queryKey: snapshotKeys.byRepository(id),
+        }),
       onError: (error) => handleError(error, gt`Failed to reconfigure backend`),
     }),
     () => queryClient,
