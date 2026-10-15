@@ -158,6 +158,19 @@ export class JobRepository implements OnModuleInit, BeforeApplicationShutdown {
     return jobs.map((job) => toJobDto(job));
   }
 
+  async getLatest(repositoryId: string, name: JobName) {
+    const job = await this.db
+      .selectFrom('jobs')
+      .selectAll()
+      .where('repositoryId', '=', repositoryId)
+      .where('name', '=', name)
+      .orderBy(sql`rowid`, 'desc')
+      .limit(1)
+      .executeTakeFirst();
+
+    return job && toJobDto(job);
+  }
+
   getObservable(id: string) {
     const logFilePath = this.getLogFilePath(id);
 

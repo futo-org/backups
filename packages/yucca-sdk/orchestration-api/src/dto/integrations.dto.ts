@@ -1,7 +1,8 @@
 import { createZodDto } from 'nestjs-zod';
 import { z } from 'zod';
 import { BackendSchema } from './backend.dto.js';
-import { LocalRepositorySchema, RetentionPolicySchema, RunSchema } from './repository.dto.js';
+import { JobSchema } from './job.dto.js';
+import { LocalRepositorySchema, RetentionPolicySchema } from './repository.dto.js';
 import { ScheduleSchema } from './schedule.dto.js';
 
 const LibrariesSchema = z
@@ -63,7 +64,7 @@ const ImmichBackupStatusSchema = z
     repository: LocalRepositorySchema.optional(),
     backend: BackendSchema.optional(),
     schedule: ScheduleSchema.optional(),
-    latestBackupRun: RunSchema.optional(),
+    latestBackupJob: JobSchema.optional(),
     databaseDump: ImmichDatabaseDumpConfigSchema.optional(),
     databaseDumpWarningIgnored: z.boolean().optional(),
   })

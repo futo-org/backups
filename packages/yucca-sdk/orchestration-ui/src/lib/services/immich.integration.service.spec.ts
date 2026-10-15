@@ -51,12 +51,30 @@ describe('toImmichBackupStatus', () => {
     },
   );
 
-  it('reports a running backup over a paused schedule', () => {
-    const running = {
-      ...paused(backedUp),
-      latestBackupRun: { status: 'incomplete' },
+  it.each(['queued', 'running'] as const)(
+    'reports a %s backup as running over a paused schedule, with its job to cancel',
+    (jobStatus) => {
+      const running = {
+        ...paused(backedUp),
+        latestBackupJob: { id: 'job-1', status: jobStatus },
+      } as ImmichBackupStatusDto;
+
+      expect(toImmichBackupStatus(running, false)).toEqual({
+        kind: 'running',
+        jobId: 'job-1',
+      });
+    },
+  );
+
+  it('reports the last backup once its job has finished', () => {
+    const finished = {
+      ...backedUp,
+      latestBackupJob: { id: 'job-1', status: 'complete' },
     } as ImmichBackupStatusDto;
 
-    expect(toImmichBackupStatus(running, false)).toEqual({ kind: 'running' });
+    expect(toImmichBackupStatus(finished, false)).toEqual({
+      kind: 'complete',
+      lastBackup: '2026-09-30T12:00:00.000Z',
+    });
   });
 });

@@ -2158,13 +2158,25 @@
           "repositories"
         ]
       },
-      "RunDto": {
+      "JobDto": {
         "type": "object",
         "properties": {
           "id": {
             "type": "string"
           },
+          "name": {
+            "$ref": "#/components/schemas/JobName"
+          },
           "repositoryId": {
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/JobStatus"
+          },
+          "error": {
+            "type": "string"
+          },
+          "queuedAt": {
             "type": "string"
           },
           "start": {
@@ -2172,43 +2184,36 @@
           },
           "end": {
             "type": "string"
-          },
-          "logFilePath": {
-            "type": "string"
-          },
-          "status": {
-            "$ref": "#/components/schemas/RunStatus"
-          },
-          "type": {
-            "$ref": "#/components/schemas/RunType"
           }
         },
         "required": [
           "id",
+          "name",
           "repositoryId",
-          "start",
-          "logFilePath",
           "status",
-          "type"
+          "queuedAt"
         ]
       },
-      "RunStatus": {
+      "JobName": {
         "type": "string",
         "enum": [
-          "incomplete",
+          "repository-backup",
+          "repository-prune",
+          "repository-restore",
+          "repository-restore-from-point",
+          "repository-snapshot-forget",
+          "repository-sync-metrics"
+        ]
+      },
+      "JobStatus": {
+        "type": "string",
+        "enum": [
+          "queued",
+          "running",
           "complete",
           "warn",
           "failed",
           "cancelled"
-        ]
-      },
-      "RunType": {
-        "type": "string",
-        "enum": [
-          "schedule",
-          "restore",
-          "backup",
-          "forget"
         ]
       },
       "ImmichDatabaseDumpConfigDto": {
@@ -2243,8 +2248,8 @@
           "schedule": {
             "$ref": "#/components/schemas/ScheduleDto"
           },
-          "latestBackupRun": {
-            "$ref": "#/components/schemas/RunDto"
+          "latestBackupJob": {
+            "$ref": "#/components/schemas/JobDto"
           },
           "databaseDump": {
             "$ref": "#/components/schemas/ImmichDatabaseDumpConfigDto"
@@ -2346,64 +2351,6 @@
         "required": [
           "repositoryId",
           "snapshotId"
-        ]
-      },
-      "JobDto": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string"
-          },
-          "name": {
-            "$ref": "#/components/schemas/JobName"
-          },
-          "repositoryId": {
-            "type": "string"
-          },
-          "status": {
-            "$ref": "#/components/schemas/JobStatus"
-          },
-          "error": {
-            "type": "string"
-          },
-          "queuedAt": {
-            "type": "string"
-          },
-          "start": {
-            "type": "string"
-          },
-          "end": {
-            "type": "string"
-          }
-        },
-        "required": [
-          "id",
-          "name",
-          "repositoryId",
-          "status",
-          "queuedAt"
-        ]
-      },
-      "JobName": {
-        "type": "string",
-        "enum": [
-          "repository-backup",
-          "repository-prune",
-          "repository-restore",
-          "repository-restore-from-point",
-          "repository-snapshot-forget",
-          "repository-sync-metrics"
-        ]
-      },
-      "JobStatus": {
-        "type": "string",
-        "enum": [
-          "queued",
-          "running",
-          "complete",
-          "warn",
-          "failed",
-          "cancelled"
         ]
       },
       "JobListResponseDto": {
@@ -2764,6 +2711,59 @@
         },
         "required": [
           "backendId"
+        ]
+      },
+      "RunDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "repositoryId": {
+            "type": "string"
+          },
+          "start": {
+            "type": "string"
+          },
+          "end": {
+            "type": "string"
+          },
+          "logFilePath": {
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/RunStatus"
+          },
+          "type": {
+            "$ref": "#/components/schemas/RunType"
+          }
+        },
+        "required": [
+          "id",
+          "repositoryId",
+          "start",
+          "logFilePath",
+          "status",
+          "type"
+        ]
+      },
+      "RunStatus": {
+        "type": "string",
+        "enum": [
+          "incomplete",
+          "complete",
+          "warn",
+          "failed",
+          "cancelled"
+        ]
+      },
+      "RunType": {
+        "type": "string",
+        "enum": [
+          "schedule",
+          "restore",
+          "backup",
+          "forget"
         ]
       },
       "RunHistoryResponseDto": {

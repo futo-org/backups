@@ -152,16 +152,17 @@ export type ScheduleDto = {
     lastRun?: string;
     lastFinished?: string;
 };
-export type RunStatus = "incomplete" | "complete" | "warn" | "failed" | "cancelled";
-export type RunType = "schedule" | "restore" | "backup" | "forget";
-export type RunDto = {
+export type JobName = "repository-backup" | "repository-prune" | "repository-restore" | "repository-restore-from-point" | "repository-snapshot-forget" | "repository-sync-metrics";
+export type JobStatus = "queued" | "running" | "complete" | "warn" | "failed" | "cancelled";
+export type JobDto = {
     id: string;
+    name: JobName;
     repositoryId: string;
-    start: string;
+    status: JobStatus;
+    error?: string;
+    queuedAt: string;
+    start?: string;
     end?: string;
-    logFilePath: string;
-    status: RunStatus;
-    "type": RunType;
 };
 export type ImmichDatabaseDumpConfigDto = {
     enabled: boolean;
@@ -172,7 +173,7 @@ export type ImmichBackupStatusDto = {
     repository?: LocalRepositoryDto;
     backend?: BackendDto;
     schedule?: ScheduleDto;
-    latestBackupRun?: RunDto;
+    latestBackupJob?: JobDto;
     databaseDump?: ImmichDatabaseDumpConfigDto;
     databaseDumpWarningIgnored?: boolean;
 };
@@ -199,18 +200,6 @@ export type ImmichRollbackRequestDto = {
     repositoryId: string;
     snapshotId: string;
     backupFileName?: string;
-};
-export type JobName = "repository-backup" | "repository-prune" | "repository-restore" | "repository-restore-from-point" | "repository-snapshot-forget" | "repository-sync-metrics";
-export type JobStatus = "queued" | "running" | "complete" | "warn" | "failed" | "cancelled";
-export type JobDto = {
-    id: string;
-    name: JobName;
-    repositoryId: string;
-    status: JobStatus;
-    error?: string;
-    queuedAt: string;
-    start?: string;
-    end?: string;
 };
 export type JobListResponseDto = {
     jobs: JobDto[];
@@ -296,6 +285,17 @@ export type RepositoryCheckImportResponseDto = {
 };
 export type RepositoryPrimaryBackendReconfigureRequestDto = {
     backendId: string;
+};
+export type RunStatus = "incomplete" | "complete" | "warn" | "failed" | "cancelled";
+export type RunType = "schedule" | "restore" | "backup" | "forget";
+export type RunDto = {
+    id: string;
+    repositoryId: string;
+    start: string;
+    end?: string;
+    logFilePath: string;
+    status: RunStatus;
+    "type": RunType;
 };
 export type RunHistoryResponseDto = {
     runs: RunDto[];
