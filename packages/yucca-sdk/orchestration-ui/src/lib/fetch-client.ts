@@ -297,21 +297,6 @@ export type RepositorySnapshotRestoreFromPointRequestDto = {
     yuccaConfig?: string;
     include?: string[];
 };
-export type TaskType = "schedule" | "restore" | "backup" | "forget";
-export type RunningTaskStatus = "incomplete" | "complete" | "warn" | "failed" | "cancelled";
-export type ActiveScheduleItemDto = {
-    repositoryId: string;
-    status: RunningTaskStatus;
-};
-export type RunningTaskDto = {
-    parentId: string;
-    "type": TaskType;
-    logId?: string;
-    scheduleStatus?: ActiveScheduleItemDto[];
-};
-export type RunningTaskListResponse = {
-    tasks: RunningTaskDto[];
-};
 export type ScheduleCreateRequestDto = {
     name: string;
     paused?: boolean;
@@ -831,26 +816,6 @@ export function getSnapshotListing(id: string, snapshot: string, { path }: {
         path
     }))}`, {
         ...opts
-    }));
-}
-/**
- * List running tasks
- */
-export function getRunningTasks(opts?: Oazapfts.RequestOpts) {
-    return oazapfts.ok(oazapfts.fetchJson<{
-        status: 200;
-        data: RunningTaskListResponse;
-    }>("/api/yucca/tasks", {
-        ...opts
-    }));
-}
-/**
- * Cancel a task
- */
-export function cancelTask(parentId: string, opts?: Oazapfts.RequestOpts) {
-    return oazapfts.ok(oazapfts.fetchText(`/api/yucca/tasks/${encodeURIComponent(parentId)}/cancel`, {
-        ...opts,
-        method: "POST"
     }));
 }
 /**

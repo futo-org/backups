@@ -38,7 +38,6 @@ export * from './services/onboarding.service';
 export * from './services/repository.service';
 export * from './services/schedule.service';
 export * from './services/snapshot.service';
-export * from './services/task.service';
 
 export { events, SocketEvent } from './events';
 export { queryClient } from './query-client';

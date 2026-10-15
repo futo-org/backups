@@ -49,13 +49,6 @@ export enum TaskStatus {
   Cancelled = 'cancelled',
 }
 
-export enum TaskType {
-  Schedule = 'schedule',
-  Restore = 'restore',
-  Backup = 'backup',
-  Forget = 'forget',
-}
-
 export enum JobName {
   RepositoryBackup = 'repository-backup',
   RepositoryPrune = 'repository-prune',
