@@ -2,14 +2,12 @@ import { submitMetricBackupEnd, submitStructuredLog } from '@futo-org/backups-ap
 import { jest } from '@jest/globals';
 import { randomUUID } from 'node:crypto';
 import { REPOSITORY_DEFAULT_CLOUD_UUID } from '../src/const.js';
-import { BackendType, BootstrapStatus, JobName, JobStatus, TaskStatus, TaskType } from '../src/enum.js';
+import { BackendType, BootstrapStatus, JobName, JobStatus } from '../src/enum.js';
 import { BackendRepository } from '../src/repositories/backend.repository.js';
 import { BootstrapRepository } from '../src/repositories/bootstrap.repository.js';
 import { ConfigRepository } from '../src/repositories/config.repository.js';
 import { JobRepository } from '../src/repositories/job.repository.js';
 import { RepositoryRepository } from '../src/repositories/repository.repository.js';
-import { RunHistoryRepository } from '../src/repositories/runHistory.repository.js';
-import { type RunType } from '../src/schema/tables/runHistory.table.js';
 import { BootstrapService } from '../src/services/bootstrap.service.js';
 import { createTestingModule, TestContext, waitFor } from './testUtils.js';
 
@@ -17,27 +15,6 @@ const apiSubmitMetricBackupEnd = submitMetricBackupEnd as jest.Mock;
 const apiSubmitStructuredLog = submitStructuredLog as jest.Mock;
 
 let ctx: TestContext;
-
-const createInterruptedRun = async (type: RunType = TaskType.Backup) => {
-  const repositoryId = randomUUID();
-  const remoteId = `remote-${repositoryId}`;
-
-  await ctx.module.get(RepositoryRepository).create({
-    id: repositoryId,
-    remoteId,
-    backendId: REPOSITORY_DEFAULT_CLOUD_UUID,
-    retentionPolicy: null,
-    siteCode: null,
-    storageClusterCode: null,
-  });
-
-  const { logWriter } = await ctx.module.get(RunHistoryRepository).createLogHelper({ repositoryId, type });
-  logWriter.close();
-
-  return { repositoryId, remoteId };
-};
-
-const getRun = (repositoryId: string) => ctx.module.get(RunHistoryRepository).getAll(repositoryId);
 
 beforeAll(async () => {
   ctx = await createTestingModule();
@@ -49,7 +26,6 @@ afterAll(async () => {
 
 beforeEach(async () => {
   jest.clearAllMocks();
-  ctx.database.prepare('DELETE FROM runHistory').run();
   ctx.database.prepare('DELETE FROM jobs').run();
   ctx.database.prepare('DELETE FROM repositories').run();
 
@@ -59,58 +35,6 @@ beforeEach(async () => {
     accessToken: 'test-token',
   });
   await ctx.module.get(ConfigRepository).enableTelemetry();
-});
-
-describe('Bootstrap', () => {
-  it('reports interrupted backup runs to the backend', async () => {
-    const { repositoryId, remoteId } = await createInterruptedRun();
-
-    await ctx.module.get(BootstrapService).onApplicationBootstrap();
-
-    expect(ctx.module.get(BootstrapRepository).getStatus()).toBe(BootstrapStatus.Ready);
-
-    await waitFor(() => apiSubmitMetricBackupEnd.mock.calls.length > 0);
-    expect(apiSubmitMetricBackupEnd).toHaveBeenCalledWith(
-      remoteId,
-      { status: 'failed', durationMs: expect.any(Number) },
-      expect.any(Object),
-    );
-
-    await waitFor(() => apiSubmitStructuredLog.mock.calls.some(([{ summary }]) => summary === 'Backup finished'));
-    expect(apiSubmitStructuredLog).toHaveBeenCalledWith(
-      {
-        summary: 'Backup finished',
-        data: expect.objectContaining({ repositoryId, lastBackupStatus: TaskStatus.Failed }),
-      },
-      expect.any(Object),
-    );
-
-    const [run] = await getRun(repositoryId);
-    expect(run.status).toBe(TaskStatus.Failed);
-    expect(run.end).toEqual(expect.any(String));
-  });
-
-  it('does not submit a backup end metric for interrupted restore runs', async () => {
-    const { repositoryId } = await createInterruptedRun(TaskType.Restore);
-
-    await ctx.module.get(BootstrapService).onApplicationBootstrap();
-
-    const [run] = await getRun(repositoryId);
-    expect(run.status).toBe(TaskStatus.Failed);
-    expect(apiSubmitMetricBackupEnd).not.toHaveBeenCalled();
-  });
-
-  it('leaves completed runs untouched', async () => {
-    const { repositoryId } = await createInterruptedRun();
-    const [{ id: runId }] = await getRun(repositoryId);
-    ctx.database.prepare('UPDATE runHistory SET status = ? WHERE id = ?').run(TaskStatus.Complete, runId);
-
-    await ctx.module.get(BootstrapService).onApplicationBootstrap();
-
-    const [run] = await getRun(repositoryId);
-    expect(run.status).toBe(TaskStatus.Complete);
-    expect(apiSubmitMetricBackupEnd).not.toHaveBeenCalled();
-  });
 });
 
 describe('Bootstrap', () => {

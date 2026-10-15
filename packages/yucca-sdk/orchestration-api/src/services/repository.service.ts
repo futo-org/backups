@@ -2,7 +2,6 @@ import { BadRequestException, Injectable, NotFoundException } from '@nestjs/comm
 import { Updateable } from 'kysely';
 import { randomUUID } from 'node:crypto';
 import { dirname } from 'node:path';
-import { Observable } from 'rxjs';
 import { FilesystemListingRequestDto, FilesystemListingResponseDto } from '../dto/filesystem.dto.js';
 import {
   GetSnapshotResponseDto,
@@ -22,7 +21,6 @@ import {
   RepositoryUpdateRequestDto,
   RepositoryUpdateResponseDto,
   RepositoryWithMetricsDto,
-  RunHistoryResponseDto,
 } from '../dto/repository.dto.js';
 import { BackendType, JobName } from '../enum.js';
 import { EventsGateway } from '../events/events.gateway.js';
@@ -34,7 +32,6 @@ import { RepositoryRepository } from '../repositories/repository.repository.js';
 import { RepositoryLocalMetricsRepository } from '../repositories/repositoryLocalMetrics.repository.js';
 import { RepositoryPathRepository } from '../repositories/repositoryPath.repository.js';
 import { ResticRepository } from '../repositories/restic.repository.js';
-import { RunHistoryRepository } from '../repositories/runHistory.repository.js';
 import { RepositoryLocalMetricsTable } from '../schema/tables/repositoryLocalMetrics.table.js';
 import { DEFAULT_RETENTION_POLICY } from '../utils/restic.js';
 import { TelemetryService } from './telemetry.service.js';
@@ -47,7 +44,6 @@ export class RepositoryService {
     private readonly config: ConfigRepository,
     private readonly jobs: JobRepository,
     private readonly restic: ResticRepository,
-    private readonly runHistory: RunHistoryRepository,
     private readonly repository: RepositoryRepository,
     private readonly repositoryPath: RepositoryPathRepository,
     private readonly repositoryLocalMetrics: RepositoryLocalMetricsRepository,
@@ -760,17 +756,5 @@ export class RepositoryService {
 
       throw error;
     }
-  }
-
-  async getRunHistory(id: string): Promise<RunHistoryResponseDto> {
-    const runs = await this.runHistory.getAll(id);
-
-    return {
-      runs,
-    };
-  }
-
-  observableLog(id: string): Observable<MessageEvent> {
-    return this.runHistory.getObservable(id);
   }
 }

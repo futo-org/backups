@@ -3,7 +3,7 @@ import { Server, Socket } from 'socket.io';
 import { BackendDto } from '../dto/backend.dto.js';
 import { IntegrationsResponseDto } from '../dto/integrations.dto.js';
 import { JobDto } from '../dto/job.dto.js';
-import { LocalRepositoryDto, RunDto } from '../dto/repository.dto.js';
+import { LocalRepositoryDto } from '../dto/repository.dto.js';
 import { RunningTaskDto } from '../dto/runningTasks.dto.js';
 import { ScheduleDto } from '../dto/schedule.dto.js';
 import { ModuleConfigRepository } from '../repositories/moduleConfig.repository.js';
@@ -70,16 +70,6 @@ export type GatewayEvent =
   | {
       type: 'JobCancel';
       jobId: string;
-    }
-  | {
-      type: 'RunCreate';
-      run: RunDto;
-    }
-  | {
-      type: 'RunUpdate';
-      runId: string;
-      repositoryId: string;
-      run: Partial<RunDto>;
     };
 
 @WebSocketGateway({

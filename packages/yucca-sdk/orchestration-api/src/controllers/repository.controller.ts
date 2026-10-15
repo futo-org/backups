@@ -14,7 +14,6 @@ import {
   RepositorySnapshotRestoreRequestDto,
   RepositoryUpdateRequestDto,
   RepositoryUpdateResponseDto,
-  RunHistoryResponseDto,
 } from '../dto/repository.dto.js';
 import { RepositoryService } from '../services/repository.service.js';
 
@@ -127,17 +126,6 @@ export class RepositoryController {
     @Body() dto: RepositoryPrimaryBackendReconfigureRequestDto,
   ): Promise<RepositoryCreateResponseDto> {
     return this.service.reconfigureRepositoryPrimaryBackend(id, dto);
-  }
-
-  @Get('/:id/runs')
-  @ApiParam({ name: 'id', type: String })
-  @ApiOkResponse({ type: RunHistoryResponseDto })
-  @ApiOperation({
-    summary: 'List backup runs',
-    description: 'List the backup, prune and restore runs of a repository.',
-  })
-  getRunHistory(@Param('id') id: string): Promise<RunHistoryResponseDto> {
-    return this.service.getRunHistory(id);
   }
 
   @Get('/:id/snapshots')

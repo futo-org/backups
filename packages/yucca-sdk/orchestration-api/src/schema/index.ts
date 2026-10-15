@@ -6,7 +6,6 @@ import { RepositoryIntegrationImmichTable } from './tables/repositoryIntegration
 import { RepositoryLocalMetricsTable } from './tables/repositoryLocalMetrics.table.js';
 import { RepositoryPathTable } from './tables/repositoryPath.table.js';
 import { RepositoryScheduleTable } from './tables/repositorySchedule.table.js';
-import { RunHistoryTable } from './tables/runHistory.table.js';
 import { ScheduleTable } from './tables/schedule.table.js';
 
 export interface DB {
@@ -18,6 +17,5 @@ export interface DB {
   repositoryPaths: RepositoryPathTable;
   repositorySchedules: RepositoryScheduleTable;
   repositoryLocalMetrics: RepositoryLocalMetricsTable;
-  runHistory: RunHistoryTable;
   schedules: ScheduleTable;
 }
