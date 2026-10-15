@@ -72,7 +72,8 @@
       case "failed": {
         return "failed";
       }
-      case "cancelled": {
+      case "cancelled":
+      case "incomplete": {
         return "cancelled";
       }
       case "warn": {

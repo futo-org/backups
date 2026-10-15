@@ -72,6 +72,7 @@ export enum JobStatus {
   Warn = 'warn',
   Failed = 'failed',
   Cancelled = 'cancelled',
+  Incomplete = 'incomplete',
 }
 
 export enum InternalEvent {

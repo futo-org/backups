@@ -153,7 +153,7 @@ export type ScheduleDto = {
     lastFinished?: string;
 };
 export type JobName = "repository-backup" | "repository-prune" | "repository-restore" | "repository-restore-from-point" | "repository-snapshot-forget" | "repository-sync-metrics";
-export type JobStatus = "queued" | "running" | "complete" | "warn" | "failed" | "cancelled";
+export type JobStatus = "queued" | "running" | "complete" | "warn" | "failed" | "cancelled" | "incomplete";
 export type JobDto = {
     id: string;
     name: JobName;

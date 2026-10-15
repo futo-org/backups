@@ -120,7 +120,7 @@ describe(JobRepository.name, () => {
     }
   });
 
-  it('fails jobs left queued or running when the lock holder starts', async () => {
+  it('marks jobs left queued or running as incomplete when the lock holder starts', async () => {
     const jobs = ctx.module.get(JobRepository);
     ctx.database
       .prepare(
@@ -132,8 +132,8 @@ describe(JobRepository.name, () => {
 
     await jobs.start();
 
-    expect(getJob('leftover-queued').status).toBe(JobStatus.Failed);
-    expect(getJob('leftover-running').status).toBe(JobStatus.Failed);
+    expect(getJob('leftover-queued').status).toBe(JobStatus.Incomplete);
+    expect(getJob('leftover-running').status).toBe(JobStatus.Incomplete);
   });
 
   it('publishes a job as it is queued, started and finished', async () => {

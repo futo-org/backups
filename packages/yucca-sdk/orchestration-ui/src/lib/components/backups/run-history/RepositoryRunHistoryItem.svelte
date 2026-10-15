@@ -57,6 +57,16 @@
           icon: mdiCloudOffOutline,
         } as const;
       }
+      case "incomplete": {
+        return {
+          title: $t({
+            message: "Interrupted {noun}",
+            values: { noun: $t(noun.name) },
+          }),
+          color: "warning",
+          icon: mdiCloudOffOutline,
+        } as const;
+      }
       case "warn": {
         return {
           title: $t({
@@ -101,7 +111,7 @@
     {$t`Started`} <RelativeTime time={job.queuedAt} />
   {:else if job.status === "running"}
     {$t`Started`} <RelativeTime time={job.start ?? job.queuedAt} />
-  {:else if job.status === "failed" || job.status === "cancelled"}
+  {:else if job.status === "failed" || job.status === "cancelled" || job.status === "incomplete"}
     {$t`Attempted`} {#if job.end}<RelativeTime time={job.end} />{/if}
   {:else}
     {$t(noun.done)} {#if job.end}<RelativeTime time={job.end} />{/if}

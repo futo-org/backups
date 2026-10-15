@@ -316,6 +316,10 @@ msgstr ""
 msgid "Backup incomplete"
 msgstr ""
 
+#: src/lib/services/job.service.ts
+msgid "Backup interrupted"
+msgstr ""
+
 #: src/lib/components/integrations/immich/ImmichManageBackupOverview.svelte
 msgid "Backup is missing on the service."
 msgstr ""
@@ -1123,6 +1127,10 @@ msgstr ""
 
 #: src/lib/components/integrations/immich/settings/ImmichSettingsBackupContents.svelte
 msgid "Included: {names}"
+msgstr ""
+
+#: src/lib/components/backups/run-history/RepositoryRunHistoryItem.svelte
+msgid "Interrupted {noun}"
 msgstr ""
 
 #: ../../web/src/routes/login/invite/+page.svelte
@@ -2064,6 +2072,10 @@ msgstr ""
 
 #: src/lib/services/deviceFlow.service.svelte.ts
 msgid "That account does not own this instance. Log in with the account it was connected with."
+msgstr ""
+
+#: src/lib/services/job.service.ts
+msgid "The backup stopped before it could finish."
 msgstr ""
 
 #: src/lib/services/job.service.ts
