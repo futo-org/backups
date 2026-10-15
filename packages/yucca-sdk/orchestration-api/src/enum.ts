@@ -32,6 +32,7 @@ export enum ConfigurationKey {
 
 export enum MetadataKey {
   PublicRoute = 'public-route',
+  JobConfig = 'job-config',
 }
 
 export enum BackendType {
@@ -53,6 +54,24 @@ export enum TaskType {
   Restore = 'restore',
   Backup = 'backup',
   Forget = 'forget',
+}
+
+export enum JobName {
+  RepositoryBackup = 'repository-backup',
+  RepositoryPrune = 'repository-prune',
+  RepositoryRestore = 'repository-restore',
+  RepositoryRestoreFromPoint = 'repository-restore-from-point',
+  RepositorySnapshotForget = 'repository-snapshot-forget',
+  RepositorySyncMetrics = 'repository-sync-metrics',
+}
+
+export enum JobStatus {
+  Queued = 'queued',
+  Running = 'running',
+  Complete = 'complete',
+  Warn = 'warn',
+  Failed = 'failed',
+  Cancelled = 'cancelled',
 }
 
 export enum InternalEvent {

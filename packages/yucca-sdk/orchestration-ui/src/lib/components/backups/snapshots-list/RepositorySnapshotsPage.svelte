@@ -26,7 +26,7 @@
 
   // svelte-ignore state_referenced_locally
   const query = useSnapshots(repository.id);
-  const { onRunUpdate } = useSnapshotEventHandler();
+  const { onJobUpdate } = useSnapshotEventHandler();
 
   let search = $state("");
   let newestFirst = $state(true);
@@ -91,7 +91,7 @@
   );
 </script>
 
-<OnEvents {onRunUpdate} />
+<OnEvents {onJobUpdate} />
 
 <Stack gap={4}>
   <ListToolbar placeholder={$t`Search snapshots`} {search} {onSearch} {sort} />

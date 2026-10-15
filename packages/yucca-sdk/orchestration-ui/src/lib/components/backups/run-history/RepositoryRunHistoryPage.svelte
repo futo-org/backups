@@ -5,11 +5,12 @@
   import StackListPlaceholder from "$lib/components/ui/StackListPlaceholder.svelte";
   import OnEvents from "$lib/components/util/OnEvents.svelte";
   import Suspense from "$lib/components/util/Suspense.svelte";
-  import type { LocalRepositoryDto, RunDto } from "$lib/fetch-client";
+  import type { JobDto, LocalRepositoryDto } from "$lib/fetch-client";
   import {
-    useRunEventHandler,
-    useRunHistory,
-  } from "$lib/services/runHistory.service";
+    isJobFinished,
+    useJobEventHandler,
+    useJobs,
+  } from "$lib/services/job.service";
   import { Stack, type ActionItem } from "@immich/ui";
   import { mdiRadioboxBlank, mdiRadioboxMarked } from "@mdi/js";
   import RepositoryRunHistoryItem from "./RepositoryRunHistoryItem.svelte";
@@ -22,8 +23,8 @@
 
   let { repository, pageSize = 10 }: Props = $props();
 
-  const query = useRunHistory(() => repository.id);
-  const { onRunCreate, onRunUpdate } = useRunEventHandler();
+  const query = useJobs(() => repository.id);
+  const { onJobCreate, onJobUpdate } = useJobEventHandler();
 
   let search = $state("");
   let newestFirst = $state(true);
@@ -84,24 +85,24 @@
     ),
   });
 
-  const matches = (run: RunDto) => {
+  const matches = (job: JobDto) => {
     const term = search.trim().toLowerCase();
 
     if (!term) {
       return true;
     }
 
-    return `${run.type} ${run.status}`.toLowerCase().includes(term);
+    return `${job.name} ${job.status}`.toLowerCase().includes(term);
   };
 
   const filtered = $derived(
     (query.data ?? [])
-      .filter((run) => status === "all" || run.status === status)
+      .filter((job) => status === "all" || (status === "incomplete" ? !isJobFinished(job.status) : job.status === status))
       .filter(matches)
       .toSorted((a, b) =>
         newestFirst
-          ? +new Date(b.start) - +new Date(a.start)
-          : +new Date(a.start) - +new Date(b.start),
+          ? +new Date(b.queuedAt) - +new Date(a.queuedAt)
+          : +new Date(a.queuedAt) - +new Date(b.queuedAt),
       ),
   );
 
@@ -114,7 +115,7 @@
   );
 </script>
 
-<OnEvents {onRunCreate} {onRunUpdate} />
+<OnEvents {onJobCreate} {onJobUpdate} />
 
 <Stack gap={4}>
   <ListToolbar
@@ -127,8 +128,8 @@
 
   <StackList>
     <Suspense {query}>
-      {#each visible as run (run.id)}
-        <RepositoryRunHistoryItem {run} />
+      {#each visible as job (job.id)}
+        <RepositoryRunHistoryItem {job} />
       {/each}
 
       {#if filtered.length === 0}

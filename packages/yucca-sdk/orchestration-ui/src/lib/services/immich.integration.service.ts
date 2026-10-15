@@ -64,8 +64,8 @@ export const useImmichBackupStatusEventHandler = () => ({
   onRepositoryUpdate: invalidateImmichBackupStatus,
   onRepositoryDelete: invalidateImmichBackupStatus,
   onScheduleUpdate: invalidateImmichBackupStatus,
-  onRunCreate: invalidateImmichBackupStatus,
-  onRunUpdate: invalidateImmichBackupStatus,
+  onJobCreate: invalidateImmichBackupStatus,
+  onJobUpdate: invalidateImmichBackupStatus,
 });
 
 export type ImmichBackupStatus =

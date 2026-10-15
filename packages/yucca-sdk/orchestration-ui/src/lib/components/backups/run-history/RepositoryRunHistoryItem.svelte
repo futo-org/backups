@@ -1,8 +1,8 @@
 <script lang="ts">
   import StackListItem from "$lib/components/ui/StackListItem.svelte";
   import RelativeTime from "$lib/components/util/RelativeTime.svelte";
-  import type { RunDto } from "$lib/fetch-client";
-  import { getRunActions } from "$lib/services/runHistory.service";
+  import type { JobDto } from "$lib/fetch-client";
+  import { getJobActions, jobKinds } from "$lib/services/job.service";
   import { Icon } from "@immich/ui";
   import {
     mdiCloudCheckOutline,
@@ -12,11 +12,11 @@
   import { t, msg } from "svelte-i18n-lingui";
 
   type Props = {
-    run: RunDto;
+    job: JobDto;
   };
 
-  const { run }: Props = $props();
-  const { ViewLog, DownloadLog } = $derived(getRunActions(run, $t));
+  const { job }: Props = $props();
+  const { ViewLog, DownloadLog } = $derived(getJobActions(job, $t));
 
   const nouns = {
     restore: {
@@ -26,16 +26,17 @@
     },
     forget: { name: msg`prune`, running: msg`Prune`, done: msg`Pruned` },
     backup: { name: msg`backup`, running: msg`Backup`, done: msg`Backed up` },
+    syncMetrics: {
+      name: msg`metrics sync`,
+      running: msg`Metrics sync`,
+      done: msg`Metrics synced`,
+    },
   };
 
-  const noun = $derived(
-    run.type === "restore" || run.type === "forget"
-      ? nouns[run.type]
-      : nouns.backup,
-  );
+  const noun = $derived(nouns[jobKinds[job.name]]);
 
   const status = $derived.by(() => {
-    switch (run.status) {
+    switch (job.status) {
       case "failed": {
         return {
           title: $t({
@@ -66,7 +67,8 @@
           icon: mdiCloudCheckOutline,
         } as const;
       }
-      case "incomplete": {
+      case "queued":
+      case "running": {
         return {
           title: $t({
             message: "{running} in progress",
@@ -95,11 +97,13 @@
     <Icon icon={status.icon} />
   {/snippet}
 
-  {#if run.status === "incomplete"}
-    {$t`Started`} <RelativeTime time={run.start} />
-  {:else if run.status === "failed" || run.status === "cancelled"}
-    {$t`Attempted`} {#if run.end}<RelativeTime time={run.end} />{/if}
+  {#if job.status === "queued"}
+    {$t`Started`} <RelativeTime time={job.queuedAt} />
+  {:else if job.status === "running"}
+    {$t`Started`} <RelativeTime time={job.start ?? job.queuedAt} />
+  {:else if job.status === "failed" || job.status === "cancelled"}
+    {$t`Attempted`} {#if job.end}<RelativeTime time={job.end} />{/if}
   {:else}
-    {$t(noun.done)} {#if run.end}<RelativeTime time={run.end} />{/if}
+    {$t(noun.done)} {#if job.end}<RelativeTime time={job.end} />{/if}
   {/if}
 </StackListItem>

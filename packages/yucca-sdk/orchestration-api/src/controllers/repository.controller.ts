@@ -2,8 +2,8 @@ import { Body, Controller, Delete, Get, Param, Patch, Post, Put, Query } from '@
 import { ApiCreatedResponse, ApiOkResponse, ApiOperation, ApiParam, ApiQuery } from '@nestjs/swagger';
 import { FilesystemListingRequestDto, FilesystemListingResponseDto } from '../dto/filesystem.dto.js';
 import {
+  JobResponseDto,
   ListSnapshotsResponseDto,
-  LogResponseDto,
   RepositoryCheckImportResponseDto,
   RepositoryCreateRequestDto,
   RepositoryCreateResponseDto,
@@ -84,14 +84,13 @@ export class RepositoryController {
 
   @Post('/:id')
   @ApiParam({ name: 'id', type: String })
-  @ApiCreatedResponse({ type: LogResponseDto })
+  @ApiCreatedResponse({ type: JobResponseDto })
   @ApiOperation({
     summary: 'Start a backup',
     description: 'Start a backup to a repository and return the ID of its run log.',
   })
-  async createBackup(@Param('id') id: string): Promise<LogResponseDto> {
-    const { logId } = await this.service.createBackup(id);
-    return { logId };
+  createBackup(@Param('id') id: string): Promise<JobResponseDto> {
+    return this.service.createBackup(id);
   }
 
   @Get('/:id/import')
@@ -154,20 +153,19 @@ export class RepositoryController {
 
   @Post('/:id/snapshots/prune')
   @ApiParam({ name: 'id', type: String })
-  @ApiCreatedResponse({ type: LogResponseDto })
+  @ApiCreatedResponse({ type: JobResponseDto })
   @ApiOperation({
     summary: 'Prune a repository',
     description: 'Remove snapshots outside the retention policy and return the ID of the run log.',
   })
-  async pruneRepository(@Param('id') id: string): Promise<LogResponseDto> {
-    const { logId } = await this.service.pruneRepository(id);
-    return { logId };
+  pruneRepository(@Param('id') id: string): Promise<JobResponseDto> {
+    return this.service.pruneRepository(id);
   }
 
   @Post('/:id/snapshots/:snapshot')
   @ApiParam({ name: 'id', type: String })
   @ApiParam({ name: 'snapshot', type: String })
-  @ApiCreatedResponse({ type: LogResponseDto })
+  @ApiCreatedResponse({ type: JobResponseDto })
   @ApiOperation({
     summary: 'Restore a snapshot',
     description: 'Restore files from a snapshot and return the ID of the run log.',
@@ -176,7 +174,7 @@ export class RepositoryController {
     @Param('id') id: string,
     @Param('snapshot') snapshotId: string,
     @Body() dto: RepositorySnapshotRestoreRequestDto,
-  ): Promise<LogResponseDto> {
+  ): Promise<JobResponseDto> {
     return this.service.restoreSnapshot(id, snapshotId, dto);
   }
 
@@ -184,7 +182,7 @@ export class RepositoryController {
   @ApiParam({ name: 'id', type: String })
   @ApiParam({ name: 'snapshot', type: String })
   @ApiQuery({ name: 'backend', type: String })
-  @ApiCreatedResponse({ type: LogResponseDto })
+  @ApiCreatedResponse({ type: JobResponseDto })
   @ApiOperation({
     summary: 'Restore from snapshot',
     description: 'Restore the orchestrator to a previous state, wiping the current state.',
@@ -194,7 +192,7 @@ export class RepositoryController {
     @Param('snapshot') snapshotId: string,
     @Query('backend') backendId: string,
     @Body() dto: RepositorySnapshotRestoreFromPointRequestDto,
-  ): Promise<LogResponseDto> {
+  ): Promise<JobResponseDto> {
     return this.service.restoreFromPoint(id, snapshotId, backendId, dto);
   }
 

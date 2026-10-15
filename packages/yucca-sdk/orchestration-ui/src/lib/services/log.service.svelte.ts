@@ -64,7 +64,7 @@ export type LogStatus = {
   currentFiles: string[];
 };
 
-export function createLogObserver(logId: string) {
+export function createLogObserver(jobId: string) {
   const state = $state<{
     status: LogStatus;
     errors: string[];
@@ -171,7 +171,7 @@ export function createLogObserver(logId: string) {
   };
 
   const source = new EventSource(
-    `${getProvider().baseUrl}/api/yucca/logs/${logId}/stream`,
+    `${getProvider().baseUrl}/api/yucca/jobs/${jobId}/stream`,
   );
   source.addEventListener('message', ({ data }) => onEvent(JSON.parse(data)));
 

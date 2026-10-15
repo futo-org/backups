@@ -1,5 +1,5 @@
 import { DynamicModule, FactoryProvider, Module, ModuleMetadata } from '@nestjs/common';
-import { APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
+import { APP_GUARD, APP_INTERCEPTOR, DiscoveryModule } from '@nestjs/core';
 import { EventEmitterModule } from '@nestjs/event-emitter';
 import { JwtModule } from '@nestjs/jwt';
 import { ScheduleModule } from '@nestjs/schedule';
@@ -15,6 +15,7 @@ import { ConfigController } from './controllers/config.controller.js';
 import { DevelopmentController } from './controllers/development.controller.js';
 import { FilesystemController } from './controllers/filesystem.controller.js';
 import { IntegrationsController } from './controllers/integrations.controller.js';
+import { JobController } from './controllers/job.controller.js';
 import { OnboardingController } from './controllers/onboarding.controller.js';
 import { RepositoryController } from './controllers/repository.controller.js';
 import { RunHistoryController } from './controllers/runHistory.controller.js';
@@ -22,6 +23,12 @@ import { RunningTasksController } from './controllers/runningTasks.controller.js
 import { ScheduleController } from './controllers/schedule.controller.js';
 import { EventsGateway } from './events/events.gateway.js';
 import { TelemetryErrorInterceptor } from './interceptors/telemetry-error.interceptor.js';
+import { RepositoryBackupJob } from './jobs/repositoryBackup.job.js';
+import { RepositoryPruneJob } from './jobs/repositoryPrune.job.js';
+import { RepositoryRestoreJob } from './jobs/repositoryRestore.job.js';
+import { RepositoryRestoreFromPointJob } from './jobs/repositoryRestoreFromPoint.job.js';
+import { RepositorySnapshotForgetJob } from './jobs/repositorySnapshotForget.job.js';
+import { RepositorySyncMetricsJob } from './jobs/repositorySyncMetrics.job.js';
 import { SessionGuard } from './middleware/session.guard.js';
 import { type ModuleConfig, ModuleConfigProvider } from './moduleConfig.js';
 import { ResticProxyPool } from './proxy/resticProxyPool.js';
@@ -29,6 +36,7 @@ import { BackendRepository } from './repositories/backend.repository.js';
 import { BootstrapRepository } from './repositories/bootstrap.repository.js';
 import { ConfigRepository } from './repositories/config.repository.js';
 import { DatabaseRepository } from './repositories/database.repository.js';
+import { JobRepository } from './repositories/job.repository.js';
 import { LockRepository } from './repositories/lock.repository.js';
 import { LoggingRepository } from './repositories/logging.repository.js';
 import { ModuleConfigRepository } from './repositories/moduleConfig.repository.js';
@@ -65,6 +73,7 @@ export const controllers = [
   DevelopmentController,
   FilesystemController,
   IntegrationsController,
+  JobController,
   OnboardingController,
   RepositoryController,
   RunHistoryController,
@@ -77,6 +86,7 @@ export const repositories = [
   BootstrapRepository,
   ConfigRepository,
   DatabaseRepository,
+  JobRepository,
   LockRepository,
   LoggingRepository,
   ModuleConfigRepository,
@@ -107,6 +117,15 @@ export const services = [
   SessionService,
   TelemetryService,
   YuccaService,
+];
+
+export const jobs = [
+  RepositoryBackupJob,
+  RepositoryPruneJob,
+  RepositoryRestoreJob,
+  RepositoryRestoreFromPointJob,
+  RepositorySnapshotForgetJob,
+  RepositorySyncMetricsJob,
 ];
 
 export function openStateDatabase(
@@ -178,6 +197,7 @@ export class OrchestrationApiModule {
         EventEmitterModule.forRoot(),
         JwtModule.register({}),
         ScheduleModule.forRoot(),
+        DiscoveryModule,
       ],
       controllers,
       providers: [
@@ -187,6 +207,7 @@ export class OrchestrationApiModule {
         ResticProxyPool,
         ...repositories,
         ...services,
+        ...jobs,
       ],
       exports: [YuccaService],
     };
