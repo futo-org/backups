@@ -124,9 +124,9 @@ describe(JobRepository.name, () => {
     const jobs = ctx.module.get(JobRepository);
     ctx.database
       .prepare(
-        `INSERT INTO jobs (id, name, repositoryId, data, status, queuedAt) VALUES
-          ('leftover-queued', ?, ?, '{}', 'queued', '2026-10-13T00:00:00.000Z'),
-          ('leftover-running', ?, ?, '{}', 'running', '2026-10-13T00:00:00.000Z')`,
+        `INSERT INTO jobs (id, name, repositoryId, data, status, logFilePath, queuedAt) VALUES
+          ('leftover-queued', ?, ?, '{}', 'queued', 'logs/jobs/leftover-queued.jsonl', '2026-10-13T00:00:00.000Z'),
+          ('leftover-running', ?, ?, '{}', 'running', 'logs/jobs/leftover-running.jsonl', '2026-10-13T00:00:00.000Z')`,
       )
       .run(JobName.RepositorySnapshotForget, repositoryId, JobName.RepositorySnapshotForget, repositoryId);
 
@@ -193,8 +193,8 @@ describe(JobRepository.name, () => {
     const jobs = ctx.module.get(JobRepository);
     ctx.database
       .prepare(
-        `INSERT INTO jobs (id, name, repositoryId, data, status, queuedAt)
-          VALUES ('remote-job', ?, ?, '{}', 'running', '2026-10-14T00:00:00.000Z')`,
+        `INSERT INTO jobs (id, name, repositoryId, data, status, logFilePath, queuedAt)
+          VALUES ('remote-job', ?, ?, '{}', 'running', 'logs/jobs/remote-job.jsonl', '2026-10-14T00:00:00.000Z')`,
       )
       .run(JobName.RepositorySnapshotForget, repositoryId);
 
