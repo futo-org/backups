@@ -1,6 +1,6 @@
 {
   "name": "@futo-org/backups-standalone",
-  "repository": "https://github.com/immich-app/yucca",
+  "repository": "https://github.com/futo-org/backups",
   "description": "Backups orchestrator packaged as a standalone single-process app",
   "version": "0.25.0",
   "license": "Source First License 1.1",
