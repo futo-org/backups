@@ -56,6 +56,7 @@ import { ConfigService } from './services/config.service.js';
 import { DevelopmentService } from './services/development.service.js';
 import { FilesystemService } from './services/filesystem.service.js';
 import { IntegrationsService } from './services/integrations.service.js';
+import { JobService } from './services/job.service.js';
 import { OnboardingService } from './services/onboarding.service.js';
 import { RepositoryService } from './services/repository.service.js';
 import { RunHistoryService } from './services/runHistory.service.js';
@@ -109,6 +110,7 @@ export const services = [
   DevelopmentService,
   FilesystemService,
   IntegrationsService,
+  JobService,
   OnboardingService,
   RepositoryService,
   RunHistoryService,

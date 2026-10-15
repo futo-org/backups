@@ -80,13 +80,14 @@ export class JobRepository implements OnModuleInit, BeforeApplicationShutdown {
 
   async start() {
     if (!this.moduleConfig.hasLock()) {
-      return;
+      return [];
     }
 
-    await this.db
+    return this.db
       .updateTable('jobs')
       .set({ status: JobStatus.Incomplete, end: new Date().toISOString() })
       .where('status', 'in', [JobStatus.Queued, JobStatus.Running])
+      .returningAll()
       .execute();
   }
 
