@@ -1,18 +1,25 @@
-import { createRepository, createResticUrl, getRepository } from '@futo-org/backups-api-client';
+import {
+  createRepository,
+  createResticUrl,
+  getRepository,
+  submitMetricBackupEnd,
+  submitMetricBackupStart,
+} from '@futo-org/backups-api-client';
 import { ResticBackupCommandCouldNotReadSourceDataError } from '@futo-org/restic-wrapper';
 import { jest } from '@jest/globals';
 import { randomUUID } from 'node:crypto';
 import { mkdir, readdir } from 'node:fs/promises';
-import { BackendType, TaskStatus } from '../src/enum.js';
+import { BackendType, JobName, TaskStatus } from '../src/enum.js';
 import { ResticProxyPool } from '../src/proxy/resticProxyPool.js';
 import { BackendRepository } from '../src/repositories/backend.repository.js';
+import { JobRepository } from '../src/repositories/job.repository.js';
 import { ModuleConfigRepository } from '../src/repositories/moduleConfig.repository.js';
 import { RepositoryIntegrationImmichRepository } from '../src/repositories/repositoryIntegrationImmich.repository.js';
 import { IntegrationsService } from '../src/services/integrations.service.js';
 import { RepositoryService } from '../src/services/repository.service.js';
 import { YuccaService } from '../src/services/yucca.service.js';
 import { newImmichHooksMock } from './mocks.js';
-import { createTestingModule, TestContext, waitForEvent } from './testUtils.js';
+import { createTestingModule, TestContext, waitFor, waitForEvent } from './testUtils.js';
 
 let ctx: TestContext;
 
@@ -55,8 +62,8 @@ const backupWithHooks = async (hooks: Partial<ReturnType<typeof newImmichHooksMo
   const { repositoryId, teardown } = await configureImmich(hooks);
 
   try {
-    const { task } = await repositoryService.createBackup(repositoryId);
-    await task;
+    const { jobId } = await repositoryService.createBackup(repositoryId);
+    await ctx.module.get(JobRepository).wait(jobId);
   } finally {
     await teardown();
   }
@@ -92,23 +99,35 @@ describe('Repository', () => {
     ctx.resticMock.stats.mockResolvedValue({ total_size: 1024, snapshots_count: 1 });
   });
 
-  it('rejects backup when task is already running', async () => {
+  it('runs a forget requested during a backup once the backup finishes', async () => {
     const repositoryService = ctx.module.get(RepositoryService);
 
     const { repository } = await repositoryService.createRepository(
-      { name: 'Conflict Repo', worm: false, paths: ['/tmp/conflict'] },
+      { name: 'Queued Repo', worm: false, paths: ['/tmp/queued'] },
       ctx.backendId,
     );
 
-    ctx.resticMock.backup.mockImplementation(() => new Promise((resolve) => setTimeout(resolve, 500)));
+    const backupRunning = Promise.withResolvers<void>();
+    const releaseBackup = Promise.withResolvers<void>();
+    ctx.resticMock.backup.mockImplementationOnce(() => {
+      backupRunning.resolve();
+      return releaseBackup.promise as never;
+    });
 
-    const pendingBackup = repositoryService.createBackup(repository.id);
-    await new Promise((resolve) => setTimeout(resolve, 50));
+    const backup = await repositoryService.createBackup(repository.id);
+    await backupRunning.promise;
 
-    await expect(repositoryService.createBackup(repository.id)).rejects.toThrow('Task already running!');
+    const forget = repositoryService.forgetSnapshot(repository.id, 'snapshot-1');
+    expect(ctx.resticMock.forget).not.toHaveBeenCalled();
 
-    const { task } = await pendingBackup;
-    await task;
+    releaseBackup.resolve();
+    await ctx.module.get(JobRepository).wait(backup.jobId);
+    await forget;
+
+    expect(ctx.resticMock.forget).toHaveBeenCalledTimes(1);
+    expect(ctx.resticMock.backup.mock.invocationCallOrder[0]).toBeLessThan(
+      ctx.resticMock.forget.mock.invocationCallOrder[0],
+    );
   });
 
   it('rejects backup when no paths are configured', async () => {
@@ -130,17 +149,24 @@ describe('Repository', () => {
       ctx.backendId,
     );
 
-    const statusEvent = waitForEvent(ctx.events, 'RepositoryUpdate');
+    const statusEvent = waitForEvent(
+      ctx.events,
+      'RepositoryUpdate',
+      (event) => event.type === 'RepositoryUpdate' && event.repositoryId === repository.id,
+    );
     const sizeEvent = waitForEvent(
       ctx.events,
       'RepositoryUpdate',
-      (event) => event.type === 'RepositoryUpdate' && event.repository.metrics?.sizeBytes === 1024,
+      (event) =>
+        event.type === 'RepositoryUpdate' &&
+        event.repositoryId === repository.id &&
+        event.repository.metrics?.sizeBytes === 1024,
     );
 
-    const { logId, task } = await repositoryService.createBackup(repository.id);
-    await task;
+    const { jobId } = await repositoryService.createBackup(repository.id);
+    await ctx.module.get(JobRepository).wait(jobId);
 
-    expect(logId).toEqual(expect.any(String));
+    expect(jobId).toEqual(expect.any(String));
 
     await expect(statusEvent).resolves.toEqual(
       expect.objectContaining({
@@ -213,7 +239,11 @@ describe('Repository', () => {
     });
 
     it('still backs up without a tag and finishes with a warning when the database backup hook fails', async () => {
-      const metricsEvent = waitForEvent(ctx.events, 'RepositoryUpdate');
+      const metricsEvent = waitForEvent(
+        ctx.events,
+        'RepositoryUpdate',
+        (event) => event.type === 'RepositoryUpdate' && event.repository.metrics?.lastBackupStatus === TaskStatus.Warn,
+      );
 
       await expect(
         backupWithHooks({ createDatabaseBackup: jest.fn().mockRejectedValue(new Error('pg_dump failed')) }),
@@ -285,10 +315,17 @@ describe('Repository', () => {
 
     ctx.resticMock.backup.mockRejectedValue(new Error('Backup failed'));
 
-    const metricsEvent = waitForEvent(ctx.events, 'RepositoryUpdate');
+    const metricsEvent = waitForEvent(
+      ctx.events,
+      'RepositoryUpdate',
+      (event) => event.type === 'RepositoryUpdate' && event.repositoryId === repository.id,
+    );
 
-    const { task } = await repositoryService.createBackup(repository.id);
-    await task.catch(() => {});
+    const { jobId } = await repositoryService.createBackup(repository.id);
+    await ctx.module
+      .get(JobRepository)
+      .wait(jobId)
+      .catch(() => {});
 
     const event = await metricsEvent;
     expect(event).toEqual(
@@ -315,10 +352,17 @@ describe('Repository', () => {
 
     ctx.resticMock.backup.mockRejectedValue(new ResticBackupCommandCouldNotReadSourceDataError('unreadable'));
 
-    const metricsEvent = waitForEvent(ctx.events, 'RepositoryUpdate');
+    const metricsEvent = waitForEvent(
+      ctx.events,
+      'RepositoryUpdate',
+      (event) => event.type === 'RepositoryUpdate' && event.repositoryId === repository.id,
+    );
 
-    const { task } = await repositoryService.createBackup(repository.id);
-    await task.catch(() => {});
+    const { jobId } = await repositoryService.createBackup(repository.id);
+    await ctx.module
+      .get(JobRepository)
+      .wait(jobId)
+      .catch(() => {});
 
     await expect(metricsEvent).resolves.toEqual(
       expect.objectContaining({
@@ -336,6 +380,7 @@ describe('Repository', () => {
 
   it('skips pruning after a backup with warnings', async () => {
     const repositoryService = ctx.module.get(RepositoryService);
+    const jobs = ctx.module.get(JobRepository);
 
     const { repository } = await repositoryService.createRepository(
       { name: 'Warn Prune Repo', worm: false, paths: ['/tmp/warn-prune'] },
@@ -343,12 +388,134 @@ describe('Repository', () => {
     );
 
     ctx.resticMock.backup.mockRejectedValueOnce(new ResticBackupCommandCouldNotReadSourceDataError('unreadable'));
-    ctx.resticMock.forgetByPolicy.mockClear();
 
-    const { task } = await repositoryService.createBackup(repository.id);
-    await expect(task).rejects.toThrow('Task finished with warnings');
+    const { jobId } = await repositoryService.createBackup(repository.id);
+    await expect(jobs.wait(jobId)).rejects.toThrow('Task finished with warnings');
 
-    expect(ctx.resticMock.forgetByPolicy).not.toHaveBeenCalled();
+    const queued = await jobs.getAll(repository.id);
+    const names = queued.map((job) => job.name);
+    expect(names).not.toContain(JobName.RepositoryPrune);
+    expect(names).toContain(JobName.RepositorySyncMetrics);
+  });
+
+  it('leaves the metrics sync to the prune when a backup queues one', async () => {
+    const repositoryService = ctx.module.get(RepositoryService);
+    const jobs = ctx.module.get(JobRepository);
+
+    const { repository } = await repositoryService.createRepository(
+      { name: 'Prune Sync Repo', worm: false, paths: ['/tmp/prune-sync'] },
+      ctx.backendId,
+    );
+
+    const { jobId } = await repositoryService.createBackup(repository.id);
+    await jobs.wait(jobId);
+    const queued = await jobs.getAll(repository.id);
+    await Promise.allSettled(queued.map((job) => jobs.wait(job.id)));
+
+    const all = await jobs.getAll(repository.id);
+    const names = all.map((job) => job.name);
+    expect(names.filter((name) => name === JobName.RepositoryPrune)).toHaveLength(1);
+    expect(names.filter((name) => name === JobName.RepositorySyncMetrics)).toHaveLength(1);
+  });
+
+  it('records a cancelled backup without pruning or syncing metrics', async () => {
+    const repositoryService = ctx.module.get(RepositoryService);
+    const jobs = ctx.module.get(JobRepository);
+
+    const { repository } = await repositoryService.createRepository(
+      { name: 'Cancelled Repo', worm: false, paths: ['/tmp/cancelled'] },
+      ctx.backendId,
+    );
+
+    const started = Promise.withResolvers<void>();
+    ctx.resticMock.backup.mockImplementationOnce(
+      (...args: unknown[]) =>
+        new Promise((_, reject) => {
+          started.resolve();
+          const signal = args[5] as AbortSignal;
+          signal.addEventListener('abort', () => reject(signal.reason), { once: true });
+        }) as never,
+    );
+
+    const cancelledEvent = waitForEvent(
+      ctx.events,
+      'RepositoryUpdate',
+      (event) =>
+        event.type === 'RepositoryUpdate' &&
+        event.repositoryId === repository.id &&
+        event.repository.metrics?.lastBackupStatus === TaskStatus.Cancelled,
+    );
+
+    const { jobId } = await repositoryService.createBackup(repository.id);
+    await started.promise;
+    await jobs.cancel(jobId);
+
+    await expect(jobs.wait(jobId)).rejects.toThrow('Cancelled by user action');
+    await expect(cancelledEvent).resolves.toBeDefined();
+
+    const all = await jobs.getAll(repository.id);
+    const names = all.map((job) => job.name);
+    expect(names).not.toContain(JobName.RepositoryPrune);
+    expect(names).not.toContain(JobName.RepositorySyncMetrics);
+  });
+
+  it('reports the start and end of a backup to a metrics-capable backend', async () => {
+    const repositoryService = ctx.module.get(RepositoryService);
+    const jobs = ctx.module.get(JobRepository);
+    const yuccaBackendId = randomUUID();
+    const remoteId = randomUUID();
+
+    jest.spyOn(ResticProxyPool.prototype, 'isAvailable').mockResolvedValue(false);
+    (createResticUrl as jest.Mock).mockResolvedValue({ url: 'rest:http://yucca.test/restic' });
+    (createRepository as jest.Mock).mockResolvedValueOnce(remoteRepository(remoteId, 'Metered'));
+    (getRepository as jest.Mock).mockResolvedValue(remoteRepository(remoteId, 'Metered'));
+    (submitMetricBackupStart as jest.Mock).mockClear();
+    (submitMetricBackupEnd as jest.Mock).mockClear();
+
+    await ctx.module.get(BackendRepository).updateBackend(yuccaBackendId, {
+      type: BackendType.Yucca,
+      url: 'http://yucca.test',
+      accessToken: 'test-token',
+    });
+    const { repository } = await repositoryService.createRepository(
+      { name: 'Metered', worm: false, paths: ['/tmp/metered'] },
+      yuccaBackendId,
+    );
+
+    try {
+      const { jobId } = await repositoryService.createBackup(repository.id);
+      await jobs.wait(jobId);
+      await waitFor(() => (submitMetricBackupEnd as jest.Mock).mock.calls.length > 0);
+
+      expect(submitMetricBackupStart).toHaveBeenCalledWith(remoteId, expect.anything());
+      expect(submitMetricBackupEnd).toHaveBeenCalledWith(
+        remoteId,
+        { durationMs: expect.any(Number), status: TaskStatus.Complete },
+        expect.anything(),
+      );
+    } finally {
+      jest.restoreAllMocks();
+      await repositoryService.deleteRepository(repository.id);
+      ctx.database.prepare('DELETE FROM backends WHERE id = ?').run(yuccaBackendId);
+    }
+  });
+
+  it('syncs the metrics itself when a backup has no retention policy to prune by', async () => {
+    const repositoryService = ctx.module.get(RepositoryService);
+    const jobs = ctx.module.get(JobRepository);
+
+    const { repository } = await repositoryService.createRepository(
+      { name: 'No Prune Sync Repo', worm: false, paths: ['/tmp/no-prune-sync'], retentionPolicy: null },
+      ctx.backendId,
+    );
+
+    const { jobId } = await repositoryService.createBackup(repository.id);
+    await jobs.wait(jobId);
+
+    const all = await jobs.getAll(repository.id);
+    const names = all.map((job) => job.name);
+    expect(names).not.toContain(JobName.RepositoryPrune);
+    expect(names.filter((name) => name === JobName.RepositorySyncMetrics)).toHaveLength(1);
   });
 
   it('shows offline status when backend errors', async () => {
@@ -390,27 +557,6 @@ describe('Repository', () => {
     expect(remoteOnly).toBeDefined();
     expect(remoteOnly?.name).toBe('Unknown');
     expect(remoteOnly?.backends?.primary.online).toBe(true);
-  });
-
-  it('rejects forget when task is already running', async () => {
-    const repositoryService = ctx.module.get(RepositoryService);
-
-    const { repository } = await repositoryService.createRepository(
-      { name: 'Forget Conflict', worm: false, paths: ['/tmp/forget'] },
-      ctx.backendId,
-    );
-
-    ctx.resticMock.backup.mockImplementation(() => new Promise((resolve) => setTimeout(resolve, 500)));
-
-    const pendingBackup = repositoryService.createBackup(repository.id);
-    await new Promise((resolve) => setTimeout(resolve, 50));
-
-    await expect(repositoryService.forgetSnapshot(repository.id, 'any-snapshot')).rejects.toThrow(
-      'Task already running!',
-    );
-
-    const { task } = await pendingBackup;
-    await task;
   });
 });
 
