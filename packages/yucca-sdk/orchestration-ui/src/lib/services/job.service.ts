@@ -104,7 +104,12 @@ export const useJobEventHandler = () => {
       queryClient.setQueryData(
         jobKeys.byRepository(event.data.job.repositoryId),
         (data: JobDto[] | undefined) =>
-          data ? [event.data.job, ...data] : void 0,
+          data
+            ? [
+                event.data.job,
+                ...data.filter(({ id }) => id !== event.data.job.id),
+              ]
+            : void 0,
       );
     },
     onJobUpdate(event: JobUpdateEvent) {
