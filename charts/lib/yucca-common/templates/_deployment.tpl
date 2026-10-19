@@ -49,10 +49,10 @@ spec:
           type: RuntimeDefault
         {{- end }}
       containers:
-        - name: {{ .Chart.Name }}
+        - name: {{ include "yucca-common.name" . }}
           {{- /* No explicit tag ⇒ the release image for this chart's stamped
                appVersion (GHCR tags carry the v prefix, appVersion doesn't). */}}
-          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default (printf "v%s" .Chart.AppVersion) }}"
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.image.pullPolicy | default "IfNotPresent" }}
           securityContext:
             {{- if .Values.containerSecurityContext }}

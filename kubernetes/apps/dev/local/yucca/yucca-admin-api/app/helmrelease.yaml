@@ -33,6 +33,6 @@ spec:
     # Secret (the chart default is false so real overlays fail loudly instead).
     useDevKeypair: true
     image:
-      repository: ghcr.io/immich-app/yucca/yucca-admin-api # TODO: confirm prod registry
+      repository: ghcr.io/futo-org/backups/admin-api
       tag: 0.0.1
     # TODO(prod): real OIDC_ADMIN_* URLs + secrets via ExternalSecret

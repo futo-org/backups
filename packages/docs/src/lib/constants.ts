@@ -5,7 +5,7 @@ export const siteMetadata = {
 
 export const Links = {
   App: 'https://backups.futo.cloud',
-  Repository: 'https://github.com/immich-app/yucca',
+  Repository: 'https://github.com/futo-org/backups',
   Futo: 'https://futo.org',
 };
 

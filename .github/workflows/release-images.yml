@@ -1,8 +1,8 @@
 name: Release Images
 
-# Publishes ghcr.io/immich-app/yucca/<app>:v<version> for a release tag,
-# independent of Deploy: nothing that cancels, coalesces, or fails a Deploy
-# run can suppress these images.
+# Publishes ghcr.io/futo-org/backups/<app>:v<version> and the matching
+# <version> charts for a release tag, independent of Deploy: nothing that
+# cancels, coalesces, or fails a Deploy run can suppress them.
 on:
   release:
     types: [published]
@@ -10,7 +10,7 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: Release tag to publish images for (e.g. v0.38.0)
+        description: Release tag to publish images and charts for (e.g. v1.0.0)
         required: true
         type: string
 
@@ -23,9 +23,9 @@ permissions:
 
 jobs:
   images:
-    name: Publish release images
+    name: Publish release images and charts
     runs-on: ubuntu-latest
-    # Covers the 60m wait bound plus a fully cold eight-app fallback with
+    # Covers the 60m wait bound plus a fully cold seven-app fallback with
     # margin; the loop probes per app, so a rerun finishes any remainder.
     timeout-minutes: 180
     permissions:
@@ -33,7 +33,7 @@ jobs:
       contents: read
       packages: write
     env:
-      IMAGE_PREFIX: ghcr.io/immich-app/yucca
+      IMAGE_PREFIX: ghcr.io/futo-org/backups
       TAG: ${{ github.event.release.tag_name || inputs.tag }}
     steps:
       - name: Checkout release tree
@@ -59,8 +59,9 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           COMMIT: ${{ steps.commit.outputs.sha }}
+          REPO: ${{ github.repository }}
         run: |
-          runs="repos/immich-app/yucca/actions/workflows/deploy.yml/runs?head_sha=${COMMIT}&branch=main&per_page=1"
+          runs="repos/${REPO}/actions/workflows/deploy.yml/runs?head_sha=${COMMIT}&branch=main&per_page=1"
           missing=0
           polls=0
           while :; do
@@ -102,7 +103,7 @@ jobs:
         env:
           COMMIT: ${{ steps.commit.outputs.sha }}
         run: |
-          apps="$(yq '.jobs.build.strategy.matrix.app[] | .name + " " + .dockerfile' .github/workflows/deploy.yml)"
+          apps="$(yq '.jobs.build.strategy.matrix.app[] | .image + " packages/" + .package + "/Dockerfile " + .package' .github/workflows/deploy.yml)"
           [ -n "$apps" ] || { echo "::error::no apps parsed from the build matrix"; exit 1; }
           # 0 = present, 1 = absent; any probe failure that is neither must
           # not lead to a publish.
@@ -118,7 +119,7 @@ jobs:
             exit 1
           }
           failed=""
-          while read -r app df; do
+          while read -r app df scope; do
             if [ ! -f "$df" ]; then
               echo "::error::$app dockerfile $df missing in $TAG"
               failed="$failed $app"
@@ -140,8 +141,31 @@ jobs:
             docker buildx build --push \
               --file "$df" \
               --tag "$vref" \
-              --cache-from "type=gha,scope=${app}" \
-              --cache-to "type=gha,mode=max,scope=${app}" \
+              --cache-from "type=gha,scope=${scope}" \
+              --cache-to "type=gha,mode=max,scope=${scope}" \
               . || failed="$failed $app"
           done < <(printf '%s\n' "$apps")
           [ -z "$failed" ] || { echo "::error::publish failed for:$failed"; exit 1; }
+
+      - name: Setup Mise
+        uses: jdx/mise-action@c2a87611a18de5b3828c5652fe268e992400cb5c # v4.3.0
+        with:
+          # zizmor cache-poisoning: never restore a shared cache in a job that
+          # publishes packages.
+          cache: false
+
+      # Chart version is the bare release version; appVersion is the v-tag the
+      # step above published, so the chart alone pins the release images. The
+      # infrastructure repo promotes a release once it sees its api chart, so
+      # api goes last: by then every image and chart of the release exists.
+      - name: Publish release charts
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_ACTOR: ${{ github.actor }}
+        run: |
+          mise run charts:package "${TAG#v}" "$TAG" dist/charts
+          echo "$GH_TOKEN" | helm registry login ghcr.io -u "$GH_ACTOR" --password-stdin
+          for chart in dist/charts/*.tgz; do
+            [[ "$chart" == */api-* ]] || helm push "$chart" "oci://${IMAGE_PREFIX}/charts"
+          done
+          helm push dist/charts/api-*.tgz "oci://${IMAGE_PREFIX}/charts"

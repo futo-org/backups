@@ -8,10 +8,13 @@ resources:
 
 # Stable in-cluster name, independent of the Helm release name (dev == prod).
 fullnameOverride: futo-backups-bot
+# Pins the selector labels to the pre-rename chart name; Deployment selectors are immutable.
+nameOverride: futo-backups-bot
 
 image:
-  repository: k3d-registry.localhost:5000/futo-backups-bot
-  tag: dev
+  repository: ghcr.io/futo-org/backups/bot
+  # Empty defaults to the chart appVersion, which CI sets to the image tag it ships with.
+  tag: ""
   pullPolicy: IfNotPresent
 
 ports:

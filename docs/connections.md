@@ -170,4 +170,4 @@ reminder. Per-repository access keys are listed/revoked/re-minted in `ManageToke
 | Billing rollup | `packages/yucca-metrics-worker/` |
 | Validity check (michael: L1/L2/introspection) | `packages/michael/internal/revocation/` |
 | Introspection endpoint | `packages/yucca-api/src/controllers/introspection.controller.ts` |
-| Admin provisioning | `packages/yucca-admin-api/`, `packages/yuctl/` |
+| Admin provisioning | `packages/yucca-admin-api/` |

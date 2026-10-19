@@ -39,7 +39,7 @@ The more of this you can give, the faster a ticket moves:
 
 ## Reporting a bug
 
-If you are confident something is a bug rather than a configuration problem, an issue on the [yucca repository](https://github.com/immich-app/yucca/issues) is welcome too. Support tickets are still the fastest route during the beta, because the team can look at your account alongside the report.
+If you are confident something is a bug rather than a configuration problem, an issue on the [backups repository](https://github.com/futo-org/backups/issues) is welcome too. Support tickets are still the fastest route during the beta, because the team can look at your account alongside the report.
 
 ## Before you write in
 
