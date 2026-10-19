@@ -30,7 +30,7 @@ spec:
       capabilities:
         drop: [ALL]
     image:
-      repository: ghcr.io/immich-app/yucca/web # TODO: confirm prod registry
+      repository: ghcr.io/futo-org/backups/web
       tag: 0.0.1
     # YUCCA_API_URL/PUBLIC_API_URL default to the in-cluster yucca-api service,
     # which is correct in prod too. TODO(prod): add ingress for external access.

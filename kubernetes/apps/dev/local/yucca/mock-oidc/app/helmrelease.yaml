@@ -32,5 +32,5 @@ spec:
     # point yucca-api/admin-api OIDC_* at the real issuer via ExternalSecrets.
     fullnameOverride: yucca-mock-oidc
     image:
-      repository: ghcr.io/immich-app/yucca/mock-oidc-provider # TODO: confirm prod registry
+      repository: ghcr.io/futo-org/backups/mock-oidc
       tag: 0.0.1

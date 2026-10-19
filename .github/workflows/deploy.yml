@@ -15,10 +15,10 @@ permissions:
   contents: read
 
 env:
-  IMAGE_PREFIX: ghcr.io/immich-app/yucca
-  # Monotonic monorepo build tag (every app ships together). The staging
-  # ResourceSetInputProvider picks the highest 0.0.<n> from GHCR and deploys it
-  # in-cluster: pull-based, so CI never needs cluster/Tailscale access.
+  IMAGE_PREFIX: ghcr.io/futo-org/backups
+  # Monotonic monorepo build tag (every app ships together). Deployments that
+  # track main pick the highest 0.0.<n> chart from GHCR, so CI never needs
+  # cluster access.
   BUILD_TAG: 0.0.${{ github.run_number }}
 
 jobs:
@@ -52,7 +52,7 @@ jobs:
   # by the release-images workflow on the release event, decoupled from this
   # workflow's queue.
   build:
-    name: Build ${{ matrix.app.name }}
+    name: Build ${{ matrix.app.image }}
     needs: migration-order
     runs-on: ubuntu-latest
     # A hung build would hold the group's single running slot and stall every
@@ -65,14 +65,13 @@ jobs:
       fail-fast: false
       matrix:
         app:
-          - { name: yucca-api, dockerfile: packages/yucca-api/Dockerfile }
-          - { name: yucca-admin-api, dockerfile: packages/yucca-admin-api/Dockerfile }
-          - { name: yucca-metrics-worker, dockerfile: packages/yucca-metrics-worker/Dockerfile }
-          - { name: futo-backups-bot, dockerfile: packages/futo-backups-bot/Dockerfile }
-          - { name: web, dockerfile: packages/web/Dockerfile }
-          - { name: michael, dockerfile: packages/michael/Dockerfile }
-          - { name: columbo, dockerfile: packages/columbo/Dockerfile }
-          - { name: monk, dockerfile: packages/monk/Dockerfile }
+          - { package: yucca-api, image: api }
+          - { package: yucca-admin-api, image: admin-api }
+          - { package: yucca-metrics-worker, image: metrics-worker }
+          - { package: futo-backups-bot, image: bot }
+          - { package: web, image: web }
+          - { package: michael, image: michael }
+          - { package: columbo, image: columbo }
     steps:
       - name: Checkout
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
@@ -93,25 +92,40 @@ jobs:
         uses: docker/build-push-action@f9f3042f7e2789586610d6e8b85c8f03e5195baf # v7.2.0
         with:
           context: .
-          file: ${{ matrix.app.dockerfile }}
+          file: packages/${{ matrix.app.package }}/Dockerfile
           push: true
           tags: |
-            ${{ env.IMAGE_PREFIX }}/${{ matrix.app.name }}:${{ env.BUILD_TAG }}
-            ${{ env.IMAGE_PREFIX }}/${{ matrix.app.name }}:sha-${{ github.sha }}
-            ${{ env.IMAGE_PREFIX }}/${{ matrix.app.name }}:main
-          cache-from: type=gha,scope=${{ matrix.app.name }}
-          cache-to: type=gha,mode=max,scope=${{ matrix.app.name }}
+            ${{ env.IMAGE_PREFIX }}/${{ matrix.app.image }}:${{ env.BUILD_TAG }}
+            ${{ env.IMAGE_PREFIX }}/${{ matrix.app.image }}:sha-${{ github.sha }}
+            ${{ env.IMAGE_PREFIX }}/${{ matrix.app.image }}:main
+          cache-from: type=gha,scope=${{ matrix.app.package }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.app.package }}
 
-  # Staging deploys automatically: the flux-operator ResourceSetInputProvider in
-  # kubernetes/apps/staging/flux-system/ detects the new ${BUILD_TAG} in GHCR and
-  # rolls it out in-cluster. Outcome is visible as a GitHub commit status
-  # (notification-controller Provider), not as a job here. No GHA step needed.
+  # Charts go out only once every image they point at exists, so a chart
+  # version is always deployable.
+  charts:
+    name: Publish charts
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
 
-  # Production promotion is the release-please PR itself: it stamps the new
-  # tag into both prod pins (kubernetes/clusters/prod/htz-fsn1/
-  # {flux-release,image-versions}.yaml, extra-files), so merging it commits
-  # the promotion through normal review: no promote workflow, no bot push to
-  # main. Prod Flux pulls the pins from main and the app tree + charts from
-  # the tag; images are the v<version> tags the release-images workflow
-  # publishes on the release event, decoupled from this workflow's queue.
-  # Rollback = revert the two stamped lines in a normal PR.
+      - name: Setup Mise
+        uses: jdx/mise-action@c2a87611a18de5b3828c5652fe268e992400cb5c # v4.3.0
+
+      - name: Package and push
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_ACTOR: ${{ github.actor }}
+        run: |
+          mise run charts:package "$BUILD_TAG" "$BUILD_TAG" dist/charts
+          echo "$GH_TOKEN" | helm registry login ghcr.io -u "$GH_ACTOR" --password-stdin
+          for chart in dist/charts/*.tgz; do
+            helm push "$chart" "oci://${IMAGE_PREFIX}/charts"
+          done

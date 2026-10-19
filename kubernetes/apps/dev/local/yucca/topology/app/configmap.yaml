@@ -1,9 +1,8 @@
 ---
-# Dev copy of the fleet topology that Flux renders per cluster in the real
-# clusters (kubernetes/apps/base/topology). Written out LITERALLY because the
-# dev/local entry point runs no postBuild substitution — there is no
-# cluster-settings ConfigMap here, so ${VAR} tokens would reach the services
-# verbatim and fail the schema at boot.
+# Dev copy of the fleet topology that each real deployment renders for itself.
+# Written out LITERALLY because the dev/local entry point runs no postBuild
+# substitution — there is no cluster-settings ConfigMap here, so ${VAR} tokens
+# would reach the services verbatim and fail the schema at boot.
 #
 # Not the same as the in-image packages/*/topology.dev.json fixture, which
 # targets `mise dev` (compose, everything on localhost): in k3d the services

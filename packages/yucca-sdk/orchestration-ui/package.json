@@ -1,6 +1,6 @@
 {
   "name": "@futo-org/backups-orchestrator-ui",
-  "repository": "https://github.com/immich-app/yucca",
+  "repository": "https://github.com/futo-org/backups",
   "description": "Backups orchestrator (UI library)",
   "version": "0.55.1",
   "license": "Source First License 1.1",
