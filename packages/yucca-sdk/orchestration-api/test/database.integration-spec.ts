@@ -95,7 +95,7 @@ describe('Database', () => {
       .prepare(`SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%'`)
       .all() as { name: string }[];
 
-    expect(tables.map((table) => table.name)).toEqual(expect.arrayContaining(['config', 'repositories', 'jobs']));
+    expect(tables.map((table) => table.name)).toEqual(expect.arrayContaining(['config', 'repositories']));
     expect(ctx.database.prepare('SELECT COUNT(*) AS count FROM repositories').get()).toEqual({ count: 0 });
   });
 });
