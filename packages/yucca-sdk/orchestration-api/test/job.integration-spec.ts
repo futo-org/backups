@@ -162,6 +162,44 @@ describe(JobRepository.name, () => {
     }
   });
 
+  it('reports and publishes the progress of the running job until it finishes', async () => {
+    const jobs = ctx.module.get(JobRepository);
+    const started = Promise.withResolvers<void>();
+    const released = Promise.withResolvers<void>();
+    ctx.resticMock.restore.mockImplementationOnce((...args: unknown[]) => {
+      const log = args[5] as (event: object) => void;
+      log({ message_type: 'status', percent_done: 0.5, total_bytes: 100, bytes_restored: 50 });
+      started.resolve();
+      return released.promise as never;
+    });
+
+    const id = await jobs.queue({
+      name: JobName.RepositoryRestore,
+      data: { repositoryId, snapshotId: 'snapshot-1', options: {} },
+    });
+    await started.promise;
+
+    const progress = { percentDone: 0.5, bytesDone: 50, totalBytes: 100, currentFiles: [] };
+    await expect(jobs.get(id)).resolves.toMatchObject({ progress });
+
+    const events: GatewayEvent[] = [];
+    const record = (event: GatewayEvent) => events.push(event);
+    ctx.events.on(record);
+    try {
+      jobs.publishProgress();
+      jobs.publishProgress();
+    } finally {
+      ctx.events.off(record);
+    }
+
+    expect(events).toEqual([{ type: 'JobTick', jobId: id, repositoryId, progress: expect.objectContaining(progress) }]);
+
+    released.resolve();
+    await jobs.wait(id);
+
+    await expect(jobs.get(id)).resolves.toMatchObject({ progress: undefined });
+  });
+
   it('lists the jobs of a repository newest first, without their data', async () => {
     const jobs = ctx.module.get(JobRepository);
 

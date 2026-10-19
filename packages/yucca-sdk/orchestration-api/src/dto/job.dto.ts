@@ -26,6 +26,16 @@ const JobSummarySchema = z
   ])
   .meta({ id: 'JobSummaryDto' });
 
+const JobProgressSchema = z
+  .object({
+    percentDone: z.number(),
+    secondsRemaining: z.number().optional(),
+    bytesDone: z.number().optional(),
+    totalBytes: z.number().optional(),
+    currentFiles: z.array(z.string()),
+  })
+  .meta({ id: 'JobProgressDto' });
+
 const JobOutcomeSchema = z
   .object({
     errors: z.array(z.string()),
@@ -42,6 +52,7 @@ export const JobSchema = z
     queuedAt: z.string(),
     start: z.string().optional(),
     end: z.string().optional(),
+    progress: JobProgressSchema.optional(),
     outcome: JobOutcomeSchema.optional(),
   })
   .meta({ id: 'JobDto' });
@@ -51,6 +62,7 @@ const JobListResponseSchema = z.object({ jobs: z.array(JobSchema) }).meta({ id: 
 const JobListRequestSchema = z.object({ repositoryId: z.string() }).meta({ id: 'JobListRequestDto' });
 
 export class JobDto extends createZodDto(JobSchema) {}
+export class JobProgressDto extends createZodDto(JobProgressSchema) {}
 export class JobOutcomeDto extends createZodDto(JobOutcomeSchema) {}
 export class JobListResponseDto extends createZodDto(JobListResponseSchema) {}
 export class JobListRequestDto extends createZodDto(JobListRequestSchema) {}

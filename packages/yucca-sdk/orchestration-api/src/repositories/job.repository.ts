@@ -1,5 +1,6 @@
 import { BeforeApplicationShutdown, Injectable, NotFoundException, OnModuleInit } from '@nestjs/common';
 import { DiscoveryService, Reflector } from '@nestjs/core';
+import { Interval } from '@nestjs/schedule';
 import { EventIterator } from 'event-iterator';
 import { Kysely, Selectable, sql, UpdateQueryBuilder, UpdateResult } from 'kysely';
 import { InjectKysely } from 'nestjs-kysely';
@@ -8,7 +9,7 @@ import { dirname, join, resolve } from 'node:path';
 import { from } from 'rxjs';
 import { Tail } from 'tail';
 import { JobConfig } from '../decorators.js';
-import { JobDto } from '../dto/job.dto.js';
+import { JobDto, JobProgressDto } from '../dto/job.dto.js';
 import { JobName, JobStatus, MetadataKey } from '../enum.js';
 import { EventsGateway, GatewayEvent } from '../events/events.gateway.js';
 import { JobContext } from '../jobs/jobContext.js';
@@ -34,7 +35,13 @@ export class JobRepository implements OnModuleInit, BeforeApplicationShutdown {
   private handlers = new Map<JobName, { label: string; handler: JobHandler<unknown> }>();
 
   private dispatching?: Promise<void>;
-  private running?: { id: string; repositoryId: string; controller: AbortController };
+  private running?: {
+    id: string;
+    repositoryId: string;
+    controller: AbortController;
+    ctx?: JobContext;
+    lastProgressTick?: JobProgressDto;
+  };
   private stopped = false;
   private activeJobs = new Map<string, PromiseWithResolvers<Job>>();
 
@@ -154,8 +161,11 @@ export class JobRepository implements OnModuleInit, BeforeApplicationShutdown {
 
   async get(id: string) {
     const job = await this.find(id);
+    if (!job) {
+      return;
+    }
 
-    return job && toJobDto(job);
+    return { ...toJobDto(job), progress: this.running?.id === id ? this.running.ctx?.progress : undefined };
   }
 
   private find(id: string) {
@@ -391,6 +401,7 @@ export class JobRepository implements OnModuleInit, BeforeApplicationShutdown {
     this.running = { id: job.id, repositoryId: job.repositoryId, controller: new AbortController() };
 
     const ctx = await this.createCtx(job, this.running.controller.signal);
+    this.running.ctx = ctx;
 
     let error: unknown;
     try {
@@ -398,6 +409,8 @@ export class JobRepository implements OnModuleInit, BeforeApplicationShutdown {
     } catch (error_) {
       error = error_;
       writeError((event) => ctx.log(event), error);
+    } finally {
+      this.running = undefined;
     }
 
     await new Promise<void>((done) => ctx.logWriter.end(done));
@@ -426,5 +439,16 @@ export class JobRepository implements OnModuleInit, BeforeApplicationShutdown {
     });
 
     this.settle(job, error);
+  }
+
+  @Interval(1000)
+  publishProgress() {
+    const progress = this.running?.ctx?.progress;
+    if (!this.running || !progress || progress === this.running.lastProgressTick) {
+      return;
+    }
+
+    this.running.lastProgressTick = progress;
+    this.events.publish({ type: 'JobTick', jobId: this.running.id, repositoryId: this.running.repositoryId, progress });
   }
 }

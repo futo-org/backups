@@ -2,7 +2,7 @@ import { OnGatewayConnection, WebSocketGateway, WebSocketServer } from '@nestjs/
 import { Server, Socket } from 'socket.io';
 import { BackendDto } from '../dto/backend.dto.js';
 import { IntegrationsResponseDto } from '../dto/integrations.dto.js';
-import { JobDto } from '../dto/job.dto.js';
+import { JobDto, JobProgressDto } from '../dto/job.dto.js';
 import { LocalRepositoryDto } from '../dto/repository.dto.js';
 import { ScheduleDto } from '../dto/schedule.dto.js';
 import { ModuleConfigRepository } from '../repositories/moduleConfig.repository.js';
@@ -52,6 +52,12 @@ export type GatewayEvent =
       jobId: string;
       repositoryId: string;
       job: Partial<JobDto>;
+    }
+  | {
+      type: 'JobTick';
+      jobId: string;
+      repositoryId: string;
+      progress: JobProgressDto;
     }
   | {
       type: 'JobCancel';

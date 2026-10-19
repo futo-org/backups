@@ -1,14 +1,13 @@
 <script lang="ts">
   import OnEvents from "$lib/components/util/OnEvents.svelte";
   import {
+    getRemainingText,
     isJobFinished,
     useJob,
     useJobEventHandler,
     type JobUpdateEvent,
   } from "$lib/services/job.service";
-  import { createLogObserver } from "$lib/services/log.service.svelte";
   import { Alert, Modal, ModalBody, ProgressBar, Stack, Text } from "@immich/ui";
-  import { onDestroy } from "svelte";
   import { t } from "svelte-i18n-lingui";
 
   type Props = {
@@ -20,11 +19,10 @@
   const { onFinish, jobId }: Props = $props();
 
   // svelte-ignore state_referenced_locally
-  const log = createLogObserver(jobId);
-  onDestroy(() => log.destroy());
-  // svelte-ignore state_referenced_locally
   const jobQuery = useJob(jobId);
+  const progress = $derived(jobQuery.data?.progress?.percentDone ?? 0);
   const errors = $derived(jobQuery.data?.outcome?.errors ?? []);
+  const currentFiles = $derived(jobQuery.data?.progress?.currentFiles ?? []);
   const jobEventHandler = useJobEventHandler();
 
   const onJobUpdate = (event: JobUpdateEvent) => {
@@ -39,7 +37,7 @@
   };
 </script>
 
-<OnEvents {onJobUpdate} />
+<OnEvents {onJobUpdate} onJobTick={jobEventHandler.onJobTick} />
 
 <Modal focusOnOpen
   title={errors.length > 0 ? $t`Restore failed` : $t`Restoring`}
@@ -53,22 +51,22 @@
       {/each}
 
       <ProgressBar
-        progress={log.status.progress}
+        {progress}
         aria-label={$t`Restore progress`}
-        valueLabel={`${Math.round(log.status.progress * 100)}%`}
+        valueLabel={`${Math.round(progress * 100)}%`}
         size="large"
       >
         <Text
           size="small"
-          class={log.status.progress > 0.5 ? "text-light" : "text-dark"}
+          class={progress > 0.5 ? "text-light" : "text-dark"}
         >
-          {log.status.text}
+          {getRemainingText(jobQuery.data?.progress)}
         </Text>
       </ProgressBar>
 
-      {#if log.status.currentFiles.length > 0}
+      {#if currentFiles.length > 0}
         <Stack gap={1}>
-          {#each log.status.currentFiles as file}
+          {#each currentFiles as file}
             <Text size="tiny" class="break-all">{file}</Text>
           {/each}
         </Stack>

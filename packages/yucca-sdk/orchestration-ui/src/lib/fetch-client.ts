@@ -154,6 +154,13 @@ export type ScheduleDto = {
 };
 export type JobName = "repository-backup" | "repository-prune" | "repository-restore" | "repository-restore-from-point" | "repository-snapshot-forget" | "repository-sync-metrics";
 export type JobStatus = "queued" | "running" | "complete" | "warn" | "failed" | "cancelled" | "incomplete";
+export type JobProgressDto = {
+    percentDone: number;
+    secondsRemaining?: number;
+    bytesDone?: number;
+    totalBytes?: number;
+    currentFiles: string[];
+};
 export type JobSummaryDto = {
     "type": "backup";
     filesNew: number;
@@ -183,6 +190,7 @@ export type JobDto = {
     queuedAt: string;
     start?: string;
     end?: string;
+    progress?: JobProgressDto;
     outcome?: JobOutcomeDto;
 };
 export type ImmichDatabaseDumpConfigDto = {

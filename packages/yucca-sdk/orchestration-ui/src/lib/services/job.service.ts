@@ -6,10 +6,12 @@ import {
   getJobs,
   type JobDto,
   type JobName,
+  type JobProgressDto,
   type JobStatus,
 } from '$lib/fetch-client';
 import { getProvider } from '$lib/providers';
 import { queryClient } from '$lib/query-client';
+import { formatDuration } from '$lib/utils/format';
 import { handleError } from '$lib/utils/handle-error';
 import {
   modalManager,
@@ -25,6 +27,11 @@ export type JobUpdateEvent = SocketEvent<{
   jobId: string;
   repositoryId: string;
   job: Partial<JobDto>;
+}>;
+export type JobTickEvent = SocketEvent<{
+  jobId: string;
+  repositoryId: string;
+  progress: JobProgressDto;
 }>;
 
 export const jobKeys = {
@@ -48,6 +55,23 @@ export const isJobFinished = (
   status?: JobStatus,
 ): status is Exclude<JobStatus, 'queued' | 'running'> =>
   status !== undefined && status !== 'queued' && status !== 'running';
+
+export const getRemainingText = (progress?: JobProgressDto) => {
+  if (!progress) {
+    return '';
+  }
+
+  const { secondsRemaining, bytesDone, totalBytes, percentDone } = progress;
+  const unfinished =
+    bytesDone && totalBytes ? bytesDone < totalBytes : percentDone < 1;
+
+  return secondsRemaining && unfinished
+    ? gt({
+        message: 'About {duration} remaining',
+        values: { duration: formatDuration(secondsRemaining * 1000) },
+      })
+    : gt`Nearly done.`;
+};
 
 export const useJobs = (repositoryId: () => string | undefined) =>
   createQuery(
@@ -94,6 +118,13 @@ export const useJobEventHandler = () => {
                   : entry,
               )
             : void 0,
+      );
+    },
+    onJobTick(event: JobTickEvent) {
+      queryClient.setQueryData(
+        jobKeys.byId(event.data.jobId),
+        (data: JobDto | undefined) =>
+          data ? { ...data, progress: event.data.progress } : void 0,
       );
     },
   };

@@ -1,11 +1,12 @@
 import type { BackupMessage, ErrorMessage, ForgetMessage, RestoreMessage } from '@futo-org/restic-wrapper';
 import { type WriteStream } from 'node:fs';
-import { type JobOutcomeDto } from '../dto/job.dto.js';
+import { type JobOutcomeDto, type JobProgressDto } from '../dto/job.dto.js';
 
 export type JobLogEvent = BackupMessage | RestoreMessage | ErrorMessage | ForgetMessage;
 
 export class JobContext {
   readonly outcome: JobOutcomeDto = { errors: [] };
+  progress?: JobProgressDto;
 
   constructor(
     readonly signal: AbortSignal,
@@ -25,6 +26,24 @@ export class JobContext {
     }
 
     switch (event.message_type) {
+      case 'status': {
+        const status: {
+          percent_done: number;
+          seconds_remaining?: number;
+          bytes_done?: number;
+          bytes_restored?: number;
+          total_bytes?: number;
+          current_files?: string[];
+        } = event;
+        this.progress = {
+          percentDone: status.percent_done,
+          secondsRemaining: status.seconds_remaining,
+          bytesDone: status.bytes_done ?? status.bytes_restored,
+          totalBytes: status.total_bytes,
+          currentFiles: status.current_files ?? [],
+        };
+        break;
+      }
       case 'summary': {
         this.outcome.summary ??=
           'files_new' in event

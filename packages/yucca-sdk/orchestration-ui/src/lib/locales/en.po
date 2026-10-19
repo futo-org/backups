@@ -118,7 +118,7 @@ msgstr "A folder on this computer."
 msgid "A memorable name for this backup"
 msgstr "A memorable name for this backup"
 
-#: src/lib/services/log.service.svelte.ts
+#: src/lib/services/job.service.ts
 msgid "About {duration} remaining"
 msgstr "About {duration} remaining"
 
@@ -753,10 +753,6 @@ msgstr "Estimated {size}"
 msgid "Event"
 msgstr "Event"
 
-#: src/lib/components/backups/dialogs/ViewStatusModal.svelte
-msgid "Event Log"
-msgstr "Event Log"
-
 #: src/lib/components/backends/dialogs/SelectBackendModal.svelte
 msgid "Existing Local Storage"
 msgstr "Existing Local Storage"
@@ -1355,7 +1351,7 @@ msgstr "Move {name} up"
 msgid "Name"
 msgstr "Name"
 
-#: src/lib/services/log.service.svelte.ts
+#: src/lib/services/job.service.ts
 msgid "Nearly done."
 msgstr "Nearly done."
 
@@ -2135,10 +2131,6 @@ msgstr "Unable to copy to clipboard"
 #: ../../web/src/routes/link/discord/+page.svelte
 msgid "Unable to link your Discord account."
 msgstr "Unable to link your Discord account."
-
-#: src/lib/services/log.service.svelte.ts
-msgid "Unknown error"
-msgstr "Unknown error"
 
 #: src/lib/components/integrations/immich/settings/ImmichSettingsBandwidth.svelte
 msgid "Until"

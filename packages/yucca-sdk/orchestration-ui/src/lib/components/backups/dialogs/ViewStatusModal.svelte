@@ -4,9 +4,8 @@
     type BackupStatusType,
   } from "$lib/components/backups/BackupStatus.svelte";
   import OnEvents from "$lib/components/util/OnEvents.svelte";
-  import { options } from "$lib/options";
-  import { createLogObserver } from "$lib/services/log.service.svelte";
   import {
+    getRemainingText,
     handleCancelJob,
     jobKinds,
     useJob,
@@ -37,14 +36,10 @@
 
   const { jobId, onClose, onRetry }: Props = $props();
 
-  const advanced = options.advanced;
-  const showAdvanced = $derived($advanced);
-  // svelte-ignore state_referenced_locally
-  const log = createLogObserver(jobId);
   // svelte-ignore state_referenced_locally
   const jobQuery = useJob(jobId);
   const job = $derived(jobQuery.data);
-  const { onJobUpdate } = useJobEventHandler();
+  const { onJobUpdate, onJobTick } = useJobEventHandler();
   const summary = $derived(job?.outcome?.summary);
 
   let now = $state(DateTime.now());
@@ -52,7 +47,6 @@
 
   onDestroy(() => {
     clearInterval(tick);
-    log.destroy();
   });
 
   const kind = $derived(job ? jobKinds[job.name] : "backup");
@@ -144,7 +138,7 @@
   });
 </script>
 
-<OnEvents {onJobUpdate} />
+<OnEvents {onJobUpdate} {onJobTick} />
 
 <Modal
   size="medium"
@@ -164,12 +158,12 @@
       {title}
       {type}
       state={backupState}
-      progress={log.status.progress}
+      progress={job?.progress?.percentDone ?? (summary ? 1 : 0)}
       start={job?.start}
       {duration}
-      remaining={log.status.text}
+      remaining={getRemainingText(job?.progress)}
       errors={job?.outcome?.errors}
-      currentFiles={log.status.currentFiles}
+      currentFiles={job?.progress?.currentFiles}
       onRetry={retry}
       onCancel={job ? () => void handleCancelJob(job.id) : undefined}
     >
@@ -207,23 +201,6 @@
             message: "{count} kept",
             values: { count: summary.kept.toLocaleString() },
           })}
-        {/if}
-      {/snippet}
-
-      {#snippet advanced()}
-        {#if showAdvanced}
-          <Stack gap={1}>
-            <Heading tag="h3" size="small">{$t`Event Log`}</Heading>
-            <Scrollable class="h-80 overflow-x-hidden">
-              <Stack gap={1}>
-                {#each log.events as event, index (index)}
-                  <Text size="tiny" class="font-mono select-all">
-                    {JSON.stringify(event)}
-                  </Text>
-                {/each}
-              </Stack>
-            </Scrollable>
-          </Stack>
         {/if}
       {/snippet}
     </BackupStatus>

@@ -2005,6 +2005,9 @@
           "end": {
             "type": "string"
           },
+          "progress": {
+            "$ref": "#/components/schemas/JobProgressDto"
+          },
           "outcome": {
             "$ref": "#/components/schemas/JobOutcomeDto"
           }
@@ -2038,6 +2041,33 @@
           "failed",
           "cancelled",
           "incomplete"
+        ]
+      },
+      "JobProgressDto": {
+        "type": "object",
+        "properties": {
+          "percentDone": {
+            "type": "number"
+          },
+          "secondsRemaining": {
+            "type": "number"
+          },
+          "bytesDone": {
+            "type": "number"
+          },
+          "totalBytes": {
+            "type": "number"
+          },
+          "currentFiles": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "percentDone",
+          "currentFiles"
         ]
       },
       "JobOutcomeDto": {
