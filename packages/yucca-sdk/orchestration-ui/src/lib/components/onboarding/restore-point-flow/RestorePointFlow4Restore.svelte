@@ -1,6 +1,11 @@
 <script lang="ts">
   import OnEvents from "$lib/components/util/OnEvents.svelte";
-  import { isJobFinished, type JobUpdateEvent } from "$lib/services/job.service";
+  import {
+    isJobFinished,
+    useJob,
+    useJobEventHandler,
+    type JobUpdateEvent,
+  } from "$lib/services/job.service";
   import { createLogObserver } from "$lib/services/log.service.svelte";
   import { Alert, Modal, ModalBody, ProgressBar, Stack, Text } from "@immich/ui";
   import { onDestroy } from "svelte";
@@ -17,9 +22,18 @@
   // svelte-ignore state_referenced_locally
   const log = createLogObserver(jobId);
   onDestroy(() => log.destroy());
+  // svelte-ignore state_referenced_locally
+  const jobQuery = useJob(jobId);
+  const errors = $derived(jobQuery.data?.outcome?.errors ?? []);
+  const jobEventHandler = useJobEventHandler();
 
   const onJobUpdate = (event: JobUpdateEvent) => {
-    if (event.data.jobId === jobId && isJobFinished(event.data.job.status) && log.errors.length === 0) {
+    jobEventHandler.onJobUpdate(event);
+    if (
+      event.data.jobId === jobId &&
+      isJobFinished(event.data.job.status) &&
+      !event.data.job.outcome?.errors.length
+    ) {
       onFinish();
     }
   };
@@ -28,13 +42,13 @@
 <OnEvents {onJobUpdate} />
 
 <Modal focusOnOpen
-  title={log.errors.length > 0 ? $t`Restore failed` : $t`Restoring`}
+  title={errors.length > 0 ? $t`Restore failed` : $t`Restoring`}
   size="small"
-  onClose={log.errors.length > 0 ? onFinish : undefined}
+  onClose={errors.length > 0 ? onFinish : undefined}
 >
   <ModalBody>
     <Stack gap={2}>
-      {#each log.errors as error}
+      {#each errors as error}
         <Alert color="danger">{error}</Alert>
       {/each}
 
