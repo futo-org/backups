@@ -32,7 +32,7 @@ storage:
   # the loop device the DaemonSet below attaches. A HIGH minor number: the
   # kernel hands out the lowest free loop devices, so k3s/containerd will have
   # claimed loop0..N on a fresh node. Loop devices are host-global, so clusters
-  # sharing a host need different ones (CI sets YUCCA_CEPH_LOOP_DEVICE per run).
+  # sharing a host need different ones (Tilt passes YUCCA_CEPH_LOOP_DEVICE through).
   device: /dev/loop100
 
 # S3 object store (CephObjectStore + RGW).

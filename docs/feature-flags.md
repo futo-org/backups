@@ -44,7 +44,9 @@ GA is a code change that ships as a release (matching how prod promotion already
 works), not a runtime toggle — so "what does user X get?" is always answerable
 from the registry plus their override row.
 
-## Managing flags (yuctl)
+## Managing flags
+
+Flags are managed through yucca-admin-api; FUTO drives it with an internal ops CLI, `yuctl`:
 
 ```bash
 yuctl features list                          # registry: defaults, stages, override counts

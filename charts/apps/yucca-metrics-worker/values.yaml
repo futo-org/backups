@@ -9,10 +9,13 @@ resources:
 
 # Stable in-cluster name, independent of the Helm release name (dev == prod).
 fullnameOverride: yucca-metrics-worker
+# Pins the selector labels to the pre-rename chart name; Deployment selectors are immutable.
+nameOverride: yucca-metrics-worker
 
 image:
-  repository: k3d-registry.localhost:5000/yucca-metrics-worker
-  tag: dev
+  repository: ghcr.io/futo-org/backups/metrics-worker
+  # Empty defaults to the chart appVersion, which CI sets to the image tag it ships with.
+  tag: ""
   pullPolicy: IfNotPresent
 
 ports:

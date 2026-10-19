@@ -12,10 +12,13 @@ resources:
 # service DNS identical whether rendered by Tilt (dev) or Flux (prod, per-app
 # release names).
 fullnameOverride: yucca-api
+# Pins the selector labels to the pre-rename chart name; Deployment selectors are immutable.
+nameOverride: yucca-api
 
 image:
-  repository: k3d-registry.localhost:5000/yucca-api
-  tag: dev
+  repository: ghcr.io/futo-org/backups/api
+  # Empty defaults to the chart appVersion, which CI sets to the image tag it ships with.
+  tag: ""
   pullPolicy: IfNotPresent
 
 ports:
@@ -26,8 +29,8 @@ service:
   type: ClusterIP
 
 # The GitOps-owned topology document (sites + storage clusters), validated and
-# hot-reloaded on access — see TOPOLOGY_FILE below. Rendered per cluster by
-# kubernetes/apps/base/topology; dev/k3d gets the literal copy from
+# hot-reloaded on access — see TOPOLOGY_FILE below. Each deployment renders its
+# own; dev/k3d gets the literal copy from
 # kubernetes/apps/dev/local/yucca/topology. Same mount in yucca-admin-api and
 # yucca-metrics-worker.
 volumes:
