@@ -73,11 +73,16 @@ export const getRemainingText = (progress?: JobProgressDto) => {
     : gt`Nearly done.`;
 };
 
-export const useJobs = (repositoryId: () => string | undefined) =>
+export const useJobs = (
+  repositoryId: () => string | undefined,
+  name?: JobName,
+) =>
   createQuery(
     () => ({
       queryKey: jobKeys.byRepository(repositoryId() ?? ''),
       queryFn: () => getJobs(repositoryId()!).then(({ jobs }) => jobs),
+      select: (jobs: JobDto[]) =>
+        name ? jobs.filter((job) => job.name === name) : jobs,
       enabled: repositoryId() !== undefined,
     }),
     () => queryClient,

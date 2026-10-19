@@ -23,7 +23,7 @@
 
   let { repository, pageSize = 10 }: Props = $props();
 
-  const query = useJobs(() => repository.id);
+  const query = useJobs(() => repository.id, "repository-backup");
   const { onJobCreate, onJobUpdate } = useJobEventHandler();
 
   let search = $state("");
