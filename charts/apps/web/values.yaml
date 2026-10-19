@@ -11,8 +11,9 @@ resources:
 fullnameOverride: yucca-web
 
 image:
-  repository: k3d-registry.localhost:5000/web
-  tag: dev
+  repository: ghcr.io/futo-org/backups/web
+  # Empty defaults to the chart appVersion, which CI sets to the image tag it ships with.
+  tag: ""
   pullPolicy: IfNotPresent
 
 ports:

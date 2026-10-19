@@ -1,0 +1,40 @@
+#!/usr/bin/env bash
+#MISE description="Statically validate the charts and the local-dev Flux tree"
+#MISE dir="{{config_root}}"
+# NB: don't run this while Tilt is converging — Tilt's helm-deps resource
+# rebuilds charts/*/charts/ (rm -rf + dependency build) and races the renders.
+set -euo pipefail
+
+mapfile -t CHARTS < <(find charts/apps charts/dev charts/platform -mindepth 2 -maxdepth 2 -name Chart.yaml -exec dirname {} \; | sort)
+
+echo "==> helm dependency build (yucca-common consumers)"
+for c in "${CHARTS[@]}"; do
+  grep -q 'name: yucca-common' "$c/Chart.yaml" || continue
+  (cd "$c" && helm dependency build >/dev/null)
+done
+
+echo "==> helm template + kubeconform"
+for c in "${CHARTS[@]}"; do
+  ns=yucca
+  [ "$c" = "charts/platform/rook-ceph-cluster" ] && ns=rook-ceph
+  # NB: release name must not be YAML-boolean-ish ("y"/"on"/...): it lands in
+  # labels and kubeconform reads it back as a bool.
+  helm template yucca "$c" -n "$ns" \
+    | kubeconform -strict -ignore-missing-schemas - \
+    && echo "    OK  $c"
+done
+
+echo "==> kustomize build (local-dev Flux tree)"
+for d in kubernetes/clusters/dev/local kubernetes/apps/dev/local kubernetes/apps/dev/local/repos; do
+  kustomize build "$d" >/dev/null && echo "    OK  $d"
+done
+
+echo "==> flux-local build (helm rendering as Flux would)"
+# One retry: flux-local fans out `flux build ks` subprocesses which very
+# rarely segfault under load.
+flux_local() { uvx --from "flux-local==8.2.0" flux-local "$@"; }
+flux_local build all kubernetes/clusters/dev/local --enable-helm --no-enable-dns >/dev/null \
+  || flux_local build all kubernetes/clusters/dev/local --enable-helm --no-enable-dns >/dev/null
+echo "    OK  flux-local (dev/local)"
+
+echo "k8s surface: ALL VALID"
