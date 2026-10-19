@@ -34,6 +34,6 @@ spec:
     # false so real overlays fail loudly instead).
     useDevKeypair: true
     image:
-      repository: ghcr.io/immich-app/yucca/michael # TODO: confirm prod registry
+      repository: ghcr.io/futo-org/backups/michael
       tag: 0.0.1
     # TODO(prod): source JWT_SECRET / S3 creds from an ExternalSecret, not values

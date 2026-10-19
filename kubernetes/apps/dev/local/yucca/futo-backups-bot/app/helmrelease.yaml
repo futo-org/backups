@@ -30,5 +30,5 @@ spec:
       capabilities:
         drop: [ALL]
     image:
-      repository: ghcr.io/immich-app/yucca/futo-backups-bot
+      repository: ghcr.io/futo-org/backups/bot
       tag: 0.0.1
