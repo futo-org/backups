@@ -45,23 +45,8 @@ export class RepositoryPruneJob implements JobHandler<RepositoryPruneData> {
     try {
       await this.restic.unlockAll(endpoint, key, placement);
 
-      const events = await this.restic.forgetByPolicy(endpoint, key, placement, retentionPolicy, ctx.signal);
-      for (const { keep, remove, reasons } of events) {
-        for (const { id, time } of keep ?? []) {
-          ctx.logWriter.write(
-            JSON.stringify({
-              message_type: 'yucca_prune_kept',
-              id,
-              time,
-              matches: reasons?.find((reason) => reason.snapshot.id === id)?.matches,
-            }) + '\n',
-          );
-        }
-
-        for (const { id, time } of remove ?? []) {
-          ctx.logWriter.write(JSON.stringify({ message_type: 'yucca_prune_removed', id, time }) + '\n');
-        }
-      }
+      const groups = await this.restic.forgetByPolicy(endpoint, key, placement, retentionPolicy, ctx.signal);
+      ctx.log(groups);
 
       await this.restic.prune(endpoint, key, placement, ctx.signal);
     } catch (error_) {
