@@ -1,13 +1,10 @@
 import { BeforeApplicationShutdown, Injectable, NotFoundException, OnModuleInit } from '@nestjs/common';
 import { DiscoveryService, Reflector } from '@nestjs/core';
 import { Interval } from '@nestjs/schedule';
-import { EventIterator } from 'event-iterator';
 import { Kysely, Selectable, sql, UpdateQueryBuilder, UpdateResult } from 'kysely';
 import { InjectKysely } from 'nestjs-kysely';
 import { randomUUID } from 'node:crypto';
 import { dirname, join, resolve } from 'node:path';
-import { from } from 'rxjs';
-import { Tail } from 'tail';
 import { JobConfig } from '../decorators.js';
 import { JobDto, JobProgressDto } from '../dto/job.dto.js';
 import { JobName, JobStatus, MetadataKey } from '../enum.js';
@@ -194,39 +191,6 @@ export class JobRepository implements OnModuleInit, BeforeApplicationShutdown {
       .executeTakeFirst();
 
     return job && toJobDto(job);
-  }
-
-  getObservable(id: string) {
-    return from(
-      new EventIterator<MessageEvent>((queue) => {
-        let tail: Tail | undefined;
-        let logFilePath = '';
-
-        this.getLogFilePath(id)
-          .then((path) => {
-            if (!path) {
-              throw new NotFoundException('Job not found');
-            }
-
-            logFilePath = path;
-          })
-          .then(() => this.storage.mkdir(dirname(logFilePath), { recursive: true }))
-          .then(() => this.storage.touch(logFilePath))
-          .then(() => {
-            tail = new Tail(logFilePath, { fromBeginning: true, nLines: 50 });
-            tail.on('line', (data) => queue.push({ data } as MessageEvent));
-            tail.on('error', (error) => {
-              this.logger.warn(`tail ${logFilePath} stopped:`, error);
-              tail?.unwatch();
-            });
-          })
-          .catch(queue.fail);
-
-        return () => {
-          tail?.unwatch();
-        };
-      }),
-    );
   }
 
   async onEvent(event: GatewayEvent) {

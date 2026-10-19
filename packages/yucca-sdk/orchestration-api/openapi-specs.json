@@ -531,38 +531,6 @@
         ]
       }
     },
-    "/api/yucca/jobs/{id}/stream": {
-      "get": {
-        "description": "Stream the log of a job as server-sent events, starting with its last 50 lines.",
-        "operationId": "logStreamSse",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "text/event-stream": {
-                "schema": {
-                  "type": "string"
-                }
-              }
-            },
-            "description": ""
-          }
-        },
-        "summary": "Stream a job log",
-        "tags": [
-          "Job"
-        ]
-      }
-    },
     "/api/yucca/onboarding": {
       "get": {
         "description": "Retrieve which onboarding steps this server has completed.",

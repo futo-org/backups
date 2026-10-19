@@ -67,7 +67,6 @@ catalog:
   '@types/node': ^26.6.4
   '@types/oidc-provider': ^9.5.0
   '@types/supertest': ^7.0.0
-  '@types/tail': ^2.2.3
   '@vitest/browser': ^5.0.0
   '@vitest/browser-playwright': ^5.0.0
   aws4fetch: ^1.0.20
@@ -119,7 +118,6 @@ catalog:
   svelte: ^5.57.1
   svelte-check: ^4.7.6
   svelte-i18n-lingui: ^0.2.2
-  tail: ^2.2.6
   tailwindcss: ^4.1.18
   ts-jest: ^29.4.14
   ts-loader: ^9.6.2

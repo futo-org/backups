@@ -573,14 +573,6 @@ export function downloadJobLog(id: string, opts?: Oazapfts.RequestOpts) {
     }));
 }
 /**
- * Stream a job log
- */
-export function logStreamSse(id: string, opts?: Oazapfts.RequestOpts) {
-    return oazapfts.ok(oazapfts.fetchText(`/api/yucca/jobs/${encodeURIComponent(id)}/stream`, {
-        ...opts
-    }));
-}
-/**
  * Get backup onboarding status
  */
 export function onboardingStatus(opts?: Oazapfts.RequestOpts) {

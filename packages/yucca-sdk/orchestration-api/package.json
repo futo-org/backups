@@ -41,7 +41,6 @@
     "openid-client": "catalog:",
     "rxjs": "catalog:",
     "socket.io": "catalog:",
-    "tail": "catalog:",
     "zod": "catalog:",
     "@futo-org/backups-api-client": "workspace:^"
   },
@@ -60,7 +59,6 @@
     "@types/express": "catalog:",
     "@types/jest": "catalog:",
     "@types/node": "catalog:",
-    "@types/tail": "catalog:",
     "jest": "catalog:",
     "ts-jest": "catalog:",
     "ts-loader": "catalog:"

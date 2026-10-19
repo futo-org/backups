@@ -174,9 +174,6 @@ catalogs:
     '@types/supertest':
       specifier: ^7.0.0
       version: 7.2.1
-    '@types/tail':
-      specifier: ^2.2.3
-      version: 2.2.3
     '@vitest/browser':
       specifier: ^5.0.0
       version: 5.0.3
@@ -327,9 +324,6 @@ catalogs:
     svelte-i18n-lingui:
       specifier: ^0.2.2
       version: 0.2.2
-    tail:
-      specifier: ^2.2.6
-      version: 2.2.6
     tailwindcss:
       specifier: ^4.1.18
       version: 4.3.3
@@ -1292,9 +1286,6 @@ importers:
       socket.io:
         specifier: 'catalog:'
         version: 4.8.4
-      tail:
-        specifier: 'catalog:'
-        version: 2.2.6
       zod:
         specifier: 'catalog:'
         version: 4.4.3
@@ -1341,9 +1332,6 @@ importers:
       '@types/node':
         specifier: 'catalog:'
         version: 26.6.4
-      '@types/tail':
-        specifier: 'catalog:'
-        version: 2.2.3
       jest:
         specifier: 'catalog:'
         version: 30.5.2(@types/node@26.6.4)(ts-node@10.9.2(@types/node@26.6.4)(typescript@6.0.3))
@@ -3943,9 +3931,6 @@ packages:
 
   '@types/supertest@7.2.1':
     resolution: {integrity: sha512-4CbBvoYVLHL7+yhbYrZET0vsvuyXTC05aRe7dNQkwMzm56auceoy6Yu3K50uZmwfHna1os3CMSgM/3QVkUtPTw==}
-
-  '@types/tail@2.2.3':
-    resolution: {integrity: sha512-Hnf352egOlDR4nVTaGX0t/kmTNXHMdovF2C7PVDFtHTHJPFmIspOI1b86vEOxU7SfCq/dADS7ptbqgG/WGGxnA==}
 
   '@types/unist@3.0.3':
     resolution: {integrity: sha512-ko/gIFJRv177XgZsZcBwnqJN5x/Gien8qNOn0D5bQU/zAzVf9Zt3BlcUiLqhV9y4ARk0GbT3tnUiPNgnTXzc/Q==}
@@ -7174,10 +7159,6 @@ packages:
   tabbable@6.4.0:
     resolution: {integrity: sha512-05PUHKSNE8ou2dwIxTngl4EzcnsCDZGJ/iCLtDflR/SHB/ny14rXc+qU5P4mG9JkusiV7EivzY9Mhm55AzAvCg==}
 
-  tail@2.2.6:
-    resolution: {integrity: sha512-IQ6G4wK/t8VBauYiGPLx+d3fA5XjSVagjWV5SIYzvEvglbQjwEcukeYI68JOPpdydjxhZ9sIgzRlSmwSpphHyw==}
-    engines: {node: '>= 6.0.0'}
-
   tailwind-merge@3.6.0:
     resolution: {integrity: sha512-uxL7qAVQriqRQPAyK3pj66VqskWqoZ37PW94jwOTwNfq/z9oyu1V+eqrZqtR2+fCiXdYOZe/Modt8GtvqNzu+w==}
 
@@ -10379,8 +10360,6 @@ snapshots:
     dependencies:
       '@types/methods': 1.1.4
       '@types/superagent': 8.1.9
-
-  '@types/tail@2.2.3': {}
 
   '@types/unist@3.0.3': {}
 
@@ -13974,8 +13953,6 @@ snapshots:
 
   tabbable@6.4.0: {}
 
-  tail@2.2.6: {}
-
   tailwind-merge@3.6.0: {}
 
   tailwind-variants@3.3.1(tailwind-merge@3.6.0)(tailwindcss@4.3.3):
@@ -14347,7 +14324,7 @@ snapshots:
     dependencies:
       '@testing-library/svelte-core': 1.1.3(svelte@5.57.1(@typescript-eslint/types@8.71.1))
       svelte: 5.57.1(@typescript-eslint/types@8.71.1)
-      vitest: 5.0.3(@opentelemetry/api@1.9.0)(@types/node@26.6.4)(@vitest/browser-playwright@5.0.3)(@vitest/ui@5.0.3)(vite@8.3.2(@types/node@26.6.4)(esbuild@0.27.7)(jiti@2.7.0)(terser@5.44.1)(tsx@4.21.0)(yaml@2.8.2))
+      vitest: 5.0.3(@opentelemetry/api@1.9.0)(@types/node@26.6.4)(@vitest/browser-playwright@5.0.3)(@vitest/ui@5.0.3)(vite@8.3.2(@types/node@26.6.4)(jiti@2.7.0)(terser@5.44.1)(tsx@4.21.0)(yaml@2.8.2))
 
   vitest@5.0.3(@opentelemetry/api@1.9.0)(@types/node@26.6.4)(@vitest/browser-playwright@5.0.3)(@vitest/ui@5.0.3)(vite@8.3.2(@types/node@26.6.4)(esbuild@0.27.7)(jiti@2.7.0)(terser@5.44.1)(tsx@4.21.0)(yaml@2.8.2)):
     dependencies:
