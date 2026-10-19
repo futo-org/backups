@@ -15,7 +15,7 @@ const forget = (snapshotId: string) =>
   ({ name: JobName.RepositorySnapshotForget, data: { repositoryId, snapshotId } }) as const;
 
 const getJob = (id: string) =>
-  ctx.database.prepare('SELECT * FROM jobs WHERE id = ?').get(id) as { status: JobStatus; error: string | null };
+  ctx.database.prepare('SELECT * FROM jobs WHERE id = ?').get(id) as { status: JobStatus; outcome: string | null };
 
 const blockForgetUntilAborted = () => {
   const started = Promise.withResolvers<void>();
@@ -82,7 +82,8 @@ describe(JobRepository.name, () => {
     const id = await jobs.queue(forget('snapshot-1'));
 
     await expect(jobs.wait(id)).rejects.toThrow('restic forget failed');
-    expect(getJob(id)).toMatchObject({ status: JobStatus.Failed, error: 'Error: restic forget failed' });
+    expect(getJob(id).status).toBe(JobStatus.Failed);
+    expect(JSON.parse(getJob(id).outcome!)).toEqual({ errors: ['Error: restic forget failed'] });
 
     const log = await readFile(join(ctx.statePath, 'logs', 'jobs', `${id}.jsonl`), 'utf8');
     expect(log).toContain('restic forget failed');

@@ -154,15 +154,36 @@ export type ScheduleDto = {
 };
 export type JobName = "repository-backup" | "repository-prune" | "repository-restore" | "repository-restore-from-point" | "repository-snapshot-forget" | "repository-sync-metrics";
 export type JobStatus = "queued" | "running" | "complete" | "warn" | "failed" | "cancelled" | "incomplete";
+export type JobSummaryDto = {
+    "type": "backup";
+    filesNew: number;
+    filesChanged: number;
+    totalFilesProcessed: number;
+    totalBytesProcessed: number;
+    snapshotId?: string;
+} | {
+    "type": "restore";
+    filesRestored: number;
+    filesSkipped: number;
+    bytesRestored: number;
+} | {
+    "type": "prune";
+    kept: number;
+    removed: number;
+};
+export type JobOutcomeDto = {
+    errors: string[];
+    summary?: JobSummaryDto;
+};
 export type JobDto = {
     id: string;
     name: JobName;
     repositoryId: string;
     status: JobStatus;
-    error?: string;
     queuedAt: string;
     start?: string;
     end?: string;
+    outcome?: JobOutcomeDto;
 };
 export type ImmichDatabaseDumpConfigDto = {
     enabled: boolean;

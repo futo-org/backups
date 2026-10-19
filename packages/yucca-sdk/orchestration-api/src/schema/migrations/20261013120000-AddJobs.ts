@@ -10,7 +10,7 @@ export async function up(db: Kysely<any>): Promise<void> {
     .addColumn('status', 'text', (col) =>
       col.notNull().check(sql`status IN ('queued', 'running', 'complete', 'warn', 'failed', 'cancelled', 'incomplete')`),
     )
-    .addColumn('error', 'text')
+    .addColumn('outcome', 'text')
     .addColumn('logFilePath', 'text', (col) => col.notNull())
     .addColumn('queuedAt', 'datetime', (col) => col.notNull())
     .addColumn('start', 'datetime')

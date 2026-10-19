@@ -22,7 +22,10 @@ import { StorageRepository } from './storage.repository.js';
 
 export type Job = Selectable<JobTable>;
 
-const toJobDto = ({ data: _data, logFilePath: _logFilePath, ...job }: Job): JobDto => job;
+const toJobDto = ({ data: _data, logFilePath: _logFilePath, outcome, ...job }: Job): JobDto => ({
+  ...job,
+  outcome: outcome ? JSON.parse(outcome) : undefined,
+});
 
 const finishedStatuses = new Set([JobStatus.Complete, JobStatus.Warn, JobStatus.Failed, JobStatus.Cancelled]);
 
@@ -321,7 +324,7 @@ export class JobRepository implements OnModuleInit, BeforeApplicationShutdown {
     if (job.status === JobStatus.Complete) {
       waiter.resolve(job);
     } else {
-      waiter.reject(error ?? new Error(job.error ?? job.status));
+      waiter.reject(error ?? new Error(toJobDto(job).outcome?.errors.at(-1) ?? job.status));
     }
   }
 
@@ -401,7 +404,7 @@ export class JobRepository implements OnModuleInit, BeforeApplicationShutdown {
 
     const updateSet = {
       status: getJobStatus(error),
-      error: error ? `${error}` : undefined,
+      outcome: JSON.stringify(ctx.outcome),
       end: new Date().toISOString(),
     };
 
@@ -419,7 +422,7 @@ export class JobRepository implements OnModuleInit, BeforeApplicationShutdown {
       type: 'JobUpdate',
       jobId: job.id,
       repositoryId: job.repositoryId,
-      job: { status: job.status, error: job.error, end: job.end },
+      job: { status: job.status, outcome: ctx.outcome, end: job.end },
     });
 
     this.settle(job, error);

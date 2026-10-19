@@ -1996,9 +1996,6 @@
           "status": {
             "$ref": "#/components/schemas/JobStatus"
           },
-          "error": {
-            "type": "string"
-          },
           "queuedAt": {
             "type": "string"
           },
@@ -2007,6 +2004,9 @@
           },
           "end": {
             "type": "string"
+          },
+          "outcome": {
+            "$ref": "#/components/schemas/JobOutcomeDto"
           }
         },
         "required": [
@@ -2038,6 +2038,108 @@
           "failed",
           "cancelled",
           "incomplete"
+        ]
+      },
+      "JobOutcomeDto": {
+        "type": "object",
+        "properties": {
+          "errors": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "summary": {
+            "$ref": "#/components/schemas/JobSummaryDto"
+          }
+        },
+        "required": [
+          "errors"
+        ]
+      },
+      "JobSummaryDto": {
+        "oneOf": [
+          {
+            "type": "object",
+            "properties": {
+              "type": {
+                "type": "string",
+                "enum": [
+                  "backup"
+                ]
+              },
+              "filesNew": {
+                "type": "number"
+              },
+              "filesChanged": {
+                "type": "number"
+              },
+              "totalFilesProcessed": {
+                "type": "number"
+              },
+              "totalBytesProcessed": {
+                "type": "number"
+              },
+              "snapshotId": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "type",
+              "filesNew",
+              "filesChanged",
+              "totalFilesProcessed",
+              "totalBytesProcessed"
+            ]
+          },
+          {
+            "type": "object",
+            "properties": {
+              "type": {
+                "type": "string",
+                "enum": [
+                  "restore"
+                ]
+              },
+              "filesRestored": {
+                "type": "number"
+              },
+              "filesSkipped": {
+                "type": "number"
+              },
+              "bytesRestored": {
+                "type": "number"
+              }
+            },
+            "required": [
+              "type",
+              "filesRestored",
+              "filesSkipped",
+              "bytesRestored"
+            ]
+          },
+          {
+            "type": "object",
+            "properties": {
+              "type": {
+                "type": "string",
+                "enum": [
+                  "prune"
+                ]
+              },
+              "kept": {
+                "type": "number"
+              },
+              "removed": {
+                "type": "number"
+              }
+            },
+            "required": [
+              "type",
+              "kept",
+              "removed"
+            ]
+          }
         ]
       },
       "ImmichDatabaseDumpConfigDto": {

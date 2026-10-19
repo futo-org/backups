@@ -1,9 +1,12 @@
 import type { BackupMessage, ErrorMessage, ForgetMessage, RestoreMessage } from '@futo-org/restic-wrapper';
 import { type WriteStream } from 'node:fs';
+import { type JobOutcomeDto } from '../dto/job.dto.js';
 
 export type JobLogEvent = BackupMessage | RestoreMessage | ErrorMessage | ForgetMessage;
 
 export class JobContext {
+  readonly outcome: JobOutcomeDto = { errors: [] };
+
   constructor(
     readonly signal: AbortSignal,
     readonly logWriter: WriteStream,
@@ -11,5 +14,49 @@ export class JobContext {
 
   log(event: JobLogEvent) {
     this.logWriter.write(JSON.stringify(event) + '\n');
+
+    if (Array.isArray(event)) {
+      this.outcome.summary = {
+        type: 'prune',
+        kept: event.reduce((total, { keep }) => total + (keep?.length ?? 0), 0),
+        removed: event.reduce((total, { remove }) => total + (remove?.length ?? 0), 0),
+      };
+      return;
+    }
+
+    switch (event.message_type) {
+      case 'summary': {
+        this.outcome.summary ??=
+          'files_new' in event
+            ? {
+                type: 'backup',
+                filesNew: event.files_new,
+                filesChanged: event.files_changed,
+                totalFilesProcessed: event.total_files_processed,
+                totalBytesProcessed: event.total_bytes_processed,
+                snapshotId: event.snapshot_id,
+              }
+            : {
+                type: 'restore',
+                filesRestored: event.files_restored ?? 0,
+                filesSkipped: event.files_skipped ?? 0,
+                bytesRestored: event.bytes_restored ?? 0,
+              };
+        break;
+      }
+      case 'error': {
+        const message = event.error?.message ?? event.message ?? 'Unknown error';
+        this.outcome.errors.push(event.item ? `${event.item}: ${message}` : message);
+        break;
+      }
+      case 'exit_error': {
+        this.outcome.errors.push(`restic exited with code ${event.code}: ${event.message}`);
+        break;
+      }
+      case 'raw': {
+        this.outcome.errors.push(event.message);
+        break;
+      }
+    }
   }
 }
