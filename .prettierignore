@@ -24,28 +24,14 @@ yarn.lock
 **/fetch-client.ts
 **/openapi-specs.json
 
-# Infrastructure subtrees own their own format conventions (yamllint +
-# ansible-lint inside ansible/ceph/; tofu fmt inside tf/). Prettier on
-# ansible YAML is opinionated in ways that conflict with Jinja2 + ansible
-# task structure, so these subtrees are exempt from root prettier checks.
+
+# Flux manifests are validated by `mise k8s:validate`, not formatted.
 kubernetes/
-ansible/
-tf/
 
 # Helm charts: templates are Go-templated YAML (not parseable by prettier),
 # and values/Chart files follow helm conventions. Validated by helm template
 # + kubeconform via `mise k8s:validate` instead.
 charts/
-
-# yuctl warp manifests: Go-templated YAML embedded into the binary (//go:embed
-# in fleet/warp/session.go). Worth ignoring rather than fixing up, because
-# prettier --write rewrites `{{ .Name }}` to `{ { .Name } }` (legal YAML, read
-# as a nested flow mapping) and text/template then emits it literally.
-packages/yuctl/fleet/warp/manifests/
-
-# Grafana dashboard exports: machine-generated JSON, round-tripped through
-# the Grafana UI — not worth format churn.
-o11y/dashboards/
 
 # auto-generated
 yaak/

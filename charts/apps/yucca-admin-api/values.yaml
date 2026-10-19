@@ -7,10 +7,13 @@ resources:
 
 # Stable in-cluster name, independent of the Helm release name (dev == prod).
 fullnameOverride: yucca-admin-api
+# Pins the selector labels to the pre-rename chart name; Deployment selectors are immutable.
+nameOverride: yucca-admin-api
 
 image:
-  repository: k3d-registry.localhost:5000/yucca-admin-api
-  tag: dev
+  repository: ghcr.io/futo-org/backups/admin-api
+  # Empty defaults to the chart appVersion, which CI sets to the image tag it ships with.
+  tag: ""
   pullPolicy: IfNotPresent
 
 ports:
