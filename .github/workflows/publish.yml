@@ -44,7 +44,7 @@ jobs:
       actions: read
       packages: write
     with:
-      image: futo-backups-standalone
+      image: backups/standalone
       context: .
       dockerfile: packages/standalone-app/Dockerfile
 
@@ -56,6 +56,6 @@ jobs:
       actions: read
       packages: write
     with:
-      image: futo-backups-restic-proxy
+      image: backups/restic-proxy
       context: .
       dockerfile: packages/restic-proxy/Dockerfile

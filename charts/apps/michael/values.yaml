@@ -33,8 +33,9 @@ resources:
 fullnameOverride: yucca-michael
 
 image:
-  repository: k3d-registry.localhost:5000/michael
-  tag: dev
+  repository: ghcr.io/futo-org/backups/michael
+  # Empty defaults to the chart appVersion, which CI sets to the image tag it ships with.
+  tag: ""
   pullPolicy: IfNotPresent
 
 ports:

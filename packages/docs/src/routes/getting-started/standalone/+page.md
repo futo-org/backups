@@ -20,7 +20,7 @@ docker run -d --name futo-backups \
   -v "$HOME/.yucca:/data" \
   -v futo-backups-cache:/cache \
   -v /my/important/data:/target/important-data:ro \
-  ghcr.io/immich-app/futo-backups-standalone:v0
+  ghcr.io/futo-org/backups/standalone:v1
 ```
 
 Then open http://localhost:22676.
@@ -33,7 +33,7 @@ name: futo-backups
 
 services:
   backups:
-    image: ghcr.io/immich-app/futo-backups-standalone:v0
+    image: ghcr.io/futo-org/backups/standalone:v1
     ports:
       - 127.0.0.1:22676:22676
     volumes:

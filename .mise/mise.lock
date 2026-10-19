@@ -2,35 +2,6 @@
 
 lockfile_version = 1
 
-[[tools.age]]
-version = "1.3.2"
-backend = "aqua:FiloSottile/age"
-specifiers = ["1.3.2"]
-
-[tools.age."platforms.linux-arm64"]
-checksum = "sha256:6b8dc4333c53a5a57c9e5834e3a48f92605d7154014cd07269ff3327db5d37f4"
-url = "https://github.com/FiloSottile/age/releases/download/v1.3.2/age-v1.3.2-linux-arm64.tar.gz"
-url_api = "https://api.github.com/repos/FiloSottile/age/releases/assets/535541932"
-provenance = "github-attestations"
-
-[tools.age."platforms.linux-x64"]
-checksum = "sha256:cbe24006683f8eb669266162894b9a522a1af52f2665fbc63a4bb032ed26ac10"
-url = "https://github.com/FiloSottile/age/releases/download/v1.3.2/age-v1.3.2-linux-amd64.tar.gz"
-url_api = "https://api.github.com/repos/FiloSottile/age/releases/assets/535541903"
-provenance = "github-attestations"
-
-[tools.age."platforms.macos-arm64"]
-checksum = "sha256:e2020b073c44f692685a24d6abc378817eb81ffaaf49fd0531ef8565f767f2f5"
-url = "https://github.com/FiloSottile/age/releases/download/v1.3.2/age-v1.3.2-darwin-arm64.tar.gz"
-url_api = "https://api.github.com/repos/FiloSottile/age/releases/assets/535541897"
-provenance = "github-attestations"
-
-[tools.age."platforms.macos-x64"]
-checksum = "sha256:1d1e4bc66e1427edad7739ae7616157de0e79db8b6d2a1497d7d9925fb06a539"
-url = "https://github.com/FiloSottile/age/releases/download/v1.3.2/age-v1.3.2-darwin-amd64.tar.gz"
-url_api = "https://api.github.com/repos/FiloSottile/age/releases/assets/535541887"
-provenance = "github-attestations"
-
 [[tools.flux2]]
 version = "2.9.5"
 backend = "aqua:fluxcd/flux2"
@@ -113,56 +84,6 @@ checksum = "sha256:02665e2f1a0ccb1a8f09e84515c94ec8cbb674da22f9dc8d3d1888b3f1696
 url = "https://github.com/git-town/git-town/releases/download/v24.1.0/git-town_macos_intel_64.tar.gz"
 url_api = "https://api.github.com/repos/git-town/git-town/releases/assets/590750314"
 provenance = "github-attestations"
-
-[[tools."github:grafana/dashboard-linter"]]
-version = "0.3.0"
-backend = "github:grafana/dashboard-linter"
-specifiers = ["v0.3.0"]
-
-[tools."github:grafana/dashboard-linter"."platforms.linux-arm64"]
-checksum = "sha256:cca3c44ab921a4303dc3850b0cea56e0192112a185ebadceb173d7c7a5d3731b"
-url = "https://github.com/grafana/dashboard-linter/releases/download/v0.3.0/dashboard-linter_0.3.0_linux_arm64.tar.gz"
-url_api = "https://api.github.com/repos/grafana/dashboard-linter/releases/assets/529030717"
-
-[tools."github:grafana/dashboard-linter"."platforms.linux-x64"]
-checksum = "sha256:9a0eecb84ff22005dbd21c39ffd91534b407b511c45c21879df62ad0de33d79f"
-url = "https://github.com/grafana/dashboard-linter/releases/download/v0.3.0/dashboard-linter_0.3.0_linux_amd64.tar.gz"
-url_api = "https://api.github.com/repos/grafana/dashboard-linter/releases/assets/529030764"
-
-[tools."github:grafana/dashboard-linter"."platforms.macos-arm64"]
-checksum = "sha256:910c20366491565faa241166676b54a53648ed2b30d8403017056bb18aeae75d"
-url = "https://github.com/grafana/dashboard-linter/releases/download/v0.3.0/dashboard-linter_0.3.0_darwin_arm64.tar.gz"
-url_api = "https://api.github.com/repos/grafana/dashboard-linter/releases/assets/529030741"
-
-[tools."github:grafana/dashboard-linter"."platforms.macos-x64"]
-checksum = "sha256:9ca2cd292b5aaaaa6827c417b26440033e35516e4896238c34c7cc97cbcb45cf"
-url = "https://github.com/grafana/dashboard-linter/releases/download/v0.3.0/dashboard-linter_0.3.0_darwin_amd64.tar.gz"
-url_api = "https://api.github.com/repos/grafana/dashboard-linter/releases/assets/529030719"
-
-[[tools."github:sigstore/cosign"]]
-version = "3.1.3"
-backend = "github:sigstore/cosign"
-specifiers = ["v3.1.3"]
-
-[tools."github:sigstore/cosign"."platforms.linux-arm64"]
-checksum = "sha256:c5d324e091826b0d7a78eb16fef316450b4eb9aaec045611c08ba06f5e73220a"
-url = "https://github.com/sigstore/cosign/releases/download/v3.1.3/cosign-linux-arm64"
-url_api = "https://api.github.com/repos/sigstore/cosign/releases/assets/503286299"
-
-[tools."github:sigstore/cosign"."platforms.linux-x64"]
-checksum = "sha256:4629c757b7618056f8ddd7e2625ae9fdd94c0372a65049520bc7d9df9efc7f71"
-url = "https://github.com/sigstore/cosign/releases/download/v3.1.3/cosign-linux-amd64"
-url_api = "https://api.github.com/repos/sigstore/cosign/releases/assets/503286005"
-
-[tools."github:sigstore/cosign"."platforms.macos-arm64"]
-checksum = "sha256:5cf948c2f4dfe59687bdd0b8523709067383e03982cc543475c8a7dc70e92a76"
-url = "https://github.com/sigstore/cosign/releases/download/v3.1.3/cosign-darwin-arm64"
-url_api = "https://api.github.com/repos/sigstore/cosign/releases/assets/503286205"
-
-[tools."github:sigstore/cosign"."platforms.macos-x64"]
-checksum = "sha256:2347488e5d5b25336644024dfeca5601b190e91197a71a917bda44744aff106c"
-url = "https://github.com/sigstore/cosign/releases/download/v3.1.3/cosign-darwin-amd64"
-url_api = "https://api.github.com/repos/sigstore/cosign/releases/assets/503286177"
 
 [[tools.go]]
 version = "1.27.1"
@@ -352,36 +273,6 @@ url = "https://nodejs.org/dist/v25.9.0/node-v25.9.0-darwin-arm64.tar.gz"
 checksum = "sha256:7d737b53ce191142bfa1c17cfa5b070d96e84eebf76b8dd06d84981cbdc3f7e3"
 url = "https://nodejs.org/dist/v25.9.0/node-v25.9.0-darwin-x64.tar.gz"
 
-[[tools.opentofu]]
-version = "1.13.0"
-backend = "aqua:opentofu/opentofu"
-specifiers = ["1.13.0"]
-
-[tools.opentofu."platforms.linux-arm64"]
-checksum = "sha256:ea1c9a95e38d5d890b2eccbeec4d65481ad56bf6775dfbb15c4d9e34ff793dc6"
-url = "https://github.com/opentofu/opentofu/releases/download/v1.13.0/tofu_1.13.0_linux_arm64.tar.gz"
-url_api = "https://api.github.com/repos/opentofu/opentofu/releases/assets/601021551"
-
-[tools.opentofu."platforms.linux-x64"]
-checksum = "sha256:1f0cb37fc85dea4e7633a72aca2332b801f72650a32be911b8b9b32907f214fb"
-url = "https://github.com/opentofu/opentofu/releases/download/v1.13.0/tofu_1.13.0_linux_amd64.tar.gz"
-url_api = "https://api.github.com/repos/opentofu/opentofu/releases/assets/601021472"
-
-[tools.opentofu."platforms.macos-arm64"]
-checksum = "sha256:b30ee6ee0b40545673b2934f0f0cdbd785d02b58d8930aab0e1679eda76cd7e4"
-url = "https://github.com/opentofu/opentofu/releases/download/v1.13.0/tofu_1.13.0_darwin_arm64.tar.gz"
-url_api = "https://api.github.com/repos/opentofu/opentofu/releases/assets/601021648"
-
-[tools.opentofu."platforms.macos-x64"]
-checksum = "sha256:a50f8666d6c82aab5696d9453222f5d9ebea1f19e4d47bab5b0581c24935e978"
-url = "https://github.com/opentofu/opentofu/releases/download/v1.13.0/tofu_1.13.0_darwin_amd64.tar.gz"
-url_api = "https://api.github.com/repos/opentofu/opentofu/releases/assets/601021470"
-
-[[tools."pipx:ansible-core"]]
-version = "2.21.4"
-backend = "pipx:ansible-core"
-specifiers = ["2.21.4"]
-
 [[tools.pnpm]]
 version = "10.28.1"
 backend = "aqua:pnpm/pnpm"
@@ -431,31 +322,6 @@ url_api = "https://api.github.com/repos/restic/restic/releases/assets/467000314"
 checksum = "sha256:c38d579622cf602f665234c5a8c315030b6cf70656028fe6dc29a786b60e5f35"
 url = "https://github.com/restic/restic/releases/download/v0.19.1/restic_0.19.1_darwin_amd64.bz2"
 url_api = "https://api.github.com/repos/restic/restic/releases/assets/467000400"
-
-[[tools.terragrunt]]
-version = "0.99.5"
-backend = "aqua:gruntwork-io/terragrunt"
-specifiers = ["0.99.5"]
-
-[tools.terragrunt."platforms.linux-arm64"]
-checksum = "sha256:fed8c41b0fa8dc15ad81e941c79c5db6b5fcbd3129bd25af663308a478dfabd0"
-url = "https://github.com/gruntwork-io/terragrunt/releases/download/v0.99.5/terragrunt_linux_arm64.tar.gz"
-url_api = "https://api.github.com/repos/gruntwork-io/terragrunt/releases/assets/382119379"
-
-[tools.terragrunt."platforms.linux-x64"]
-checksum = "sha256:8050444125e87abe077d602a6da7db7317d3e8d40d6dc8cb738fa009a005efc4"
-url = "https://github.com/gruntwork-io/terragrunt/releases/download/v0.99.5/terragrunt_linux_amd64.tar.gz"
-url_api = "https://api.github.com/repos/gruntwork-io/terragrunt/releases/assets/382119266"
-
-[tools.terragrunt."platforms.macos-arm64"]
-checksum = "sha256:3f37bf521d2d3bf6f05f3c6ff09b6c12c276e84c076fe7173c0842a2101a7ecd"
-url = "https://github.com/gruntwork-io/terragrunt/releases/download/v0.99.5/terragrunt_darwin_arm64.tar.gz"
-url_api = "https://api.github.com/repos/gruntwork-io/terragrunt/releases/assets/382119023"
-
-[tools.terragrunt."platforms.macos-x64"]
-checksum = "sha256:058e2476c7452cf7a6f426c8e84ac25aac2d56b48cea042ec668e1f0dc6d9498"
-url = "https://github.com/gruntwork-io/terragrunt/releases/download/v0.99.5/terragrunt_darwin_amd64.tar.gz"
-url_api = "https://api.github.com/repos/gruntwork-io/terragrunt/releases/assets/382118909"
 
 [[tools.tilt]]
 version = "0.37.8"
