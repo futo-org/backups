@@ -1,4 +1,5 @@
 <script lang="ts">
+  import JobProgressLabel from "$lib/components/jobs/JobProgressLabel.svelte";
   import StackList from "$lib/components/ui/StackList.svelte";
   import StackListItem from "$lib/components/ui/StackListItem.svelte";
   import RelativeTime from "$lib/components/util/RelativeTime.svelte";
@@ -101,6 +102,9 @@
         {$t`Backup is missing on the service.`}
       {:else if status.kind === "running"}
         {$t`Backup in progress`}
+        {#key status.jobId}
+          <JobProgressLabel jobId={status.jobId} />
+        {/key}
       {:else if status.kind === "failed"}
         {$t`Last backup failed`} <RelativeTime time={status.lastBackup} />
       {:else if status.kind === "warn"}

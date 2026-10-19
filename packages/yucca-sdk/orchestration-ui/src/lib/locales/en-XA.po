@@ -1616,6 +1616,10 @@ msgstr ""
 msgid "Preparing restore"
 msgstr ""
 
+#: src/lib/components/jobs/JobProgressLabel.svelte
+msgid "Preparing…"
+msgstr ""
+
 #: src/lib/components/backups/dialogs/CreateRepositoryModal.svelte
 msgid "Prevent anything being deleted"
 msgstr ""
@@ -2182,6 +2186,10 @@ msgstr ""
 
 #: src/lib/components/util/DeviceFlowCode.svelte
 msgid "Waiting for you to confirm login..."
+msgstr ""
+
+#: src/lib/components/jobs/JobProgressLabel.svelte
+msgid "Waiting to start"
 msgstr ""
 
 #: src/lib/components/backups/BackupItem.svelte
