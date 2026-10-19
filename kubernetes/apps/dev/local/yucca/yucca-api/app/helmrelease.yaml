@@ -33,7 +33,7 @@ spec:
     # Secret (the chart default is false so real overlays fail loudly instead).
     useDevKeypair: true
     image:
-      repository: ghcr.io/immich-app/yucca/yucca-api # TODO: confirm prod registry
+      repository: ghcr.io/futo-org/backups/api
       tag: 0.0.1
     # Disabled: the migration Job currently assumes the DEV image layout (it
     # runs `pnpm install` + sql-tools from the source tree), which a dist-only

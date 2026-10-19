@@ -79,7 +79,7 @@ if DEV_ENV:
 
 # ---------------------------------------------------------------------------
 # Fleet topology. The real clusters get this ConfigMap from Flux with the
-# per-cluster values substituted in (kubernetes/apps/base/topology); Tilt
+# per-cluster values substituted in; Tilt
 # deploys only HelmReleases, so the dev copy — the same file the dev-mirror
 # Flux tree applies — is applied here by hand. yucca-api, yucca-admin-api and
 # yucca-metrics-worker mount it and parse it at boot, so it has to exist before
@@ -430,9 +430,6 @@ def discover_apps():
     for path in listdir('kubernetes/apps', recursive=True):
         if not path.endswith('/helmrelease.yaml'):
             continue
-        # The o11y-style GitOps tree (apps/base + the real-cluster overlays
-        # apps/<partition>/<region>) is reconciled by Flux on the real clusters —
-        # Tilt deploys only the local dev-mirror tree under apps/dev/local/.
         if '/apps/dev/local/' not in path:
             continue
         hr = read_yaml(path)
