@@ -394,7 +394,7 @@ export class JobRepository implements OnModuleInit, BeforeApplicationShutdown {
       await handler.run(JSON.parse(job.data), ctx);
     } catch (error_) {
       error = error_;
-      writeError(ctx.logWriter, error);
+      writeError((event) => ctx.log(event), error);
     }
 
     await new Promise<void>((done) => ctx.logWriter.end(done));

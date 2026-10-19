@@ -1,6 +1,4 @@
-import { Writable } from 'node:stream';
-
-type ResticStatusEvent = { message_type: string; percent_done?: number };
+import type { BackupMessage, RestoreMessage } from '@futo-org/restic-wrapper';
 
 export type RetentionPolicy = {
   keepLast?: number;
@@ -16,17 +14,19 @@ export const DEFAULT_RETENTION_POLICY: RetentionPolicy = {
   keepWithin: '60d',
 };
 
-export const createSampledLogWriter = (logStream: Writable | undefined) => {
+export const createSampledLogWriter = <T extends BackupMessage | RestoreMessage>(
+  log: ((event: T) => void) | undefined,
+) => {
   let lastAt = 0;
   let lastPercent = -1;
 
-  return (event: ResticStatusEvent) => {
-    if (!logStream?.writable) {
+  return (event: T) => {
+    if (!log) {
       return;
     }
 
     if (event.message_type === 'status') {
-      const percent = event.percent_done ?? 0;
+      const percent = event.percent_done;
       if (percent < 1 && Date.now() - lastAt < 1000 && Math.abs(percent - lastPercent) < 0.01) {
         return;
       }
@@ -35,6 +35,6 @@ export const createSampledLogWriter = (logStream: Writable | undefined) => {
       lastPercent = percent;
     }
 
-    logStream.write(JSON.stringify(event) + '\n');
+    log(event);
   };
 };

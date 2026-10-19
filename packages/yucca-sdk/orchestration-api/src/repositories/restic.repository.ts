@@ -1,6 +1,18 @@
-import { backup, forget, init, keyList, ls, prune, restore, snapshots, stats, unlock } from '@futo-org/restic-wrapper';
+import {
+  backup,
+  type BackupMessage,
+  forget,
+  init,
+  keyList,
+  ls,
+  prune,
+  restore,
+  type RestoreMessage,
+  snapshots,
+  stats,
+  unlock,
+} from '@futo-org/restic-wrapper';
 import { Injectable } from '@nestjs/common';
-import { Writable } from 'node:stream';
 import { RepositorySnapshotRestoreRequestDto } from '../dto/repository.dto.js';
 import { createSampledLogWriter, RetentionPolicy } from '../utils/restic.js';
 import { ConfigRepository, ResticPlacement } from './config.repository.js';
@@ -32,11 +44,11 @@ export class ResticRepository {
     key: Uint8Array,
     placement: ResticPlacement,
     paths: string[],
-    logStream?: Writable,
+    log?: (event: BackupMessage) => void,
     signal?: AbortSignal,
     tags: string[] = [],
   ) {
-    const write = createSampledLogWriter(logStream);
+    const write = createSampledLogWriter(log);
     const { connections, packSizeMib } = await this.config.getResticOptions(placement);
 
     return await backup()
@@ -59,10 +71,10 @@ export class ResticRepository {
     placement: ResticPlacement,
     snapshotId: string,
     { include, target }: RepositorySnapshotRestoreRequestDto,
-    logStream?: Writable,
+    log?: (event: RestoreMessage) => void,
     signal?: AbortSignal,
   ) {
-    const write = createSampledLogWriter(logStream);
+    const write = createSampledLogWriter(log);
     const { connections } = await this.config.getResticOptions(placement);
 
     let command = restore()

@@ -1,11 +1,10 @@
-import { WriteStream } from 'node:fs';
 import { TaskStatus } from '../enum.js';
 import { getTaskStatus, TaskWarningsError, writeError } from './errors.js';
 
 const collectWrites = (error: unknown) => {
-  const lines: string[] = [];
-  writeError({ write: (line: string) => lines.push(line) } as unknown as WriteStream, error);
-  return lines.map((line) => JSON.parse(line));
+  const events: object[] = [];
+  writeError((event) => events.push(event), error);
+  return events;
 };
 
 describe('TaskWarningsError', () => {
@@ -15,8 +14,8 @@ describe('TaskWarningsError', () => {
 
   it('writes one log event per collected error', () => {
     expect(collectWrites(new TaskWarningsError([new Error('first'), new Error('second')]))).toEqual([
-      { message_type: 'error', error: 'Error: first' },
-      { message_type: 'error', error: 'Error: second' },
+      { message_type: 'error', error: { message: 'Error: first' } },
+      { message_type: 'error', error: { message: 'Error: second' } },
     ]);
   });
 });

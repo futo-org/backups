@@ -55,7 +55,7 @@ export class RepositoryRestoreFromPointJob implements JobHandler<RepositoryResto
         placement,
         snapshotId,
         { include: options.include },
-        ctx.logWriter,
+        (event) => ctx.log(event),
         ctx.signal,
       );
 
@@ -68,7 +68,7 @@ export class RepositoryRestoreFromPointJob implements JobHandler<RepositoryResto
           placement,
           snapshotId,
           { include: [options.yuccaConfig], target },
-          ctx.logWriter,
+          (event) => ctx.log(event),
           ctx.signal,
         );
 
