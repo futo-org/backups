@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.1.0](https://github.com/futo-org/backups/compare/v1.0.0...v1.1.0) (2026-10-21)
+
+
+### Features
+
+* **yucca sdk:** beta disclaimer notice ([#12](https://github.com/futo-org/backups/issues/12)) ([b223a50](https://github.com/futo-org/backups/commit/b223a5046c6b7bb7bec5997c330992ae35dac7a5))
+
 ## [1.0.0](https://github.com/futo-org/backups/compare/v0.55.1...v1.0.0) (2026-10-20)
 
 
