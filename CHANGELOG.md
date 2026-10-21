@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.4.0](https://github.com/futo-org/backups/compare/v1.3.0...v1.4.0) (2026-10-21)
+
+
+### Features
+
+* **yucca-metrics-worker:** export beta invite counts ([#24](https://github.com/futo-org/backups/issues/24)) ([40d94b0](https://github.com/futo-org/backups/commit/40d94b090d80e64678a6f0e710286ea99ac45245))
+
 ## [1.3.0](https://github.com/futo-org/backups/compare/v1.2.1...v1.3.0) (2026-10-21)
 
 
