@@ -39,6 +39,9 @@ catalogs:
     '@lingui/core':
       specifier: ^5.8.0
       version: 5.9.5
+    '@material-symbols/svg-400':
+      specifier: ^0.48.1
+      version: 0.48.1
     '@mdi/js':
       specifier: ^7.4.47
       version: 7.4.47
@@ -1362,6 +1365,9 @@ importers:
       '@immich/ui':
         specifier: 'catalog:'
         version: 0.89.0(@sveltejs/kit@2.70.3(@opentelemetry/api@1.9.0)(@sveltejs/vite-plugin-svelte@7.3.1(svelte@5.57.1(@typescript-eslint/types@8.71.1))(vite@8.3.2(@types/node@26.6.4)(jiti@2.7.0)(terser@5.44.1)(tsx@4.21.0)(yaml@2.8.2)))(svelte@5.57.1(@typescript-eslint/types@8.71.1))(typescript@6.0.3)(vite@8.3.2(@types/node@26.6.4)(jiti@2.7.0)(terser@5.44.1)(tsx@4.21.0)(yaml@2.8.2)))(svelte@5.57.1(@typescript-eslint/types@8.71.1))(tailwindcss@4.3.3)
+      '@material-symbols/svg-400':
+        specifier: 'catalog:'
+        version: 0.48.1
       '@mdi/js':
         specifier: 'catalog:'
         version: 7.4.47
@@ -2579,6 +2585,9 @@ packages:
   '@lukeed/csprng@1.1.0':
     resolution: {integrity: sha512-Z7C/xXCiGWsg0KuKsHTKJxbWhpI3Vs5GwLfOean7MGyVFGqdRgBbAjOCh6u4bbjPc/8MJ2pZmK/0DLdCbivLDA==}
     engines: {node: '>=8'}
+
+  '@material-symbols/svg-400@0.48.1':
+    resolution: {integrity: sha512-l3zCJuHOtBdha7C3fZ/OXjt6N0pP+a7+TUtYJeWOLbsOh2hDn8weIPgj1a9hwvF7aI1U5lwuxi0to7JysAiBvg==}
 
   '@mdi/js@7.4.47':
     resolution: {integrity: sha512-KPnNOtm5i2pMabqZxpUz7iQf+mfrYZyKCZ8QNz85czgEt7cuHcGorWfdzUMWYA0SD+a6Hn4FmJ+YhzzzjkTZrQ==}
@@ -8981,6 +8990,8 @@ snapshots:
       svelte: 5.57.1(@typescript-eslint/types@8.71.1)
 
   '@lukeed/csprng@1.1.0': {}
+
+  '@material-symbols/svg-400@0.48.1': {}
 
   '@mdi/js@7.4.47': {}
 
