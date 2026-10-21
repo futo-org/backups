@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.2.0](https://github.com/futo-org/backups/compare/v1.1.0...v1.2.0) (2026-10-21)
+
+
+### Features
+
+* **emails:** rewrite the beta invite email copy ([#15](https://github.com/futo-org/backups/issues/15)) ([1794a10](https://github.com/futo-org/backups/commit/1794a10de1afe222df19b8293d9d6bfaf96624ab))
+
 ## [1.1.0](https://github.com/futo-org/backups/compare/v1.0.0...v1.1.0) (2026-10-21)
 
 
