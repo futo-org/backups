@@ -1,7 +1,7 @@
 {
   "name": "@futo-org/backups-orchestrator-api",
   "repository": "https://github.com/futo-org/backups",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "description": "Backups orchestrator (API)",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",

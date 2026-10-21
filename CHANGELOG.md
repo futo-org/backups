@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.2.1](https://github.com/futo-org/backups/compare/v1.2.0...v1.2.1) (2026-10-21)
+
+
+### Bug Fixes
+
+* **ci:** publish the standalone and restic-proxy images with multi-runner-build v4.1.0 ([#18](https://github.com/futo-org/backups/issues/18)) ([e171227](https://github.com/futo-org/backups/commit/e171227637a23cd15387d8c97812d0bb01c74dab))
+
 ## [1.2.0](https://github.com/futo-org/backups/compare/v1.1.0...v1.2.0) (2026-10-21)
 
 
