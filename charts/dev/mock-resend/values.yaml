@@ -1,15 +1,15 @@
 replicas: 1
 
 # Stable in-cluster name, independent of the Helm release name (dev == prod).
-# yucca-admin-api points POSTMARK_API_URL here in dev.
-fullnameOverride: yucca-mock-postmark
+# yucca-admin-api points RESEND_API_URL here in dev.
+fullnameOverride: yucca-mock-resend
 
 image:
-  repository: k3d-registry.localhost:5000/mock-postmark-provider
+  repository: k3d-registry.localhost:5000/mock-resend-provider
   tag: dev
   pullPolicy: IfNotPresent
 
-# Container listens on 80 (see packages/mock-postmark-provider); exposed
+# Container listens on 80 (see packages/mock-resend-provider); exposed
 # in-cluster and via port-forward as 8093.
 ports:
   - name: http
