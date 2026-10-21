@@ -9,7 +9,7 @@ builds on the same three pieces.
 | Piece | Where | Role |
 |---|---|---|
 | `@common/emails` | `packages/emails` | Svelte email templates (better-svelte-email, Tailwind 4) styled after the web UI's `@immich/ui` theme, prebuilt to plain JS. Exposes `render*Email(props) → { subject, htmlBody, textBody }`. |
-| `EmailRepository` | `@common/server/email` | Resend HTTP client over global `fetch` (`POST /emails`, `POST /emails/batch`, ≤100 per batch). Stamps `from` and, given a tag, a `category` tag. Resend accepts or rejects a batch as a whole, so one invalid address fails its whole batch. |
+| `EmailRepository` | `@common/server/email` | Resend HTTP client over global `fetch` (`POST /emails`, `POST /emails/batch`, ≤100 per batch). Stamps `from` and, given a tag, a `category` tag. Resend accepts or rejects a batch as a whole, so one invalid address fails its batch of up to 100; `sendBatch` reports that batch's recipients as failed and keeps the results of the others. |
 | Callers | e.g. `AllowlistService` | Render a template, hand the result to `EmailRepository`, record the outcome. |
 
 Services wire `EmailRepository` into their `providers` array like any other repository; templates

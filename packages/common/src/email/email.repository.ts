@@ -24,6 +24,15 @@ const batchResponseSchema = z.object({ data: z.array(sendResponseSchema) });
 // as a whole: a 2xx means every email in it was queued.
 const BATCH_LIMIT = 100;
 
+class ResendError extends Error {
+  constructor(
+    readonly status: number,
+    message: string,
+  ) {
+    super(message);
+  }
+}
+
 @Injectable()
 export class EmailRepository {
   constructor(private logger: LoggerRepository) {}
@@ -50,16 +59,24 @@ export class EmailRepository {
     const results: EmailSendResult[] = [];
     for (let offset = 0; offset < messages.length; offset += BATCH_LIMIT) {
       const chunk = messages.slice(offset, offset + BATCH_LIMIT);
-      const { data } = batchResponseSchema.parse(
-        await this.request(
-          '/emails/batch',
-          chunk.map((message) => toResendMessage(message)),
-        ),
-      );
-      if (data.length !== chunk.length) {
-        throw new Error(`Resend queued ${data.length} of ${chunk.length} batched emails`);
+      try {
+        const { data } = batchResponseSchema.parse(
+          await this.request(
+            '/emails/batch',
+            chunk.map((message) => toResendMessage(message)),
+          ),
+        );
+        if (data.length !== chunk.length) {
+          throw new Error(`Resend queued ${data.length} of ${chunk.length} batched emails`);
+        }
+        results.push(...chunk.map((message, i) => ({ to: message.to, errorCode: 0, message: data[i]!.id })));
+      } catch (error) {
+        // Earlier chunks are already queued: report only this chunk as failed
+        // rather than throwing their results away, so a retry doesn't resend them.
+        this.logger.error(error, `Resend rejected a batch of ${chunk.length} emails`);
+        const errorCode = error instanceof ResendError ? error.status : 1;
+        results.push(...chunk.map((message) => ({ to: message.to, errorCode, message: `${error}` })));
       }
-      results.push(...chunk.map((message, i) => ({ to: message.to, errorCode: 0, message: data[i]!.id })));
     }
     return results;
   }
@@ -82,7 +99,10 @@ export class EmailRepository {
       body: JSON.stringify(body),
     });
     if (!response.ok) {
-      throw new Error(`Resend ${path} failed: ${response.status} ${response.statusText} — ${await response.text()}`);
+      throw new ResendError(
+        response.status,
+        `Resend ${path} failed: ${response.status} ${response.statusText} — ${await response.text()}`,
+      );
     }
     return response.json();
   }
