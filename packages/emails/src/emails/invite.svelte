@@ -14,8 +14,11 @@
   </Text>
   <Text>
     During the beta, all support requests must go to Immich's Discord
-    <Link href="https://discord.immich.app/">https://discord.immich.app/</Link> in the FUTO Backups #general/#customer/#support
-    channels. For setup instructions and documentation, please see
+    <Link href="https://discord.immich.app/">https://discord.immich.app/</Link> in the FUTO Backups
+    <Link href="https://discord.com/channels/979116623879368755/1544327852433088562">#general</Link>,
+    <Link href="https://discord.com/channels/979116623879368755/1544327851359084654">#customer</Link> or
+    <Link href="https://discord.com/channels/979116623879368755/1544327850297921586">#support</Link> channels. For setup instructions
+    and documentation, please see
     <Link href="https://docs.futo.cloud/">https://docs.futo.cloud/</Link>. It's important to note that the beta requires
     you to run a non-tagged version of Immich, but we keep it up to date with the latest releases. We aim to get this
     merged and tagged as soon as possible.
