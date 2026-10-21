@@ -1,5 +1,18 @@
 # Changelog
 
+## [1.3.0](https://github.com/futo-org/backups/compare/v1.2.1...v1.3.0) (2026-10-21)
+
+
+### Features
+
+* **docs:** terms of service and privacy policy ([#20](https://github.com/futo-org/backups/issues/20)) ([b19cf21](https://github.com/futo-org/backups/commit/b19cf217b67f6b74f3c2394a08c7f8a445e7663a))
+* **email:** send through resend instead of postmark ([#23](https://github.com/futo-org/backups/issues/23)) ([6628ee2](https://github.com/futo-org/backups/commit/6628ee211af433ccfdb55ddabf1e56120cbc011b))
+
+
+### Bug Fixes
+
+* **docs:** deploy production to the prod pages branch ([#21](https://github.com/futo-org/backups/issues/21)) ([cae3120](https://github.com/futo-org/backups/commit/cae3120b8fae2fa1a46b8b6e96a03e0f955cf28c))
+
 ## [1.2.1](https://github.com/futo-org/backups/compare/v1.2.0...v1.2.1) (2026-10-21)
 
 
