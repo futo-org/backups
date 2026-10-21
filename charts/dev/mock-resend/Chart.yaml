@@ -1,6 +1,6 @@
 apiVersion: v2
-name: mock-postmark
-description: Mock Postmark API for local dev (homegrown packages/mock-postmark-provider)
+name: mock-resend
+description: Mock Resend API for local dev (homegrown packages/mock-resend-provider)
 type: application
 version: 0.1.0
 appVersion: "0.0.1"

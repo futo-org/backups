@@ -65,7 +65,7 @@ jobs:
       - name: Require every Dockerfile to carry a filter
         run: |
           covered='yucca-api yucca-admin-api yucca-metrics-worker futo-backups-bot web standalone-app michael columbo restic-proxy'
-          excluded='mock-oidc-provider mock-postmark-provider'
+          excluded='mock-oidc-provider mock-resend-provider'
           # Apps with no Deploy leg, delivered by the release-event workflows.
           publish_only='standalone-app restic-proxy'
           deploy_apps="$(yq '.jobs.build.strategy.matrix.app[].package' .github/workflows/deploy.yml | tr '\n' ' ')"

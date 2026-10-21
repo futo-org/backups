@@ -2,13 +2,13 @@
 apiVersion: helm.toolkit.fluxcd.io/v2
 kind: HelmRelease
 metadata:
-  name: yucca-mock-postmark
+  name: yucca-mock-resend
   namespace: yucca
 spec:
   interval: 1h
   chart:
     spec:
-      chart: charts/dev/mock-postmark
+      chart: charts/dev/mock-resend
       sourceRef:
         kind: GitRepository
         name: yucca
@@ -20,9 +20,9 @@ spec:
     remediation:
       retries: 3
   values:
-    # DEV ONLY. Prod points POSTMARK_API_URL at the real Postmark instead of
+    # DEV ONLY. Prod leaves RESEND_API_URL at the real Resend API instead of
     # deploying this mock.
-    fullnameOverride: yucca-mock-postmark
+    fullnameOverride: yucca-mock-resend
     image:
-      repository: ghcr.io/futo-org/backups/mock-postmark
+      repository: ghcr.io/futo-org/backups/mock-resend
       tag: 0.0.1

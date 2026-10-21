@@ -20,6 +20,6 @@ spec:
     remediation:
       retries: 3
   values:
-    # DEV ONLY. Prod sends through the real Postmark — there is nothing to
+    # DEV ONLY. Prod sends through the real Resend — there is nothing to
     # deploy there; this inbox exists so dev/e2e can read what was sent.
     fullnameOverride: yucca-mailpit

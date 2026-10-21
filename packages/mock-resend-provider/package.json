@@ -1,7 +1,7 @@
 {
-  "name": "mock-postmark-provider",
+  "name": "mock-resend-provider",
   "version": "0.30.1",
-  "description": "In-repo Postmark API mock for dev and e2e tests, delivering into Mailpit",
+  "description": "In-repo Resend API mock for dev and e2e tests, delivering into Mailpit",
   "private": true,
   "license": "UNLICENSED",
   "type": "module",
