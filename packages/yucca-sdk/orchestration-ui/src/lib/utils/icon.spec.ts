@@ -8,6 +8,8 @@ describe('toIconPath', () => {
   });
 
   it('returns an empty path when the svg has no path', () => {
-    expect(toIconPath('<svg xmlns="http://www.w3.org/2000/svg"></svg>')).toBe('');
+    expect(toIconPath('<svg xmlns="http://www.w3.org/2000/svg"></svg>')).toBe(
+      '',
+    );
   });
 });
