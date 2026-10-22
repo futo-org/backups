@@ -199,7 +199,11 @@ func (p *Pool) process(ctx context.Context, inv agent.Investigation) {
 	defer cancel()
 	logger.Info().Str("audit", "ticket_start").Str("description", inv.Description).Msg("columbo audit: ticket investigation start")
 
-	investigate, reason, err := p.runner.Triage(ctx, inv)
+	investigate, reason := true, "requested by support staff"
+	var err error
+	if inv.RequestedBy == "" {
+		investigate, reason, err = p.runner.Triage(ctx, inv)
+	}
 	if err != nil {
 		logger.Error().Err(err).Msg("triage failed")
 		p.Metrics.Record(context.WithoutCancel(ctx), "ticket", "triage_failed", agent.Outcome{})

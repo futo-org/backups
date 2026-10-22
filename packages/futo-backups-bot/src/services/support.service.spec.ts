@@ -227,10 +227,12 @@ describe(SupportService.name, () => {
       expect(mocks.discord.createStaffThread).toHaveBeenCalledWith(
         expect.stringMatching(/^staff-someone-6789-/),
         expect.stringContaining('someone@example.test'),
+        expect.any(Array),
       );
       expect(mocks.discord.createStaffThread).toHaveBeenCalledWith(
         expect.stringMatching(/^staff-someone-6789-/),
         expect.stringContaining('/d/yucca-per-user?var-user=user-1'),
+        expect.any(Array),
       );
       expect((interaction as { deferReply: jest.Mock }).deferReply).toHaveBeenCalled();
       expect((interaction as { editReply: jest.Mock }).editReply).toHaveBeenCalledWith(
@@ -312,6 +314,7 @@ describe(SupportService.name, () => {
       expect(mocks.discord.createStaffThread).toHaveBeenCalledWith(
         expect.stringMatching(/^staff-guest-5000-/),
         expect.stringContaining('No linked FUTO Backups account'),
+        expect.any(Array),
       );
       expect((interaction as { editReply: jest.Mock }).editReply).toHaveBeenCalledWith(
         expect.objectContaining({ content: expect.stringContaining('thread-9') }),

@@ -119,7 +119,7 @@ type gatedPool struct {
 func (g *gatedPool) Enqueue(inv agent.Investigation) bool {
 	if !g.enabled {
 		log.Info().Str("staffThreadId", inv.StaffThreadID).Msg("dropping investigation request (no API key)")
-		return true
+		return inv.RequestedBy == ""
 	}
 	return g.Pool.Enqueue(inv)
 }

@@ -90,6 +90,12 @@ captions; failed downloads are retried. The attachment limits are 18 MiB per
 Freshdesk conversation and 8 MiB per file sent to Discord, where oversized files
 are linked instead.
 
+Staff can use `/investigate prompt:<instructions>` in a staff-notes thread, or
+click **Ask Columbo again** to enter an optional prompt. Retries include the
+original issue and recent ticket messages, including mirrored email replies,
+and bypass automatic triage. Set `COLUMBO_URL` and the shared `INTERNAL_SECRET`
+to connect the bot to Columbo.
+
 ## License
 
 [Source First License 1.1](./LICENSE).

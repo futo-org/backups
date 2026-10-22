@@ -17,11 +17,15 @@ import {
   TextChannel,
   ThreadChannel,
 } from 'discord.js';
+import { ComponentId } from 'src/enum.js';
 import { env } from 'src/env.js';
+import { Messages } from 'src/messages.js';
 import { TranscriptMessage } from 'src/utils/transcript.js';
 
 const THREAD_AUTO_ARCHIVE_MINUTES = 10_080;
 const CANNOT_MESSAGE_USER = 50_007;
+
+export type TicketOpening = { discordUserId: string; description: string };
 
 export class TicketAttachmentPermissionError extends Error {
   override name = TicketAttachmentPermissionError.name;
@@ -71,6 +75,13 @@ export class DiscordRepository {
       new SlashCommandBuilder()
         .setName('staff-notes')
         .setDescription("Link this ticket's staff-notes thread (staff only)")
+        .toJSON(),
+      new SlashCommandBuilder()
+        .setName('investigate')
+        .setDescription('Ask Columbo to investigate again from a staff-notes thread (staff only)')
+        .addStringOption((option) =>
+          option.setName('prompt').setDescription('Additional instructions for this investigation').setMaxLength(2000),
+        )
         .toJSON(),
       new SlashCommandBuilder()
         .setName('claim-backups-role')
@@ -241,7 +252,11 @@ export class DiscordRepository {
     );
   }
 
-  async createStaffThread(name: string, content: string): Promise<{ thread: ThreadChannel; seed: Message }> {
+  async createStaffThread(
+    name: string,
+    content: string,
+    components: MessageCreateOptions['components'] = [],
+  ): Promise<{ thread: ThreadChannel; seed: Message }> {
     const channel = await this.supportChannel();
     const thread = await channel.threads.create({
       name,
@@ -249,8 +264,43 @@ export class DiscordRepository {
       invitable: false,
       autoArchiveDuration: THREAD_AUTO_ARCHIVE_MINUTES,
     });
-    const seed = await thread.send(content);
+    const seed = await thread.send({
+      content,
+      components,
+      allowedMentions: { roles: [env.DISCORD_STAFF_ROLE_ID], users: [], parse: [] },
+    });
     return { thread, seed };
+  }
+
+  async getTicketOpening(threadId: string): Promise<TicketOpening | null> {
+    const thread = await this.getThreadById(threadId);
+    const messages = await thread.messages.fetch({ after: '0', limit: 100 });
+    for (const message of messages.values()) {
+      if (
+        message.author.id !== this.requireClient().user?.id ||
+        !message.components.some(
+          (row) =>
+            'components' in row &&
+            row.components.some(
+              (component) => 'customId' in component && component.customId === ComponentId.CloseTicket,
+            ),
+        )
+      ) {
+        continue;
+      }
+      const discordUserId = message.content.match(/<@!?(\d+)>/)?.[1];
+      const description = message.embeds.find((embed) => embed.title === Messages.ticketEmbedTitle)?.description;
+      if (discordUserId && description) {
+        return { discordUserId, description };
+      }
+    }
+    return null;
+  }
+
+  async listThreadMessages(threadId: string, limit = 50): Promise<Message[]> {
+    const thread = await this.getThreadById(threadId);
+    const messages = await thread.messages.fetch({ limit });
+    return [...messages.values()].toSorted((a, b) => a.createdTimestamp - b.createdTimestamp);
   }
 
   async getThreadById(threadId: string): Promise<AnyThreadChannel> {
