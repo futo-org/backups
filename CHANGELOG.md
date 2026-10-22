@@ -1,5 +1,22 @@
 # Changelog
 
+## [1.8.0](https://github.com/futo-org/backups/compare/v1.7.0...v1.8.0) (2026-10-22)
+
+
+### Features
+
+* **columbo:** delayed ticket context ([#52](https://github.com/futo-org/backups/issues/52)) ([97179cb](https://github.com/futo-org/backups/commit/97179cb36eb417b722ab9750f64624c08660216b))
+* **columbo:** repository source tools ([#47](https://github.com/futo-org/backups/issues/47)) ([f287a9f](https://github.com/futo-org/backups/commit/f287a9fdeeb318acbcfe9feacacfbd97b1ca1da8))
+* **futo-backups-bot:** live invite availability ([#50](https://github.com/futo-org/backups/issues/50)) ([fd5229f](https://github.com/futo-org/backups/commit/fd5229f08d230faf33f8ba9fcea16d579200153a))
+* **futo-backups-bot:** repeat investigations ([#46](https://github.com/futo-org/backups/issues/46)) ([de5f249](https://github.com/futo-org/backups/commit/de5f2491ba47b3ae675bc9a79d063a4e9c13a518))
+* **futo-backups-bot:** ticket version context ([#48](https://github.com/futo-org/backups/issues/48)) ([da23448](https://github.com/futo-org/backups/commit/da23448490cdc297d25145ef33b858583d53ab17))
+
+
+### Bug Fixes
+
+* **futo-backups-bot:** ticket attachments ([#45](https://github.com/futo-org/backups/issues/45)) ([99ee29c](https://github.com/futo-org/backups/commit/99ee29c91b71ecf82c057eb51f502cf56ae51b3b))
+* **yucca-api:** expired invite reservations ([#49](https://github.com/futo-org/backups/issues/49)) ([8fcd554](https://github.com/futo-org/backups/commit/8fcd55433cc5f52ff635fc55c456ebfa3f252e5f))
+
 ## [1.7.0](https://github.com/futo-org/backups/compare/v1.6.0...v1.7.0) (2026-10-22)
 
 
