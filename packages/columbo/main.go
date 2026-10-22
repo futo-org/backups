@@ -17,6 +17,7 @@ import (
 	"columbo/internal/config"
 	"columbo/internal/metrics"
 	"columbo/internal/server"
+	"columbo/internal/source"
 	"columbo/internal/version"
 	"columbo/internal/worker"
 
@@ -48,6 +49,10 @@ func main() {
 		log.Warn().Msg("OPENROUTER_API_KEY is unset — investigation requests will be accepted and dropped")
 	}
 
+	repository, err := source.Embedded()
+	if err != nil {
+		log.Fatal().Err(err).Msg("failed to open embedded Git repository")
+	}
 	runner := agent.NewRunner(agent.Config{
 		OpenRouterURL:     cfg.OpenRouterURL,
 		APIKey:            cfg.OpenRouterAPIKey,
@@ -59,6 +64,7 @@ func main() {
 		ToolResultBytes:   cfg.ToolResultBytes,
 		ModelCallTimeout:  cfg.ModelCallTimeout,
 		ModelCallAttempts: cfg.ModelCallAttempts,
+		Source:            repository,
 	})
 	recorder, err := metrics.Setup(cfg.OTLPMetricsEndpoint, cfg.OTLPMetricsURLPath, cfg.OTLPMetricsInterval)
 	if err != nil {
