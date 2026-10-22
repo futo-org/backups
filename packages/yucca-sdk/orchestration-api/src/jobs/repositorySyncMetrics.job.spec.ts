@@ -14,8 +14,10 @@ describe(RepositorySyncMetricsJob.name, () => {
     };
     const job = new RepositorySyncMetricsJob(repositoryService as never);
 
-    await job.run({ repositoryId: 'repository-1' });
+    const signal = new AbortController().signal;
 
-    expect(repositoryService.updateLocalMetrics).toHaveBeenCalledWith('repository-1', { resticParameters });
+    await job.run({ repositoryId: 'repository-1' }, { signal } as never);
+
+    expect(repositoryService.updateLocalMetrics).toHaveBeenCalledWith('repository-1', { resticParameters, signal });
   });
 });
