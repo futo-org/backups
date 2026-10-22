@@ -23,6 +23,11 @@ export const newDiscordRepositoryMock = (): jest.Mocked<RepositoryInterface<Disc
     enabled: true,
     start: jest.fn(),
     registerCommands: jest.fn(),
+    ensureTicketAttachmentPermissions: jest
+      .fn<DiscordRepository['ensureTicketAttachmentPermissions']>()
+      .mockResolvedValue(),
+    canSendTicketAttachments: jest.fn<DiscordRepository['canSendTicketAttachments']>().mockResolvedValue(true),
+
     ensurePinnedMessage: jest.fn(),
     addRoleToMember: jest.fn(),
     listRecentMessages: jest.fn().mockResolvedValue([]),

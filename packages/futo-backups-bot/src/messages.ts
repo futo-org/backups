@@ -15,6 +15,9 @@ export const Messages = {
   ticketModalTitle: 'Get support',
   ticketModalLabel: 'Describe your issue',
   ticketEmbedTitle: 'Support ticket',
+  ticketAttachmentsUnavailable:
+    'Discord is blocking file attachments in this ticket. Please let our staff know so they can enable Attach Files in the support channel. You can still send text messages.',
+
   ticketOpenedByStaff: (staffId: string) => `Opened by staff (<@${staffId}>).`,
   ticketReady: (threadId: string) => `Your ticket is ready: <#${threadId}>`,
   ticketReadyStaff: (threadId: string) => `Ticket ready: <#${threadId}>`,

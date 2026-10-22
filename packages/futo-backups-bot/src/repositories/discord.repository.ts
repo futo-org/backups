@@ -11,6 +11,8 @@ import {
   Message,
   MessageCreateOptions,
   MessageEditOptions,
+  OverwriteType,
+  PermissionFlagsBits,
   SlashCommandBuilder,
   TextChannel,
   ThreadChannel,
@@ -20,6 +22,10 @@ import { TranscriptMessage } from 'src/utils/transcript.js';
 
 const THREAD_AUTO_ARCHIVE_MINUTES = 10_080;
 const CANNOT_MESSAGE_USER = 50_007;
+
+export class TicketAttachmentPermissionError extends Error {
+  override name = TicketAttachmentPermissionError.name;
+}
 
 @Injectable()
 export class DiscordRepository {
@@ -181,6 +187,58 @@ export class DiscordRepository {
     });
     await thread.members.add(discordUserId);
     return thread;
+  }
+
+  async ensureTicketAttachmentPermissions(): Promise<void> {
+    const channel = await this.supportChannel();
+    const roleIds = [
+      ...new Set([channel.guild.id, env.DISCORD_CUSTOMER_ROLE_ID, env.DISCORD_STAFF_ROLE_ID].filter(Boolean)),
+    ];
+    const missingRoleIds = roleIds.filter(
+      (roleId) => !channel.permissionsFor(roleId)?.has(PermissionFlagsBits.AttachFiles),
+    );
+    if (missingRoleIds.length === 0) {
+      return;
+    }
+
+    const message = `Allow Attach Files in support channel ${channel.id} for @everyone and the configured customer/staff roles, or grant the bot Manage Roles there to configure it automatically.`;
+    try {
+      const bot = await channel.guild.members.fetchMe();
+      if (!channel.permissionsFor(bot)?.has(PermissionFlagsBits.ManageRoles)) {
+        throw new TicketAttachmentPermissionError(message);
+      }
+
+      for (const roleId of missingRoleIds) {
+        await channel.permissionOverwrites.edit(
+          roleId,
+          { AttachFiles: true },
+          { type: OverwriteType.Role, reason: 'Enable attachments in support ticket threads' },
+        );
+      }
+      await channel.fetch(true);
+    } catch (error) {
+      const failure =
+        error instanceof TicketAttachmentPermissionError
+          ? error
+          : new TicketAttachmentPermissionError(message, { cause: error });
+      this.logger.warn(failure, 'could not enable support ticket attachments');
+      throw failure;
+    }
+  }
+
+  async canSendTicketAttachments(discordUserId: string): Promise<boolean> {
+    const cached = await this.supportChannel();
+    const channel = await cached.fetch(true);
+    const member = await channel.guild.members.fetch({ user: discordUserId, force: true });
+    return (
+      channel
+        .permissionsFor(member)
+        ?.has([
+          PermissionFlagsBits.ViewChannel,
+          PermissionFlagsBits.SendMessagesInThreads,
+          PermissionFlagsBits.AttachFiles,
+        ]) ?? false
+    );
   }
 
   async createStaffThread(name: string, content: string): Promise<{ thread: ThreadChannel; seed: Message }> {

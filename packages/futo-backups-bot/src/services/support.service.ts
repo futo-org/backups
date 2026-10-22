@@ -74,6 +74,9 @@ export class SupportService implements OnApplicationBootstrap {
     } catch (error) {
       this.logger.error(error, 'failed to register slash commands — is the applications.commands scope granted?');
     }
+    await this.discord
+      .ensureTicketAttachmentPermissions()
+      .catch((error: unknown) => this.logger.warn(error, 'ticket attachment permissions need staff attention'));
     await this.discord.ensurePinnedMessage(
       env.DISCORD_SUPPORT_CHANNEL_ID,
       {
@@ -359,6 +362,14 @@ export class SupportService implements OnApplicationBootstrap {
       embeds: [new EmbedBuilder().setTitle(Messages.ticketEmbedTitle).setDescription(description)],
       components: [this.buttonRow(ComponentId.CloseTicket, Messages.closeTicketButton, ButtonStyle.Danger)],
     });
+
+    const attachmentsAvailable = await this.discord.canSendTicketAttachments(user.id).catch((error: unknown) => {
+      this.logger.warn(error, 'could not check ticket attachment permissions');
+      return false;
+    });
+    if (!attachmentsAvailable) {
+      await thread.send({ content: Messages.ticketAttachmentsUnavailable, allowedMentions: { parse: [] } });
+    }
 
     const link = await this.api.getLink(user.id).catch((error: unknown) => {
       this.logger.error(error, 'failed to look up link for staff note');
