@@ -75,7 +75,9 @@ func main() {
 		log.Info().Str("endpoint", cfg.OTLPMetricsEndpoint).Msg("OpenTelemetry metrics enabled")
 	}
 
-	pool := worker.NewPool(runner, bot.NewClient(cfg.BotURL, cfg.InternalSecret), cfg.InvestigationTimeout, cfg.Workers)
+	pool := worker.NewPool(runner, bot.NewClient(cfg.BotURL, cfg.InternalSecret), cfg.InvestigationTimeout, cfg.Workers, worker.Options{
+		TicketQuietPeriod: cfg.TicketQuietPeriod, FetchTicketContext: true,
+	})
 	pool.GrafanaURL = cfg.GrafanaURL
 	pool.Metrics = recorder
 

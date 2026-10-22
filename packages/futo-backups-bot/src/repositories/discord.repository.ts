@@ -21,6 +21,12 @@ import {
 import { ComponentId } from 'src/enum.js';
 import { env } from 'src/env.js';
 import { Messages } from 'src/messages.js';
+import {
+  TICKET_CONTEXT_MESSAGE_LIMIT,
+  TicketContext,
+  boundTicketContext,
+  mapTicketMessages,
+} from 'src/utils/ticketContext.js';
 import { TranscriptMessage } from 'src/utils/transcript.js';
 
 const THREAD_AUTO_ARCHIVE_MINUTES = 10_080;
@@ -29,6 +35,8 @@ const MISSING_PERMISSIONS = 50_013;
 const MAX_MESSAGE_LENGTH = 2000;
 const LOW_SURROGATE_START = 0xdc_00;
 const LOW_SURROGATE_END = 0xdf_ff;
+const TICKET_CONTEXT_SCAN_LIMIT = 500;
+const MESSAGE_FETCH_LIMIT = 100;
 
 export type TicketOpening = { discordUserId: string; description: string };
 
@@ -343,9 +351,62 @@ export class DiscordRepository {
     return [...messages.values()].toSorted((a, b) => a.createdTimestamp - b.createdTimestamp);
   }
 
-  async getThreadById(threadId: string): Promise<AnyThreadChannel> {
+  async getTicketContext(threadId: string): Promise<TicketContext | null> {
+    if (!this.client?.user) {
+      return null;
+    }
+    try {
+      const thread = await this.getThreadById(threadId, true);
+      if (
+        thread.guildId !== env.DISCORD_GUILD_ID ||
+        thread.parentId !== env.DISCORD_SUPPORT_CHANNEL_ID ||
+        !thread.name.startsWith('ticket-')
+      ) {
+        return null;
+      }
+      const opening = await this.getTicketOpening(threadId);
+      if (!opening) {
+        return null;
+      }
+      const raw: Message[] = [];
+      let messages = [] as ReturnType<typeof mapTicketMessages>;
+      let before: string | undefined;
+      while (raw.length < TICKET_CONTEXT_SCAN_LIMIT) {
+        const batch = await thread.messages.fetch({ limit: MESSAGE_FETCH_LIMIT, ...(before ? { before } : {}) });
+        const descending = [...batch.values()].toSorted((a, b) => b.createdTimestamp - a.createdTimestamp);
+        raw.push(...descending);
+        messages = mapTicketMessages(raw, this.client.user.id);
+        if (messages.length >= TICKET_CONTEXT_MESSAGE_LIMIT || batch.size < MESSAGE_FETCH_LIMIT) {
+          break;
+        }
+        const oldest = descending.at(-1)?.id;
+        if (!oldest || oldest === before) {
+          break;
+        }
+        before = oldest;
+      }
+      return boundTicketContext({
+        ticketThreadId: thread.id,
+        discordUserId: opening.discordUserId,
+        closed: thread.locked || false,
+        messages,
+      });
+    } catch (error) {
+      if (
+        error instanceof TypeError ||
+        (error instanceof DiscordAPIError && (Number(error.status) === 403 || Number(error.status) === 404))
+      ) {
+        return null;
+      }
+      throw error;
+    }
+  }
+
+  async getThreadById(threadId: string, force = false): Promise<AnyThreadChannel> {
     const guild = await this.guild();
-    const channel = await guild.channels.fetch(threadId);
+    const channel = force
+      ? await guild.channels.fetch(threadId, { force: true })
+      : await guild.channels.fetch(threadId);
     if (!channel?.isThread()) {
       throw new TypeError(`Channel ${threadId} is not a thread`);
     }

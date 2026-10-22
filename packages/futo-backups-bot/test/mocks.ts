@@ -36,6 +36,7 @@ export const newDiscordRepositoryMock = (): jest.Mocked<RepositoryInterface<Disc
     createTicketThread: jest.fn(),
     createStaffThread: jest.fn().mockResolvedValue({ thread: { id: 'staff-thread-1' }, seed: { id: 'staff-seed-1' } }),
     getTicketOpening: jest.fn<DiscordRepository['getTicketOpening']>().mockResolvedValue(null),
+    getTicketContext: jest.fn<DiscordRepository['getTicketContext']>().mockResolvedValue(null),
     listThreadMessages: jest.fn<DiscordRepository['listThreadMessages']>().mockResolvedValue([]),
     getThreadById: jest.fn(),
     sendToThread: jest.fn().mockResolvedValue(void 0),
@@ -101,6 +102,7 @@ export const newColumboRepositoryMock = (): jest.Mocked<RepositoryInterface<Colu
   return {
     enabled: true,
     requestInvestigation: jest.fn().mockResolvedValue(void 0),
+    notifyTicketActivity: jest.fn<ColumboRepository['notifyTicketActivity']>().mockResolvedValue(),
     getVersions: jest
       .fn<ColumboRepository['getVersions']>()
       .mockResolvedValue({ versions: [], unavailableSources: [] }),

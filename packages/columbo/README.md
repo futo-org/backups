@@ -21,3 +21,23 @@ cd packages/columbo
 go run ./cmd/embed-repository -repo ../..
 go build -o ../../dist/columbo .
 ```
+
+## Initial ticket context
+
+`COLUMBO_TICKET_QUIET_SECONDS` defaults to `60`; `0` disables the delay. Customer messages reset the timer while the initial investigation is pending. Waiting does not occupy an investigation worker. Once context fetching starts, new activity cannot cancel, restart, or schedule another automatic investigation. Staff requests run immediately and fetch the latest context.
+
+Before triage, Columbo reads the latest 50 eligible ticket messages from the authenticated bot endpoint and checks the ticket identity and closed state. Unavailable context is retried three times, then reported to staff for a manual retry. Pending jobs and recently completed ticket IDs are bounded in-memory state; they do not survive a process restart.
+
+Attachments are fetched only from canonical HTTPS Discord CDN attachment URLs, with every redirect checked. Limits are six files, 2 MiB per file, 6 MiB downloaded total, 32 KiB of text per file, 96 KiB of attachment text total, and three images. Text logs, JSON, and scripts are read as data. Supported image bytes are sent inline; a model without image support gets text with an explicit inspection limitation. Other binary formats, archives, unsafe URLs, and over-limit files produce omission notices. No files are extracted, executed, or passed to a shell.
+
+## Built-artifact test
+
+The opt-in test runs the actual container with a 256 MiB memory limit and local bot, telemetry, model, and HTTPS CDN fixtures. It checks the default minute of inactivity, a timer reset, a script attachment read without execution, exact Git versions, arbitrary commit reads, search, comparisons, history, and unavailable-version handling. It mounts only a public test CA; the repository comes from the binary.
+
+```sh
+docker build -f packages/columbo/Dockerfile -t columbo-support-context:e2e .
+cd packages/columbo
+COLUMBO_E2E_IMAGE=columbo-support-context:e2e go test -v ./e2e -run TestBuiltArtifact -count=1 -timeout=4m
+```
+
+`COLUMBO_E2E_BINARY` can select a native binary instead. `COLUMBO_E2E_QUIET_SECONDS` shortens the test delay for iteration; leave it unset to verify the production default.

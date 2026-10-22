@@ -126,6 +126,18 @@ describe('staff investigations', () => {
     );
   });
 
+  it('queues a manual retry for an auto-archived unlocked ticket', async () => {
+    mocks.discord.findSupportThreadByName.mockResolvedValue(
+      asThread({ id: 'ticket-1', archived: true, locked: false }) as never,
+    );
+
+    await sut.handleInteraction(newInteraction('command'));
+
+    expect(mocks.columbo.requestInvestigation).toHaveBeenCalledWith(
+      expect.objectContaining({ ticketThreadId: 'ticket-1', requestedBy: 'staff-1' }),
+    );
+  });
+
   it('acknowledges a queued investigation when its staff announcement fails', async () => {
     mocks.discord.sendToThread.mockRejectedValueOnce(new Error('Discord unavailable'));
     const interaction = newInteraction('command');

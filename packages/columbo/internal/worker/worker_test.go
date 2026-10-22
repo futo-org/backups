@@ -6,6 +6,7 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"reflect"
 	"strings"
 	"testing"
 	"time"
@@ -66,7 +67,7 @@ func TestStaffRetriggerBypassesTriageAndPreservesContext(t *testing.T) {
 	}
 	select {
 	case body := <-posted:
-		if got != inv || !strings.Contains(body, "timeout confirmed") {
+		if !reflect.DeepEqual(got, inv) || !strings.Contains(body, "timeout confirmed") {
 			t.Fatalf("investigation = %+v, posted = %s", got, body)
 		}
 	case <-time.After(5 * time.Second):

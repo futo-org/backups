@@ -43,6 +43,16 @@ const newSeed = (overrides: object = {}): Message =>
     ...overrides,
   }) as never;
 
+const newThread = (overrides: object = {}) => ({
+  id: 'ticket-thread',
+  guildId: 'guild',
+  parentId: 'support-channel',
+  name: 'ticket-customer',
+  archived: false,
+  locked: false,
+  ...overrides,
+});
+
 const newPermissionContext = () => {
   const roles = new Collection<string, Role>();
   const members = new Collection<string, GuildMember>();
@@ -426,6 +436,163 @@ describe(DiscordRepository.name, () => {
 
     it('returns null when there is no original ticket message', async () => {
       expect(await sut.getTicketOpening('ticket-thread')).toBeNull();
+    });
+  });
+
+  describe('getTicketContext', () => {
+    it('recovers the original owner and includes fresh customer text and attachments', async () => {
+      jest
+        .mocked(sut.getThreadById)
+        .mockResolvedValue({ ...newThread(), messages: { fetch: mocks.fetchMessages } } as never);
+      mocks.fetchMessages.mockResolvedValueOnce(new Map([['seed', newSeed()]]));
+      mocks.fetchMessages.mockResolvedValueOnce(
+        new Map([
+          [
+            'followup',
+            {
+              id: 'followup',
+              author: { id: '1234567890', username: 'Customer', bot: false },
+              content: 'This is the new restore error',
+              createdAt: new Date('2026-10-22T12:00:00Z'),
+              createdTimestamp: 100,
+              embeds: [],
+              attachments: new Map([
+                ['image', { id: 'image', name: 'error.png', url: 'https://cdn.discordapp.com/error.png', size: 42 }],
+              ]),
+            } as never,
+          ],
+        ]),
+      );
+
+      const result = await sut.getTicketContext('ticket-thread');
+
+      expect(sut.getThreadById).toHaveBeenCalledWith('ticket-thread', true);
+      expect(result).toEqual({
+        ticketThreadId: 'ticket-thread',
+        discordUserId: '1234567890',
+        closed: false,
+        messages: [
+          {
+            id: 'followup',
+            authorId: '1234567890',
+            username: 'Customer',
+            content: 'This is the new restore error',
+            createdAt: '2026-10-22T12:00:00.000Z',
+            attachments: [{ id: 'image', name: 'error.png', url: 'https://cdn.discordapp.com/error.png', size: 42 }],
+          },
+        ],
+      });
+    });
+
+    it.each([
+      { guildId: 'another-guild' },
+      { parentId: 'another-parent' },
+      { name: 'staff-customer' },
+      { name: 'unrelated-thread' },
+    ])('rejects out-of-scope and staff threads before reading any messages', async (overrides) => {
+      jest.mocked(sut.getThreadById).mockResolvedValue(newThread(overrides) as never);
+
+      await expect(sut.getTicketContext('ticket-thread')).resolves.toBeNull();
+
+      expect(mocks.fetchMessages).not.toHaveBeenCalled();
+    });
+
+    it('rejects a thread without an original trusted ticket seed', async () => {
+      jest
+        .mocked(sut.getThreadById)
+        .mockResolvedValue({ ...newThread(), messages: { fetch: mocks.fetchMessages } } as never);
+
+      await expect(sut.getTicketContext('ticket-thread')).resolves.toBeNull();
+
+      expect(mocks.fetchMessages).toHaveBeenCalledTimes(1);
+    });
+
+    it.each([
+      { archived: true, locked: false, closed: false },
+      { archived: false, locked: true, closed: true },
+      { archived: true, locked: true, closed: true },
+    ])('reports closure for archived=$archived and locked=$locked', async ({ archived, locked, closed }) => {
+      jest
+        .mocked(sut.getThreadById)
+        .mockResolvedValue({ ...newThread({ archived, locked }), messages: { fetch: mocks.fetchMessages } } as never);
+      jest
+        .spyOn(sut, 'getTicketOpening')
+        .mockResolvedValue({ discordUserId: 'customer-1', description: 'Original issue' });
+
+      await expect(sut.getTicketContext('ticket-thread')).resolves.toEqual(
+        expect.objectContaining({ closed, messages: [] }),
+      );
+    });
+
+    it('continues past bot noise to find the latest human follow-ups', async () => {
+      jest
+        .mocked(sut.getThreadById)
+        .mockResolvedValue({ ...newThread(), messages: { fetch: mocks.fetchMessages } } as never);
+      jest
+        .spyOn(sut, 'getTicketOpening')
+        .mockResolvedValue({ discordUserId: 'customer-1', description: 'Original issue' });
+      mocks.fetchMessages.mockResolvedValueOnce(
+        new Map(
+          Array.from({ length: 100 }, (_, index) => [
+            String(index + 1),
+            {
+              id: String(index + 1),
+              author: { id: 'own-bot', bot: true },
+              content: 'Bot notice',
+              embeds: [],
+              attachments: new Map(),
+              createdAt: new Date(index * 1000),
+              createdTimestamp: index * 1000,
+            } as never,
+          ]),
+        ),
+      );
+      mocks.fetchMessages.mockResolvedValueOnce(
+        new Map([
+          [
+            'older',
+            {
+              id: 'older',
+              author: { id: 'customer-1', username: 'Customer', bot: false },
+              content: 'Human follow-up',
+              embeds: [],
+              attachments: new Map(),
+              createdAt: new Date(0),
+              createdTimestamp: 0,
+            } as never,
+          ],
+        ]),
+      );
+
+      const result = await sut.getTicketContext('ticket-thread');
+
+      expect(result?.messages.map(({ content }) => content)).toEqual(['Human follow-up']);
+      expect(mocks.fetchMessages).toHaveBeenLastCalledWith({ limit: 100, before: '1' });
+    });
+
+    it.each([
+      new TypeError('Channel is not a thread'),
+      new DiscordAPIError({ message: 'Missing Access', code: 50_001 }, 50_001, 403, 'GET', '/channels', {}),
+      new DiscordAPIError({ message: 'Unknown Channel', code: 10_003 }, 10_003, 404, 'GET', '/channels', {}),
+    ])('hides missing and inaccessible channels', async (error) => {
+      jest.mocked(sut.getThreadById).mockRejectedValueOnce(error);
+
+      await expect(sut.getTicketContext('ticket-thread')).resolves.toBeNull();
+    });
+
+    it('does not expose tickets while the Discord client is unavailable', async () => {
+      Object.assign(sut, { client: null });
+
+      await expect(sut.getTicketContext('ticket-thread')).resolves.toBeNull();
+
+      expect(sut.getThreadById).not.toHaveBeenCalled();
+    });
+
+    it('propagates transient Discord failures instead of treating them as an accessible empty ticket', async () => {
+      const error = new Error('Discord unavailable');
+      jest.mocked(sut.getThreadById).mockRejectedValueOnce(error);
+
+      await expect(sut.getTicketContext('ticket-thread')).rejects.toBe(error);
     });
   });
 
