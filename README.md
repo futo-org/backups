@@ -120,6 +120,20 @@ in their original staff message, independently of whether the LLM investigates.
 Missing versions and unavailable telemetry are reported explicitly. Columbo uses
 the same evidence when checking the affected release and later fixes.
 
+Invite-drop claims reserve a spot for ten minutes. Claiming and redeeming run
+atomically so an in-progress signup keeps its spot. Personal staff invites are
+not recycled.
+
+Expired-reservation recycling is disabled by default. First deploy the atomic
+reservation and redemption implementation to every `yucca-api` replica, keeping
+`DISCORD_INVITE_RECYCLING_ENABLED=false`. Wait until the rollout completes and
+all requests handled by old replicas have drained. Then set
+`DISCORD_INVITE_RECYCLING_ENABLED=true` on the API to revoke expired unused
+reservations and return their spots to the pool. Enabling recycling while old
+API replicas still serve requests can reclaim a signup that is in progress.
+Disable recycling and finish that configuration rollout before rolling back to
+an API version without atomic invite redemption.
+
 ## License
 
 [Source First License 1.1](./LICENSE).
