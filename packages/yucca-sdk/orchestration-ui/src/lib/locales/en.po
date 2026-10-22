@@ -2153,6 +2153,10 @@ msgid "Thumbnails and previews"
 msgstr "Thumbnails and previews"
 
 #: ../../web/src/routes/dashboard/+layout.svelte
+msgid "Toggle dark theme"
+msgstr "Toggle dark theme"
+
+#: ../../web/src/routes/dashboard/+layout.svelte
 msgid "Toggle navigation"
 msgstr "Toggle navigation"
 
