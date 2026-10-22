@@ -117,7 +117,22 @@ jobs:
           context: .
           file: packages/${{ matrix.app }}/Dockerfile
           push: false
+          load: ${{ matrix.app == 'columbo' }}
+          tags: ${{ matrix.app == 'columbo' && 'columbo-support-context:e2e' || '' }}
           cache-from: type=gha,scope=${{ matrix.app }}
+
+      - name: Set up Go for Columbo artifact test
+        if: matrix.app == 'columbo'
+        uses: jdx/mise-action@c2a87611a18de5b3828c5652fe268e992400cb5c # v4.3.0
+        with:
+          install_args: go
+
+      - name: Test built Columbo image
+        if: matrix.app == 'columbo'
+        working-directory: packages/columbo
+        env:
+          COLUMBO_E2E_IMAGE: columbo-support-context:e2e
+        run: go test -race -v ./e2e -run '^TestBuiltArtifact$' -count=1 -timeout=4m
 
   # The build legs come from a dynamic matrix, so they cannot be named in
   # branch protection, and a failed leg would otherwise not block the merge.

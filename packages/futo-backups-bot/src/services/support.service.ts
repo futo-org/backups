@@ -1,5 +1,5 @@
 import { LoggerRepository } from '@common/server/otel';
-import { BadRequestException, Injectable, OnApplicationBootstrap } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException, OnApplicationBootstrap } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import {
   ActionRowBuilder,
@@ -27,6 +27,7 @@ import { DiscordLink, UserSummary, YuccaApiRepository } from 'src/repositories/y
 import { FreshdeskSyncService } from 'src/services/freshdeskSync.service.js';
 import { InviteService } from 'src/services/invite.service.js';
 import { isStaff } from 'src/utils/staff.js';
+import { TicketContext } from 'src/utils/ticketContext.js';
 import { formatVersions } from 'src/utils/versions.js';
 
 const LINK_POLL_INTERVAL_MS = 5000;
@@ -70,7 +71,7 @@ export class SupportService implements OnApplicationBootstrap {
     }
     await this.discord.start(
       (interaction) => this.handleInteraction(interaction),
-      (message) => this.freshdeskSync.handleMessage(message),
+      (message) => this.handleMessage(message),
     );
     try {
       await this.discord.registerCommands();
@@ -88,6 +89,37 @@ export class SupportService implements OnApplicationBootstrap {
       },
       ComponentId.OpenTicket,
     );
+  }
+
+  async handleMessage(message: Message): Promise<void> {
+    const channel = message.channel;
+    if (
+      this.columbo.enabled &&
+      !message.author.bot &&
+      message.guildId === env.DISCORD_GUILD_ID &&
+      channel.isThread() &&
+      channel.parentId === env.DISCORD_SUPPORT_CHANNEL_ID &&
+      channel.name.startsWith('ticket-') &&
+      !channel.archived &&
+      !channel.locked
+    ) {
+      void this.columbo
+        .notifyTicketActivity(channel.id, { authorId: message.author.id, messageId: message.id })
+        .catch((error: unknown) => this.logger.warn(error, 'could not notify columbo of ticket activity'));
+    }
+    await this.freshdeskSync.handleMessage(message);
+  }
+
+  async getTicketContext(threadId: string): Promise<TicketContext> {
+    const context = await this.discord.getTicketContext(threadId);
+    if (!context) {
+      throw new NotFoundException('Ticket not found');
+    }
+    const mapping = env.INTERNAL_SECRET ? await this.api.getTicketByThread(threadId) : null;
+    if (mapping && (mapping.threadId !== threadId || mapping.discordUserId !== context.discordUserId)) {
+      throw new NotFoundException('Ticket not found');
+    }
+    return { ...context, closed: context.closed || Boolean(mapping?.closedAt) };
   }
 
   async handleInteraction(interaction: Interaction): Promise<void> {

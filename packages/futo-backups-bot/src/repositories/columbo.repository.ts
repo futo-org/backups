@@ -28,6 +28,8 @@ export type InvestigationRequest = {
   requestedBy?: string;
 };
 
+export type TicketActivity = { authorId: string; messageId: string };
+
 @Injectable()
 export class ColumboRepository {
   get enabled(): boolean {
@@ -63,6 +65,27 @@ export class ColumboRepository {
     });
     if (!response.ok) {
       throw new Error(`columbo investigation request failed: ${response.status} ${response.statusText}`);
+    }
+  }
+
+  async notifyTicketActivity(threadId: string, activity: TicketActivity): Promise<void> {
+    if (!this.enabled) {
+      return;
+    }
+    const response = await fetch(
+      new URL(`/internal/investigations/tickets/${encodeURIComponent(threadId)}/activity`, env.COLUMBO_URL),
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Internal-Secret': env.INTERNAL_SECRET,
+        },
+        body: JSON.stringify(activity),
+        signal: AbortSignal.timeout(5000),
+      },
+    );
+    if (!response.ok) {
+      throw new Error(`columbo ticket activity failed: ${response.status} ${response.statusText}`);
     }
   }
 }

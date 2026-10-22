@@ -8,7 +8,9 @@ import (
 	"net/http"
 
 	"columbo/internal/agent"
+	"columbo/internal/ticket"
 	"columbo/internal/worker"
+	"strconv"
 )
 
 const maxBodyBytes = 64 << 10
@@ -17,6 +19,7 @@ type Investigations interface {
 	Enqueue(inv agent.Investigation) bool
 	StartAdhoc(userID, prompt string) (string, error)
 	GetAdhoc(id string) (worker.AdhocJob, bool)
+	RecordActivity(threadID string, activity ticket.Activity)
 }
 
 type Server struct {
@@ -32,6 +35,7 @@ func New(internalSecret string, investigations Investigations) *Server {
 func (s *Server) Handler() http.Handler {
 	mux := http.NewServeMux()
 	mux.HandleFunc("POST /internal/investigations", s.guard(s.handleInvestigation))
+	mux.HandleFunc("POST /internal/investigations/tickets/{ticketThreadId}/activity", s.guard(s.handleTicketActivity))
 	mux.HandleFunc("POST /internal/investigations/adhoc", s.guard(s.handleAdhocStart))
 	mux.HandleFunc("GET /internal/investigations/adhoc/{id}", s.guard(s.handleAdhocGet))
 	mux.HandleFunc("GET /internal/users/{userId}/versions", s.guard(s.handleVersions))
@@ -116,4 +120,18 @@ func decodeBody(w http.ResponseWriter, r *http.Request, out any) bool {
 		return false
 	}
 	return true
+}
+
+func (s *Server) handleTicketActivity(w http.ResponseWriter, r *http.Request) {
+	var activity ticket.Activity
+	if !decodeBody(w, r, &activity) {
+		return
+	}
+	messageID, err := strconv.ParseUint(activity.MessageID, 10, 64)
+	if activity.AuthorID == "" || err != nil || messageID == 0 {
+		http.Error(w, "authorId and a Discord messageId are required", http.StatusBadRequest)
+		return
+	}
+	s.investigations.RecordActivity(r.PathValue("ticketThreadId"), activity)
+	w.WriteHeader(http.StatusNoContent)
 }

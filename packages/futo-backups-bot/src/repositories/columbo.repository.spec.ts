@@ -71,4 +71,30 @@ describe(ColumboRepository.name, () => {
       expect.objectContaining({ method: 'POST', body: JSON.stringify(request), signal: expect.any(AbortSignal) }),
     );
   });
+
+  it('sends bounded authenticated ticket activity without starting an investigation itself', async () => {
+    mocks.fetch.mockResolvedValue(new Response(null, { status: 204 }));
+
+    await sut.notifyTicketActivity('ticket/1', { authorId: 'customer-1', messageId: 'message-1' });
+
+    expect(mocks.fetch).toHaveBeenCalledWith(
+      new URL('http://columbo.test/internal/investigations/tickets/ticket%2F1/activity'),
+      expect.objectContaining({
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-Internal-Secret': env.INTERNAL_SECRET },
+        body: JSON.stringify({ authorId: 'customer-1', messageId: 'message-1' }),
+        signal: expect.any(AbortSignal),
+      }),
+    );
+  });
+
+  it('reports failed activity requests and skips unconfigured activity requests', async () => {
+    mocks.fetch.mockResolvedValue(new Response(null, { status: 503 }));
+    await expect(
+      sut.notifyTicketActivity('ticket-1', { authorId: 'customer-1', messageId: 'message-1' }),
+    ).rejects.toThrow('ticket activity failed: 503');
+    env.COLUMBO_URL = '';
+    await sut.notifyTicketActivity('ticket-1', { authorId: 'customer-1', messageId: 'message-1' });
+    expect(mocks.fetch).toHaveBeenCalledTimes(1);
+  });
 });

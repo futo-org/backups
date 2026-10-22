@@ -96,6 +96,13 @@ original issue and recent ticket messages, including mirrored email replies,
 and bypass automatic triage. Set `COLUMBO_URL` and the shared `INTERNAL_SECRET`
 to connect the bot to Columbo.
 
+Automatic investigations wait for one minute of ticket-owner inactivity before
+starting. Set `COLUMBO_TICKET_QUIET_SECONDS` to change the delay, or `0` to disable
+it. Follow-up messages and supported attachments are fetched before triage;
+text files and scripts are read as untrusted data, images are supplied to models
+that support them, and no attachment is executed. Once an investigation starts,
+new messages leave it running; only a manual request triggers another run.
+
 The Columbo image embeds a bare Git repository, including packfiles, build HEAD,
 release tags, and reachable commit history. CI fetches complete history for this
 image. `go-git` loads a verified, bounded copy into an isolated memory store;
