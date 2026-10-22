@@ -11,6 +11,9 @@ Immich has FUTO Backups built in. It backs up your photos and videos, your datab
 
 Before you begin, make sure you have [joined the beta](/getting-started/beta) and can sign in at [backups.futo.cloud](https://backups.futo.cloud).
 
+> [!NOTE]
+> This needs the official `immich-server` image, because you switch it to the beta build below. All-in-one (AIO) images that bundle Immich into a single container, such as some Unraid community apps, can't run the beta build, so the Immich integration isn't available on them yet. You can still join the beta with the [standalone container](/getting-started/standalone). Once backups ships in a full Immich release, AIO images that follow that release will get it too, and we'll update this page.
+
 ## 1. Switch to the beta build
 
 Set the Immich version to the backups feature branch in your Immich deployment's environment file:
