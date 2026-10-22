@@ -24,9 +24,17 @@
     merged and tagged as soon as possible.
   </Text>
   <Text>
+    To set up Immich, follow these instructions
+    <Link href="https://docs.futo.cloud/getting-started/immich">https://docs.futo.cloud/getting-started/immich</Link>.
+  </Text>
+  <Text>
     The data you back up is encrypted end-to-end with a key only you control, we can never access, see, or decrypt your
     data. While in the beta, we make no guarantee relating to data durability, integrity or service availability. We may
     at any moment wipe all data contained in our storage cluster.
+  </Text>
+  <Text>
+    The source code for FUTO Backups is available at
+    <Link href="https://github.com/futo-org/backups">https://github.com/futo-org/backups</Link>.
   </Text>
   <Text>
     We're excited to have you join and test this out with us,<br />
