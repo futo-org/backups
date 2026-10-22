@@ -27,6 +27,7 @@ import { DiscordLink, UserSummary, YuccaApiRepository } from 'src/repositories/y
 import { FreshdeskSyncService } from 'src/services/freshdeskSync.service.js';
 import { InviteService } from 'src/services/invite.service.js';
 import { isStaff } from 'src/utils/staff.js';
+import { formatVersions } from 'src/utils/versions.js';
 
 const LINK_POLL_INTERVAL_MS = 5000;
 const LINK_LOOKUP_TIMEOUT_MS = 2000;
@@ -394,7 +395,13 @@ export class SupportService implements OnApplicationBootstrap {
           return null;
         })
       : null;
-    const note = this.staffNote(link, summary);
+    const versions = link
+      ? await this.columbo.getVersions(link.userId).catch((error: unknown) => {
+          this.logger.warn(error, 'failed to fetch account versions');
+          return null;
+        })
+      : null;
+    const note = `${this.staffNote(link, summary)}\n${link ? formatVersions(versions) : Messages.versionsNoAccount}`;
     const staff = await this.discord.createStaffThread(
       `staff-${suffix}`,
       `<@&${env.DISCORD_STAFF_ROLE_ID}>\nCustomer ticket: <#${thread.id}>\n${note}`,

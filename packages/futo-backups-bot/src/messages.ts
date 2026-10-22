@@ -47,6 +47,10 @@ export const Messages = {
   investigationNoAccount: 'This ticket has no linked FUTO Backups account to investigate.',
   investigationQueued: 'Investigation queued. Columbo will post its findings in this staff thread.',
   investigationRequested: (staffId: string) => `Investigation requested by <@${staffId}>.`,
+  versionsHeader: 'Versions observed (last 30 days):',
+  versionsUnknown: 'Versions: unknown — no version telemetry found.',
+  versionsUnavailable: 'Versions: unknown — telemetry lookup unavailable.',
+  versionsNoAccount: 'Versions: unknown — no linked account.',
 
   linkIntro: 'First, link your Discord account to your FUTO Backups account. The link is valid for 10 minutes.',
   linkButton: 'Link account',

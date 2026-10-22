@@ -17,6 +17,39 @@ describe(ColumboRepository.name, () => {
     jest.restoreAllMocks();
   });
 
+  it('fetches scoped version evidence without starting an LLM investigation', async () => {
+    const result = {
+      versions: [{ component: 'orchestration-api (client)', version: '1.2.1', source: 'logs' }],
+      unavailableSources: ['metrics'],
+    };
+    mocks.fetch.mockResolvedValue(Response.json(result));
+
+    await expect(sut.getVersions('user/1')).resolves.toEqual(result);
+
+    expect(mocks.fetch).toHaveBeenCalledWith(
+      new URL('http://columbo.test/internal/users/user%2F1/versions'),
+      expect.objectContaining({
+        headers: { 'X-Internal-Secret': env.INTERNAL_SECRET },
+        signal: expect.any(AbortSignal),
+      }),
+    );
+    expect(mocks.fetch).toHaveBeenCalledTimes(1);
+  });
+
+  it('reports an unavailable version endpoint', async () => {
+    mocks.fetch.mockResolvedValue(new Response(null, { status: 503 }));
+
+    await expect(sut.getVersions('user-1')).rejects.toThrow('version lookup failed: 503');
+  });
+
+  it('skips requests when the integration is unconfigured', async () => {
+    env.COLUMBO_URL = '';
+
+    await expect(sut.getVersions('user-1')).resolves.toBeNull();
+
+    expect(mocks.fetch).not.toHaveBeenCalled();
+  });
+
   it('sends staff prompts and conversation with the retry request', async () => {
     mocks.fetch.mockResolvedValue(new Response(null, { status: 202 }));
     const request = {

@@ -99,6 +99,9 @@ export const newColumboRepositoryMock = (): jest.Mocked<RepositoryInterface<Colu
   return {
     enabled: true,
     requestInvestigation: jest.fn().mockResolvedValue(void 0),
+    getVersions: jest
+      .fn<ColumboRepository['getVersions']>()
+      .mockResolvedValue({ versions: [], unavailableSources: [] }),
   };
 };
 

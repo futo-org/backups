@@ -16,6 +16,7 @@ import (
 	"columbo/internal/bot"
 	"columbo/internal/config"
 	"columbo/internal/metrics"
+	"columbo/internal/o11y"
 	"columbo/internal/server"
 	"columbo/internal/source"
 	"columbo/internal/version"
@@ -79,8 +80,12 @@ func main() {
 	pool.Metrics = recorder
 
 	httpSrv := &http.Server{
-		Addr:    addr,
-		Handler: server.New(cfg.InternalSecret, &gatedPool{Pool: pool, enabled: enabled}).Handler(),
+		Addr: addr,
+		Handler: server.New(cfg.InternalSecret, &gatedPool{Pool: pool, enabled: enabled}).WithVersionLookup(
+			func(ctx context.Context, userID string) (o11y.VersionResult, error) {
+				return o11y.NewClient(cfg.MetricsURL, cfg.LogsURL, userID).Versions(ctx, 30*24*time.Hour), nil
+			},
+		).Handler(),
 	}
 
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)

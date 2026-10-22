@@ -22,6 +22,7 @@ type Investigations interface {
 type Server struct {
 	internalSecret string
 	investigations Investigations
+	versionLookup  VersionLookup
 }
 
 func New(internalSecret string, investigations Investigations) *Server {
@@ -33,6 +34,7 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("POST /internal/investigations", s.guard(s.handleInvestigation))
 	mux.HandleFunc("POST /internal/investigations/adhoc", s.guard(s.handleAdhocStart))
 	mux.HandleFunc("GET /internal/investigations/adhoc/{id}", s.guard(s.handleAdhocGet))
+	mux.HandleFunc("GET /internal/users/{userId}/versions", s.guard(s.handleVersions))
 	return mux
 }
 

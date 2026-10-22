@@ -2,6 +2,7 @@ import { LoggerRepository } from '@common/server/otel';
 import { Injectable } from '@nestjs/common';
 import {
   AnyThreadChannel,
+  AttachmentBuilder,
   ChannelType,
   Client,
   DiscordAPIError,
@@ -24,6 +25,10 @@ import { TranscriptMessage } from 'src/utils/transcript.js';
 
 const THREAD_AUTO_ARCHIVE_MINUTES = 10_080;
 const CANNOT_MESSAGE_USER = 50_007;
+const MISSING_PERMISSIONS = 50_013;
+const MAX_MESSAGE_LENGTH = 2000;
+const LOW_SURROGATE_START = 0xdc_00;
+const LOW_SURROGATE_END = 0xdf_ff;
 
 export type TicketOpening = { discordUserId: string; description: string };
 
@@ -264,12 +269,47 @@ export class DiscordRepository {
       invitable: false,
       autoArchiveDuration: THREAD_AUTO_ARCHIVE_MINUTES,
     });
-    const seed = await thread.send({
-      content,
-      components,
-      allowedMentions: { roles: [env.DISCORD_STAFF_ROLE_ID], users: [], parse: [] },
-    });
-    return { thread, seed };
+    try {
+      const seed = await thread.send({
+        content:
+          content.length > MAX_MESSAGE_LENGTH ? `${content.slice(0, 1900)}\nFull staff context is attached.` : content,
+        components,
+        ...(content.length > MAX_MESSAGE_LENGTH
+          ? {
+              files: [new AttachmentBuilder(Buffer.from(content), { name: 'staff-context.txt' })],
+            }
+          : {}),
+        allowedMentions: { roles: [env.DISCORD_STAFF_ROLE_ID], users: [], parse: [] },
+      });
+      return { thread, seed };
+    } catch (error) {
+      if (
+        content.length <= MAX_MESSAGE_LENGTH ||
+        !(error instanceof DiscordAPIError) ||
+        error.code !== MISSING_PERMISSIONS
+      ) {
+        throw error;
+      }
+      const chunks: string[] = [];
+      for (let start = 0; start < content.length;) {
+        let end = Math.min(start + MAX_MESSAGE_LENGTH, content.length);
+        const nextCode = content.codePointAt(end) ?? 0;
+        if (nextCode >= LOW_SURROGATE_START && nextCode <= LOW_SURROGATE_END) {
+          end--;
+        }
+        chunks.push(content.slice(start, end));
+        start = end;
+      }
+      const seed = await thread.send({
+        content: chunks[0],
+        components,
+        allowedMentions: { roles: [env.DISCORD_STAFF_ROLE_ID], users: [], parse: [] },
+      });
+      for (const chunk of chunks.slice(1)) {
+        await thread.send({ content: chunk, allowedMentions: { parse: [] } });
+      }
+      return { thread, seed };
+    }
   }
 
   async getTicketOpening(threadId: string): Promise<TicketOpening | null> {
