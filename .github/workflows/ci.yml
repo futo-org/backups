@@ -172,3 +172,11 @@ jobs:
           echo "::group::ceph cluster"; kubectl -n rook-ceph get cephcluster,cephobjectstore -o wide; echo "::endgroup::"
           echo "::group::host loop devices"; kubectl -n rook-ceph exec ds/rook-ceph-loop-device -- losetup -a || true; echo "::endgroup::"
           echo "::group::recent events"; kubectl get events -A --sort-by=.lastTimestamp | tail -80; echo "::endgroup::"
+
+      # Loop attachments outlive the cluster; a leaked one keeps the OSD image
+      # open and the runner's Ceph scratch volume can't be cleaned up.
+      - name: Detach the OSD loop device
+        if: always()
+        run: |
+          kubectl -n rook-ceph exec ds/rook-ceph-loop-device -- \
+            sh -c 'losetup -d $(losetup -j /var/lib/rook/osd-loop.img | cut -d: -f1)'
