@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.7.0](https://github.com/futo-org/backups/compare/v1.6.0...v1.7.0) (2026-10-22)
+
+
+### Features
+
+* **web:** dark mode ([#42](https://github.com/futo-org/backups/issues/42)) ([bf2bd7f](https://github.com/futo-org/backups/commit/bf2bd7fe3a2f9178b1864e83a31488cd1b327b89))
+
+
+### Bug Fixes
+
+* **michael:** return 499 when the client cancels a request ([#37](https://github.com/futo-org/backups/issues/37)) ([6d79cde](https://github.com/futo-org/backups/commit/6d79cdea286bae582c55ecfebbe3ba61ea28a7e0))
+
 ## [1.6.0](https://github.com/futo-org/backups/compare/v1.5.0...v1.6.0) (2026-10-22)
 
 
