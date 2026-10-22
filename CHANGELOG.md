@@ -1,5 +1,18 @@
 # Changelog
 
+## [1.5.0](https://github.com/futo-org/backups/compare/v1.4.0...v1.5.0) (2026-10-22)
+
+
+### Features
+
+* update to node.js 26 ([be544a9](https://github.com/futo-org/backups/commit/be544a931c98e5548f507bf204712648de8e0c92))
+
+
+### Bug Fixes
+
+* make `@immich/ui` a peer dependency & update to 0.90.0 ([#29](https://github.com/futo-org/backups/issues/29)) ([fbdcd7b](https://github.com/futo-org/backups/commit/fbdcd7b43ba00c8ec88c1b09fd2923d272e5eb3a))
+* update to node.js 26 ([#28](https://github.com/futo-org/backups/issues/28)) ([be544a9](https://github.com/futo-org/backups/commit/be544a931c98e5548f507bf204712648de8e0c92))
+
 ## [1.4.0](https://github.com/futo-org/backups/compare/v1.3.0...v1.4.0) (2026-10-21)
 
 
