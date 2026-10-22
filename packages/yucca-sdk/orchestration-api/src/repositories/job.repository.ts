@@ -223,12 +223,15 @@ export class JobRepository implements OnModuleInit, BeforeApplicationShutdown {
   }
 
   async cancel(id: string) {
+    const [cancelled] = await this.cancelQueued((eb) => eb('id', '=', id));
+    if (cancelled) {
+      return;
+    }
+
     const job = await this.find(id);
     if (!job) {
       throw new NotFoundException('Job not found');
     }
-
-    await this.cancelQueued((eb) => eb('id', '=', id));
 
     if (job.status === JobStatus.Running && !this.abort(id)) {
       this.events.publish({ type: 'JobCancel', jobId: id });
@@ -263,6 +266,8 @@ export class JobRepository implements OnModuleInit, BeforeApplicationShutdown {
 
       this.settle(job, new TaskCancelledError());
     }
+
+    return cancelled;
   }
 
   private abort(id: string) {
