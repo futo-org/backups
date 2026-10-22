@@ -78,8 +78,10 @@ export const Messages = {
     `<@${userId}> has DMs closed — pass this personal link along: ${url}`,
   inviteAlreadyLinked: (userId: string) => `<@${userId}> already has a FUTO Backups account, no invite needed.`,
   inviteUsed: (userId: string) => `<@${userId}> already used their beta invite.`,
-  inviteDrop: (limit: number, mention: string | null, creatorId: string) =>
-    `${mention ? `${mention}, ` : ''}<@${creatorId}> has opened up ${limit} spot${limit === 1 ? '' : 's'} in the FUTO Backups closed beta, first come, first served.\n\n${betaDetails}\n\nDon't click this button if you already have an invite.`,
+  inviteDrop: (limit: number, mention: string | null, creatorId: string, remaining = limit) =>
+    `${mention ? `${mention}, ` : ''}<@${creatorId}> has opened up ${limit} spot${limit === 1 ? '' : 's'} in the FUTO Backups closed beta, first come, first served.\n**${remaining} invite${remaining === 1 ? '' : 's'} remaining.**\n\n${betaDetails}\n\nDon't click this button if you already have an invite.`,
+  inviteDropEnded: (limit: number, creatorId: string) =>
+    `<@${creatorId}> opened up ${limit} spot${limit === 1 ? '' : 's'} in the FUTO Backups closed beta.\nThis invite drop has ended.`,
   inviteDropButton: 'Claim your invite',
   inviteDropClaimedButton: 'All invites claimed',
   inviteDropPosted: (limit: number, channelId: string) => `Posted ${limit} invites in <#${channelId}>.`,
