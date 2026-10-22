@@ -111,6 +111,40 @@ describe(SupportService.name, () => {
     });
   });
 
+  describe('attachment permissions', () => {
+    it('repairs support channel attachment permissions on startup', async () => {
+      await sut.onApplicationBootstrap();
+
+      expect(mocks.discord.ensureTicketAttachmentPermissions).toHaveBeenCalled();
+      expect(mocks.discord.ensurePinnedMessage).toHaveBeenCalled();
+    });
+
+    it('keeps support available when attachment permissions need a staff repair', async () => {
+      mocks.discord.ensureTicketAttachmentPermissions.mockRejectedValue(new Error('Missing Manage Roles'));
+
+      await sut.onApplicationBootstrap();
+
+      expect(mocks.logger.warn).toHaveBeenCalled();
+      expect(mocks.discord.ensurePinnedMessage).toHaveBeenCalled();
+    });
+
+    it('warns the customer visibly when Discord still blocks attachments', async () => {
+      mocks.api.getLink.mockResolvedValue(link);
+      mocks.api.getUserSummary.mockResolvedValue(summary);
+      mocks.discord.canSendTicketAttachments.mockResolvedValue(false);
+      const send = jest.fn<() => Promise<{ id: string }>>().mockResolvedValue({ id: 'seed-1' });
+      mocks.discord.createTicketThread.mockResolvedValue(asThread({ id: 'thread-1', send }));
+
+      await sut.handleInteraction(newModalInteraction('My backups are failing.'));
+
+      expect(mocks.discord.canSendTicketAttachments).toHaveBeenCalledWith('123456789');
+      expect(send).toHaveBeenCalledWith(
+        expect.objectContaining({ content: expect.stringContaining('Discord is blocking file attachments') }),
+      );
+      expect(mocks.discord.createStaffThread).toHaveBeenCalled();
+    });
+  });
+
   describe('open ticket button', () => {
     it('starts the link flow for an unlinked user', async () => {
       mocks.api.getLink.mockResolvedValue(null);

@@ -80,6 +80,16 @@ charts are published alongside under the same prefix.
 A chart's `appVersion` is the image tag it was published with, so a chart
 version alone pins the images it deploys.
 
+## Support bot
+
+`packages/futo-backups-bot` handles Discord tickets and optional Freshdesk syncing.
+Ticket setup grants Attach Files in the support channel without changing channel
+visibility or posting permissions. If a member-specific deny remains, the ticket
+shows a visible explanation. Image and log attachments retain filenames and
+captions; failed downloads are retried. The attachment limits are 18 MiB per
+Freshdesk conversation and 8 MiB per file sent to Discord, where oversized files
+are linked instead.
+
 ## License
 
 [Source First License 1.1](./LICENSE).
