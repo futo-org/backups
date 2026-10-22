@@ -8,6 +8,9 @@ export type InvestigationRequest = {
   username: string;
   userId: string;
   description: string;
+  prompt?: string;
+  conversation?: string;
+  requestedBy?: string;
 };
 
 @Injectable()
@@ -27,6 +30,7 @@ export class ColumboRepository {
         'X-Internal-Secret': env.INTERNAL_SECRET,
       },
       body: JSON.stringify(request),
+      signal: AbortSignal.timeout(5000),
     });
     if (!response.ok) {
       throw new Error(`columbo investigation request failed: ${response.status} ${response.statusText}`);

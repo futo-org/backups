@@ -17,7 +17,6 @@ export const Messages = {
   ticketEmbedTitle: 'Support ticket',
   ticketAttachmentsUnavailable:
     'Discord is blocking file attachments in this ticket. Please let our staff know so they can enable Attach Files in the support channel. You can still send text messages.',
-
   ticketOpenedByStaff: (staffId: string) => `Opened by staff (<@${staffId}>).`,
   ticketReady: (threadId: string) => `Your ticket is ready: <#${threadId}>`,
   ticketReadyStaff: (threadId: string) => `Ticket ready: <#${threadId}>`,
@@ -38,6 +37,16 @@ export const Messages = {
   staffNoteHeader: 'Staff notes, not visible to the user.',
   staffNoteNoLink: 'No linked FUTO Backups account.',
   investigationTitle: 'Columbo investigation',
+  investigateButton: 'Ask Columbo again',
+  investigationModalTitle: 'Ask Columbo to investigate',
+  investigationPromptLabel: 'What should Columbo look into?',
+  investigationStaffOnly: 'Only staff can request an investigation.',
+  investigationNotAStaffThread: 'Run this inside an open staff-notes thread.',
+  investigationUnavailable: 'Columbo is not available.',
+  investigationMissingTicket: 'The original ticket could not be found.',
+  investigationNoAccount: 'This ticket has no linked FUTO Backups account to investigate.',
+  investigationQueued: 'Investigation queued. Columbo will post its findings in this staff thread.',
+  investigationRequested: (staffId: string) => `Investigation requested by <@${staffId}>.`,
 
   linkIntro: 'First, link your Discord account to your FUTO Backups account. The link is valid for 10 minutes.',
   linkButton: 'Link account',

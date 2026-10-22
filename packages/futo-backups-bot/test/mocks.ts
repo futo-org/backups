@@ -27,7 +27,6 @@ export const newDiscordRepositoryMock = (): jest.Mocked<RepositoryInterface<Disc
       .fn<DiscordRepository['ensureTicketAttachmentPermissions']>()
       .mockResolvedValue(),
     canSendTicketAttachments: jest.fn<DiscordRepository['canSendTicketAttachments']>().mockResolvedValue(true),
-
     ensurePinnedMessage: jest.fn(),
     addRoleToMember: jest.fn(),
     listRecentMessages: jest.fn().mockResolvedValue([]),
@@ -36,6 +35,8 @@ export const newDiscordRepositoryMock = (): jest.Mocked<RepositoryInterface<Disc
     editMessage: jest.fn().mockResolvedValue(void 0),
     createTicketThread: jest.fn(),
     createStaffThread: jest.fn().mockResolvedValue({ thread: { id: 'staff-thread-1' }, seed: { id: 'staff-seed-1' } }),
+    getTicketOpening: jest.fn<DiscordRepository['getTicketOpening']>().mockResolvedValue(null),
+    listThreadMessages: jest.fn<DiscordRepository['listThreadMessages']>().mockResolvedValue([]),
     getThreadById: jest.fn(),
     sendToThread: jest.fn().mockResolvedValue(void 0),
     fetchMessagesAfter: jest.fn().mockResolvedValue([]),

@@ -1,5 +1,9 @@
 import { jest } from '@jest/globals';
 import {
+  ActionRowBuilder,
+  ButtonBuilder,
+  ButtonStyle,
+  ChannelType,
   Collection,
   Guild,
   GuildChannelOverwriteOptions,
@@ -15,7 +19,28 @@ import {
   TextChannel,
   ThreadChannel,
 } from 'discord.js';
+import { ComponentId } from 'src/enum.js';
+import { Messages } from 'src/messages.js';
 import { DiscordRepository, TicketAttachmentPermissionError } from 'src/repositories/discord.repository.js';
+
+const controlsStub = [
+  new ActionRowBuilder<ButtonBuilder>().addComponents(
+    new ButtonBuilder()
+      .setCustomId(ComponentId.Investigate)
+      .setLabel('Investigate again')
+      .setStyle(ButtonStyle.Secondary),
+  ),
+];
+
+const newSeed = (overrides: object = {}): Message =>
+  ({
+    id: 'seed',
+    author: { id: 'own-bot', bot: true },
+    content: 'Support ticket for <@1234567890>.',
+    components: [{ components: [{ customId: ComponentId.CloseTicket }] }],
+    embeds: [{ title: Messages.ticketEmbedTitle, description: 'Backups fail\nError: repository unavailable' }],
+    ...overrides,
+  }) as never;
 
 const newPermissionContext = () => {
   const roles = new Collection<string, Role>();
@@ -315,6 +340,128 @@ describe(DiscordRepository.name, () => {
       expect(await sut.canSendTicketAttachments('ticket-user')).toBe(false);
 
       expect(ctx.edit).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('getTicketOpening', () => {
+    it.each(['<@1234567890>', '<@!1234567890>'])(
+      'extracts the owner from %s and the original support description',
+      async (mention) => {
+        mocks.fetchMessages.mockResolvedValue(
+          new Map([['seed', newSeed({ content: `Support ticket for ${mention}.` })]]),
+        );
+
+        const ctx = await sut.getTicketOpening('ticket-thread');
+
+        expect(ctx).toEqual({
+          discordUserId: '1234567890',
+          description: 'Backups fail\nError: repository unavailable',
+        });
+        expect(sut.getThreadById).toHaveBeenCalledWith('ticket-thread');
+        expect(mocks.fetchMessages).toHaveBeenCalledWith({ after: '0', limit: 100 });
+      },
+    );
+
+    it.each([
+      { name: 'another bot', overrides: { author: { id: 'another-bot', bot: true } } },
+      { name: 'a user', overrides: { author: { id: '1234567890', bot: false } } },
+      { name: 'a message without controls', overrides: { components: [] } },
+      {
+        name: 'a message with unrelated controls',
+        overrides: { components: [{ components: [{ customId: ComponentId.OpenTicket }] }] },
+      },
+      {
+        name: 'an unrelated embed',
+        overrides: { embeds: [{ title: 'Another message', description: 'Not the ticket description' }] },
+      },
+      { name: 'a message without a support embed', overrides: { embeds: [] } },
+      { name: 'a support embed without a description', overrides: { embeds: [{ title: Messages.ticketEmbedTitle }] } },
+      { name: 'a message without an owner mention', overrides: { content: 'Support ticket' } },
+    ])('refuses $name as the ticket seed', async ({ overrides }) => {
+      mocks.fetchMessages.mockResolvedValue(new Map([['seed', newSeed(overrides)]]));
+
+      expect(await sut.getTicketOpening('ticket-thread')).toBeNull();
+    });
+
+    it('ignores untrusted messages before the original bot seed', async () => {
+      mocks.fetchMessages.mockResolvedValue(
+        new Map([
+          ['user', newSeed({ author: { id: '1234567890', bot: false }, content: '<@9999999999>' })],
+          ['bot', newSeed({ author: { id: 'another-bot', bot: true }, content: '<@8888888888>' })],
+          ['seed', newSeed()],
+        ]),
+      );
+
+      expect(await sut.getTicketOpening('ticket-thread')).toEqual({
+        discordUserId: '1234567890',
+        description: 'Backups fail\nError: repository unavailable',
+      });
+    });
+
+    it('requires the support embed and close control on the same seed message', async () => {
+      mocks.fetchMessages.mockResolvedValue(
+        new Map([
+          ['controls', newSeed({ embeds: [] })],
+          ['embed', newSeed({ components: [] })],
+        ]),
+      );
+
+      expect(await sut.getTicketOpening('ticket-thread')).toBeNull();
+    });
+
+    it('selects the support seed when an unrelated bot close control appears earlier', async () => {
+      mocks.fetchMessages.mockResolvedValue(
+        new Map([
+          ['unrelated', newSeed({ embeds: [{ title: 'Another message', description: 'Unrelated' }] })],
+          ['seed', newSeed()],
+        ]),
+      );
+
+      expect(await sut.getTicketOpening('ticket-thread')).toEqual({
+        discordUserId: '1234567890',
+        description: 'Backups fail\nError: repository unavailable',
+      });
+    });
+
+    it('returns null when there is no original ticket message', async () => {
+      expect(await sut.getTicketOpening('ticket-thread')).toBeNull();
+    });
+  });
+
+  describe('listThreadMessages', () => {
+    it.each([undefined, 25])('returns recent messages chronologically with limit %s', async (limit) => {
+      const ctx = {
+        messages: [
+          { id: 'latest', createdTimestamp: 300 },
+          { id: 'oldest', createdTimestamp: 100 },
+          { id: 'middle', createdTimestamp: 200 },
+        ] as Message[],
+        result: [] as Message[],
+      };
+      mocks.fetchMessages.mockResolvedValue(new Map(ctx.messages.map((message) => [message.id, message])));
+
+      ctx.result = await sut.listThreadMessages('ticket-thread', limit);
+
+      expect(ctx.result.map((message) => message.id)).toEqual(['oldest', 'middle', 'latest']);
+      expect(mocks.fetchMessages).toHaveBeenCalledWith({ limit: limit ?? 50 });
+    });
+  });
+
+  describe('createStaffThread', () => {
+    it.each(['Staff context', 'x'.repeat(2000)])('preserves short context and its staff controls', async (content) => {
+      await sut.createStaffThread('staff-customer', content, controlsStub);
+
+      expect(mocks.create).toHaveBeenCalledWith({
+        name: 'staff-customer',
+        type: ChannelType.PrivateThread,
+        invitable: false,
+        autoArchiveDuration: 10_080,
+      });
+      expect(mocks.send).toHaveBeenCalledWith({
+        content,
+        components: controlsStub,
+        allowedMentions: { roles: ['staff-role'], users: [], parse: [] },
+      });
     });
   });
 });
