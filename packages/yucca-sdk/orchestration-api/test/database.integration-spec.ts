@@ -64,6 +64,17 @@ describe('Database', () => {
     expect(await configRepository.getMasterEncryptionKey()).toBe(keyBeforeRestore);
   });
 
+  it('rejects a restore without valid database', async () => {
+    const databaseRepository = ctx.module.get(DatabaseRepository);
+    const configRepository = ctx.module.get(ConfigRepository);
+    const keyBeforeRestore = await configRepository.getMasterEncryptionKey();
+    const restoreDir = await mkdtemp(join(tmpdir(), 'yucca-restore-'));
+
+    await expect(databaseRepository.restoreFrom(join(restoreDir, 'state.sqlite3'))).rejects.toThrow();
+
+    expect(await configRepository.getMasterEncryptionKey()).toBe(keyBeforeRestore);
+  });
+
   it('correctly migrates from an older version', async () => {
     const databaseRepository = ctx.module.get(DatabaseRepository);
 
