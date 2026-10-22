@@ -5,6 +5,7 @@ import {
   ButtonStyle,
   ChannelType,
   Collection,
+  DiscordAPIError,
   Guild,
   GuildChannelOverwriteOptions,
   GuildMember,
@@ -462,6 +463,62 @@ describe(DiscordRepository.name, () => {
         components: controlsStub,
         allowedMentions: { roles: ['staff-role'], users: [], parse: [] },
       });
+    });
+
+    it('keeps the complete original version list in a file on the first staff message', async () => {
+      const ctx = {
+        content: [
+          '<@&staff-role> Ticket for <@1234567890> @everyone',
+          Messages.versionsHeader,
+          ...Array.from(
+            { length: 100 },
+            (_, index) => `• restic-proxy (client): v1.0.${index} (logs; last seen 2026-10-22T10:00:00Z)`,
+          ),
+        ].join('\n'),
+      };
+
+      await sut.createStaffThread('staff-customer', ctx.content, controlsStub);
+
+      expect(ctx.content.length).toBeGreaterThan(2000);
+      expect(mocks.send).toHaveBeenCalledTimes(1);
+      expect(mocks.send.mock.calls[0][0].content?.length).toBeLessThanOrEqual(2000);
+      expect(mocks.send.mock.calls[0][0].content).toContain('Full staff context is attached.');
+      expect(mocks.send.mock.calls[0][0].components).toBe(controlsStub);
+      expect(mocks.send.mock.calls[0][0].files).toEqual([
+        expect.objectContaining({ name: 'staff-context.txt', attachment: Buffer.from(ctx.content) }),
+      ]);
+      expect(mocks.send.mock.calls[0][0].allowedMentions).toEqual({ roles: ['staff-role'], users: [], parse: [] });
+    });
+
+    it('preserves long staff context and controls as text when attachments are denied', async () => {
+      const content = `${'x'.repeat(1999)}😺\n${Messages.versionsHeader}\n${'• client: 1.2.1 (logs)\n'.repeat(220)}`;
+      mocks.send.mockRejectedValueOnce(
+        new DiscordAPIError({ message: 'Missing Permissions', code: 50_013 }, 50_013, 403, 'POST', '/messages', {}),
+      );
+
+      const result = await sut.createStaffThread('staff-customer', content, controlsStub);
+
+      const delivered = mocks.send.mock.calls.slice(1).map(([message]) => message);
+      expect(result).toEqual({ thread: expect.objectContaining({ id: 'staff-thread' }), seed: { id: 'staff-seed' } });
+      expect(mocks.create).toHaveBeenCalledTimes(1);
+      expect(delivered.length).toBeGreaterThan(1);
+      expect(delivered.map((message) => message.content).join('')).toBe(content);
+      expect(delivered.every((message) => message.content!.length <= 2000 && !message.files)).toBe(true);
+      expect(delivered[0].components).toBe(controlsStub);
+      expect(delivered[0].content).not.toMatch(/[\uD800-\uDBFF]$/u);
+      expect(delivered.slice(1).every((message) => !message.components)).toBe(true);
+      expect(delivered.slice(1).every((message) => JSON.stringify(message.allowedMentions) === '{"parse":[]}')).toBe(
+        true,
+      );
+    });
+
+    it('propagates unrelated attachment failures without duplicating context', async () => {
+      const error = new Error('Connection interrupted');
+      mocks.send.mockRejectedValueOnce(error);
+
+      await expect(sut.createStaffThread('staff-customer', 'x'.repeat(3000), controlsStub)).rejects.toBe(error);
+
+      expect(mocks.send).toHaveBeenCalledTimes(1);
     });
   });
 });

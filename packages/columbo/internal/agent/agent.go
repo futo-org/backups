@@ -210,6 +210,12 @@ func (r *Runner) run(ctx context.Context, userID, userMessage string) (Outcome, 
 
 	userMessage += "\n\n" + availableMetricsLine(box.availableMetrics(ctx))
 	userMessage += "\n\n" + clientTelemetryBlock(box.clientTelemetry(ctx))
+	versions := box.o11y.Versions(ctx, maxLookback)
+	encodedVersions, err := json.Marshal(versions)
+	if err != nil {
+		return Outcome{}, err
+	}
+	userMessage += "\n\nVersions observed in account telemetry (last 30 days; absence means unknown):\n" + string(encodedVersions)
 	userMessage += "\n\n" + box.sourceContext()
 
 	zerolog.Ctx(ctx).Info().

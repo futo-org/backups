@@ -115,6 +115,11 @@ To build a local Columbo binary with embedded Git data:
 mise columbo:build
 ```
 
+New tickets include observed client and service versions from the last 30 days
+in their original staff message, independently of whether the LLM investigates.
+Missing versions and unavailable telemetry are reported explicitly. Columbo uses
+the same evidence when checking the affected release and later fixes.
+
 ## License
 
 [Source First License 1.1](./LICENSE).
