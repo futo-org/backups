@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.6.0](https://github.com/futo-org/backups/compare/v1.5.0...v1.6.0) (2026-10-22)
+
+
+### Features
+
+* beta details and source link in invite copy ([#31](https://github.com/futo-org/backups/issues/31)) ([0c725e2](https://github.com/futo-org/backups/commit/0c725e21779ebefd5602b095547dbe9cba20c57a))
+
 ## [1.5.0](https://github.com/futo-org/backups/compare/v1.4.0...v1.5.0) (2026-10-22)
 
 
