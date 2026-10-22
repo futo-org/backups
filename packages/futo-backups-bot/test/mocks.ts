@@ -85,6 +85,8 @@ export const newYuccaApiRepositoryMock = (): jest.Mocked<RepositoryInterface<Yuc
     updateLinkUsername: jest.fn().mockResolvedValue(void 0),
     createInviteBatch: jest.fn(),
     setInviteBatchMessage: jest.fn().mockResolvedValue(void 0),
+    getInviteBatch: jest.fn<YuccaApiRepository['getInviteBatch']>().mockResolvedValue(null),
+    listInviteBatches: jest.fn<YuccaApiRepository['listInviteBatches']>().mockResolvedValue([]),
     createInvite: jest.fn(),
     getUserSummary: jest.fn(),
     createTicketMapping: jest.fn(),

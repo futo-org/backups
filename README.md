@@ -134,6 +134,10 @@ API replicas still serve requests can reclaim a signup that is in progress.
 Disable recycling and finish that configuration rollout before rolling back to
 an API version without atomic invite redemption.
 
+Invite-drop messages show the remaining spots and refresh after claims and once
+a minute. When an unused reservation expires, a sold-out drop reopens; cancelled
+drops remain closed. Count updates do not repeat role mentions.
+
 ## License
 
 [Source First License 1.1](./LICENSE).
