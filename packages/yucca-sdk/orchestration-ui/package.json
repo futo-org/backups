@@ -42,11 +42,13 @@
     }
   },
   "peerDependencies": {
+    "@immich/ui": "^0.90.0",
     "@lingui/core": "^5.8.0",
     "svelte": "^5.0.0",
     "svelte-i18n-lingui": "^0.2.2"
   },
   "devDependencies": {
+    "@immich/ui": "catalog:",
     "@lingui/cli": "catalog:",
     "@lingui/core": "catalog:",
     "@playwright/test": "catalog:",
@@ -76,7 +78,6 @@
     "svelte"
   ],
   "dependencies": {
-    "@immich/ui": "catalog:",
     "@material-symbols/svg-400": "catalog:",
     "@mdi/js": "catalog:",
     "@oazapfts/runtime": "catalog:",

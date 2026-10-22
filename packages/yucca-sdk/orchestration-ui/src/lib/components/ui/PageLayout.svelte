@@ -56,7 +56,7 @@
                   size="small"
                   color={action.color ?? "secondary"}
                   leadingIcon={action.icon}
-                  onclick={() => action.onAction(action)}
+                  onclick={(event: MouseEvent) =>action.onAction({ action, event })}
                 >
                   {action.title}
                 </Button>
