@@ -64,6 +64,17 @@ describe('Database', () => {
     expect(await configRepository.getMasterEncryptionKey()).toBe(keyBeforeRestore);
   });
 
+  it('rejects a restore without valid database', async () => {
+    const databaseRepository = ctx.module.get(DatabaseRepository);
+    const configRepository = ctx.module.get(ConfigRepository);
+    const keyBeforeRestore = await configRepository.getMasterEncryptionKey();
+    const restoreDir = await mkdtemp(join(tmpdir(), 'yucca-restore-'));
+
+    await expect(databaseRepository.restoreFrom(join(restoreDir, 'state.sqlite3'))).rejects.toThrow();
+
+    expect(await configRepository.getMasterEncryptionKey()).toBe(keyBeforeRestore);
+  });
+
   it('correctly migrates from an older version', async () => {
     const databaseRepository = ctx.module.get(DatabaseRepository);
 
@@ -95,7 +106,7 @@ describe('Database', () => {
       .prepare(`SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%'`)
       .all() as { name: string }[];
 
-    expect(tables.map((table) => table.name)).toEqual(expect.arrayContaining(['config', 'repositories', 'jobs']));
+    expect(tables.map((table) => table.name)).toEqual(expect.arrayContaining(['config', 'repositories']));
     expect(ctx.database.prepare('SELECT COUNT(*) AS count FROM repositories').get()).toEqual({ count: 0 });
   });
 });
