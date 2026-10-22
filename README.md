@@ -96,6 +96,25 @@ original issue and recent ticket messages, including mirrored email replies,
 and bypass automatic triage. Set `COLUMBO_URL` and the shared `INTERNAL_SECRET`
 to connect the bot to Columbo.
 
+The Columbo image embeds a bare Git repository, including packfiles, build HEAD,
+release tags, and reachable commit history. CI fetches complete history for this
+image. `go-git` loads a verified, bounded copy into an isolated memory store;
+no runtime Git executable, checkout, or shell tool is needed. The LLM can list,
+search, read, compare, and inspect history through read-only tools. Internal Git
+mutations remain in memory and cannot change the embedded files.
+
+The release index lists up to 128 tags; other embedded commits remain accessible
+by full hash. Source coverage is fixed at build time, and unavailable versions
+are never replaced with HEAD. Generated, binary, secret, and test files are
+excluded from tools, files are capped at 512 KiB, and history is capped at 100
+entries per query. See [Columbo](packages/columbo/README.md) for details.
+
+To build a local Columbo binary with embedded Git data:
+
+```bash
+mise columbo:build
+```
+
 ## License
 
 [Source First License 1.1](./LICENSE).

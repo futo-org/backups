@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"columbo/internal/o11y"
+	"columbo/internal/source"
 
 	"github.com/cloudwego/eino-ext/components/model/openai"
 	"github.com/cloudwego/eino/callbacks"
@@ -51,6 +52,7 @@ type Config struct {
 	ToolResultBytes   int
 	ModelCallTimeout  time.Duration
 	ModelCallAttempts int
+	Source            *source.Repository
 }
 
 type Runner struct {
@@ -142,8 +144,9 @@ Platform health (fleet-wide, not user-specific): the query_health tool runs fixe
 
 Your final message becomes the staff note verbatim. Format:
 1. One-line verdict (e.g. "Backups from connection X have failed with 507 since 14:02 UTC").
-2. Evidence: the specific log lines / metric numbers, with timestamps.
-3. Suggested next step for staff, if any.
+2. Observed versions: distinguish client versions from platform service versions, cite their source and last-seen time, and say unknown when absent. Historical versions do not establish the version currently running.
+3. Evidence: the specific log lines / metric numbers, with timestamps. Use source tools to inspect the exact observed release when available; cite ref, file and line numbers. Check later releases and release history for a matching fix when relevant. Only call an issue fixed in a newer version when the code/release evidence supports that; otherwise state that it is unconfirmed. An unarchived version is unavailable, never silently substitute HEAD. Respect package-specific versions, which may differ from the monorepo release tag.
+4. Suggested next step for staff, if any.
 Keep it under 300 words. Do not describe your process or the tools.`
 
 // Outcome is what one investigation produced and what it cost.
@@ -190,6 +193,7 @@ func (r *Runner) run(ctx context.Context, userID, userMessage string) (Outcome, 
 		r.cfg.MaxToolCalls,
 		r.cfg.ToolResultBytes,
 	)
+	box.source = r.cfg.Source
 	tools, err := box.tools()
 	if err != nil {
 		return Outcome{}, err
@@ -206,6 +210,7 @@ func (r *Runner) run(ctx context.Context, userID, userMessage string) (Outcome, 
 
 	userMessage += "\n\n" + availableMetricsLine(box.availableMetrics(ctx))
 	userMessage += "\n\n" + clientTelemetryBlock(box.clientTelemetry(ctx))
+	userMessage += "\n\n" + box.sourceContext()
 
 	zerolog.Ctx(ctx).Info().
 		Str("audit", "investigation_start").
