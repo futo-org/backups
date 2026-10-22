@@ -18,7 +18,7 @@ config_roots = [
 ]
 
 [tools]
-node = "25.9.0"
+node = "26.12.1"
 pnpm = "10.28.1"
 wrangler = "4.127.0"
 go = "1.27.3"
