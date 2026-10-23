@@ -18,10 +18,10 @@ config_roots = [
 ]
 
 [tools]
-node = "25.9.0"
+node = "26.12.1"
 pnpm = "10.28.1"
 wrangler = "4.127.0"
-go = "1.27.1"
+go = "1.27.3"
 golangci-lint = "2.14.0"
 restic = "0.19.1"
 

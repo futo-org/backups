@@ -34,6 +34,7 @@ type Config struct {
 	ModelCallAttempts    int
 	ToolResultBytes      int
 	Workers              int
+	TicketQuietPeriod    time.Duration
 
 	OTLPMetricsEndpoint string
 	OTLPMetricsURLPath  string
@@ -89,6 +90,7 @@ func LoadConfig() Config {
 		ModelCallAttempts:    envIntMin("COLUMBO_MODEL_ATTEMPTS", 3, 1),
 		ToolResultBytes:      envIntMin("COLUMBO_TOOL_RESULT_BYTES", 12288, 512),
 		Workers:              envIntMin("COLUMBO_WORKERS", 2, 1),
+		TicketQuietPeriod:    time.Duration(envIntMin("COLUMBO_TICKET_QUIET_SECONDS", 60, 0)) * time.Second,
 		OTLPMetricsEndpoint:  os.Getenv("OTLP_METRICS_ENDPOINT"),
 		OTLPMetricsURLPath:   os.Getenv("OTLP_METRICS_URL_PATH"),
 		OTLPMetricsInterval:  time.Duration(envIntMin("OTLP_METRICS_INTERVAL_MS", 15000, 100)) * time.Millisecond,

@@ -17,27 +17,33 @@ export interface EmailSendResult {
   message: string;
 }
 
-const sendResponseSchema = z.object({
-  ErrorCode: z.number(),
-  Message: z.string(),
-});
+const sendResponseSchema = z.object({ id: z.string() });
+const batchResponseSchema = z.object({ data: z.array(sendResponseSchema) });
 
-const BATCH_LIMIT = 500;
+// Resend accepts at most 100 emails per batch, and rejects or accepts a batch
+// as a whole: a 2xx means every email in it was queued.
+const BATCH_LIMIT = 100;
+
+class ResendError extends Error {
+  constructor(
+    readonly status: number,
+    message: string,
+  ) {
+    super(message);
+  }
+}
 
 @Injectable()
 export class EmailRepository {
   constructor(private logger: LoggerRepository) {}
 
   async send(message: EmailMessage): Promise<void> {
-    if (!emailEnv.POSTMARK_SERVER_TOKEN) {
+    if (!emailEnv.RESEND_API_KEY) {
       this.logSkipped([message]);
       return;
     }
 
-    const result = sendResponseSchema.parse(await this.request('/email', toPostmarkMessage(message)));
-    if (result.ErrorCode !== 0) {
-      throw new Error(`Postmark rejected email to ${message.to}: ${result.ErrorCode} ${result.Message}`);
-    }
+    sendResponseSchema.parse(await this.request('/emails', toResendMessage(message)));
   }
 
   async sendBatch(messages: EmailMessage[]): Promise<EmailSendResult[]> {
@@ -45,7 +51,7 @@ export class EmailRepository {
       return [];
     }
 
-    if (!emailEnv.POSTMARK_SERVER_TOKEN) {
+    if (!emailEnv.RESEND_API_KEY) {
       this.logSkipped(messages);
       return messages.map((message) => ({ to: message.to, errorCode: 0, message: 'Email sending disabled' }));
     }
@@ -53,15 +59,24 @@ export class EmailRepository {
     const results: EmailSendResult[] = [];
     for (let offset = 0; offset < messages.length; offset += BATCH_LIMIT) {
       const chunk = messages.slice(offset, offset + BATCH_LIMIT);
-      const parsed = z.array(sendResponseSchema).parse(
-        await this.request(
-          '/email/batch',
-          chunk.map((message) => toPostmarkMessage(message)),
-        ),
-      );
-      results.push(
-        ...parsed.map((result, i) => ({ to: chunk[i]!.to, errorCode: result.ErrorCode, message: result.Message })),
-      );
+      try {
+        const { data } = batchResponseSchema.parse(
+          await this.request(
+            '/emails/batch',
+            chunk.map((message) => toResendMessage(message)),
+          ),
+        );
+        if (data.length !== chunk.length) {
+          throw new Error(`Resend queued ${data.length} of ${chunk.length} batched emails`);
+        }
+        results.push(...chunk.map((message, i) => ({ to: message.to, errorCode: 0, message: data[i]!.id })));
+      } catch (error) {
+        // Earlier chunks are already queued: report only this chunk as failed
+        // rather than throwing their results away, so a retry doesn't resend them.
+        this.logger.error(error, `Resend rejected a batch of ${chunk.length} emails`);
+        const errorCode = error instanceof ResendError ? error.status : 1;
+        results.push(...chunk.map((message) => ({ to: message.to, errorCode, message: `${error}` })));
+      }
     }
     return results;
   }
@@ -69,33 +84,35 @@ export class EmailRepository {
   private logSkipped(messages: EmailMessage[]): void {
     this.logger.info(
       { to: messages.map((message) => message.to), subject: messages[0]?.subject },
-      'POSTMARK_SERVER_TOKEN is not set — skipping email send',
+      'RESEND_API_KEY is not set — skipping email send',
     );
   }
 
   private async request(path: string, body: unknown): Promise<unknown> {
-    const response = await fetch(new URL(path, emailEnv.POSTMARK_API_URL), {
+    const response = await fetch(new URL(path, emailEnv.RESEND_API_URL), {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         Accept: 'application/json',
-        'X-Postmark-Server-Token': emailEnv.POSTMARK_SERVER_TOKEN!,
+        Authorization: `Bearer ${emailEnv.RESEND_API_KEY!}`,
       },
       body: JSON.stringify(body),
     });
     if (!response.ok) {
-      throw new Error(`Postmark ${path} failed: ${response.status} ${response.statusText} — ${await response.text()}`);
+      throw new ResendError(
+        response.status,
+        `Resend ${path} failed: ${response.status} ${response.statusText} — ${await response.text()}`,
+      );
     }
     return response.json();
   }
 }
 
-const toPostmarkMessage = (message: EmailMessage) => ({
-  From: emailEnv.EMAIL_FROM_ADDRESS,
-  To: message.to,
-  Subject: message.subject,
-  HtmlBody: message.htmlBody,
-  TextBody: message.textBody,
-  MessageStream: 'outbound',
-  ...(message.tag === undefined ? {} : { Tag: message.tag }),
+const toResendMessage = (message: EmailMessage) => ({
+  from: emailEnv.EMAIL_FROM_ADDRESS,
+  to: [message.to],
+  subject: message.subject,
+  html: message.htmlBody,
+  text: message.textBody,
+  ...(message.tag === undefined ? {} : { tags: [{ name: 'category', value: message.tag }] }),
 });
