@@ -1,9 +1,8 @@
-import { BadRequestException, forwardRef, Inject, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { SchedulerRegistry } from '@nestjs/schedule';
 import { CronJob, CronTime } from 'cron';
 import { Updateable } from 'kysely';
 import { randomUUID } from 'node:crypto';
-import { ActiveScheduleItemDto } from '../dto/runningTasks.dto.js';
 import {
   ScheduleCreateRequestDto,
   ScheduleCreateResponseDto,
@@ -11,30 +10,25 @@ import {
   ScheduleUpdateRequestDto,
   ScheduleUpdateResponseDto,
 } from '../dto/schedule.dto.js';
-import { TaskStatus, TaskType } from '../enum.js';
+import { JobName } from '../enum.js';
 import { EventsGateway } from '../events/events.gateway.js';
+import { JobRepository } from '../repositories/job.repository.js';
 import { ModuleConfigRepository } from '../repositories/moduleConfig.repository.js';
 import { RepositoryIntegrationImmichRepository } from '../repositories/repositoryIntegrationImmich.repository.js';
-import { RunningTasksRepository } from '../repositories/runningTasks.repository.js';
 import { ScheduleRepository } from '../repositories/schedule.repository.js';
 import { ScheduleTable } from '../schema/tables/schedule.table.js';
-import { getTaskStatus } from '../utils/errors.js';
-import type { CircularDependency } from '../utils/types.js';
-import { RepositoryService } from './repository.service.js';
 import { TelemetryService } from './telemetry.service.js';
 
 @Injectable()
 export class ScheduleService {
   constructor(
-    @Inject(forwardRef(() => RepositoryService))
-    private readonly repository: CircularDependency<RepositoryService>,
     private readonly events: EventsGateway,
     private readonly schedule: ScheduleRepository,
     private readonly schedulerRegistry: SchedulerRegistry,
-    private readonly runningTasks: RunningTasksRepository,
     private readonly moduleConfig: ModuleConfigRepository,
     private readonly integrationImmich: RepositoryIntegrationImmichRepository,
     private readonly telemetry: TelemetryService,
+    private readonly jobs: JobRepository,
   ) {}
 
   private readonly cronJobs = new Set<string>();
@@ -112,33 +106,10 @@ export class ScheduleService {
       return;
     }
 
-    const scheduleSignal = this.runningTasks.startTask(id, TaskType.Schedule);
-
-    const scheduleStatus: ActiveScheduleItemDto[] = repositories.map((repositoryId) => ({
-      repositoryId,
-      status: TaskStatus.Incomplete,
-    }));
-
-    this.runningTasks.updateTask(id, { scheduleStatus });
-
-    for (const [index, repositoryId] of repositories.entries()) {
-      if (scheduleSignal.aborted) {
-        break;
-      }
-
-      try {
-        const { task } = await this.repository.createBackup(repositoryId, scheduleSignal);
-        await task;
-
-        scheduleStatus[index] = { repositoryId, status: TaskStatus.Complete };
-        this.runningTasks.updateTask(id, { scheduleStatus });
-      } catch (error) {
-        scheduleStatus[index] = { repositoryId, status: getTaskStatus(error) };
-        this.runningTasks.updateTask(id, { scheduleStatus });
-      }
-    }
-
-    this.runningTasks.endTask(id);
+    const jobIds = await this.jobs.queueAll(
+      repositories.map((repositoryId) => ({ name: JobName.RepositoryBackup, data: { repositoryId } })),
+    );
+    await Promise.allSettled(jobIds.map((jobId) => this.jobs.wait(jobId)));
 
     const lastFinished = new Date().toISOString();
 
@@ -147,7 +118,6 @@ export class ScheduleService {
     this.telemetry.submitStructuredLog(`Finished running schedule for ${repositories.length} repositories`, {
       scheduleId: id,
       lastFinished,
-      scheduleStatus,
     });
 
     this.events.publish({

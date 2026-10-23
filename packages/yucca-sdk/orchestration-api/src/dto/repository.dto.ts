@@ -175,7 +175,7 @@ const RepositorySnapshotRestoreFromPointRequestSchema = z
   })
   .meta({ id: 'RepositorySnapshotRestoreFromPointRequestDto' });
 
-const LogResponseSchema = z.object({ logId: z.string() }).meta({ id: 'LogResponseDto' });
+const JobResponseSchema = z.object({ jobId: z.string() }).meta({ id: 'JobResponseDto' });
 
 const InspectedLocalRepositorySchema = LocalRepositorySchema.extend({
   snapshots: z.array(SnapshotSchema).optional(),
@@ -214,6 +214,6 @@ export class RepositorySnapshotRestoreRequestDto extends createZodDto(Repository
 export class RepositorySnapshotRestoreFromPointRequestDto extends createZodDto(
   RepositorySnapshotRestoreFromPointRequestSchema,
 ) {}
-export class LogResponseDto extends createZodDto(LogResponseSchema) {}
+export class JobResponseDto extends createZodDto(JobResponseSchema) {}
 export class InspectedLocalRepositoryDto extends createZodDto(InspectedLocalRepositorySchema) {}
 export class RepositoryInspectResponseDto extends createZodDto(RepositoryInspectResponseSchema) {}

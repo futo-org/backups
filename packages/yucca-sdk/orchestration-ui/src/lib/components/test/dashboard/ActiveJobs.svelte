@@ -175,8 +175,8 @@
     return true;
   };
 
-  const openLog = (logId: string) => {
-    modalManager.open(ViewStatusModal, { logId });
+  const openLog = (jobId: string) => {
+    modalManager.open(ViewStatusModal, { jobId });
   };
 
   const onCancel = (parentId: string) => handleCancelTask(parentId);

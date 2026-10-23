@@ -1,6 +1,6 @@
 <script lang="ts">
   import OnEvents from "$lib/components/util/OnEvents.svelte";
-  import { useBackupTaskMonitor } from "$lib/services/runHistory.service";
+  import { useBackupJobMonitor } from "$lib/services/job.service";
 </script>
 
-<OnEvents {...useBackupTaskMonitor()} />
+<OnEvents {...useBackupJobMonitor()} />

@@ -93,6 +93,10 @@ msgstr "{phase} · {percent}%"
 msgid "{running} in progress"
 msgstr "{running} in progress"
 
+#: src/lib/components/backups/run-history/RepositoryRunHistoryItem.svelte
+msgid "{running} queued"
+msgstr "{running} queued"
+
 #: src/lib/components/dashboard/DashboardBackupHealth.svelte
 msgid "{successful} of {total} successful"
 msgstr "{successful} of {total} successful"
@@ -257,15 +261,15 @@ msgid "Backup"
 msgstr "Backup"
 
 #: src/lib/components/backups/metrics-history/MetricsHistoryModal.svelte
-#: src/lib/services/runHistory.service.ts
+#: src/lib/services/job.service.ts
 msgid "Backup cancelled"
 msgstr "Backup cancelled"
 
-#: src/lib/services/runHistory.service.ts
+#: src/lib/services/job.service.ts
 msgid "Backup complete"
 msgstr "Backup complete"
 
-#: src/lib/services/runHistory.service.ts
+#: src/lib/services/job.service.ts
 msgid "Backup completed with warnings"
 msgstr "Backup completed with warnings"
 
@@ -288,7 +292,7 @@ msgstr "Backup did not complete"
 
 #: src/lib/components/backups/metrics-history/MetricsHistoryModal.svelte
 #: src/lib/components/integrations/immich/ImmichBackupsSidebarItem.svelte
-#: src/lib/services/runHistory.service.ts
+#: src/lib/services/job.service.ts
 msgid "Backup failed"
 msgstr "Backup failed"
 
@@ -599,7 +603,7 @@ msgstr "Copy"
 msgid "Copy code"
 msgstr "Copy code"
 
-#: src/lib/services/runHistory.service.ts
+#: src/lib/services/job.service.ts
 msgid "Could not finish backing up."
 msgstr "Could not finish backing up."
 
@@ -690,7 +694,7 @@ msgstr "Disable write-only"
 msgid "Discord account linked. You can head back to Discord."
 msgstr "Discord account linked. You can head back to Discord."
 
-#: src/lib/services/runHistory.service.ts
+#: src/lib/services/job.service.ts
 msgid "Download Full Log"
 msgstr "Download Full Log"
 
@@ -784,6 +788,7 @@ msgstr "Failed {noun}"
 msgid "Failed only"
 msgstr "Failed only"
 
+#: src/lib/services/job.service.ts
 #: src/lib/services/task.service.ts
 msgid "Failed to cancel task"
 msgstr "Failed to cancel task"
@@ -840,10 +845,6 @@ msgstr "Failed to load onboarding status"
 #: src/lib/services/onboarding.service.ts
 msgid "Failed to load recovery key"
 msgstr "Failed to load recovery key"
-
-#: src/lib/services/runHistory.service.ts
-msgid "Failed to load run history"
-msgstr "Failed to load run history"
 
 #: src/lib/services/task.service.ts
 msgid "Failed to load running tasks"
@@ -1223,7 +1224,7 @@ msgstr "Learn More"
 msgid "Libraries stored outside of Immich. New libraries are included automatically unless you choose specific ones."
 msgstr "Libraries stored outside of Immich. New libraries are included automatically unless you choose specific ones."
 
-#: src/lib/services/runHistory.service.ts
+#: src/lib/services/job.service.ts
 msgid "Library successfully backed up."
 msgstr "Library successfully backed up."
 
@@ -1348,6 +1349,18 @@ msgstr "Metrics history"
 #: src/lib/components/backups/metrics-history/MetricsHistoryModal.svelte
 msgid "Metrics history for {name}"
 msgstr "Metrics history for {name}"
+
+#: src/lib/components/backups/run-history/RepositoryRunHistoryItem.svelte
+msgid "metrics sync"
+msgstr "metrics sync"
+
+#: src/lib/components/backups/run-history/RepositoryRunHistoryItem.svelte
+msgid "Metrics sync"
+msgstr "Metrics sync"
+
+#: src/lib/components/backups/run-history/RepositoryRunHistoryItem.svelte
+msgid "Metrics synced"
+msgstr "Metrics synced"
 
 #: src/lib/components/backends/BackendItem.svelte
 msgid "Missing on service"
@@ -1686,6 +1699,10 @@ msgstr "Pruning old backups"
 msgid "Pruning old backups was cancelled"
 msgstr "Pruning old backups was cancelled"
 
+#: src/lib/components/backups/run-history/RepositoryRunHistoryItem.svelte
+msgid "Queued"
+msgstr "Queued"
+
 #: src/lib/components/schedules/ScheduleItem.svelte
 msgid "Ran"
 msgstr "Ran"
@@ -1773,6 +1790,10 @@ msgstr "Restore"
 #: src/lib/components/backups/dialogs/RestoreSnapshotModal.svelte
 msgid "Restore Backup"
 msgstr "Restore Backup"
+
+#: src/lib/components/onboarding/restore-point-flow/RestorePointFlow4Restore.svelte
+msgid "Restore cancelled"
+msgstr "Restore cancelled"
 
 #: src/lib/components/onboarding/restore-point-flow/RestorePointFlow3ConfirmRestore.svelte
 msgid "Restore configuration"
@@ -1991,7 +2012,7 @@ msgstr "Snapshots"
 msgid "Snapshots for {name}"
 msgstr "Snapshots for {name}"
 
-#: src/lib/services/runHistory.service.ts
+#: src/lib/services/job.service.ts
 msgid "Some files could not be backed up. Check the backup log for details."
 msgstr "Some files could not be backed up. Check the backup log for details."
 
@@ -2102,7 +2123,7 @@ msgstr "Temporary beta access"
 msgid "That account does not own this instance. Log in with the account it was connected with."
 msgstr "That account does not own this instance. Log in with the account it was connected with."
 
-#: src/lib/services/runHistory.service.ts
+#: src/lib/services/job.service.ts
 msgid "The backup was stopped before it finished."
 msgstr "The backup was stopped before it finished."
 
@@ -2220,7 +2241,7 @@ msgstr "View all"
 msgid "View history"
 msgstr "View history"
 
-#: src/lib/services/runHistory.service.ts
+#: src/lib/services/job.service.ts
 msgid "View Log"
 msgstr "View Log"
 

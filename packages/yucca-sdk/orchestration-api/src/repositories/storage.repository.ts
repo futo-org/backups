@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { createWriteStream } from 'node:fs';
-import { cp, mkdir, mkdtemp, readdir, stat } from 'node:fs/promises';
+import { appendFile, cp, mkdir, mkdtemp, readdir, stat } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
@@ -28,5 +28,9 @@ export class StorageRepository {
 
   stat(path: string) {
     return stat(path);
+  }
+
+  touch(path: string) {
+    return appendFile(path, '');
   }
 }

@@ -26,10 +26,10 @@
   const { advanced } = options;
   // svelte-ignore state_referenced_locally
   const query = useSnapshots(repository.id);
-  const { onRunUpdate } = useSnapshotEventHandler();
+  const { onJobUpdate } = useSnapshotEventHandler();
 </script>
 
-<OnEvents {onRunUpdate} />
+<OnEvents {onJobUpdate} />
 
 <StackList>
   {#snippet title()}

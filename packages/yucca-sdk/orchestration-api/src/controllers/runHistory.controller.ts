@@ -64,7 +64,7 @@ export class RunHistoryController {
     content: { 'text/event-stream': { schema: { type: 'string' } } },
     description: 'A stream of run log events.',
   })
-  logStreamSse(@Param('id') id: string): Observable<MessageEvent> {
+  runLogStreamSse(@Param('id') id: string): Observable<MessageEvent> {
     return this.repository.getObservable(id);
   }
 }

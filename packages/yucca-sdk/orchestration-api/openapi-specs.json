@@ -411,6 +411,158 @@
         ]
       }
     },
+    "/api/yucca/jobs": {
+      "get": {
+        "description": "List the jobs for a repository, newest first.",
+        "operationId": "getJobs",
+        "parameters": [
+          {
+            "name": "repositoryId",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JobListResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "List jobs",
+        "tags": [
+          "Job"
+        ]
+      }
+    },
+    "/api/yucca/jobs/{id}": {
+      "get": {
+        "description": "Get the status of a job.",
+        "operationId": "getJob",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JobDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Get a job",
+        "tags": [
+          "Job"
+        ]
+      },
+      "delete": {
+        "description": "Cancel a queued job, or stop it if it is already running.",
+        "operationId": "cancelJob",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "summary": "Cancel a job",
+        "tags": [
+          "Job"
+        ]
+      }
+    },
+    "/api/yucca/jobs/{id}/download": {
+      "get": {
+        "description": "Download the full log of a job as JSON lines.",
+        "operationId": "downloadJobLog",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/jsonl": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "summary": "Download a job log",
+        "tags": [
+          "Job"
+        ]
+      }
+    },
+    "/api/yucca/jobs/{id}/stream": {
+      "get": {
+        "description": "Stream the log of a job as server-sent events, starting with its last 50 lines.",
+        "operationId": "logStreamSse",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "text/event-stream": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "summary": "Stream a job log",
+        "tags": [
+          "Job"
+        ]
+      }
+    },
     "/api/yucca/onboarding": {
       "get": {
         "description": "Retrieve which onboarding steps this server has completed.",
@@ -711,7 +863,7 @@
         ]
       },
       "post": {
-        "description": "Start a backup to a repository and return the ID of its run log.",
+        "description": "Queue a backup to a repository and return the ID of its job.",
         "operationId": "createBackup",
         "parameters": [
           {
@@ -729,7 +881,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/LogResponseDto"
+                  "$ref": "#/components/schemas/JobResponseDto"
                 }
               }
             }
@@ -927,7 +1079,7 @@
     },
     "/api/yucca/repository/{id}/snapshots/prune": {
       "post": {
-        "description": "Remove snapshots outside the retention policy and return the ID of the run log.",
+        "description": "Queue the removal of snapshots outside the retention policy and return the ID of its job.",
         "operationId": "pruneRepository",
         "parameters": [
           {
@@ -945,7 +1097,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/LogResponseDto"
+                  "$ref": "#/components/schemas/JobResponseDto"
                 }
               }
             }
@@ -959,7 +1111,7 @@
     },
     "/api/yucca/repository/{id}/snapshots/{snapshot}": {
       "post": {
-        "description": "Restore files from a snapshot and return the ID of the run log.",
+        "description": "Queue a restore of files from a snapshot and return the ID of its job.",
         "operationId": "restoreSnapshot",
         "parameters": [
           {
@@ -995,7 +1147,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/LogResponseDto"
+                  "$ref": "#/components/schemas/JobResponseDto"
                 }
               }
             }
@@ -1091,7 +1243,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/LogResponseDto"
+                  "$ref": "#/components/schemas/JobResponseDto"
                 }
               }
             }
@@ -1219,7 +1371,7 @@
     "/api/yucca/logs/{id}/stream": {
       "get": {
         "description": "Stream the log of a run.",
-        "operationId": "logStreamSse",
+        "operationId": "runLogStreamSse",
         "parameters": [
           {
             "name": "id",
@@ -2006,13 +2158,25 @@
           "repositories"
         ]
       },
-      "RunDto": {
+      "JobDto": {
         "type": "object",
         "properties": {
           "id": {
             "type": "string"
           },
+          "name": {
+            "$ref": "#/components/schemas/JobName"
+          },
           "repositoryId": {
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/JobStatus"
+          },
+          "error": {
+            "type": "string"
+          },
+          "queuedAt": {
             "type": "string"
           },
           "start": {
@@ -2020,43 +2184,36 @@
           },
           "end": {
             "type": "string"
-          },
-          "logFilePath": {
-            "type": "string"
-          },
-          "status": {
-            "$ref": "#/components/schemas/RunStatus"
-          },
-          "type": {
-            "$ref": "#/components/schemas/RunType"
           }
         },
         "required": [
           "id",
+          "name",
           "repositoryId",
-          "start",
-          "logFilePath",
           "status",
-          "type"
+          "queuedAt"
         ]
       },
-      "RunStatus": {
+      "JobName": {
         "type": "string",
         "enum": [
-          "incomplete",
+          "repository-backup",
+          "repository-prune",
+          "repository-restore",
+          "repository-restore-from-point",
+          "repository-snapshot-forget",
+          "repository-sync-metrics"
+        ]
+      },
+      "JobStatus": {
+        "type": "string",
+        "enum": [
+          "queued",
+          "running",
           "complete",
           "warn",
           "failed",
           "cancelled"
-        ]
-      },
-      "RunType": {
-        "type": "string",
-        "enum": [
-          "schedule",
-          "restore",
-          "backup",
-          "forget"
         ]
       },
       "ImmichDatabaseDumpConfigDto": {
@@ -2091,8 +2248,8 @@
           "schedule": {
             "$ref": "#/components/schemas/ScheduleDto"
           },
-          "latestBackupRun": {
-            "$ref": "#/components/schemas/RunDto"
+          "latestBackupJob": {
+            "$ref": "#/components/schemas/JobDto"
           },
           "databaseDump": {
             "$ref": "#/components/schemas/ImmichDatabaseDumpConfigDto"
@@ -2194,6 +2351,20 @@
         "required": [
           "repositoryId",
           "snapshotId"
+        ]
+      },
+      "JobListResponseDto": {
+        "type": "object",
+        "properties": {
+          "jobs": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/JobDto"
+            }
+          }
+        },
+        "required": [
+          "jobs"
         ]
       },
       "BootstrapStatus": {
@@ -2509,15 +2680,15 @@
           "repository"
         ]
       },
-      "LogResponseDto": {
+      "JobResponseDto": {
         "type": "object",
         "properties": {
-          "logId": {
+          "jobId": {
             "type": "string"
           }
         },
         "required": [
-          "logId"
+          "jobId"
         ]
       },
       "RepositoryCheckImportResponseDto": {
@@ -2540,6 +2711,59 @@
         },
         "required": [
           "backendId"
+        ]
+      },
+      "RunDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "repositoryId": {
+            "type": "string"
+          },
+          "start": {
+            "type": "string"
+          },
+          "end": {
+            "type": "string"
+          },
+          "logFilePath": {
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/RunStatus"
+          },
+          "type": {
+            "$ref": "#/components/schemas/RunType"
+          }
+        },
+        "required": [
+          "id",
+          "repositoryId",
+          "start",
+          "logFilePath",
+          "status",
+          "type"
+        ]
+      },
+      "RunStatus": {
+        "type": "string",
+        "enum": [
+          "incomplete",
+          "complete",
+          "warn",
+          "failed",
+          "cancelled"
+        ]
+      },
+      "RunType": {
+        "type": "string",
+        "enum": [
+          "schedule",
+          "restore",
+          "backup",
+          "forget"
         ]
       },
       "RunHistoryResponseDto": {

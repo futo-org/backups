@@ -1,13 +1,12 @@
-import { ResticBackupCommandCouldNotReadSourceDataError } from '@futo-org/restic-wrapper';
-import { BadRequestException, forwardRef, Inject, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { Updateable } from 'kysely';
 import { randomUUID } from 'node:crypto';
-import { type WriteStream } from 'node:fs';
-import { dirname, join } from 'node:path';
+import { dirname } from 'node:path';
 import { Observable } from 'rxjs';
 import { FilesystemListingRequestDto, FilesystemListingResponseDto } from '../dto/filesystem.dto.js';
 import {
   GetSnapshotResponseDto,
+  JobResponseDto,
   ListSnapshotsResponseDto,
   LocalRepositoryDto,
   RepositoryCheckImportResponseDto,
@@ -25,54 +24,40 @@ import {
   RepositoryWithMetricsDto,
   RunHistoryResponseDto,
 } from '../dto/repository.dto.js';
-import { BackendType, ResticTagPrefix, TaskStatus, TaskType } from '../enum.js';
+import { BackendType, JobName } from '../enum.js';
 import { EventsGateway } from '../events/events.gateway.js';
-import type { ImmichIntegration } from '../moduleConfig.js';
 import { BackendRepository } from '../repositories/backend.repository.js';
 import { ConfigRepository, ResticPlacement } from '../repositories/config.repository.js';
-import { DatabaseRepository } from '../repositories/database.repository.js';
+import { JobRepository } from '../repositories/job.repository.js';
 import { LoggingRepository } from '../repositories/logging.repository.js';
-import { ModuleConfigRepository } from '../repositories/moduleConfig.repository.js';
 import { RepositoryRepository } from '../repositories/repository.repository.js';
-import { RepositoryIntegrationImmichRepository } from '../repositories/repositoryIntegrationImmich.repository.js';
 import { RepositoryLocalMetricsRepository } from '../repositories/repositoryLocalMetrics.repository.js';
 import { RepositoryPathRepository } from '../repositories/repositoryPath.repository.js';
 import { ResticRepository } from '../repositories/restic.repository.js';
 import { RunHistoryRepository } from '../repositories/runHistory.repository.js';
-import { RunningTasksRepository } from '../repositories/runningTasks.repository.js';
-import { StorageRepository } from '../repositories/storage.repository.js';
 import { RepositoryLocalMetricsTable } from '../schema/tables/repositoryLocalMetrics.table.js';
-import { getTaskStatus, TaskWarningsError } from '../utils/errors.js';
-import { DEFAULT_RETENTION_POLICY, RetentionPolicy } from '../utils/restic.js';
-import type { CircularDependency } from '../utils/types.js';
-import { BootstrapService } from './bootstrap.service.js';
+import { DEFAULT_RETENTION_POLICY } from '../utils/restic.js';
 import { TelemetryService } from './telemetry.service.js';
 
 @Injectable()
 export class RepositoryService {
   constructor(
-    private readonly tasks: RunningTasksRepository,
     private readonly events: EventsGateway,
     private readonly backend: BackendRepository,
     private readonly config: ConfigRepository,
-    private readonly database: DatabaseRepository,
+    private readonly jobs: JobRepository,
     private readonly restic: ResticRepository,
     private readonly runHistory: RunHistoryRepository,
     private readonly repository: RepositoryRepository,
     private readonly repositoryPath: RepositoryPathRepository,
     private readonly repositoryLocalMetrics: RepositoryLocalMetricsRepository,
-    private readonly repositoryIntegrationImmich: RepositoryIntegrationImmichRepository,
-    private readonly moduleConfig: ModuleConfigRepository,
-    private readonly storage: StorageRepository,
-    @Inject(forwardRef(() => BootstrapService))
-    private readonly bootstrap: CircularDependency<BootstrapService>,
     private readonly telemetry: TelemetryService,
     private readonly logger: LoggingRepository,
   ) {
     this.logger.setContext(RepositoryService.name);
   }
 
-  private async getBackendOrThrow(backendId: string) {
+  async getBackendOrThrow(backendId: string) {
     const result = await this.backend.getBackend(backendId);
     if (!result) {
       throw new NotFoundException('Backend not found locally');
@@ -388,6 +373,7 @@ export class RepositoryService {
   }
 
   async deleteRepository(id: string): Promise<void> {
+    await this.jobs.cancelAll(id);
     await this.repository.delete(id);
 
     this.telemetry.submitStructuredLog('Deleted repository', {
@@ -400,7 +386,7 @@ export class RepositoryService {
     });
   }
 
-  private async getResticParameters(
+  async getResticParameters(
     repository: string | { backendId: string; remoteId: string },
   ): Promise<{ endpoint: string; key: Uint8Array; placement: ResticPlacement }> {
     let backendId: string;
@@ -438,7 +424,7 @@ export class RepositoryService {
     return { endpoint, key, placement: { siteCode, storageClusterCode } };
   }
 
-  private async updateLocalMetrics(
+  async updateLocalMetrics(
     id: string,
     options: {
       resticParameters?: {
@@ -447,6 +433,7 @@ export class RepositoryService {
         placement: ResticPlacement;
       };
       additionalMetrics?: Updateable<RepositoryLocalMetricsTable>;
+      signal?: AbortSignal;
     },
   ): Promise<void> {
     const metrics: Updateable<RepositoryLocalMetricsTable> = {
@@ -457,7 +444,7 @@ export class RepositoryService {
       if (options.resticParameters) {
         const { endpoint, key, placement } = options.resticParameters;
         try {
-          const { total_size } = await this.restic.stats(endpoint, key, placement);
+          const { total_size } = await this.restic.stats(endpoint, key, placement, options.signal);
           metrics.sizeBytes = total_size;
         } catch (error) {
           this.telemetry.submitStructuredLog('Failed to read repository stats', {
@@ -500,284 +487,31 @@ export class RepositoryService {
     }
   }
 
-  async createBackup(
-    id: string,
-    signal?: AbortSignal,
-  ): Promise<{
-    logId: string;
-    task: Promise<void>;
-  }> {
-    if (!this.tasks.canStart(id)) {
-      this.telemetry.submitStructuredLog('Backup rejected, task already running', {
-        repositoryId: id,
-      });
-
-      throw new BadRequestException('Task already running!');
-    }
-
-    this.telemetry.submitStructuredLog('Running backup', {
-      repositoryId: id,
-    });
-
+  async createBackup(id: string): Promise<JobResponseDto> {
     const repository = await this.repository.get(id);
     if (!repository) {
       throw new NotFoundException('Repository not found locally');
     }
-
-    const { backendId, remoteId, retentionPolicy } = repository;
-    const { backend } = await this.getBackendOrThrow(backendId);
-    const { endpoint, key, placement } = await this.getResticParameters(id);
 
     const paths = await this.repositoryPath.get(id);
     if (paths.length === 0) {
       throw new BadRequestException('Missing configuration paths');
     }
 
-    const { logWriter, logId, startTime, closeLog } = await this.runHistory.createLogHelper({
-      repositoryId: id,
-      type: TaskType.Backup,
-    });
-
-    const finish = async (error?: any) => {
-      try {
-        const lastBackupStatus = getTaskStatus(error);
-
-        const lastBackup = new Date().toISOString();
-        const lastBackupDuration = Date.now() - +startTime;
-
-        await this.updateLocalMetrics(id, {
-          additionalMetrics: {
-            lastBackup,
-            lastBackupStatus,
-            lastBackupDuration,
-          },
-        });
-
-        if (lastBackupStatus !== TaskStatus.Cancelled) {
-          void this.updateLocalMetrics(id, {
-            resticParameters: { endpoint, key, placement },
-          });
-        }
-
-        this.telemetry.submitStructuredLog('Backup finished', {
-          repositoryId: id,
-          lastBackupStatus,
-          error,
-        });
-
-        await closeLog(lastBackupStatus, error);
-
-        if (backend.isMetricsCapable()) {
-          backend.submitMetricBackupEnd(remoteId, lastBackupStatus, lastBackupDuration);
-        }
-      } catch (error) {
-        this.telemetry.submitStructuredLog('Failed to finalise backup', {
-          repositoryId: id,
-          error,
-        });
-      }
-    };
-
-    const task = async () => {
-      if (backend.isMetricsCapable()) {
-        backend.submitMetricBackupStart(remoteId);
-      }
-
-      try {
-        const taskSignal = this.tasks.startTask(id, TaskType.Backup, logId, signal);
-        const warnings: Error[] = [];
-        const tags = [];
-
-        let immichHooks: ImmichIntegration['hooks'] | undefined;
-
-        const config = this.moduleConfig.get();
-        if (config.immichIntegration) {
-          const immichIntegration = await this.repositoryIntegrationImmich.get();
-          if (id === immichIntegration?.id) {
-            immichHooks = config.immichIntegration.hooks;
-            this.telemetry.submitStructuredLog('Creating Immich database backup', {
-              repositoryId: id,
-            });
-
-            try {
-              const backupFileName = await immichHooks.createDatabaseBackup(taskSignal);
-              tags.push(`${ResticTagPrefix.ImmichBackupFileName}=${backupFileName}`);
-
-              this.telemetry.submitStructuredLog('Created Immich database backup', {
-                repositoryId: id,
-              });
-            } catch (error) {
-              this.telemetry.submitStructuredLog('Failed to create Immich database backup', {
-                repositoryId: id,
-                error,
-              });
-
-              warnings.push(new Error(`Database dump failed: ${error}`, { cause: error }));
-            }
-          }
-        }
-
-        await this.restic.unlockAll(endpoint, key, placement);
-        let summary;
-        try {
-          summary = await this.restic.backup(endpoint, key, placement, paths, logWriter, taskSignal, tags);
-        } catch (backupError) {
-          if (!(backupError instanceof ResticBackupCommandCouldNotReadSourceDataError)) {
-            throw backupError;
-          }
-
-          warnings.push(backupError);
-        }
-
-        this.telemetry.submitStructuredLog('Finished backup to primary backend', {
-          repositoryId: id,
-          summary,
-        });
-
-        if (immichHooks) {
-          try {
-            await immichHooks.cleanupDatabaseBackups();
-          } catch (error) {
-            this.telemetry.submitStructuredLog('Failed to clean up Immich database backups', {
-              repositoryId: id,
-              error,
-            });
-
-            warnings.push(new Error(`Database backup cleanup failed: ${error}`, { cause: error }));
-          }
-        }
-
-        if (retentionPolicy && warnings.length === 0) {
-          await this.runForgetAndPrune(endpoint, key, placement, retentionPolicy, logWriter, taskSignal);
-
-          this.telemetry.submitStructuredLog('Finished prune on primary backend', {
-            repositoryId: id,
-          });
-        }
-
-        if (warnings.length > 0) {
-          throw new TaskWarningsError(warnings);
-        }
-
-        void finish();
-      } catch (error) {
-        void finish(error);
-        throw error;
-      } finally {
-        this.tasks.endTask(id);
-      }
-    };
-
-    const pending = task();
-    pending.catch(() => void 0);
-
-    return { task: pending, logId };
+    return { jobId: await this.jobs.queue({ name: JobName.RepositoryBackup, data: { repositoryId: id } }) };
   }
 
-  private async runForgetAndPrune(
-    endpoint: string,
-    key: Uint8Array,
-    placement: ResticPlacement,
-    policy: RetentionPolicy,
-    log: WriteStream,
-    signal?: AbortSignal,
-  ): Promise<void> {
-    const events = await this.restic.forgetByPolicy(endpoint, key, placement, policy, signal);
-
-    for (const { keep, remove, reasons } of events) {
-      if (keep) {
-        for (const { id, time } of keep) {
-          log.write(
-            JSON.stringify({
-              message_type: 'yucca_prune_kept',
-              id,
-              time,
-              matches: reasons?.find((reason) => reason.snapshot.id === id)?.matches,
-            }) + '\n',
-          );
-        }
-      }
-
-      if (remove) {
-        for (const { id, time } of remove) {
-          log.write(JSON.stringify({ message_type: 'yucca_prune_removed', id, time }) + '\n');
-        }
-      }
-    }
-
-    await this.restic.prune(endpoint, key, placement, signal);
-  }
-
-  async pruneRepository(
-    id: string,
-    signal?: AbortSignal,
-  ): Promise<{
-    logId: string;
-    task: Promise<void>;
-  }> {
-    if (!this.tasks.canStart(id)) {
-      this.telemetry.submitStructuredLog('Repository prune rejected, task already running', {
-        repositoryId: id,
-      });
-
-      throw new BadRequestException('Task already running!');
-    }
-
+  async pruneRepository(id: string): Promise<JobResponseDto> {
     const repository = await this.repository.get(id);
     if (!repository) {
       throw new NotFoundException('Repository not found locally');
     }
 
-    const { retentionPolicy } = repository;
-    if (!retentionPolicy) {
+    if (!repository.retentionPolicy) {
       throw new BadRequestException('No retention policy configured for this repository');
     }
 
-    this.telemetry.submitStructuredLog('Running repository prune', {
-      repositoryId: id,
-      retentionPolicy,
-    });
-
-    const { endpoint, key, placement } = await this.getResticParameters(id);
-
-    return new Promise((resolve) => {
-      const task = new Promise<void>(
-        (complete, fail) =>
-          void this.runHistory.createLog(
-            id,
-            TaskType.Forget,
-            async (log, logId) => {
-              resolve({ task, logId });
-
-              try {
-                const taskSignal = this.tasks.startTask(id, TaskType.Forget, logId, signal);
-                await this.restic.unlockAll(endpoint, key, placement);
-                await this.runForgetAndPrune(endpoint, key, placement, retentionPolicy, log, taskSignal);
-              } finally {
-                this.tasks.endTask(id);
-              }
-            },
-            (error) => {
-              void this.updateLocalMetrics(id, {
-                resticParameters: { endpoint, key, placement },
-              });
-
-              this.telemetry.submitStructuredLog('Finished repository prune', {
-                repositoryId: id,
-                error,
-              });
-
-              if (error) {
-                fail(error);
-              } else {
-                complete();
-              }
-            },
-          ),
-      );
-
-      task.catch(() => {});
-    });
+    return { jobId: await this.jobs.queue({ name: JobName.RepositoryPrune, data: { repositoryId: id } }) };
   }
 
   async checkImportRepository(id: string, backendId: string): Promise<RepositoryCheckImportResponseDto> {
@@ -956,193 +690,44 @@ export class RepositoryService {
   }
 
   async restoreSnapshot(
-    id: string,
+    repositoryId: string,
     snapshotId: string,
     dto: RepositorySnapshotRestoreRequestDto,
-  ): Promise<{
-    logId: string;
-    task: Promise<void>;
-  }> {
-    this.telemetry.submitStructuredLog('Running repository snapshot restore', {
-      repositoryId: id,
-      snapshotId,
-    });
-
-    return new Promise((resolve) => {
-      let summary: unknown;
-
-      const task = new Promise<void>(
-        (complete, fail) =>
-          void this.runHistory.createLog(
-            id,
-            TaskType.Restore,
-            async (log, logId) => {
-              resolve({
-                task,
-                logId,
-              });
-
-              const { endpoint, key, placement } = await this.getResticParameters(id);
-
-              try {
-                const signal = this.tasks.startTask(id, TaskType.Restore, logId);
-                summary = await this.restic.restore(endpoint, key, placement, snapshotId, dto, log, signal);
-              } finally {
-                this.tasks.endTask(id);
-              }
-            },
-            (error) => {
-              this.telemetry.submitStructuredLog('Finished repository snapshot restore', {
-                repositoryId: id,
-                snapshotId,
-                summary,
-                error,
-              });
-
-              if (error) {
-                fail(error);
-              } else {
-                complete();
-              }
-            },
-          ),
-      );
-
-      task.catch(() => {});
-    });
+  ): Promise<JobResponseDto> {
+    return {
+      jobId: await this.jobs.queue({
+        name: JobName.RepositoryRestore,
+        data: { repositoryId, snapshotId, options: dto },
+      }),
+    };
   }
 
   async restoreFromPoint(
-    id: string,
+    repositoryId: string,
     snapshotId: string,
     backendId: string,
     dto: RepositorySnapshotRestoreFromPointRequestDto,
-  ): Promise<{
-    logId: string;
-    task: Promise<void>;
-  }> {
-    this.telemetry.submitStructuredLog('Running repository restore from point', {
-      repositoryId: id,
-      snapshotId,
-    });
-
-    return new Promise((resolve) => {
-      let summary: unknown;
-
-      const task = new Promise<void>(
-        (complete, fail) =>
-          void this.runHistory.createEphemeralLog(
-            async (log, logId) => {
-              resolve({
-                task,
-                logId,
-              });
-
-              const { endpoint, key, placement } = await this.getResticParameters({ backendId, remoteId: id });
-
-              try {
-                const signal = this.tasks.startTask(id, TaskType.Restore, logId);
-                summary = await this.restic.restore(
-                  endpoint,
-                  key,
-                  placement,
-                  snapshotId,
-                  { include: dto.include },
-                  log,
-                  signal,
-                );
-
-                if (dto.yuccaConfig) {
-                  const target = await this.storage.tempdir();
-
-                  await this.restic.restore(
-                    endpoint,
-                    key,
-                    placement,
-                    snapshotId,
-                    { include: [dto.yuccaConfig], target },
-                    log,
-                    signal,
-                  );
-
-                  const { statePath } = this.moduleConfig.get();
-                  const restoredState = join(target, dto.yuccaConfig);
-
-                  await this.storage.cp(restoredState, statePath, {
-                    recursive: true,
-                    filter: (src) => !src.endsWith('.sqlite3'),
-                  });
-
-                  await this.database.restoreFrom(join(restoredState, 'state.sqlite3'));
-
-                  await this.bootstrap.onApplicationBootstrap();
-                }
-              } finally {
-                this.tasks.endTask(id);
-              }
-            },
-            (error) => {
-              this.telemetry.submitStructuredLog('Finished repository restore from point', {
-                repositoryId: id,
-                snapshotId,
-                summary,
-                error,
-              });
-
-              if (error) {
-                fail(error);
-              } else {
-                complete();
-              }
-            },
-          ),
-      );
-
-      task.catch(() => {});
-    });
+  ): Promise<JobResponseDto> {
+    return {
+      jobId: await this.jobs.queue({
+        name: JobName.RepositoryRestoreFromPoint,
+        data: {
+          repositoryId,
+          snapshotId,
+          backendId,
+          options: dto,
+        },
+      }),
+    };
   }
 
   async forgetSnapshot(id: string, snapshotId: string): Promise<void> {
-    if (!this.tasks.canStart(id)) {
-      this.telemetry.submitStructuredLog('Repository snapshot forget rejected, task already running', {
-        repositoryId: id,
-        snapshotId,
-      });
-
-      throw new BadRequestException('Task already running!');
-    }
-
-    this.telemetry.submitStructuredLog('Running repository snapshot forget', {
-      repositoryId: id,
-      snapshotId,
+    const jobId = await this.jobs.queue({
+      name: JobName.RepositorySnapshotForget,
+      data: { repositoryId: id, snapshotId },
     });
 
-    const { endpoint, key, placement } = await this.getResticParameters(id);
-
-    let error;
-    try {
-      const signal = this.tasks.startTask(id, TaskType.Forget);
-      await this.restic.unlockAll(endpoint, key, placement);
-      await this.restic.forget(endpoint, key, placement, snapshotId, true, signal);
-    } catch (error_) {
-      error = error_;
-    } finally {
-      this.tasks.endTask(id);
-    }
-
-    this.telemetry.submitStructuredLog('Finished repository snapshot forget', {
-      repositoryId: id,
-      snapshotId,
-      error,
-    });
-
-    if (error) {
-      throw error;
-    }
-
-    await this.updateLocalMetrics(id, {
-      resticParameters: { endpoint, key, placement },
-    });
+    await this.jobs.wait(jobId);
   }
 
   async getSnapshotListing(
