@@ -190,7 +190,6 @@
       name: repository.name,
       worm: repository.worm,
       cron: schedule.cron,
-      retentionPolicy: repository.configuration?.retentionPolicy ?? null,
       dataFolders: [...folders],
       backupConfiguration,
       libraries:
