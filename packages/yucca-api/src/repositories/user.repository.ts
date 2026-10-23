@@ -1,13 +1,42 @@
 import { Injectable } from '@nestjs/common';
-import { Insertable, Kysely, sql, Updateable } from 'kysely';
+import { Insertable, Kysely, Selectable, sql, Updateable } from 'kysely';
 import { jsonArrayFrom } from 'kysely/helpers/postgres';
 import { InjectKysely } from 'nestjs-kysely';
+import { ConnectionRepository } from 'src/repositories/connection.repository.js';
+import { DiscordRepository } from 'src/repositories/discord.repository.js';
+import { inTransaction } from 'src/repositories/transaction.js';
+import { UserAllowlistRepository } from 'src/repositories/userAllowlist.repository.js';
 import { DB } from 'src/schema/index.js';
 import { UserTable } from 'src/schema/tables/user.table.js';
+
+export type RegistrationRepositories = {
+  user: UserRepository;
+  allowlist: UserAllowlistRepository;
+  connection: ConnectionRepository;
+  discord: DiscordRepository;
+};
+
+type RegistrationUser = Pick<Selectable<UserTable>, 'id' | 'disabled'>;
 
 @Injectable()
 export class UserRepository {
   constructor(@InjectKysely() private db: Kysely<DB>) {}
+
+  withRegistration(sub: string, operation: (repositories: RegistrationRepositories) => Promise<RegistrationUser>) {
+    return inTransaction(
+      this.db,
+      async (transaction) => {
+        await sql`SELECT pg_advisory_xact_lock(hashtext(${'registration:' + sub}))`.execute(transaction);
+        return operation({
+          user: new UserRepository(transaction),
+          allowlist: new UserAllowlistRepository(transaction),
+          connection: new ConnectionRepository(transaction),
+          discord: new DiscordRepository(transaction),
+        });
+      },
+      { retryDeadlocks: true },
+    );
+  }
 
   create(user: Insertable<UserTable>) {
     return this.db.insertInto('users').values(user).returningAll().executeTakeFirstOrThrow();

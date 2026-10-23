@@ -1,6 +1,6 @@
 <script lang="ts">
   import { page } from '$app/state';
-  import { getEditUrl, getPage, getSection, siteMetadata } from '$lib';
+  import { canEdit, getEditUrl, getPage, getSection, siteMetadata } from '$lib';
   import PageNavigation from '$lib/components/PageNavigation.svelte';
   import TableOfContents from '$lib/components/TableOfContents.svelte';
   import { Breadcrumbs, Heading, Icon, Link, SiteMetadata, Text } from '@immich/ui';
@@ -39,10 +39,12 @@
     </div>
 
     {#if doc}
-      <div class="mt-12 flex items-center gap-1 text-sm">
-        <Icon icon={mdiPencilOutline} size="1rem" />
-        <Link href={getEditUrl(doc.path)}>Edit this page on GitHub</Link>
-      </div>
+      {#if canEdit(doc)}
+        <div class="mt-12 flex items-center gap-1 text-sm">
+          <Icon icon={mdiPencilOutline} size="1rem" />
+          <Link href={getEditUrl(doc.path)}>Edit this page on GitHub</Link>
+        </div>
+      {/if}
       <PageNavigation pages={page.data.pages} {doc} />
     {/if}
   </article>

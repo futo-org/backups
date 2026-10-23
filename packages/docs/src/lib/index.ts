@@ -1,4 +1,4 @@
-import { mdiBookOpenPageVariantOutline, mdiLifebuoy, mdiRocketLaunchOutline } from '@mdi/js';
+import { mdiBookOpenPageVariantOutline, mdiLifebuoy, mdiRocketLaunchOutline, mdiScaleBalance } from '@mdi/js';
 
 export { getEditUrl, Links, siteMetadata } from '$lib/constants';
 
@@ -6,12 +6,14 @@ export type Section = {
   id: string;
   title: string;
   icon: string;
+  editable?: boolean;
 };
 
 export const sections: Section[] = [
   { id: 'getting-started', title: 'Getting started', icon: mdiRocketLaunchOutline },
   { id: 'guides', title: 'Guides', icon: mdiBookOpenPageVariantOutline },
   { id: 'help', title: 'Help', icon: mdiLifebuoy },
+  { id: 'legal', title: 'Legal', icon: mdiScaleBalance, editable: false },
 ];
 
 export type Heading = {
@@ -31,6 +33,8 @@ export type DocsPageMeta = {
 };
 
 export const getSection = (page: DocsPageMeta) => sections.find(({ id }) => id === page.sectionId);
+
+export const canEdit = (page: DocsPageMeta) => getSection(page)?.editable ?? true;
 
 export const getPagesForSection = (pages: DocsPageMeta[], section: Section) =>
   pages.filter((page) => page.sectionId === section.id);

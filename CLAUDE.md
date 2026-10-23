@@ -77,7 +77,7 @@ CI deploys resource subsets rather than the whole stack (`mise tilt:ci` still do
 followed by `tilt:ci-e2e` (the apps the e2e suites touch).
 
 Ports: `5173` web · `3020` yucca-api · `3030` yucca-admin-api · `3010` michael ·
-`8092` mock-oidc · `8025` mailpit · `8093` mock-postmark · `9000` ceph rgw · `8428` victoria-metrics · `9428` victoria-logs.
+`8092` mock-oidc · `8025` mailpit · `8093` mock-resend · `9000` ceph rgw · `8428` victoria-metrics · `9428` victoria-logs.
 
 ## Application architecture
 
@@ -96,8 +96,8 @@ Zod-validated `env.ts`, JWT auth guards via `@AuthRoute()`, OTel from `@common/s
 | `standalone-app` | Node | Single-container orchestrator (`ghcr.io/futo-org/backups/standalone`). |
 | `restic-proxy` | Go | Local restic → FUTO Backups proxy (`ghcr.io/futo-org/backups/restic-proxy`). |
 | `mock-oidc-provider` | Node | Dev/test OIDC IdP (code + device flow). |
-| `mock-postmark-provider` | Node | Dev/test Postmark API mock; delivers into the Mailpit inbox. |
-| `common` (`@common/server`) | TS lib | OTel init, pino repository, **feature-flag registry + connection-type registry**, Postmark `EmailRepository` (`@common/server/email`). |
+| `mock-resend-provider` | Node | Dev/test Resend API mock; delivers into the Mailpit inbox. |
+| `common` (`@common/server`) | TS lib | OTel init, pino repository, **feature-flag registry + connection-type registry**, Resend `EmailRepository` (`@common/server/email`). |
 | `emails` (`@common/emails`) | Svelte lib | Transactional email templates (better-svelte-email, web theme), prebuilt to JS for the NestJS apps. See `docs/email.md`. |
 
 **Frontend** (`packages/web`): SvelteKit 5 + Tailwind 4, `@immich/ui`, lingui i18n
