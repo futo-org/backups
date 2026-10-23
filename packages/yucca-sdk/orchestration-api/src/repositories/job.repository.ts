@@ -241,8 +241,20 @@ export class JobRepository implements OnModuleInit, BeforeApplicationShutdown {
   async cancelAll(repositoryId: string) {
     await this.cancelQueued((eb) => eb('repositoryId', '=', repositoryId));
 
+    const running = await this.db
+      .selectFrom('jobs')
+      .select('id')
+      .where('repositoryId', '=', repositoryId)
+      .where('status', '=', JobStatus.Running)
+      .execute();
+
+    for (const { id } of running) {
+      if (!this.abort(id)) {
+        this.events.publish({ type: 'JobCancel', jobId: id });
+      }
+    }
+
     if (this.running?.repositoryId === repositoryId) {
-      this.abort(this.running.id);
       await this.wait(this.running.id).catch(() => {});
     }
   }
