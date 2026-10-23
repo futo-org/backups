@@ -1,5 +1,5 @@
 import { LoggerRepository } from '@common/server/otel';
-import { BadRequestException, Injectable, OnApplicationBootstrap } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException, OnApplicationBootstrap } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import {
   ActionRowBuilder,
@@ -27,9 +27,13 @@ import { DiscordLink, UserSummary, YuccaApiRepository } from 'src/repositories/y
 import { FreshdeskSyncService } from 'src/services/freshdeskSync.service.js';
 import { InviteService } from 'src/services/invite.service.js';
 import { isStaff } from 'src/utils/staff.js';
+import { TicketContext } from 'src/utils/ticketContext.js';
+import { formatVersions } from 'src/utils/versions.js';
 
 const LINK_POLL_INTERVAL_MS = 5000;
 const LINK_LOOKUP_TIMEOUT_MS = 2000;
+const INVESTIGATION_CONTEXT_MAX_LENGTH = 16_000;
+const INVESTIGATION_PROMPT_MAX_LENGTH = 2000;
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -67,13 +71,16 @@ export class SupportService implements OnApplicationBootstrap {
     }
     await this.discord.start(
       (interaction) => this.handleInteraction(interaction),
-      (message) => this.freshdeskSync.handleMessage(message),
+      (message) => this.handleMessage(message),
     );
     try {
       await this.discord.registerCommands();
     } catch (error) {
       this.logger.error(error, 'failed to register slash commands — is the applications.commands scope granted?');
     }
+    await this.discord
+      .ensureTicketAttachmentPermissions()
+      .catch((error: unknown) => this.logger.warn(error, 'ticket attachment permissions need staff attention'));
     await this.discord.ensurePinnedMessage(
       env.DISCORD_SUPPORT_CHANNEL_ID,
       {
@@ -82,6 +89,37 @@ export class SupportService implements OnApplicationBootstrap {
       },
       ComponentId.OpenTicket,
     );
+  }
+
+  async handleMessage(message: Message): Promise<void> {
+    const channel = message.channel;
+    if (
+      this.columbo.enabled &&
+      !message.author.bot &&
+      message.guildId === env.DISCORD_GUILD_ID &&
+      channel.isThread() &&
+      channel.parentId === env.DISCORD_SUPPORT_CHANNEL_ID &&
+      channel.name.startsWith('ticket-') &&
+      !channel.archived &&
+      !channel.locked
+    ) {
+      void this.columbo
+        .notifyTicketActivity(channel.id, { authorId: message.author.id, messageId: message.id })
+        .catch((error: unknown) => this.logger.warn(error, 'could not notify columbo of ticket activity'));
+    }
+    await this.freshdeskSync.handleMessage(message);
+  }
+
+  async getTicketContext(threadId: string): Promise<TicketContext> {
+    const context = await this.discord.getTicketContext(threadId);
+    if (!context) {
+      throw new NotFoundException('Ticket not found');
+    }
+    const mapping = env.INTERNAL_SECRET ? await this.api.getTicketByThread(threadId) : null;
+    if (mapping && (mapping.threadId !== threadId || mapping.discordUserId !== context.discordUserId)) {
+      throw new NotFoundException('Ticket not found');
+    }
+    return { ...context, closed: context.closed || Boolean(mapping?.closedAt) };
   }
 
   async handleInteraction(interaction: Interaction): Promise<void> {
@@ -108,10 +146,19 @@ export class SupportService implements OnApplicationBootstrap {
           case ComponentId.ClaimRole: {
             return await this.onClaimRequested(interaction);
           }
+          case ComponentId.Investigate: {
+            return await this.onInvestigationRequested(interaction);
+          }
         }
       }
       if (interaction.isModalSubmit() && interaction.customId === ComponentId.TicketModal) {
         return await this.onTicketSubmitted(interaction);
+      }
+      if (interaction.isModalSubmit() && interaction.customId === ComponentId.InvestigationModal) {
+        return await this.onInvestigationRequested(interaction);
+      }
+      if (interaction.isChatInputCommand() && interaction.commandName === 'investigate') {
+        return await this.onInvestigationRequested(interaction);
       }
       if (interaction.isChatInputCommand() && interaction.commandName === 'ticket') {
         return await this.onStaffTicket(interaction);
@@ -359,6 +406,13 @@ export class SupportService implements OnApplicationBootstrap {
       embeds: [new EmbedBuilder().setTitle(Messages.ticketEmbedTitle).setDescription(description)],
       components: [this.buttonRow(ComponentId.CloseTicket, Messages.closeTicketButton, ButtonStyle.Danger)],
     });
+    const attachmentsAvailable = await this.discord.canSendTicketAttachments(user.id).catch((error: unknown) => {
+      this.logger.warn(error, 'could not check ticket attachment permissions');
+      return false;
+    });
+    if (!attachmentsAvailable) {
+      await thread.send({ content: Messages.ticketAttachmentsUnavailable, allowedMentions: { parse: [] } });
+    }
 
     const link = await this.api.getLink(user.id).catch((error: unknown) => {
       this.logger.error(error, 'failed to look up link for staff note');
@@ -373,8 +427,18 @@ export class SupportService implements OnApplicationBootstrap {
           return null;
         })
       : null;
-    const note = this.staffNote(link, summary);
-    const staff = await this.discord.createStaffThread(`staff-${suffix}`, `<@&${env.DISCORD_STAFF_ROLE_ID}>\n${note}`);
+    const versions = link
+      ? await this.columbo.getVersions(link.userId).catch((error: unknown) => {
+          this.logger.warn(error, 'failed to fetch account versions');
+          return null;
+        })
+      : null;
+    const note = `${this.staffNote(link, summary)}\n${link ? formatVersions(versions) : Messages.versionsNoAccount}`;
+    const staff = await this.discord.createStaffThread(
+      `staff-${suffix}`,
+      `<@&${env.DISCORD_STAFF_ROLE_ID}>\nCustomer ticket: <#${thread.id}>\n${note}`,
+      [this.buttonRow(ComponentId.Investigate, Messages.investigateButton)],
+    );
 
     void this.freshdeskSync
       .onTicketOpened({
@@ -414,6 +478,115 @@ export class SupportService implements OnApplicationBootstrap {
     await this.discord.sendToThread(staffThreadId, {
       embeds: [new EmbedBuilder().setTitle(Messages.investigationTitle).setDescription(content.slice(0, 4096))],
     });
+  }
+
+  private async onInvestigationRequested(
+    interaction: ButtonInteraction | ChatInputCommandInteraction | ModalSubmitInteraction,
+  ): Promise<void> {
+    if (!isStaff(interaction)) {
+      await interaction.reply({ content: Messages.investigationStaffOnly, flags: MessageFlags.Ephemeral });
+      return;
+    }
+    const staff = interaction.channel;
+    if (
+      !(staff instanceof ThreadChannel) ||
+      staff.parentId !== env.DISCORD_SUPPORT_CHANNEL_ID ||
+      !staff.name.startsWith('staff-') ||
+      staff.locked
+    ) {
+      await interaction.reply({ content: Messages.investigationNotAStaffThread, flags: MessageFlags.Ephemeral });
+      return;
+    }
+    if (!this.columbo.enabled) {
+      await interaction.reply({ content: Messages.investigationUnavailable, flags: MessageFlags.Ephemeral });
+      return;
+    }
+    const prompt = interaction.isModalSubmit()
+      ? interaction.fields.getTextInputValue(ComponentId.InvestigationPrompt).trim()
+      : interaction.isChatInputCommand()
+        ? interaction.options.getString('prompt')?.trim()
+        : undefined;
+    if (prompt === undefined && !interaction.isModalSubmit()) {
+      await interaction.showModal(
+        new ModalBuilder()
+          .setCustomId(ComponentId.InvestigationModal)
+          .setTitle(Messages.investigationModalTitle)
+          .addComponents(
+            new ActionRowBuilder<TextInputBuilder>().addComponents(
+              new TextInputBuilder()
+                .setCustomId(ComponentId.InvestigationPrompt)
+                .setLabel(Messages.investigationPromptLabel)
+                .setStyle(TextInputStyle.Paragraph)
+                .setRequired(false)
+                .setMaxLength(INVESTIGATION_PROMPT_MAX_LENGTH),
+            ),
+          ),
+      );
+      return;
+    }
+    await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+    const mapping = await this.api.getTicketByThread(staff.id);
+    if (mapping && (mapping.closedAt || mapping.staffThreadId !== staff.id)) {
+      await interaction.editReply({ content: Messages.investigationMissingTicket });
+      return;
+    }
+    const ticket = mapping
+      ? await this.discord.getThreadById(mapping.threadId)
+      : await this.discord.findSupportThreadByName(staff.name.replace(/^staff-/, 'ticket-'));
+    if (!ticket || ticket.locked) {
+      await interaction.editReply({ content: Messages.investigationMissingTicket });
+      return;
+    }
+    const opening = await this.discord.getTicketOpening(ticket.id);
+    if (!opening) {
+      await interaction.editReply({ content: Messages.investigationMissingTicket });
+      return;
+    }
+    const link = mapping?.userId
+      ? { userId: mapping.userId, discordUsername: '' }
+      : await this.api.getLink(opening.discordUserId);
+    if (!link) {
+      await interaction.editReply({ content: Messages.investigationNoAccount });
+      return;
+    }
+    const messages = await this.discord.listThreadMessages(ticket.id);
+    const conversation = messages
+      .flatMap((message) => {
+        const mirror = message.author.bot
+          ? message.embeds?.find(
+              (embed) =>
+                embed.author?.name === Messages.viaEmailAuthor || embed.author?.name.endsWith('(FUTO support)'),
+            )
+          : undefined;
+        if (message.author.bot && !mirror) {
+          return [];
+        }
+        const attachments = [...message.attachments.values()].map((attachment) => attachment.url).join('\n');
+        return [
+          `${message.createdAt.toISOString()} ${mirror?.author?.name ?? message.author.username}: ${mirror?.description ?? message.content}${attachments ? `\n${attachments}` : ''}`,
+        ];
+      })
+      .join('\n')
+      .slice(-INVESTIGATION_CONTEXT_MAX_LENGTH);
+    await this.columbo.requestInvestigation({
+      ticketThreadId: ticket.id,
+      staffThreadId: staff.id,
+      discordUserId: opening.discordUserId,
+      username: link.discordUsername || opening.discordUserId,
+      userId: link.userId,
+      description: opening.description,
+      prompt: (prompt ?? '').slice(0, INVESTIGATION_PROMPT_MAX_LENGTH),
+      conversation,
+      requestedBy: interaction.user.id,
+    });
+    await this.discord
+      .sendToThread(staff.id, {
+        content: Messages.investigationRequested(interaction.user.id),
+        ...(prompt ? { embeds: [new EmbedBuilder().setDescription(prompt)] } : {}),
+        allowedMentions: { parse: [] },
+      })
+      .catch((error: unknown) => this.logger.warn(error, 'could not announce the queued investigation'));
+    await interaction.editReply({ content: Messages.investigationQueued });
   }
 
   private async onStaffNotesRequested(interaction: ChatInputCommandInteraction) {

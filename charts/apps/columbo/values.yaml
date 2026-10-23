@@ -32,6 +32,8 @@ extraEnvFrom: []
 env:
   - name: COLUMBO_PORT
     value: "3060"
+  - name: COLUMBO_TICKET_QUIET_SECONDS
+    value: "60"
   - name: FUTO_BACKUPS_BOT_URL
     value: http://futo-backups-bot:3050
   - name: O11Y_METRICS_URL

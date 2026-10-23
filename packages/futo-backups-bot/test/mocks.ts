@@ -23,6 +23,10 @@ export const newDiscordRepositoryMock = (): jest.Mocked<RepositoryInterface<Disc
     enabled: true,
     start: jest.fn(),
     registerCommands: jest.fn(),
+    ensureTicketAttachmentPermissions: jest
+      .fn<DiscordRepository['ensureTicketAttachmentPermissions']>()
+      .mockResolvedValue(),
+    canSendTicketAttachments: jest.fn<DiscordRepository['canSendTicketAttachments']>().mockResolvedValue(true),
     ensurePinnedMessage: jest.fn(),
     addRoleToMember: jest.fn(),
     listRecentMessages: jest.fn().mockResolvedValue([]),
@@ -31,6 +35,9 @@ export const newDiscordRepositoryMock = (): jest.Mocked<RepositoryInterface<Disc
     editMessage: jest.fn().mockResolvedValue(void 0),
     createTicketThread: jest.fn(),
     createStaffThread: jest.fn().mockResolvedValue({ thread: { id: 'staff-thread-1' }, seed: { id: 'staff-seed-1' } }),
+    getTicketOpening: jest.fn<DiscordRepository['getTicketOpening']>().mockResolvedValue(null),
+    getTicketContext: jest.fn<DiscordRepository['getTicketContext']>().mockResolvedValue(null),
+    listThreadMessages: jest.fn<DiscordRepository['listThreadMessages']>().mockResolvedValue([]),
     getThreadById: jest.fn(),
     sendToThread: jest.fn().mockResolvedValue(void 0),
     fetchMessagesAfter: jest.fn().mockResolvedValue([]),
@@ -79,6 +86,8 @@ export const newYuccaApiRepositoryMock = (): jest.Mocked<RepositoryInterface<Yuc
     updateLinkUsername: jest.fn().mockResolvedValue(void 0),
     createInviteBatch: jest.fn(),
     setInviteBatchMessage: jest.fn().mockResolvedValue(void 0),
+    getInviteBatch: jest.fn<YuccaApiRepository['getInviteBatch']>().mockResolvedValue(null),
+    listInviteBatches: jest.fn<YuccaApiRepository['listInviteBatches']>().mockResolvedValue([]),
     createInvite: jest.fn(),
     getUserSummary: jest.fn(),
     createTicketMapping: jest.fn(),
@@ -93,6 +102,10 @@ export const newColumboRepositoryMock = (): jest.Mocked<RepositoryInterface<Colu
   return {
     enabled: true,
     requestInvestigation: jest.fn().mockResolvedValue(void 0),
+    notifyTicketActivity: jest.fn<ColumboRepository['notifyTicketActivity']>().mockResolvedValue(),
+    getVersions: jest
+      .fn<ColumboRepository['getVersions']>()
+      .mockResolvedValue({ versions: [], unavailableSources: [] }),
   };
 };
 

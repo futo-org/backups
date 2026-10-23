@@ -300,15 +300,15 @@ docker_build(
 # Same config-only posture as mock-oidc: a plain build, reconfigured through
 # Helm values.
 docker_build(
-    'mock-postmark-provider',
+    'mock-resend-provider',
     context='.',
-    dockerfile='packages/mock-postmark-provider/Dockerfile',
+    dockerfile='packages/mock-resend-provider/Dockerfile',
     only=[
         './pnpm-workspace.yaml',
         './pnpm-lock.yaml',
         './package.json',
         './.npmrc',
-        './packages/mock-postmark-provider',
+        './packages/mock-resend-provider',
     ],
     ignore=[
         '**/node_modules',
@@ -322,7 +322,7 @@ docker_build(
 # ---------------------------------------------------------------------------
 local_resource(
     'helm-deps',
-    cmd='rm -rf charts/apps/yucca-api/charts charts/apps/yucca-admin-api/charts charts/apps/yucca-metrics-worker/charts charts/apps/futo-backups-bot/charts charts/apps/web/charts charts/apps/meta/charts charts/apps/michael/charts charts/dev/mock-oidc/charts charts/dev/mock-postmark/charts charts/dev/mailpit/charts && for d in charts/apps/yucca-api charts/apps/yucca-admin-api charts/apps/yucca-metrics-worker charts/apps/futo-backups-bot charts/apps/web charts/apps/meta charts/apps/michael charts/dev/mock-oidc charts/dev/mock-postmark charts/dev/mailpit; do (cd $d && helm dependency build); done',
+    cmd='rm -rf charts/apps/yucca-api/charts charts/apps/yucca-admin-api/charts charts/apps/yucca-metrics-worker/charts charts/apps/futo-backups-bot/charts charts/apps/web/charts charts/apps/meta/charts charts/apps/michael/charts charts/dev/mock-oidc/charts charts/dev/mock-resend/charts charts/dev/mailpit/charts && for d in charts/apps/yucca-api charts/apps/yucca-admin-api charts/apps/yucca-metrics-worker charts/apps/futo-backups-bot charts/apps/web charts/apps/meta charts/apps/michael charts/dev/mock-oidc charts/dev/mock-resend charts/dev/mailpit; do (cd $d && helm dependency build); done',
     deps=[
         'charts/apps/yucca-api',
         'charts/apps/yucca-admin-api',
@@ -332,7 +332,7 @@ local_resource(
         'charts/apps/meta',
         'charts/apps/michael',
         'charts/dev/mock-oidc',
-        'charts/dev/mock-postmark',
+        'charts/dev/mock-resend',
         'charts/dev/mailpit',
         'charts/lib/yucca-common',
     ],
@@ -376,7 +376,7 @@ APP_WIRING = {
     'yucca-michael':          {'build': 'michael',            'deps': ['yucca-object-user'], 'dev_keypair': True},
     'yucca-mock-oidc':        {'build': 'mock-oidc-provider', 'deps': []},
     'yucca-mailpit':          {'build': None,                 'deps': []},
-    'yucca-mock-postmark':    {'build': 'mock-postmark-provider', 'deps': ['yucca-mailpit']},
+    'yucca-mock-resend':    {'build': 'mock-resend-provider', 'deps': ['yucca-mailpit']},
     'yucca-database':         {'build': None,                 'deps': ['cloudnative-pg']},
     # The CephObjectStoreUser creates no pods (just a Secret once Rook mints the
     # RGW user), so Tilt's pod tracking would hang at "pending". Mark ready on
@@ -570,7 +570,7 @@ kubectl port-forward -n yucca svc/yucca-meta 8081:8080 &
 kubectl port-forward -n yucca svc/yucca-michael 3010:3010 &
 kubectl port-forward -n yucca svc/yucca-mock-oidc 8092:8092 &
 kubectl port-forward -n yucca svc/yucca-mailpit 8025:8025 &
-kubectl port-forward -n yucca svc/yucca-mock-postmark 8093:8093 &
+kubectl port-forward -n yucca svc/yucca-mock-resend 8093:8093 &
 kubectl port-forward -n rook-ceph svc/rook-ceph-rgw-yucca 9000:80 &
 kubectl port-forward -n yucca svc/victoria-metrics 8428:8428 &
 kubectl port-forward -n yucca svc/victoria-logs 9428:9428 &
@@ -585,7 +585,7 @@ wait''',
         link('http://localhost:8081/.well-known/yucca.json', 'meta (.well-known)'),
         link('http://localhost:8092', 'mock-oidc'),
         link('http://localhost:8025', 'mailpit (inbox)'),
-        link('http://localhost:8093', 'mock-postmark'),
+        link('http://localhost:8093', 'mock-resend'),
         link('http://localhost:9000', 'ceph rgw (s3)'),
         link('http://localhost:8428', 'victoria-metrics'),
         link('http://localhost:9428', 'victoria-logs'),

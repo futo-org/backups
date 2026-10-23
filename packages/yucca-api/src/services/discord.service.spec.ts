@@ -54,6 +54,12 @@ describe(DiscordService.name, () => {
       await expect(sut.getLinkRequest('nope')).rejects.toBeInstanceOf(NotFoundException);
     });
 
+    it('rejects an invite token on the normal link endpoint', async () => {
+      mocks.discord.getRequestByCode.mockResolvedValue({ ...request, allowlistId: 'invite-1' });
+
+      await expect(sut.getLinkRequest('code')).rejects.toBeInstanceOf(NotFoundException);
+    });
+
     it('rejects an expired code', async () => {
       mocks.discord.getRequestByCode.mockResolvedValue({ ...request, expiresAt: new Date(Date.now() - 1) });
 
@@ -90,6 +96,14 @@ describe(DiscordService.name, () => {
       await expect(sut.confirmLinkRequest(auth, 'code')).rejects.toBeInstanceOf(NotFoundException);
       expect(mocks.discord.link).not.toHaveBeenCalled();
     });
+
+    it('does not consume an invite token through ordinary account linking', async () => {
+      mocks.discord.getRequestByCode.mockResolvedValue({ ...request, allowlistId: 'invite-1' });
+
+      await expect(sut.confirmLinkRequest(auth, 'code')).rejects.toBeInstanceOf(NotFoundException);
+
+      expect(mocks.discord.link).not.toHaveBeenCalled();
+    });
   });
 
   describe('updateLinkUsername', () => {
@@ -119,25 +133,29 @@ describe(DiscordService.name, () => {
   });
 
   describe('createInvite', () => {
-    const entry = { id: 'entry' } as never;
+    const inviteRequest = { ...request, code: 'token', allowlistId: 'entry' };
 
     it('mints a claim and a single-use token', async () => {
       mocks.crypto.randomHex.mockReturnValueOnce('invite-code').mockReturnValueOnce('token');
-      mocks.discord.claimInvite.mockResolvedValue({ status: 'ok', entry, remaining: 2 });
-      mocks.discord.createRequest.mockResolvedValue({ ...request, code: 'token', allowlistId: 'entry' });
+      mocks.discord.claimInvite.mockResolvedValue({ status: 'ok', request: inviteRequest, remaining: 2 });
 
       await expect(
         sut.createInvite({ discordUserId: '123456789', discordUsername: 'someone', batchId: 'batch' }),
       ).resolves.toEqual({ code: 'token', expiresAt: request.expiresAt, remaining: 2 });
 
-      expect(mocks.discord.claimInvite).toHaveBeenCalledWith('123456789', 'someone', 'batch', 'invite-code');
-      expect(mocks.discord.createRequest).toHaveBeenCalledWith(expect.objectContaining({ allowlistId: 'entry' }));
+      expect(mocks.discord.claimInvite).toHaveBeenCalledWith(
+        '123456789',
+        'someone',
+        'batch',
+        'invite-code',
+        expect.objectContaining({ code: 'token', expiresAt: expect.any(Date) }),
+      );
+      expect(mocks.discord.createRequest).not.toHaveBeenCalled();
     });
 
     it('re-issues a token for an existing unused claim without consuming a batch slot', async () => {
       mocks.crypto.randomHex.mockReturnValueOnce('invite-code').mockReturnValueOnce('token');
-      mocks.discord.claimInvite.mockResolvedValue({ status: 'ok', entry, remaining: null });
-      mocks.discord.createRequest.mockResolvedValue({ ...request, code: 'token', allowlistId: 'entry' });
+      mocks.discord.claimInvite.mockResolvedValue({ status: 'ok', request: inviteRequest, remaining: null });
 
       await expect(sut.createInvite({ discordUserId: '123456789', discordUsername: 'someone' })).resolves.toEqual(
         expect.objectContaining({ remaining: null }),
@@ -188,6 +206,40 @@ describe(DiscordService.name, () => {
       await expect(sut.setInviteBatchMessage('nope', { messageId: 'message' })).rejects.toBeInstanceOf(
         NotFoundException,
       );
+    });
+  });
+
+  describe('invite batch status', () => {
+    const batch = {
+      id: 'batch-id',
+      guildId: 'guild-1',
+      channelId: 'channel-1',
+      messageId: 'message-1',
+      maxClaims: 3,
+      remaining: 2,
+      cancelledAt: null,
+      createdByDiscordUserId: 'staff-1',
+      createdAt: new Date(),
+    };
+
+    it('returns posted batch statuses from the repository', async () => {
+      mocks.discord.listInviteBatches.mockResolvedValue([batch]);
+
+      await expect(sut.listInviteBatches()).resolves.toEqual({ items: [batch] });
+    });
+
+    it('refreshes one batch authoritatively', async () => {
+      mocks.discord.getInviteBatch.mockResolvedValue(batch);
+
+      await expect(sut.getInviteBatch(batch.id)).resolves.toEqual(batch);
+
+      expect(mocks.discord.getInviteBatch).toHaveBeenCalledWith(batch.id);
+    });
+
+    it('rejects an unknown batch', async () => {
+      mocks.discord.getInviteBatch.mockResolvedValue(undefined);
+
+      await expect(sut.getInviteBatch('missing')).rejects.toBeInstanceOf(NotFoundException);
     });
   });
 

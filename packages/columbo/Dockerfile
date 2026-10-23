@@ -3,13 +3,16 @@ ARG ALPINE_VERSION=3.23
 # be appended to the golang base tag (which reuses ${ALPINE_VERSION}).
 ARG ALPINE_IMAGE=alpine:3.24@sha256:294b683cb724975bec92580e1e685676bd4b50bda910ddb8c51d4cabeaec77e6
 
-FROM golang:1.27-alpine${ALPINE_VERSION} AS builder
+FROM golang:1.27.3-alpine${ALPINE_VERSION} AS builder
 WORKDIR /app
+RUN apk add --no-cache git
 
 COPY packages/columbo/go.mod packages/columbo/go.sum ./
 RUN go mod download
 
 COPY packages/columbo/ ./
+COPY .git /repository/.git
+RUN go run ./cmd/embed-repository -repo /repository -output internal/source/embedded
 RUN CGO_ENABLED=0 go build -o /columbo .
 
 FROM ${ALPINE_IMAGE}
@@ -22,5 +25,6 @@ USER columbo
 COPY --from=builder /columbo /usr/local/bin/columbo
 
 ENV COLUMBO_PORT=3060
+ENV GOMEMLIMIT=160MiB
 EXPOSE 3060
 CMD ["dumb-init", "columbo"]
