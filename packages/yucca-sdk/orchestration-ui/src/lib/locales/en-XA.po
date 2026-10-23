@@ -130,6 +130,10 @@ msgstr ""
 msgid "About {duration} remaining"
 msgstr ""
 
+#: src/lib/components/onboarding/steps/OnboardingStepBetaDisclaimer.svelte
+msgid "Access to the service will end when the beta concludes and will be available again at launch."
+msgstr ""
+
 #: src/lib/components/backends/BackendItem.svelte
 #: src/lib/components/settings/SettingsBilling.svelte
 msgid "Active"
@@ -394,6 +398,10 @@ msgstr ""
 
 #: src/lib/components/integrations/immich/settings/ImmichSettingsBandwidth.svelte
 msgid "Bandwidth"
+msgstr ""
+
+#: src/lib/components/onboarding/steps/OnboardingStepBetaDisclaimer.svelte
+msgid "Before continuing, please be aware of the following:"
 msgstr ""
 
 #: ../../web/src/routes/dashboard/connections/+page.svelte
@@ -951,6 +959,14 @@ msgstr ""
 msgid "Finish setting up FUTO Backups"
 msgstr ""
 
+#: src/lib/components/onboarding/steps/OnboardingStepBetaDisclaimer.svelte
+msgid "Found a bug? Let us know through Discord or the public GitHub issue tracker."
+msgstr ""
+
+#: src/lib/components/onboarding/steps/OnboardingStepBetaDisclaimer.svelte
+msgid "Free during closed beta"
+msgstr ""
+
 #: src/lib/components/integrations/immich/settings/ImmichSettingsSchedule.svelte
 msgid "Frequency"
 msgstr ""
@@ -989,6 +1005,15 @@ msgstr ""
 msgid "FUTO Backups already creates the same database backups as Immich."
 msgstr ""
 
+#: src/lib/components/onboarding/steps/OnboardingStepBetaDisclaimer.svelte
+msgid "FUTO Backups is free during the closed beta. You won't be charged for any usage."
+msgstr ""
+
+#: src/lib/components/integrations/immich/ImmichManageBackupPage.svelte
+#: src/lib/components/integrations/immich/ImmichOnboardingSetupFlow.svelte
+msgid "FUTO Backups is in closed beta"
+msgstr ""
+
 #: src/lib/components/onboarding/steps/OnboardingStep3SaveRecoveryKey.svelte
 msgid "FUTO cannot restore your backups without this key."
 msgstr ""
@@ -1013,6 +1038,10 @@ msgstr ""
 #: src/lib/components/onboarding/upsell/UpsellExplainFutoBackups.svelte
 #: src/lib/components/onboarding/upsell/UpsellProtectYourImmichLibrary.svelte
 msgid "Get Started"
+msgstr ""
+
+#: src/lib/components/integrations/immich/ImmichManageBackupPage.svelte
+msgid "Get Support"
 msgstr ""
 
 #: src/lib/components/schedules/dialogs/CreateScheduleModal.svelte
@@ -1061,6 +1090,10 @@ msgstr ""
 
 #: src/lib/components/onboarding/steps/OnboardingStep3SaveRecoveryKey.svelte
 msgid "I saved my recovery key somewhere safe."
+msgstr ""
+
+#: src/lib/components/onboarding/steps/OnboardingStepBetaDisclaimer.svelte
+msgid "I understand my beta backups may be deleted."
 msgstr ""
 
 #: src/lib/components/integrations/immich/ImmichDatabaseDumpAlert.svelte
@@ -1723,8 +1756,16 @@ msgstr ""
 msgid "Remove {path}"
 msgstr ""
 
+#: src/lib/components/integrations/immich/ImmichManageBackupPage.svelte
+msgid "Report An Issue"
+msgstr ""
+
 #: src/lib/components/onboarding/OnboardingBootstrapError.svelte
 msgid "Report error and quit"
+msgstr ""
+
+#: src/lib/components/onboarding/steps/OnboardingStepBetaDisclaimer.svelte
+msgid "Report issues"
 msgstr ""
 
 #: src/lib/components/schedules/RepositoryPicker.svelte
@@ -1991,6 +2032,7 @@ msgid "Something went wrong"
 msgstr ""
 
 #: src/lib/components/onboarding/steps/OnboardingStep4FirstBackup.svelte
+#: src/lib/components/onboarding/steps/OnboardingStepBetaDisclaimer.svelte
 #: src/lib/components/onboarding/upsell/UpsellHowItWorks.svelte
 msgid "Start backup"
 msgstr ""
@@ -2084,6 +2126,10 @@ msgstr ""
 msgid "Telemetry required for closed beta"
 msgstr ""
 
+#: src/lib/components/onboarding/steps/OnboardingStepBetaDisclaimer.svelte
+msgid "Temporary beta access"
+msgstr ""
+
 #: src/lib/services/deviceFlow.service.svelte.ts
 msgid "That account does not own this instance. Log in with the account it was connected with."
 msgstr ""
@@ -2094,6 +2140,10 @@ msgstr ""
 
 #: src/lib/services/job.service.ts
 msgid "The backup was stopped before it finished."
+msgstr ""
+
+#: src/lib/components/onboarding/steps/OnboardingStepBetaDisclaimer.svelte
+msgid "The service may be reset and your backup data may be deleted when the beta ends."
 msgstr ""
 
 #: src/lib/components/ui/PathPickerModal.svelte
@@ -2110,6 +2160,10 @@ msgstr ""
 
 #: ../../web/src/routes/login/invite/+page.svelte
 msgid "This invite link has expired. Go back to Discord and claim it again to get a fresh one."
+msgstr ""
+
+#: src/lib/components/integrations/immich/ImmichManageBackupPage.svelte
+msgid "This is an early version of FUTO Backups. The service may be reset and your backup data may be deleted when the beta ends. Please don't rely on it as your only backup."
 msgstr ""
 
 #: ../../web/src/routes/link/discord/+page.svelte
@@ -2132,6 +2186,10 @@ msgstr ""
 #: src/lib/components/integrations/immich/settings/ImmichSettingsBackupContents.svelte
 #: src/lib/utils/format.ts
 msgid "Thumbnails and previews"
+msgstr ""
+
+#: ../../web/src/routes/dashboard/+layout.svelte
+msgid "Toggle dark theme"
 msgstr ""
 
 #: ../../web/src/routes/dashboard/+layout.svelte
@@ -2298,6 +2356,10 @@ msgstr ""
 
 #: src/lib/components/onboarding/steps/OnboardingStep3SaveRecoveryKey.svelte
 msgid "You'll need this key to restore your encrypted backups. Save it somewhere safe before continuing. FUTO cannot recover this key if it is lost."
+msgstr ""
+
+#: src/lib/components/onboarding/steps/OnboardingStepBetaDisclaimer.svelte
+msgid "Your backup data may be deleted"
 msgstr ""
 
 #: src/lib/components/onboarding/upsell/UpsellHowItWorks.svelte

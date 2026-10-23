@@ -10,6 +10,7 @@
     HStack,
     IconButton,
     NavbarItem,
+    ThemeSwitcher,
   } from "@immich/ui";
   import {
     mdiBackupRestore,
@@ -51,6 +52,10 @@
         <Heading size="tiny" tag="h2"><FutoBackupsLogo /></Heading>
       </HStack>
       <HStack>
+        <ThemeSwitcher
+          color="secondary"
+          translations={{ dark_theme: $t`Toggle dark theme` }}
+        />
         <Avatar name={data.user!.name} />
         <span class="sr-only">{data.user!.name}</span>
         <Button href={defaults.baseUrl + "api/auth/logout"}>{$t`Logout`}</Button

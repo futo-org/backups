@@ -2,7 +2,7 @@
   "name": "@futo-org/backups-orchestrator-ui",
   "repository": "https://github.com/futo-org/backups",
   "description": "Backups orchestrator (UI library)",
-  "version": "0.55.1",
+  "version": "1.8.1",
   "license": "Source First License 1.1",
   "scripts": {
     "dev": "vite dev --port 5174",
@@ -42,11 +42,13 @@
     }
   },
   "peerDependencies": {
+    "@immich/ui": "^0.90.0",
     "@lingui/core": "^5.8.0",
     "svelte": "^5.0.0",
     "svelte-i18n-lingui": "^0.2.2"
   },
   "devDependencies": {
+    "@immich/ui": "catalog:",
     "@lingui/cli": "catalog:",
     "@lingui/core": "catalog:",
     "@playwright/test": "catalog:",
@@ -76,7 +78,7 @@
     "svelte"
   ],
   "dependencies": {
-    "@immich/ui": "catalog:",
+    "@material-symbols/svg-400": "catalog:",
     "@mdi/js": "catalog:",
     "@oazapfts/runtime": "catalog:",
     "@tanstack/svelte-query": "catalog:",
