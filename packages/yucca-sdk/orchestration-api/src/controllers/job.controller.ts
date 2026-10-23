@@ -59,7 +59,10 @@ export class JobController {
     description: 'Download the full log of a job as JSON lines.',
   })
   async downloadJobLog(@Param('id') id: string, @Res() response: Response): Promise<void> {
-    const logFilePath = this.repository.getLogFilePath(id);
+    const logFilePath = await this.repository.getLogFilePath(id);
+    if (!logFilePath) {
+      throw new NotFoundException('Job not found');
+    }
 
     try {
       await this.storage.stat(logFilePath);

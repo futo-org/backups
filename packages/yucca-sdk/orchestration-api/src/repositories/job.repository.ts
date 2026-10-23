@@ -4,7 +4,7 @@ import { EventIterator } from 'event-iterator';
 import { Kysely, Selectable, sql, UpdateQueryBuilder, UpdateResult } from 'kysely';
 import { InjectKysely } from 'nestjs-kysely';
 import { randomUUID } from 'node:crypto';
-import { dirname, resolve } from 'node:path';
+import { dirname, join, resolve } from 'node:path';
 import { Writable } from 'node:stream';
 import { from } from 'rxjs';
 import { Tail } from 'tail';
@@ -24,7 +24,7 @@ import { StorageRepository } from './storage.repository.js';
 
 export type Job = Selectable<JobTable>;
 
-const toJobDto = ({ data: _, ...job }: Job): JobDto => job;
+const toJobDto = ({ data: _data, logFilePath: _logFilePath, ...job }: Job): JobDto => job;
 
 const finishedStatuses = new Set([JobStatus.Complete, JobStatus.Warn, JobStatus.Failed, JobStatus.Cancelled]);
 
@@ -93,18 +93,24 @@ export class JobRepository implements OnModuleInit, BeforeApplicationShutdown {
       .execute();
   }
 
-  getLogFilePath(id: string) {
-    return resolve(this.moduleConfig.get().statePath, 'logs', 'jobs', `${id}.jsonl`);
+  async getLogFilePath(id: string) {
+    const job = await this.find(id);
+
+    return job && this.resolveLogFilePath(job);
   }
 
-  private async createCtx(id: string, signal: AbortSignal) {
-    const logFilePath = this.getLogFilePath(id);
+  private resolveLogFilePath(job: Job) {
+    return resolve(this.moduleConfig.get().statePath, job.logFilePath);
+  }
+
+  private async createCtx(job: Job, signal: AbortSignal) {
+    const logFilePath = this.resolveLogFilePath(job);
 
     try {
       await this.storage.mkdir(dirname(logFilePath), { recursive: true });
     } catch (error) {
-      this.logger.warn(`Logging is unavailable for job ${id}, running it without a log`, error);
-      this.telemetry.submitStructuredLog('Logging is unavailable for job', { jobId: id, error });
+      this.logger.warn(`Logging is unavailable for job ${job.id}, running it without a log`, error);
+      this.telemetry.submitStructuredLog('Logging is unavailable for job', { jobId: job.id, error });
       return new JobContext(signal, new Writable({ write: (_chunk, _encoding, done) => done() }));
     }
 
@@ -126,14 +132,19 @@ export class JobRepository implements OnModuleInit, BeforeApplicationShutdown {
     const jobs = await this.db
       .insertInto('jobs')
       .values(
-        items.map(({ name, data }) => ({
-          id: randomUUID(),
-          name,
-          repositoryId: data.repositoryId,
-          data: JSON.stringify(data),
-          status: JobStatus.Queued,
-          queuedAt,
-        })),
+        items.map(({ name, data }) => {
+          const id = randomUUID();
+
+          return {
+            id,
+            name,
+            repositoryId: data.repositoryId,
+            data: JSON.stringify(data),
+            status: JobStatus.Queued,
+            logFilePath: join('logs', 'jobs', `${id}.jsonl`),
+            queuedAt,
+          };
+        }),
       )
       .returningAll()
       .execute();
@@ -182,14 +193,20 @@ export class JobRepository implements OnModuleInit, BeforeApplicationShutdown {
   }
 
   getObservable(id: string) {
-    const logFilePath = this.getLogFilePath(id);
-
     return from(
       new EventIterator<MessageEvent>((queue) => {
         let tail: Tail | undefined;
+        let logFilePath = '';
 
-        this.storage
-          .mkdir(dirname(logFilePath), { recursive: true })
+        this.getLogFilePath(id)
+          .then((path) => {
+            if (!path) {
+              throw new NotFoundException('Job not found');
+            }
+
+            logFilePath = path;
+          })
+          .then(() => this.storage.mkdir(dirname(logFilePath), { recursive: true }))
           .then(() => this.storage.touch(logFilePath))
           .then(() => {
             tail = new Tail(logFilePath, { fromBeginning: true, nLines: 50 });
@@ -396,7 +413,7 @@ export class JobRepository implements OnModuleInit, BeforeApplicationShutdown {
     const { handler } = this.handlers.get(job.name)!;
     this.running = { id: job.id, repositoryId: job.repositoryId, controller: new AbortController() };
 
-    const ctx = await this.createCtx(job.id, this.running.controller.signal);
+    const ctx = await this.createCtx(job, this.running.controller.signal);
 
     let error: unknown;
     try {

@@ -8,6 +8,7 @@ export class JobTable {
 
   status!: JobStatus;
   error?: string;
+  logFilePath!: string;
 
   queuedAt!: string;
   start?: string;
