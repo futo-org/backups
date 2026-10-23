@@ -88,6 +88,36 @@ describe(JobRepository.name, () => {
     expect(log).toContain('restic forget failed');
   });
 
+  it('resolves a stored log path against the current state directory', async () => {
+    const jobs = ctx.module.get(JobRepository);
+    const moduleConfig = ctx.module.get(ModuleConfigRepository);
+    const originalStatePath = ctx.statePath;
+    const movedStatePath = await mkdtemp(join(tmpdir(), 'yucca-moved-'));
+    ctx.database
+      .prepare(
+        `INSERT INTO jobs (id, name, repositoryId, data, status, logFilePath, queuedAt)
+          VALUES ('custom-path', ?, ?, '{}', 'complete', 'logs/custom/elsewhere.jsonl', '2026-10-13T00:00:00.000Z')`,
+      )
+      .run(JobName.RepositorySnapshotForget, repositoryId);
+
+    try {
+      await expect(jobs.getLogFilePath('custom-path')).resolves.toBe(
+        join(originalStatePath, 'logs', 'custom', 'elsewhere.jsonl'),
+      );
+
+      moduleConfig.update({ statePath: movedStatePath });
+
+      await expect(jobs.getLogFilePath('custom-path')).resolves.toBe(
+        join(movedStatePath, 'logs', 'custom', 'elsewhere.jsonl'),
+      );
+      expect(ctx.database.prepare('SELECT logFilePath FROM jobs WHERE id = ?').get('custom-path')).toEqual({
+        logFilePath: 'logs/custom/elsewhere.jsonl',
+      });
+    } finally {
+      moduleConfig.update({ statePath: originalStatePath });
+    }
+  });
+
   it('runs one job at a time in queue order', async () => {
     const jobs = ctx.module.get(JobRepository);
     const first = Promise.withResolvers<void>();

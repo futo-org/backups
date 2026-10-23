@@ -72,9 +72,11 @@
       case "failed": {
         return "failed";
       }
-      case "cancelled":
-      case "incomplete": {
+      case "cancelled": {
         return "cancelled";
+      }
+      case "incomplete": {
+        return "interrupted";
       }
       case "warn": {
         return "warned";
@@ -133,6 +135,12 @@
       case "cancelled": {
         return $t({
           message: "{name} cancelled",
+          values: { name: $t(titles[type].done) },
+        });
+      }
+      case "interrupted": {
+        return $t({
+          message: "{name} interrupted",
           values: { name: $t(titles[type].done) },
         });
       }

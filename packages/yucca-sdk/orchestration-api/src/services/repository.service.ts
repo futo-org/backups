@@ -429,6 +429,7 @@ export class RepositoryService {
         placement: ResticPlacement;
       };
       additionalMetrics?: Updateable<RepositoryLocalMetricsTable>;
+      signal?: AbortSignal;
     },
   ): Promise<void> {
     const metrics: Updateable<RepositoryLocalMetricsTable> = {
@@ -439,7 +440,7 @@ export class RepositoryService {
       if (options.resticParameters) {
         const { endpoint, key, placement } = options.resticParameters;
         try {
-          const { total_size } = await this.restic.stats(endpoint, key, placement);
+          const { total_size } = await this.restic.stats(endpoint, key, placement, options.signal);
           metrics.sizeBytes = total_size;
         } catch (error) {
           this.telemetry.submitStructuredLog('Failed to read repository stats', {

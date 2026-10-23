@@ -863,7 +863,7 @@
         ]
       },
       "post": {
-        "description": "Start a backup to a repository and return the ID of its run log.",
+        "description": "Queue a backup to a repository and return the ID of its job.",
         "operationId": "createBackup",
         "parameters": [
           {
@@ -1047,7 +1047,7 @@
     },
     "/api/yucca/repository/{id}/snapshots/prune": {
       "post": {
-        "description": "Remove snapshots outside the retention policy and return the ID of the run log.",
+        "description": "Queue the removal of snapshots outside the retention policy and return the ID of its job.",
         "operationId": "pruneRepository",
         "parameters": [
           {
@@ -1079,7 +1079,7 @@
     },
     "/api/yucca/repository/{id}/snapshots/{snapshot}": {
       "post": {
-        "description": "Restore files from a snapshot and return the ID of the run log.",
+        "description": "Queue a restore of files from a snapshot and return the ID of its job.",
         "operationId": "restoreSnapshot",
         "parameters": [
           {
