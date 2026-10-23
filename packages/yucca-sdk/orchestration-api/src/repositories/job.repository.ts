@@ -5,6 +5,7 @@ import { Kysely, Selectable, sql, UpdateQueryBuilder, UpdateResult } from 'kysel
 import { InjectKysely } from 'nestjs-kysely';
 import { randomUUID } from 'node:crypto';
 import { dirname, join, resolve } from 'node:path';
+import { Writable } from 'node:stream';
 import { from } from 'rxjs';
 import { Tail } from 'tail';
 import { JobConfig } from '../decorators.js';
@@ -14,6 +15,7 @@ import { EventsGateway, GatewayEvent } from '../events/events.gateway.js';
 import { JobContext } from '../jobs/jobContext.js';
 import { DB } from '../schema/index.js';
 import { JobTable } from '../schema/tables/job.table.js';
+import { TelemetryService } from '../services/telemetry.service.js';
 import { getJobStatus, TaskCancelledError, writeError } from '../utils/errors.js';
 import type { JobHandler, JobItem } from '../utils/types.js';
 import { LoggingRepository } from './logging.repository.js';
@@ -43,6 +45,7 @@ export class JobRepository implements OnModuleInit, BeforeApplicationShutdown {
     private readonly storage: StorageRepository,
     private readonly events: EventsGateway,
     private readonly logger: LoggingRepository,
+    private readonly telemetry: TelemetryService,
   ) {
     this.logger.setContext(JobRepository.name);
   }
@@ -102,7 +105,14 @@ export class JobRepository implements OnModuleInit, BeforeApplicationShutdown {
 
   private async createCtx(job: Job, signal: AbortSignal) {
     const logFilePath = this.resolveLogFilePath(job);
-    await this.storage.mkdir(dirname(logFilePath), { recursive: true });
+
+    try {
+      await this.storage.mkdir(dirname(logFilePath), { recursive: true });
+    } catch (error) {
+      this.logger.warn(`Logging is unavailable for job ${job.id}, running it without a log`, error);
+      this.telemetry.submitStructuredLog('Logging is unavailable for job', { jobId: job.id, error });
+      return new JobContext(signal, new Writable({ write: (_chunk, _encoding, done) => done() }));
+    }
 
     return new JobContext(signal, this.storage.createWriteStream(logFilePath));
   }
@@ -240,12 +250,15 @@ export class JobRepository implements OnModuleInit, BeforeApplicationShutdown {
   }
 
   async cancel(id: string) {
+    const [cancelled] = await this.cancelQueued((eb) => eb('id', '=', id));
+    if (cancelled) {
+      return;
+    }
+
     const job = await this.find(id);
     if (!job) {
       throw new NotFoundException('Job not found');
     }
-
-    await this.cancelQueued((eb) => eb('id', '=', id));
 
     if (job.status === JobStatus.Running && !this.abort(id)) {
       this.events.publish({ type: 'JobCancel', jobId: id });
@@ -255,8 +268,20 @@ export class JobRepository implements OnModuleInit, BeforeApplicationShutdown {
   async cancelAll(repositoryId: string) {
     await this.cancelQueued((eb) => eb('repositoryId', '=', repositoryId));
 
+    const running = await this.db
+      .selectFrom('jobs')
+      .select('id')
+      .where('repositoryId', '=', repositoryId)
+      .where('status', '=', JobStatus.Running)
+      .execute();
+
+    for (const { id } of running) {
+      if (!this.abort(id)) {
+        this.events.publish({ type: 'JobCancel', jobId: id });
+      }
+    }
+
     if (this.running?.repositoryId === repositoryId) {
-      this.abort(this.running.id);
       await this.wait(this.running.id).catch(() => {});
     }
   }
@@ -280,6 +305,8 @@ export class JobRepository implements OnModuleInit, BeforeApplicationShutdown {
 
       this.settle(job, new TaskCancelledError());
     }
+
+    return cancelled;
   }
 
   private abort(id: string) {
