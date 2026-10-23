@@ -10,15 +10,15 @@ Support for the beta runs through Discord, in the **FUTO Backups** channels on t
 
 | Channel | What it is for |
 | --- | --- |
-| `#support` | Opening a support ticket. The pinned message carries the button that starts one |
-| `#general` | General FUTO Backups chat |
-| `#customer` | Chat for people with a FUTO Backups account |
+| `#backups-support` | Opening a support ticket. The pinned message carries the button that starts one |
+| `#backups-general` | General FUTO Backups chat |
+| `#backups-customer` | Chat for people with a FUTO Backups account |
 
 ## Opening a ticket
 
 Support tickets are private threads, so you can share details without posting them to the whole server.
 
-1. Go to `#support` and select **Get support** on the pinned message.
+1. Go to `#backups-support` and select **Get support** on the pinned message.
 2. The first time you do this, the bot sends you a one-time link to connect your Discord account to your FUTO Backups account. Follow it, sign in and confirm. You only do this once.
 3. Describe your issue in the box the bot shows you.
 4. The bot opens a private thread with you and the support team, seeded with your description.
