@@ -80,6 +80,71 @@ charts are published alongside under the same prefix.
 A chart's `appVersion` is the image tag it was published with, so a chart
 version alone pins the images it deploys.
 
+## Support bot
+
+`packages/futo-backups-bot` handles Discord tickets and optional Freshdesk syncing.
+Ticket setup grants Attach Files in the support channel without changing channel
+visibility or posting permissions. If a member-specific deny remains, the ticket
+shows a visible explanation. Image and log attachments retain filenames and
+captions; failed downloads are retried. The attachment limits are 18 MiB per
+Freshdesk conversation and 8 MiB per file sent to Discord, where oversized files
+are linked instead.
+
+Staff can use `/investigate prompt:<instructions>` in a staff-notes thread, or
+click **Ask Columbo again** to enter an optional prompt. Retries include the
+original issue and recent ticket messages, including mirrored email replies,
+and bypass automatic triage. Set `COLUMBO_URL` and the shared `INTERNAL_SECRET`
+to connect the bot to Columbo.
+
+Automatic investigations wait for one minute of ticket-owner inactivity before
+starting. Set `COLUMBO_TICKET_QUIET_SECONDS` to change the delay, or `0` to disable
+it. Follow-up messages and supported attachments are fetched before triage;
+text files and scripts are read as untrusted data, images are supplied to models
+that support them, and no attachment is executed. Once an investigation starts,
+new messages leave it running; only a manual request triggers another run.
+
+The Columbo image embeds a bare Git repository, including packfiles, build HEAD,
+release tags, and reachable commit history. CI fetches complete history for this
+image. `go-git` loads a verified, bounded copy into an isolated memory store;
+no runtime Git executable, checkout, or shell tool is needed. The LLM can list,
+search, read, compare, and inspect history through read-only tools. Internal Git
+mutations remain in memory and cannot change the embedded files.
+
+The release index lists up to 128 tags; other embedded commits remain accessible
+by full hash. Source coverage is fixed at build time, and unavailable versions
+are never replaced with HEAD. Generated, binary, secret, and test files are
+excluded from tools, files are capped at 512 KiB, and history is capped at 100
+entries per query. See [Columbo](packages/columbo/README.md) for details.
+
+To build a local Columbo binary with embedded Git data:
+
+```bash
+mise columbo:build
+```
+
+New tickets include observed client and service versions from the last 30 days
+in their original staff message, independently of whether the LLM investigates.
+Missing versions and unavailable telemetry are reported explicitly. Columbo uses
+the same evidence when checking the affected release and later fixes.
+
+Invite-drop claims reserve a spot for ten minutes. Claiming and redeeming run
+atomically so an in-progress signup keeps its spot. Personal staff invites are
+not recycled.
+
+Expired-reservation recycling is disabled by default. First deploy the atomic
+reservation and redemption implementation to every `yucca-api` replica, keeping
+`DISCORD_INVITE_RECYCLING_ENABLED=false`. Wait until the rollout completes and
+all requests handled by old replicas have drained. Then set
+`DISCORD_INVITE_RECYCLING_ENABLED=true` on the API to revoke expired unused
+reservations and return their spots to the pool. Enabling recycling while old
+API replicas still serve requests can reclaim a signup that is in progress.
+Disable recycling and finish that configuration rollout before rolling back to
+an API version without atomic invite redemption.
+
+Invite-drop messages show the remaining spots and refresh after claims and once
+a minute. When an unused reservation expires, a sold-out drop reopens; cancelled
+drops remain closed. Count updates do not repeat role mentions.
+
 ## License
 
 [Source First License 1.1](./LICENSE).

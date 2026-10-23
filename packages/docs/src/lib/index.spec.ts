@@ -1,4 +1,4 @@
-import { getNeighbours, getPage, getPagesForSection, getSection, sections, type DocsPageMeta } from '$lib';
+import { canEdit, getNeighbours, getPage, getPagesForSection, getSection, sections, type DocsPageMeta } from '$lib';
 import { describe, expect, test } from 'vitest';
 
 const meta = (url: string, sectionId?: string): DocsPageMeta => ({
@@ -21,6 +21,12 @@ describe('sections', () => {
   test('resolve from a page', () => {
     expect(getSection(pages[1])?.id).toBe('getting-started');
     expect(getSection(pages[0])).toBeUndefined();
+  });
+
+  test('allow editing unless the section opts out', () => {
+    expect(canEdit(pages[0])).toBe(true);
+    expect(canEdit(pages[1])).toBe(true);
+    expect(canEdit(meta('/legal/terms', 'legal'))).toBe(false);
   });
 });
 

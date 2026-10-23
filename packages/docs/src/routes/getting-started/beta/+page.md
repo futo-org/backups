@@ -28,7 +28,7 @@ If you were given an invite **code** instead of a link, go to [backups.futo.clou
 
 ## Signing in
 
-Signing in uses your FUTO account. Once you are in, you land on your dashboard, which lists the machines connected to your account and how much storage you are using.
+Signing in uses your FUTO account. Once you are in, you land on your dashboard, which lists the machines connected to your account and how much storage you are using. There is no storage cap during the closed beta.
 
 If you try to sign in without an invite you will see "Your email isn't part of the beta yet." Claim an invite first.
 

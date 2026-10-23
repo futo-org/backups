@@ -8,6 +8,7 @@ export const TICKET_STATUS_OPEN = 2;
 export const TICKET_STATUS_RESOLVED = 4;
 
 const MAX_ATTACHMENT_BYTES = 18 * 1024 * 1024;
+const ATTACHMENT_DOWNLOAD_TIMEOUT_MS = 30_000;
 
 const ticketCreatedSchema = z.object({
   id: z.number(),
@@ -161,10 +162,10 @@ export class FreshdeskRepository {
     fields: Record<string, boolean>,
   ): Promise<void> {
     const { files, omitted } = await this.download(attachments);
-    const fullBody = [
-      body,
-      ...omitted.map((name) => `<i>Attachment omitted (too large): ${escapeHtml(name)}</i>`),
-    ].join('<br>');
+    const fullBody =
+      [body, ...omitted.map((name) => `<i>Attachment omitted (too large): ${escapeHtml(name)}</i>`)]
+        .filter(Boolean)
+        .join('<br>') || 'Attachments';
 
     if (files.length === 0) {
       await this.request('POST', path, { body: fullBody, ...fields });
@@ -190,20 +191,50 @@ export class FreshdeskRepository {
     let total = 0;
     for (const attachment of attachments) {
       try {
-        const response = await fetch(attachment.url);
+        const response = await fetch(attachment.url, { signal: AbortSignal.timeout(ATTACHMENT_DOWNLOAD_TIMEOUT_MS) });
         if (!response.ok) {
+          await response.body?.cancel();
           throw new Error(`${response.status} ${response.statusText}`);
         }
-        const blob = await response.blob();
-        if (blob.size > MAX_ATTACHMENT_BYTES || total + blob.size > MAX_ATTACHMENT_BYTES) {
+        const remaining = MAX_ATTACHMENT_BYTES - total;
+        if (Number(response.headers.get('Content-Length')) > remaining) {
+          await response.body?.cancel();
           omitted.push(attachment.name);
           continue;
         }
-        total += blob.size;
-        files.push({ name: attachment.name, blob });
+        const chunks: BlobPart[] = [];
+        let size = 0;
+        const reader = response.body?.getReader();
+        if (reader) {
+          try {
+            while (true) {
+              const { done, value } = await reader.read();
+              if (done) {
+                break;
+              }
+              size += value.byteLength;
+              if (size > remaining) {
+                await reader.cancel();
+                break;
+              }
+              chunks.push(value);
+            }
+          } finally {
+            reader.releaseLock();
+          }
+        }
+        if (size > remaining) {
+          omitted.push(attachment.name);
+          continue;
+        }
+        total += size;
+        files.push({
+          name: attachment.name,
+          blob: new Blob(chunks, { type: response.headers.get('Content-Type') ?? '' }),
+        });
       } catch (error) {
         this.logger.warn(error, `failed to download attachment ${attachment.name}`);
-        omitted.push(attachment.name);
+        throw error;
       }
     }
     return { files, omitted };

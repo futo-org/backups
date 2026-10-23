@@ -69,7 +69,7 @@ describe(AllowlistService.name, () => {
     it('returns entries unchanged when the batch send fails outright', async () => {
       const created = row();
       mocks.allowlist.create.mockResolvedValue(created as never);
-      mocks.email.sendBatch.mockRejectedValue(new Error('postmark down'));
+      mocks.email.sendBatch.mockRejectedValue(new Error('resend down'));
 
       const { items } = await sut.invite({ emails: ['user@example.com'] });
 
