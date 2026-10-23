@@ -67,12 +67,50 @@ const completeSessionDeviceFlow = async (sub: string) => {
   }
 };
 
+type JobUpdate = { type: 'JobUpdate'; jobId: string; repositoryId: string; job: Partial<sdk.JobDto> };
+
+const finishedJobs = new Map<string, { promise: Promise<JobUpdate>; resolve: (update: JobUpdate) => void }>();
+
+const finishedJob = (jobId: string) => {
+  let finished = finishedJobs.get(jobId);
+  if (!finished) {
+    let resolve!: (update: JobUpdate) => void;
+    const promise = new Promise<JobUpdate>((resolver) => (resolve = resolver));
+    finished = { promise, resolve };
+    finishedJobs.set(jobId, finished);
+  }
+
+  return finished;
+};
+
+const jobFinished = (jobId: string) => finishedJob(jobId).promise;
+
+const jobStarted = (repositoryId: string) =>
+  new Promise<JobUpdate>((resolve) => {
+    const listener = (msg: string) => {
+      const payload = JSON.parse(msg);
+      if (payload.type === 'JobUpdate' && payload.repositoryId === repositoryId && payload.job.status === 'running') {
+        resolve(payload);
+        socket.offAny(listener);
+      }
+    };
+
+    socket.onAny(listener);
+  });
+
 beforeAll(async () => {
   await sdk.resetOrchestrator();
 
   socket = io(baseUrl, {
     path: '/api/yucca/socket.io',
     transports: ['websocket'],
+  });
+
+  socket.onAny((msg: string) => {
+    const payload = JSON.parse(msg);
+    if (payload.type === 'JobUpdate' && !['queued', 'running'].includes(payload.job.status ?? 'running')) {
+      finishedJob(payload.jobId).resolve(payload);
+    }
   });
 });
 
@@ -418,46 +456,18 @@ describe('Repository', () => {
       paths: [workingDir],
     });
 
-    const startEvent = waitForMessage('TaskStart');
-    const endEvent = waitForMessage('TaskEnd');
     const updateEvent = waitForMessage('RepositoryUpdate');
 
-    const { logId } = await sdk.createBackup(repository.id);
+    const { jobId } = await sdk.createBackup(repository.id);
 
-    const events = createEventSource(`${baseUrl}/api/yucca/logs/${logId}/stream`);
-
-    for await (const { data } of events) {
-      const payload = JSON.parse(data);
-
-      expect(payload).toBeOneOf([
-        expect.objectContaining({
-          message_type: 'summary',
-        }),
-        expect.objectContaining({
-          message_type: 'status',
-          percent_done: expect.any(Number),
-        }),
-      ]);
-
-      if (payload.message_type === 'summary') {
-        break;
-      }
-    }
-
-    events.close();
-
-    await expect(startEvent).resolves.toEqual({
-      type: 'TaskStart',
-      task: {
-        type: 'backup',
-        parentId: repository.id,
-        logId,
-      },
-    });
-
-    await expect(endEvent).resolves.toEqual({
-      type: 'TaskEnd',
-      parentId: repository.id,
+    await expect(jobFinished(jobId)).resolves.toEqual({
+      type: 'JobUpdate',
+      jobId,
+      repositoryId: repository.id,
+      job: expect.objectContaining({
+        status: 'complete',
+        outcome: expect.objectContaining({ summary: expect.objectContaining({ type: 'backup' }) }),
+      }),
     });
 
     await expect(updateEvent).resolves.toEqual({
@@ -472,38 +482,37 @@ describe('Repository', () => {
     });
   }, 60_000);
 
-  it('lists run history', async () => {
-    await expect(sdk.getRunHistory(repository.id)).resolves.toEqual({
-      runs: expect.arrayContaining([
+  it('lists the jobs of a repository', async () => {
+    await expect(sdk.getJobs(repository.id)).resolves.toEqual({
+      jobs: expect.arrayContaining([
         expect.objectContaining({
           id: expect.any(String),
+          name: 'repository-backup',
           status: 'complete',
         }),
       ]),
     });
   });
 
-  it('gets a single run by id', async () => {
-    const {
-      runs: [{ id }],
-    } = await sdk.getRunHistory(repository.id);
+  it('gets a single job by id', async () => {
+    const { jobs } = await sdk.getJobs(repository.id);
+    const { id } = jobs.find((job) => job.name === 'repository-backup')!;
 
-    await expect(sdk.getRun(id)).resolves.toEqual({
-      run: expect.objectContaining({
+    await expect(sdk.getJob(id)).resolves.toEqual(
+      expect.objectContaining({
         id,
         repositoryId: repository.id,
+        name: 'repository-backup',
         status: 'complete',
-        type: 'backup',
       }),
-    });
+    );
   });
 
-  it('downloads a run log', async () => {
-    const {
-      runs: [{ id }],
-    } = await sdk.getRunHistory(repository.id);
+  it('downloads a job log', async () => {
+    const { jobs } = await sdk.getJobs(repository.id);
+    const { id } = jobs.find((job) => job.name === 'repository-backup')!;
 
-    const response = await fetch(`${baseUrl}/api/yucca/logs/${id}/download`);
+    const response = await fetch(`${baseUrl}/api/yucca/jobs/${id}/download`);
 
     expect(response.status).toBe(200);
     expect(response.headers.get('content-type')).toMatch(/^application\/jsonl/);
@@ -518,8 +527,8 @@ describe('Repository', () => {
     expect(lines).toEqual(expect.arrayContaining([expect.objectContaining({ message_type: 'summary' })]));
   });
 
-  it('returns 404 when downloading the log of an unknown run', async () => {
-    await expect(sdk.downloadRunLog('does-not-exist')).rejects.toMatchObject({ status: 404 });
+  it('returns 404 when downloading the log of an unknown job', async () => {
+    await expect(sdk.downloadJobLog('does-not-exist')).rejects.toMatchObject({ status: 404 });
   });
 
   it('list snapshots', async () => {
@@ -546,19 +555,13 @@ describe('Repository', () => {
   });
 
   it('restores a snapshot', async () => {
-    const event = waitForMessage('TaskEnd');
     const {
       snapshots: [{ id }],
     } = await sdk.getSnapshots(repository.id);
 
-    const { logId } = await sdk.restoreSnapshot(repository.id, id, {});
+    const { jobId } = await sdk.restoreSnapshot(repository.id, id, {});
 
-    expect(logId).toEqual(expect.any(String));
-
-    await expect(event).resolves.toEqual({
-      type: 'TaskEnd',
-      parentId: repository.id,
-    });
+    await expect(jobFinished(jobId)).resolves.toMatchObject({ job: { status: 'complete' } });
   });
 
   it('deletes snapshot', async () => {
@@ -603,9 +606,8 @@ describe('Snapshot browsing and restore', () => {
       paths: [workingDir],
     }));
 
-    const backupComplete = waitForMessage('TaskEnd');
-    await sdk.createBackup(repository.id);
-    await backupComplete;
+    const { jobId } = await sdk.createBackup(repository.id);
+    await jobFinished(jobId);
 
     ({
       snapshots: [{ id: snapshotId }],
@@ -633,31 +635,16 @@ describe('Snapshot browsing and restore', () => {
 
   it('restores a snapshot into a target directory with an include filter', async () => {
     const target = await mkdtemp(join(tmpdir(), 'restore-target-'));
-    const event = waitForMessage('TaskEnd');
-
-    const { logId } = await sdk.restoreSnapshot(repository.id, snapshotId, {
+    const { jobId } = await sdk.restoreSnapshot(repository.id, snapshotId, {
       target,
       include: [join(workingDir, 'nested', 'deep-file')],
     });
 
-    expect(logId).toEqual(expect.any(String));
-
-    await expect(event).resolves.toEqual({
-      type: 'TaskEnd',
-      parentId: repository.id,
-    });
+    await expect(jobFinished(jobId)).resolves.toMatchObject({ job: { status: 'complete' } });
 
     await expect(readFile(join(target, workingDir, 'nested', 'deep-file'), 'utf8')).resolves.toEqual('deep');
     await expect(readFile(join(target, workingDir, 'top-file'), 'utf8')).rejects.toThrow();
   }, 30_000);
-});
-
-describe('Running Tasks', () => {
-  it('returns the list of running tasks', async () => {
-    await expect(sdk.getRunningTasks()).resolves.toEqual({
-      tasks: expect.any(Array),
-    });
-  });
 });
 
 describe('Schedule', () => {
@@ -789,12 +776,8 @@ describe('Reset & Restore', () => {
       paths: [resolve(homedir(), '.yucca')],
     });
 
-    const event = waitForMessage('TaskEnd');
-    await sdk.createBackup(restoreRepositoryId);
-    await expect(event).resolves.toEqual({
-      type: 'TaskEnd',
-      parentId: restoreRepositoryId,
-    });
+    const { jobId } = await sdk.createBackup(restoreRepositoryId);
+    await expect(jobFinished(jobId)).resolves.toMatchObject({ job: { status: 'complete' } });
 
     const { schedules } = await sdk.getSchedules();
     backedUpScheduleNames = schedules.map((schedule) => schedule.name);
@@ -871,13 +854,9 @@ describe('Reset & Restore', () => {
     const restore = repositories.find((repository) => repository.name === 'My Restore')!;
     const [{ id: snapshotId }] = restore.snapshots!;
 
-    const event = waitForMessage('TaskEnd');
-    await sdk.restoreFromPoint(restore.id, snapshotId, restore.backends!.primary.id, {});
+    const { jobId } = await sdk.restoreFromPoint(restore.id, snapshotId, restore.backends!.primary.id, {});
 
-    await expect(event).resolves.toEqual({
-      type: 'TaskEnd',
-      parentId: restore.id,
-    });
+    await expect(jobFinished(jobId)).resolves.toMatchObject({ job: { status: 'complete' } });
 
     const { schedules } = await sdk.getSchedules();
     expect(schedules.map((schedule) => schedule.name)).toEqual(expect.arrayContaining(backedUpScheduleNames));
@@ -924,22 +903,14 @@ describe('Repository pruning', () => {
       retentionPolicy: { keepLast: 1 },
     });
 
-    const backupComplete = waitForMessage('TaskEnd');
-    await sdk.createBackup(repository.id);
-    await backupComplete;
+    const { jobId } = await sdk.createBackup(repository.id);
+    await jobFinished(jobId);
   }, 60_000);
 
   it('prunes a repository according to its retention policy', async () => {
-    const event = waitForMessage('TaskEnd');
+    const { jobId } = await sdk.pruneRepository(repository.id);
 
-    const { logId } = await sdk.pruneRepository(repository.id);
-
-    expect(logId).toEqual(expect.any(String));
-
-    await expect(event).resolves.toEqual({
-      type: 'TaskEnd',
-      parentId: repository.id,
-    });
+    await expect(jobFinished(jobId)).resolves.toMatchObject({ job: { status: 'complete' } });
   }, 30_000);
 
   it('rejects pruning a repository without a retention policy', async () => {
@@ -954,12 +925,12 @@ describe('Repository pruning', () => {
   });
 });
 
-describe('Running task cancellation', () => {
-  it('returns 404 when cancelling a task that is not running', async () => {
-    await expect(sdk.cancelTask('does-not-exist')).rejects.toMatchObject({ status: 404 });
+describe('Job cancellation', () => {
+  it('returns 404 when cancelling an unknown job', async () => {
+    await expect(sdk.cancelJob('does-not-exist')).rejects.toMatchObject({ status: 404 });
   });
 
-  it('lists an in-progress backup and cancels it', async () => {
+  it('cancels an in-progress backup', async () => {
     const workingDir = await mkdtemp(join(tmpdir(), 'cancel-'));
 
     await writeFile(join(workingDir, 'payload'), randomBytes(64 * 1024 * 1024));
@@ -970,37 +941,15 @@ describe('Running task cancellation', () => {
       paths: [workingDir],
     });
 
-    const started = waitForMessage('TaskStart');
-    const ended = waitForMessage('TaskEnd');
+    const started = jobStarted(repository.id);
 
-    const { logId } = await sdk.createBackup(repository.id);
+    const { jobId } = await sdk.createBackup(repository.id);
     await started;
 
-    await expect(sdk.getRunningTasks()).resolves.toEqual({
-      tasks: expect.arrayContaining([
-        expect.objectContaining({
-          parentId: repository.id,
-          type: 'backup',
-          logId,
-        }),
-      ]),
-    });
+    await sdk.cancelJob(jobId);
 
-    await sdk.cancelTask(repository.id);
-
-    await expect(ended).resolves.toEqual({
-      type: 'TaskEnd',
-      parentId: repository.id,
-    });
-
-    await expect(sdk.getRunHistory(repository.id)).resolves.toEqual({
-      runs: expect.arrayContaining([
-        expect.objectContaining({
-          id: logId,
-          status: 'cancelled',
-        }),
-      ]),
-    });
+    await expect(jobFinished(jobId)).resolves.toMatchObject({ job: { status: 'cancelled' } });
+    await expect(sdk.getJob(jobId)).resolves.toMatchObject({ id: jobId, status: 'cancelled' });
   }, 60_000);
 });
 
@@ -1143,10 +1092,8 @@ describe('Telemetry', () => {
   }, 30_000);
 
   it('ships a structured backup log to VictoriaLogs', async () => {
-    const endEvent = waitForMessage('TaskEnd');
-
-    await sdk.createBackup(repository.id);
-    await endEvent;
+    const { jobId } = await sdk.createBackup(repository.id);
+    await jobFinished(jobId);
 
     const record = await waitForLog((entry: Record<string, unknown>) => {
       const blob = JSON.stringify(entry);
