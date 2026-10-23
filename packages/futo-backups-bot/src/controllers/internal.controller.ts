@@ -1,7 +1,19 @@
-import { BadRequestException, Body, Controller, HttpCode, HttpStatus, Post, UseGuards } from '@nestjs/common';
+import {
+  BadRequestException,
+  Body,
+  Controller,
+  Get,
+  HttpCode,
+  HttpStatus,
+  NotFoundException,
+  Param,
+  Post,
+  UseGuards,
+} from '@nestjs/common';
 import { InternalGuard } from 'src/middleware/internal.guard.js';
 import { InviteService } from 'src/services/invite.service.js';
 import { SupportService } from 'src/services/support.service.js';
+import { TicketContext } from 'src/utils/ticketContext.js';
 import { z } from 'zod';
 
 const closeDropSchema = z.object({
@@ -15,6 +27,8 @@ const staffNoteSchema = z.object({
   content: z.string().min(1).max(8192),
 });
 
+const threadIdSchema = z.string().regex(/^\d{17,20}$/u);
+
 @Controller('/internal')
 @UseGuards(InternalGuard)
 export class InternalController {
@@ -22,6 +36,15 @@ export class InternalController {
     private readonly invite: InviteService,
     private readonly support: SupportService,
   ) {}
+
+  @Get('/tickets/:threadId/context')
+  async getTicketContext(@Param('threadId') threadId: string): Promise<TicketContext> {
+    const parsed = threadIdSchema.safeParse(threadId);
+    if (!parsed.success) {
+      throw new NotFoundException('Ticket not found');
+    }
+    return this.support.getTicketContext(parsed.data);
+  }
 
   @Post('/drops/close')
   @HttpCode(HttpStatus.NO_CONTENT)

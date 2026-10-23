@@ -2,6 +2,7 @@ import { LoggerRepository } from '@common/server/otel';
 import { Injectable } from '@nestjs/common';
 import {
   AnyThreadChannel,
+  AttachmentBuilder,
   ChannelType,
   Client,
   DiscordAPIError,
@@ -11,15 +12,37 @@ import {
   Message,
   MessageCreateOptions,
   MessageEditOptions,
+  OverwriteType,
+  PermissionFlagsBits,
   SlashCommandBuilder,
   TextChannel,
   ThreadChannel,
 } from 'discord.js';
+import { ComponentId } from 'src/enum.js';
 import { env } from 'src/env.js';
+import { Messages } from 'src/messages.js';
+import {
+  TICKET_CONTEXT_MESSAGE_LIMIT,
+  TicketContext,
+  boundTicketContext,
+  mapTicketMessages,
+} from 'src/utils/ticketContext.js';
 import { TranscriptMessage } from 'src/utils/transcript.js';
 
 const THREAD_AUTO_ARCHIVE_MINUTES = 10_080;
 const CANNOT_MESSAGE_USER = 50_007;
+const MISSING_PERMISSIONS = 50_013;
+const MAX_MESSAGE_LENGTH = 2000;
+const LOW_SURROGATE_START = 0xdc_00;
+const LOW_SURROGATE_END = 0xdf_ff;
+const TICKET_CONTEXT_SCAN_LIMIT = 500;
+const MESSAGE_FETCH_LIMIT = 100;
+
+export type TicketOpening = { discordUserId: string; description: string };
+
+export class TicketAttachmentPermissionError extends Error {
+  override name = TicketAttachmentPermissionError.name;
+}
 
 @Injectable()
 export class DiscordRepository {
@@ -65,6 +88,13 @@ export class DiscordRepository {
       new SlashCommandBuilder()
         .setName('staff-notes')
         .setDescription("Link this ticket's staff-notes thread (staff only)")
+        .toJSON(),
+      new SlashCommandBuilder()
+        .setName('investigate')
+        .setDescription('Ask Columbo to investigate again from a staff-notes thread (staff only)')
+        .addStringOption((option) =>
+          option.setName('prompt').setDescription('Additional instructions for this investigation').setMaxLength(2000),
+        )
         .toJSON(),
       new SlashCommandBuilder()
         .setName('claim-backups-role')
@@ -183,7 +213,63 @@ export class DiscordRepository {
     return thread;
   }
 
-  async createStaffThread(name: string, content: string): Promise<{ thread: ThreadChannel; seed: Message }> {
+  async ensureTicketAttachmentPermissions(): Promise<void> {
+    const channel = await this.supportChannel();
+    const roleIds = [
+      ...new Set([channel.guild.id, env.DISCORD_CUSTOMER_ROLE_ID, env.DISCORD_STAFF_ROLE_ID].filter(Boolean)),
+    ];
+    const missingRoleIds = roleIds.filter(
+      (roleId) => !channel.permissionsFor(roleId)?.has(PermissionFlagsBits.AttachFiles),
+    );
+    if (missingRoleIds.length === 0) {
+      return;
+    }
+
+    const message = `Allow Attach Files in support channel ${channel.id} for @everyone and the configured customer/staff roles, or grant the bot Manage Roles there to configure it automatically.`;
+    try {
+      const bot = await channel.guild.members.fetchMe();
+      if (!channel.permissionsFor(bot)?.has(PermissionFlagsBits.ManageRoles)) {
+        throw new TicketAttachmentPermissionError(message);
+      }
+
+      for (const roleId of missingRoleIds) {
+        await channel.permissionOverwrites.edit(
+          roleId,
+          { AttachFiles: true },
+          { type: OverwriteType.Role, reason: 'Enable attachments in support ticket threads' },
+        );
+      }
+      await channel.fetch(true);
+    } catch (error) {
+      const failure =
+        error instanceof TicketAttachmentPermissionError
+          ? error
+          : new TicketAttachmentPermissionError(message, { cause: error });
+      this.logger.warn(failure, 'could not enable support ticket attachments');
+      throw failure;
+    }
+  }
+
+  async canSendTicketAttachments(discordUserId: string): Promise<boolean> {
+    const cached = await this.supportChannel();
+    const channel = await cached.fetch(true);
+    const member = await channel.guild.members.fetch({ user: discordUserId, force: true });
+    return (
+      channel
+        .permissionsFor(member)
+        ?.has([
+          PermissionFlagsBits.ViewChannel,
+          PermissionFlagsBits.SendMessagesInThreads,
+          PermissionFlagsBits.AttachFiles,
+        ]) ?? false
+    );
+  }
+
+  async createStaffThread(
+    name: string,
+    content: string,
+    components: MessageCreateOptions['components'] = [],
+  ): Promise<{ thread: ThreadChannel; seed: Message }> {
     const channel = await this.supportChannel();
     const thread = await channel.threads.create({
       name,
@@ -191,13 +277,136 @@ export class DiscordRepository {
       invitable: false,
       autoArchiveDuration: THREAD_AUTO_ARCHIVE_MINUTES,
     });
-    const seed = await thread.send(content);
-    return { thread, seed };
+    try {
+      const seed = await thread.send({
+        content:
+          content.length > MAX_MESSAGE_LENGTH ? `${content.slice(0, 1900)}\nFull staff context is attached.` : content,
+        components,
+        ...(content.length > MAX_MESSAGE_LENGTH
+          ? {
+              files: [new AttachmentBuilder(Buffer.from(content), { name: 'staff-context.txt' })],
+            }
+          : {}),
+        allowedMentions: { roles: [env.DISCORD_STAFF_ROLE_ID], users: [], parse: [] },
+      });
+      return { thread, seed };
+    } catch (error) {
+      if (
+        content.length <= MAX_MESSAGE_LENGTH ||
+        !(error instanceof DiscordAPIError) ||
+        error.code !== MISSING_PERMISSIONS
+      ) {
+        throw error;
+      }
+      const chunks: string[] = [];
+      for (let start = 0; start < content.length;) {
+        let end = Math.min(start + MAX_MESSAGE_LENGTH, content.length);
+        const nextCode = content.codePointAt(end) ?? 0;
+        if (nextCode >= LOW_SURROGATE_START && nextCode <= LOW_SURROGATE_END) {
+          end--;
+        }
+        chunks.push(content.slice(start, end));
+        start = end;
+      }
+      const seed = await thread.send({
+        content: chunks[0],
+        components,
+        allowedMentions: { roles: [env.DISCORD_STAFF_ROLE_ID], users: [], parse: [] },
+      });
+      for (const chunk of chunks.slice(1)) {
+        await thread.send({ content: chunk, allowedMentions: { parse: [] } });
+      }
+      return { thread, seed };
+    }
   }
 
-  async getThreadById(threadId: string): Promise<AnyThreadChannel> {
+  async getTicketOpening(threadId: string): Promise<TicketOpening | null> {
+    const thread = await this.getThreadById(threadId);
+    const messages = await thread.messages.fetch({ after: '0', limit: 100 });
+    for (const message of messages.values()) {
+      if (
+        message.author.id !== this.requireClient().user?.id ||
+        !message.components.some(
+          (row) =>
+            'components' in row &&
+            row.components.some(
+              (component) => 'customId' in component && component.customId === ComponentId.CloseTicket,
+            ),
+        )
+      ) {
+        continue;
+      }
+      const discordUserId = message.content.match(/<@!?(\d+)>/)?.[1];
+      const description = message.embeds.find((embed) => embed.title === Messages.ticketEmbedTitle)?.description;
+      if (discordUserId && description) {
+        return { discordUserId, description };
+      }
+    }
+    return null;
+  }
+
+  async listThreadMessages(threadId: string, limit = 50): Promise<Message[]> {
+    const thread = await this.getThreadById(threadId);
+    const messages = await thread.messages.fetch({ limit });
+    return [...messages.values()].toSorted((a, b) => a.createdTimestamp - b.createdTimestamp);
+  }
+
+  async getTicketContext(threadId: string): Promise<TicketContext | null> {
+    if (!this.client?.user) {
+      return null;
+    }
+    try {
+      const thread = await this.getThreadById(threadId, true);
+      if (
+        thread.guildId !== env.DISCORD_GUILD_ID ||
+        thread.parentId !== env.DISCORD_SUPPORT_CHANNEL_ID ||
+        !thread.name.startsWith('ticket-')
+      ) {
+        return null;
+      }
+      const opening = await this.getTicketOpening(threadId);
+      if (!opening) {
+        return null;
+      }
+      const raw: Message[] = [];
+      let messages = [] as ReturnType<typeof mapTicketMessages>;
+      let before: string | undefined;
+      while (raw.length < TICKET_CONTEXT_SCAN_LIMIT) {
+        const batch = await thread.messages.fetch({ limit: MESSAGE_FETCH_LIMIT, ...(before ? { before } : {}) });
+        const descending = [...batch.values()].toSorted((a, b) => b.createdTimestamp - a.createdTimestamp);
+        raw.push(...descending);
+        messages = mapTicketMessages(raw, this.client.user.id);
+        if (messages.length >= TICKET_CONTEXT_MESSAGE_LIMIT || batch.size < MESSAGE_FETCH_LIMIT) {
+          break;
+        }
+        const oldest = descending.at(-1)?.id;
+        if (!oldest || oldest === before) {
+          break;
+        }
+        before = oldest;
+      }
+      return boundTicketContext({
+        ticketThreadId: thread.id,
+        discordUserId: opening.discordUserId,
+        closed: thread.locked || false,
+        messages,
+      });
+    } catch (error) {
+      if (
+        error instanceof TypeError ||
+        (error instanceof DiscordAPIError && (Number(error.status) === 403 || Number(error.status) === 404))
+      ) {
+        return null;
+      }
+      throw error;
+    }
+  }
+
+  async getThreadById(threadId: string, force = false): Promise<AnyThreadChannel> {
     const guild = await this.guild();
-    const channel = await guild.channels.fetch(threadId);
+    const channel = force
+      ? await guild.channels.fetch(threadId, { force: true })
+      : await guild.channels.fetch(threadId);
     if (!channel?.isThread()) {
       throw new TypeError(`Channel ${threadId} is not a thread`);
     }

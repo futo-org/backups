@@ -1,3 +1,10 @@
+const betaDetails = [
+  'FUTO Backups is **free** during the beta. Support happens here on Discord, in the FUTO Backups channels.',
+  'Set up Immich with <https://docs.futo.cloud/getting-started/immich>. The beta needs a non-tagged Immich build for now.',
+  'Your backups are end-to-end encrypted with a key only you control. During the beta we make no durability or availability guarantees and may wipe all data at any time.',
+  'Source code: <https://github.com/futo-org/backups>',
+].join('\n');
+
 export const Messages = {
   somethingWentWrong: 'Something went wrong, please try again.',
 
@@ -8,6 +15,8 @@ export const Messages = {
   ticketModalTitle: 'Get support',
   ticketModalLabel: 'Describe your issue',
   ticketEmbedTitle: 'Support ticket',
+  ticketAttachmentsUnavailable:
+    'Discord is blocking file attachments in this ticket. Please let our staff know so they can enable Attach Files in the support channel. You can still send text messages.',
   ticketOpenedByStaff: (staffId: string) => `Opened by staff (<@${staffId}>).`,
   ticketReady: (threadId: string) => `Your ticket is ready: <#${threadId}>`,
   ticketReadyStaff: (threadId: string) => `Ticket ready: <#${threadId}>`,
@@ -28,6 +37,20 @@ export const Messages = {
   staffNoteHeader: 'Staff notes, not visible to the user.',
   staffNoteNoLink: 'No linked FUTO Backups account.',
   investigationTitle: 'Columbo investigation',
+  investigateButton: 'Ask Columbo again',
+  investigationModalTitle: 'Ask Columbo to investigate',
+  investigationPromptLabel: 'What should Columbo look into?',
+  investigationStaffOnly: 'Only staff can request an investigation.',
+  investigationNotAStaffThread: 'Run this inside an open staff-notes thread.',
+  investigationUnavailable: 'Columbo is not available.',
+  investigationMissingTicket: 'The original ticket could not be found.',
+  investigationNoAccount: 'This ticket has no linked FUTO Backups account to investigate.',
+  investigationQueued: 'Investigation queued. Columbo will post its findings in this staff thread.',
+  investigationRequested: (staffId: string) => `Investigation requested by <@${staffId}>.`,
+  versionsHeader: 'Versions observed (last 30 days):',
+  versionsUnknown: 'Versions: unknown — no version telemetry found.',
+  versionsUnavailable: 'Versions: unknown — telemetry lookup unavailable.',
+  versionsNoAccount: 'Versions: unknown — no linked account.',
 
   linkIntro: 'First, link your Discord account to your FUTO Backups account. The link is valid for 10 minutes.',
   linkButton: 'Link account',
@@ -48,19 +71,21 @@ export const Messages = {
   inviteStaffOnly: 'Only staff can send beta invites.',
   invitePickOne: 'Pick either a user to DM or a channel to post in.',
   inviteLimitRequired: 'Set a limit when posting invites to a channel.',
-  inviteDm: "You're invited to the FUTO Backups closed beta! This personal link is valid for 10 minutes.",
+  inviteDm: `You're invited to the FUTO Backups closed beta! This personal link is valid for 10 minutes.\n\n${betaDetails}`,
   inviteLinkButton: 'Join the beta',
   inviteSent: (userId: string) => `Invite sent to <@${userId}>.`,
   inviteDmsClosed: (userId: string, url: string) =>
     `<@${userId}> has DMs closed — pass this personal link along: ${url}`,
   inviteAlreadyLinked: (userId: string) => `<@${userId}> already has a FUTO Backups account, no invite needed.`,
   inviteUsed: (userId: string) => `<@${userId}> already used their beta invite.`,
-  inviteDrop: (limit: number, mention: string | null, creatorId: string) =>
-    `${mention ? `${mention}, ` : ''}<@${creatorId}> has opened up ${limit} spot${limit === 1 ? '' : 's'} in the FUTO Backups closed beta, first come, first served.\nFUTO Backups is **FREE** while in the closed beta.`,
+  inviteDrop: (limit: number, mention: string | null, creatorId: string, remaining = limit) =>
+    `${mention ? `${mention}, ` : ''}<@${creatorId}> has opened up ${limit} spot${limit === 1 ? '' : 's'} in the FUTO Backups closed beta, first come, first served.\n**${remaining} invite${remaining === 1 ? '' : 's'} remaining.**\n\n${betaDetails}\n\nDon't click this button if you already have an invite.`,
+  inviteDropEnded: (limit: number, creatorId: string) =>
+    `<@${creatorId}> opened up ${limit} spot${limit === 1 ? '' : 's'} in the FUTO Backups closed beta.\nThis invite drop has ended.`,
   inviteDropButton: 'Claim your invite',
   inviteDropClaimedButton: 'All invites claimed',
   inviteDropPosted: (limit: number, channelId: string) => `Posted ${limit} invites in <#${channelId}>.`,
-  claimSuccess: "You're in! This personal link is valid for 10 minutes, claim again if it expires.",
+  claimSuccess: `You're in! This personal link is valid for 10 minutes, claim again if it expires.\n\n${betaDetails}`,
   claimAlreadyLinked: 'You already have a FUTO Backups account, no invite needed.',
   claimInviteUsed: 'You already used your beta invite.',
   claimExhausted: 'All invites have been claimed, keep an eye out for the next drop.',
