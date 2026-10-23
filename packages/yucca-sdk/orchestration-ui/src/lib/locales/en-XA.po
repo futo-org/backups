@@ -460,6 +460,10 @@ msgstr ""
 msgid "Cancel restore"
 msgstr ""
 
+#: src/lib/components/backups/BackupItem.svelte
+msgid "Cancelled"
+msgstr ""
+
 #: src/lib/components/backups/run-history/RepositoryRunHistoryItem.svelte
 msgid "Cancelled {noun}"
 msgstr ""
@@ -1159,6 +1163,10 @@ msgstr ""
 
 #: src/lib/components/integrations/immich/settings/ImmichSettingsBackupContents.svelte
 msgid "Included: {names}"
+msgstr ""
+
+#: src/lib/components/backups/BackupItem.svelte
+msgid "Interrupted"
 msgstr ""
 
 #: src/lib/components/backups/run-history/RepositoryRunHistoryItem.svelte

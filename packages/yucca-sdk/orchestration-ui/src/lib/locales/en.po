@@ -460,6 +460,10 @@ msgstr "Cancel prune"
 msgid "Cancel restore"
 msgstr "Cancel restore"
 
+#: src/lib/components/backups/BackupItem.svelte
+msgid "Cancelled"
+msgstr "Cancelled"
+
 #: src/lib/components/backups/run-history/RepositoryRunHistoryItem.svelte
 msgid "Cancelled {noun}"
 msgstr "Cancelled {noun}"
@@ -1160,6 +1164,10 @@ msgstr "Included"
 #: src/lib/components/integrations/immich/settings/ImmichSettingsBackupContents.svelte
 msgid "Included: {names}"
 msgstr "Included: {names}"
+
+#: src/lib/components/backups/BackupItem.svelte
+msgid "Interrupted"
+msgstr "Interrupted"
 
 #: src/lib/components/backups/run-history/RepositoryRunHistoryItem.svelte
 msgid "Interrupted {noun}"
