@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.9.0](https://github.com/futo-org/backups/compare/v1.8.1...v1.9.0) (2026-10-23)
+
+
+### Features
+
+* **emails:** mention no storage cap and no billing details in the beta invite ([#76](https://github.com/futo-org/backups/issues/76)) ([98258bc](https://github.com/futo-org/backups/commit/98258bcd4af7010254f9f32854327c3e6af37844))
+
 ## [1.8.1](https://github.com/futo-org/backups/compare/v1.8.0...v1.8.1) (2026-10-23)
 
 
