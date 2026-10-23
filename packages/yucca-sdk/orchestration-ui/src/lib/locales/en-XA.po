@@ -93,6 +93,10 @@ msgstr ""
 msgid "{running} in progress"
 msgstr ""
 
+#: src/lib/components/backups/run-history/RepositoryRunHistoryItem.svelte
+msgid "{running} queued"
+msgstr ""
+
 #: src/lib/components/dashboard/DashboardBackupHealth.svelte
 msgid "{successful} of {total} successful"
 msgstr ""
@@ -1662,6 +1666,10 @@ msgstr ""
 msgid "Pruning old backups was cancelled"
 msgstr ""
 
+#: src/lib/components/backups/run-history/RepositoryRunHistoryItem.svelte
+msgid "Queued"
+msgstr ""
+
 #: src/lib/components/schedules/ScheduleItem.svelte
 msgid "Ran"
 msgstr ""
@@ -1740,6 +1748,10 @@ msgstr ""
 
 #: src/lib/components/backups/dialogs/RestoreSnapshotModal.svelte
 msgid "Restore Backup"
+msgstr ""
+
+#: src/lib/components/onboarding/restore-point-flow/RestorePointFlow4Restore.svelte
+msgid "Restore cancelled"
 msgstr ""
 
 #: src/lib/components/onboarding/restore-point-flow/RestorePointFlow3ConfirmRestore.svelte
@@ -1982,7 +1994,6 @@ msgid "Start your first backup"
 msgstr ""
 
 #: src/lib/components/backups/BackupStatus.svelte
-#: src/lib/components/backups/run-history/RepositoryRunHistoryItem.svelte
 #: src/lib/components/backups/run-history/RepositoryRunHistoryItem.svelte
 msgid "Started"
 msgstr ""

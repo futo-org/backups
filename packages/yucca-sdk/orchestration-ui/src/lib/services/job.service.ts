@@ -160,6 +160,7 @@ export const getJobActions = (job: JobDto, t: typeof gt) => {
   const ViewLog: ActionItem = {
     title: t(msg`View Log`),
     onAction: () => void modalManager.open(ViewStatusModal, { jobId: job.id }),
+    $if: () => job.name !== 'repository-sync-metrics',
   };
 
   const DownloadLog: ActionItem = {

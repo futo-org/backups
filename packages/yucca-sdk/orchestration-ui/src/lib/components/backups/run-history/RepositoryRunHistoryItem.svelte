@@ -67,7 +67,16 @@
           icon: mdiCloudCheckOutline,
         } as const;
       }
-      case "queued":
+      case "queued": {
+        return {
+          title: $t({
+            message: "{running} queued",
+            values: { running: $t(noun.running) },
+          }),
+          color: "primary",
+          icon: mdiCloudSyncOutline,
+        } as const;
+      }
       case "running": {
         return {
           title: $t({
@@ -98,7 +107,7 @@
   {/snippet}
 
   {#if job.status === "queued"}
-    {$t`Started`} <RelativeTime time={job.queuedAt} />
+    {$t`Queued`} <RelativeTime time={job.queuedAt} />
   {:else if job.status === "running"}
     {$t`Started`} <RelativeTime time={job.start ?? job.queuedAt} />
   {:else if job.status === "failed" || job.status === "cancelled"}

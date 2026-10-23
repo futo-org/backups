@@ -94,13 +94,14 @@ export class ResticRepository {
       .run();
   }
 
-  async stats(repository: string, key: Uint8Array, placement: ResticPlacement) {
+  async stats(repository: string, key: Uint8Array, placement: ResticPlacement, signal?: AbortSignal) {
     const { connections } = await this.config.getResticOptions(placement);
     return await stats()
       .option(`rest.connections=${connections}`)
       .repository(repository)
       .cacheDir(this.cacheDir)
       .password(Buffer.from(key).toString('hex'))
+      .signal(signal)
       .modeRawData()
       .run();
   }
