@@ -6,6 +6,7 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"reflect"
 	"strings"
 	"testing"
 	"time"
@@ -15,8 +16,9 @@ import (
 )
 
 type fakeInvestigator struct {
-	adhoc  func(ctx context.Context, userID, prompt string) (agent.Outcome, error)
-	triage func(ctx context.Context, inv agent.Investigation) (bool, string, error)
+	adhoc       func(ctx context.Context, userID, prompt string) (agent.Outcome, error)
+	triage      func(ctx context.Context, inv agent.Investigation) (bool, string, error)
+	investigate func(ctx context.Context, inv agent.Investigation) (agent.Outcome, error)
 }
 
 func (f *fakeInvestigator) Triage(ctx context.Context, inv agent.Investigation) (bool, string, error) {
@@ -26,8 +28,51 @@ func (f *fakeInvestigator) Triage(ctx context.Context, inv agent.Investigation) 
 	return f.triage(ctx, inv)
 }
 
-func (f *fakeInvestigator) Investigate(context.Context, agent.Investigation) (agent.Outcome, error) {
+func (f *fakeInvestigator) Investigate(ctx context.Context, inv agent.Investigation) (agent.Outcome, error) {
+	if f.investigate != nil {
+		return f.investigate(ctx, inv)
+	}
 	return agent.Outcome{}, nil
+}
+
+func TestStaffRetriggerBypassesTriageAndPreservesContext(t *testing.T) {
+	posted := make(chan string, 1)
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		body, _ := io.ReadAll(r.Body)
+		posted <- string(body)
+		w.WriteHeader(http.StatusNoContent)
+	}))
+	t.Cleanup(srv.Close)
+	inv := agent.Investigation{
+		StaffThreadID: "s1", UserID: "user-1", Description: "billing question",
+		RequestedBy: "staff-1", Prompt: "Investigate new timeout evidence", Conversation: "Backup failed at 12:00",
+	}
+	var got agent.Investigation
+	investigator := &fakeInvestigator{
+		triage: func(context.Context, agent.Investigation) (bool, string, error) {
+			t.Error("staff investigation must bypass triage")
+			return false, "billing", nil
+		},
+		investigate: func(_ context.Context, input agent.Investigation) (agent.Outcome, error) {
+			got = input
+			return agent.Outcome{Note: "timeout confirmed"}, nil
+		},
+	}
+	pool := NewPool(investigator, bot.NewClient(srv.URL, "secret"), time.Second, 1)
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	pool.Run(ctx, 1)
+	if !pool.Enqueue(inv) {
+		t.Fatal("enqueue failed")
+	}
+	select {
+	case body := <-posted:
+		if !reflect.DeepEqual(got, inv) || !strings.Contains(body, "timeout confirmed") {
+			t.Fatalf("investigation = %+v, posted = %s", got, body)
+		}
+	case <-time.After(5 * time.Second):
+		t.Fatal("no staff note posted")
+	}
 }
 
 func (f *fakeInvestigator) InvestigateAdhoc(ctx context.Context, userID, prompt string) (agent.Outcome, error) {

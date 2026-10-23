@@ -1,0 +1,7 @@
+**
+!.git
+!.git/**
+!packages
+!packages/columbo
+!packages/columbo/**
+**/.env*

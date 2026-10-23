@@ -9,7 +9,7 @@ environment="${ENVIRONMENT:-dev}"
 project="docs-futo-cloud-${environment}"
 
 if [ "$environment" = prod ]; then
-  branch=main
+  branch=prod
   hostname=docs.futo.cloud
 else
   branch="${STAGE:?set STAGE=pr-<n> to name the preview}"

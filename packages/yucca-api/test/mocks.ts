@@ -41,6 +41,8 @@ export const newDiscordRepositoryMock = (): jest.Mocked<RepositoryInterface<Disc
     updateUsername: jest.fn(),
     createBatch: jest.fn(),
     setBatchMessage: jest.fn(),
+    listInviteBatches: jest.fn(),
+    getInviteBatch: jest.fn(),
     claimInvite: jest.fn(),
     createTicket: jest.fn(),
     getTicketByThread: jest.fn(),
@@ -84,6 +86,7 @@ export const newSessionRepositoryMock = (): jest.Mocked<RepositoryInterface<Sess
 
 export const newUserRepositoryMock = (): jest.Mocked<RepositoryInterface<UserRepository>> => {
   return {
+    withRegistration: jest.fn(),
     create: jest.fn(),
     getByAccessToken: jest.fn(),
     getBySub: jest.fn(),
@@ -95,7 +98,7 @@ export const newUserRepositoryMock = (): jest.Mocked<RepositoryInterface<UserRep
 export const newUserAllowlistRepositoryMock = (): jest.Mocked<RepositoryInterface<UserAllowlistRepository>> => {
   return {
     getByEmail: jest.fn(),
-    getByInviteCode: jest.fn(),
+    consumeInviteCode: jest.fn(),
     markUsed: jest.fn(),
   };
 };
@@ -173,7 +176,7 @@ export const newMetricServiceMock = () => ({
 });
 
 export const newMocks = () => {
-  return {
+  const mocks = {
     connection: newConnectionRepositoryMock(),
     crypto: newCryptoRepositoryMock(),
     database: newDatabaseRepositoryMock(),
@@ -191,6 +194,15 @@ export const newMocks = () => {
     jwt: newJwtServiceMock(),
     metrics: newMetricServiceMock(),
   };
+  mocks.user.withRegistration.mockImplementation((_sub, operation) =>
+    operation({
+      user: mocks.user as never,
+      allowlist: mocks.userAllowlist as never,
+      connection: mocks.connection as never,
+      discord: mocks.discord as never,
+    }),
+  );
+  return mocks;
 };
 
 export type Mocks = ReturnType<typeof newMocks>;

@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"context"
 	"errors"
 	"io"
 	"net/http"
@@ -24,14 +25,21 @@ var validBlobTypes = map[string]bool{
 	"data": true, "index": true, "keys": true, "locks": true, "snapshots": true,
 }
 
+const StatusClientClosedRequest = 499
+
 var sha256HexPattern = regexp.MustCompile(`^[a-f0-9]{64}$`)
 
 var writeError = httputil.WriteError
 
 // writeStorageError maps a storage-layer failure onto the restic contract
 // (docs/restic-retries.md): a shedding pool answers 503 + Retry-After, which
-// restic retries with backoff, while anything else stays the generic 500.
+// restic retries with backoff, a client that hung up gets 499, and anything
+// else stays the generic 500.
 func writeStorageError(w http.ResponseWriter, r *http.Request, err error) {
+	if errors.Is(err, context.Canceled) && errors.Is(r.Context().Err(), context.Canceled) {
+		writeError(w, r, StatusClientClosedRequest, "Client closed request")
+		return
+	}
 	if errors.Is(err, storage.ErrBackendsUnavailable) {
 		w.Header().Set("Retry-After", "30")
 		writeError(w, r, http.StatusServiceUnavailable, "Storage temporarily unavailable")

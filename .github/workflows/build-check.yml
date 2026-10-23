@@ -54,7 +54,7 @@ jobs:
             web: *node
             standalone-app: *node
             michael: ['packages/michael/**', '.dockerignore']
-            columbo: ['packages/columbo/**', '.dockerignore']
+            columbo: ['packages/**', 'docs/**', 'CHANGELOG.md', 'package.json', '.dockerignore']
             restic-proxy: ['packages/restic-proxy/**', '.dockerignore']
 
       # A Dockerfile without a filter is the silent gap this workflow exists
@@ -65,7 +65,7 @@ jobs:
       - name: Require every Dockerfile to carry a filter
         run: |
           covered='yucca-api yucca-admin-api yucca-metrics-worker futo-backups-bot web standalone-app michael columbo restic-proxy'
-          excluded='mock-oidc-provider mock-postmark-provider'
+          excluded='mock-oidc-provider mock-resend-provider'
           # Apps with no Deploy leg, delivered by the release-event workflows.
           publish_only='standalone-app restic-proxy'
           deploy_apps="$(yq '.jobs.build.strategy.matrix.app[].package' .github/workflows/deploy.yml | tr '\n' ' ')"
@@ -103,6 +103,7 @@ jobs:
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           persist-credentials: false
+          fetch-depth: ${{ matrix.app == 'columbo' && '0' || '1' }}
 
       - name: Set up Buildx
         uses: docker/setup-buildx-action@d7f5e7f509e45cec5c76c4d5afdd7de93d0b3df5 # v4.1.0
@@ -116,7 +117,22 @@ jobs:
           context: .
           file: packages/${{ matrix.app }}/Dockerfile
           push: false
+          load: ${{ matrix.app == 'columbo' }}
+          tags: ${{ matrix.app == 'columbo' && 'columbo-support-context:e2e' || '' }}
           cache-from: type=gha,scope=${{ matrix.app }}
+
+      - name: Set up Go for Columbo artifact test
+        if: matrix.app == 'columbo'
+        uses: jdx/mise-action@c2a87611a18de5b3828c5652fe268e992400cb5c # v4.3.0
+        with:
+          install_args: go
+
+      - name: Test built Columbo image
+        if: matrix.app == 'columbo'
+        working-directory: packages/columbo
+        env:
+          COLUMBO_E2E_IMAGE: columbo-support-context:e2e
+        run: go test -race -v ./e2e -run '^TestBuiltArtifact$' -count=1 -timeout=4m
 
   # The build legs come from a dynamic matrix, so they cannot be named in
   # branch protection, and a failed leg would otherwise not block the merge.

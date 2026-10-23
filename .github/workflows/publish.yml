@@ -38,7 +38,7 @@ jobs:
 
   docker:
     name: Publish standalone image
-    uses: immich-app/devtools/.github/workflows/multi-runner-build.yml@50dc3a14f0606ecd8fc28d78d3a3c655115ab695 # multi-runner-build-workflow-v3.1.0
+    uses: immich-app/devtools/.github/workflows/multi-runner-build.yml@f14fed578c121152a8f9e391b569afca20e32e6f # multi-runner-build-workflow-v4.1.0
     permissions:
       contents: read
       actions: read
@@ -47,10 +47,20 @@ jobs:
       image: backups/standalone
       context: .
       dockerfile: packages/standalone-app/Dockerfile
+      # multi-runner-build v4 takes its tags explicitly; these are the rules v3
+      # generated (semver release tags, :release for full releases).
+      tags: |
+        type=ref,event=branch
+        type=ref,event=pr
+        type=sha,format=long,prefix=commit-
+        type=semver,pattern={{version}},prefix=v
+        type=semver,pattern={{major}},prefix=v
+        type=match,pattern=v(\d+),group=1,prefix=v,suffix=-rc,enable=${{ github.event.release.prerelease == true }}
+        type=raw,value=release,enable=${{ github.event_name == 'release' && github.event.release.prerelease == false }}
 
   docker-restic-proxy:
     name: Publish restic-proxy image
-    uses: immich-app/devtools/.github/workflows/multi-runner-build.yml@50dc3a14f0606ecd8fc28d78d3a3c655115ab695 # multi-runner-build-workflow-v3.1.0
+    uses: immich-app/devtools/.github/workflows/multi-runner-build.yml@f14fed578c121152a8f9e391b569afca20e32e6f # multi-runner-build-workflow-v4.1.0
     permissions:
       contents: read
       actions: read
@@ -59,3 +69,13 @@ jobs:
       image: backups/restic-proxy
       context: .
       dockerfile: packages/restic-proxy/Dockerfile
+      # multi-runner-build v4 takes its tags explicitly; these are the rules v3
+      # generated (semver release tags, :release for full releases).
+      tags: |
+        type=ref,event=branch
+        type=ref,event=pr
+        type=sha,format=long,prefix=commit-
+        type=semver,pattern={{version}},prefix=v
+        type=semver,pattern={{major}},prefix=v
+        type=match,pattern=v(\d+),group=1,prefix=v,suffix=-rc,enable=${{ github.event.release.prerelease == true }}
+        type=raw,value=release,enable=${{ github.event_name == 'release' && github.event.release.prerelease == false }}

@@ -4,7 +4,9 @@ import { AuthDto } from 'src/dto/auth.dto.js';
 import {
   DiscordInviteBatchCreateDto,
   DiscordInviteBatchDto,
+  DiscordInviteBatchListDto,
   DiscordInviteBatchMessageDto,
+  DiscordInviteBatchStatusDto,
   DiscordInviteCreateDto,
   DiscordInviteCreatedDto,
   DiscordInviteResponseDto,
@@ -52,11 +54,17 @@ export class DiscordService {
 
   async getLinkRequest(code: string): Promise<DiscordLinkRequestResponseDto> {
     const request = await this.getValidRequest(code);
+    if (request.allowlistId) {
+      throw new NotFoundException('Unknown or expired link code');
+    }
     return { discordUsername: request.discordUsername };
   }
 
   async confirmLinkRequest(auth: AuthDto, code: string): Promise<void> {
     const request = await this.getValidRequest(code);
+    if (request.allowlistId) {
+      throw new NotFoundException('Unknown or expired link code');
+    }
     const link = await this.discord.link(request.id, auth.id, request.discordUserId, request.discordUsername);
     if (!link) {
       throw new NotFoundException('Unknown or expired link code');
@@ -94,12 +102,12 @@ export class DiscordService {
   }
 
   async createInvite(dto: DiscordInviteCreateDto): Promise<DiscordInviteCreatedDto> {
-    await this.discord.deleteExpiredRequests();
     const claim = await this.discord.claimInvite(
       dto.discordUserId,
       dto.discordUsername,
       dto.batchId ?? null,
       this.crypto.randomHex(16),
+      { code: this.crypto.randomHex(32), expiresAt: new Date(Date.now() + LINK_REQUEST_TTL.toMillis()) },
     );
     switch (claim.status) {
       case 'linked': {
@@ -118,14 +126,20 @@ export class DiscordService {
         throw new NotFoundException(`No invite batch with id ${dto.batchId}`);
       }
     }
-    const request = await this.discord.createRequest({
-      code: this.crypto.randomHex(32),
-      discordUserId: dto.discordUserId,
-      discordUsername: dto.discordUsername,
-      allowlistId: claim.entry.id,
-      expiresAt: new Date(Date.now() + LINK_REQUEST_TTL.toMillis()),
-    });
+    const request = claim.request;
     return { code: request.code, expiresAt: request.expiresAt, remaining: claim.remaining };
+  }
+
+  async listInviteBatches(): Promise<DiscordInviteBatchListDto> {
+    return { items: await this.discord.listInviteBatches() };
+  }
+
+  async getInviteBatch(batchId: string): Promise<DiscordInviteBatchStatusDto> {
+    const batch = await this.discord.getInviteBatch(batchId);
+    if (!batch) {
+      throw new NotFoundException(`No invite batch with id ${batchId}`);
+    }
+    return batch;
   }
 
   async getInvite(code: string): Promise<DiscordInviteResponseDto> {

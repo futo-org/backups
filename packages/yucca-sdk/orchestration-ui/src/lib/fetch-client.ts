@@ -347,7 +347,7 @@ export function connectDeviceFlow(opts?: Oazapfts.RequestOpts) {
     }));
 }
 /**
- * Sign in with the device flow
+ * Sign in with FUTO Backups account
  */
 export function sessionDeviceFlow(opts?: Oazapfts.RequestOpts) {
     return oazapfts.ok(oazapfts.fetchJson<{
@@ -358,7 +358,7 @@ export function sessionDeviceFlow(opts?: Oazapfts.RequestOpts) {
     }));
 }
 /**
- * Create a session
+ * Create session
  */
 export function createSession(createSessionRequestDto: CreateSessionRequestDto, opts?: Oazapfts.RequestOpts) {
     return oazapfts.ok(oazapfts.fetchText("/api/yucca/auth/session", oazapfts.json({
@@ -405,7 +405,7 @@ export function createLocalBackend(createLocalBackendRequestDto: CreateLocalBack
     })));
 }
 /**
- * Get orchestrator configuration
+ * Get backups orchestrator configuration
  */
 export function getConfig(opts?: Oazapfts.RequestOpts) {
     return oazapfts.ok(oazapfts.fetchJson<{
@@ -416,7 +416,7 @@ export function getConfig(opts?: Oazapfts.RequestOpts) {
     }));
 }
 /**
- * Update orchestrator configuration
+ * Update backups orchestrator configuration
  */
 export function updateConfig(configUpdateRequestDto: ConfigUpdateRequestDto, opts?: Oazapfts.RequestOpts) {
     return oazapfts.ok(oazapfts.fetchJson<{
@@ -429,7 +429,7 @@ export function updateConfig(configUpdateRequestDto: ConfigUpdateRequestDto, opt
     })));
 }
 /**
- * Reset the orchestrator
+ * Reset the backups orchestrator
  */
 export function resetOrchestrator(opts?: Oazapfts.RequestOpts) {
     return oazapfts.ok(oazapfts.fetchText("/api/yucca/debug/reset", {
@@ -453,7 +453,7 @@ export function getFileListing({ path }: {
     }));
 }
 /**
- * Get integrations
+ * Get backup integrations
  */
 export function getIntegrations(opts?: Oazapfts.RequestOpts) {
     return oazapfts.ok(oazapfts.fetchJson<{
@@ -475,7 +475,7 @@ export function getImmichBackupStatus(opts?: Oazapfts.RequestOpts) {
     }));
 }
 /**
- * Configure the Immich integration
+ * Configure the Immich backup integration
  */
 export function configureImmichIntegration(configureImmichIntegrationRequestDto: ConfigureImmichIntegrationRequestDto, opts?: Oazapfts.RequestOpts) {
     return oazapfts.ok(oazapfts.fetchJson<{
@@ -488,7 +488,7 @@ export function configureImmichIntegration(configureImmichIntegrationRequestDto:
     })));
 }
 /**
- * Ignore the database dump warning
+ * Ignore the Immich database dump warning
  */
 export function ignoreImmichDatabaseDumpWarning(opts?: Oazapfts.RequestOpts) {
     return oazapfts.ok(oazapfts.fetchText("/api/yucca/integrations/immich/database-dump/ignore-warning", {
@@ -517,7 +517,7 @@ export function startImmichRollback(immichRollbackRequestDto: ImmichRollbackRequ
     })));
 }
 /**
- * Get onboarding status
+ * Get backup onboarding status
  */
 export function onboardingStatus(opts?: Oazapfts.RequestOpts) {
     return oazapfts.ok(oazapfts.fetchJson<{
@@ -528,7 +528,7 @@ export function onboardingStatus(opts?: Oazapfts.RequestOpts) {
     }));
 }
 /**
- * Get the recovery key
+ * Get the backup recovery key
  */
 export function currentRecoveryKey(opts?: Oazapfts.RequestOpts) {
     return oazapfts.ok(oazapfts.fetchJson<{
@@ -539,7 +539,7 @@ export function currentRecoveryKey(opts?: Oazapfts.RequestOpts) {
     }));
 }
 /**
- * Import a recovery key
+ * Import a backup recovery key
  */
 export function importRecoveryKey(importRecoveryKeyRequest: ImportRecoveryKeyRequest, opts?: Oazapfts.RequestOpts) {
     return oazapfts.ok(oazapfts.fetchText("/api/yucca/onboarding/recovery-key", oazapfts.json({
@@ -549,7 +549,7 @@ export function importRecoveryKey(importRecoveryKeyRequest: ImportRecoveryKeyReq
     })));
 }
 /**
- * Confirm the recovery key
+ * Confirm the backup recovery key
  */
 export function confirmRecoveryKey(opts?: Oazapfts.RequestOpts) {
     return oazapfts.ok(oazapfts.fetchText("/api/yucca/onboarding/recovery-key", {
@@ -558,7 +558,7 @@ export function confirmRecoveryKey(opts?: Oazapfts.RequestOpts) {
     }));
 }
 /**
- * Skip optional onboarding
+ * Skip optional backup onboarding
  */
 export function skipOnboardingExtraConfig(opts?: Oazapfts.RequestOpts) {
     return oazapfts.ok(oazapfts.fetchText("/api/yucca/onboarding/skip", {
@@ -567,7 +567,7 @@ export function skipOnboardingExtraConfig(opts?: Oazapfts.RequestOpts) {
     }));
 }
 /**
- * Enable telemetry
+ * Enable FUTO Backups telemetry
  */
 export function enableTelemetry(opts?: Oazapfts.RequestOpts) {
     return oazapfts.ok(oazapfts.fetchText("/api/yucca/onboarding/telemetry", {
@@ -585,7 +585,7 @@ export function reportError(opts?: Oazapfts.RequestOpts) {
     }));
 }
 /**
- * Create a repository
+ * Create a new backup
  */
 export function createRepository(repositoryCreateRequestDto: RepositoryCreateRequestDto, { backend }: {
     backend?: string;
@@ -602,7 +602,7 @@ export function createRepository(repositoryCreateRequestDto: RepositoryCreateReq
     })));
 }
 /**
- * List repositories
+ * List backups
  */
 export function getRepositories(opts?: Oazapfts.RequestOpts) {
     return oazapfts.ok(oazapfts.fetchJson<{
@@ -613,7 +613,7 @@ export function getRepositories(opts?: Oazapfts.RequestOpts) {
     }));
 }
 /**
- * List unconfigured repositories
+ * List remote backups
  */
 export function inspectRepositories({ backend }: {
     backend?: string;
@@ -628,7 +628,7 @@ export function inspectRepositories({ backend }: {
     }));
 }
 /**
- * Update a repository
+ * Update a backup
  */
 export function updateRepository(id: string, repositoryUpdateRequestDto: RepositoryUpdateRequestDto, { backend }: {
     backend?: string;
@@ -645,7 +645,7 @@ export function updateRepository(id: string, repositoryUpdateRequestDto: Reposit
     })));
 }
 /**
- * Remove a repository
+ * Remove a backup
  */
 export function deleteRepository(id: string, opts?: Oazapfts.RequestOpts) {
     return oazapfts.ok(oazapfts.fetchText(`/api/yucca/repository/${encodeURIComponent(id)}`, {
@@ -706,7 +706,7 @@ export function reconfigureRepositoryPrimaryBackend(id: string, repositoryPrimar
     })));
 }
 /**
- * List repository runs
+ * List backup runs
  */
 export function getRunHistory(id: string, opts?: Oazapfts.RequestOpts) {
     return oazapfts.ok(oazapfts.fetchJson<{
@@ -765,7 +765,7 @@ export function forgetSnapshot(id: string, snapshot: string, opts?: Oazapfts.Req
     }));
 }
 /**
- * Restore from an unconfigured repository
+ * Restore from snapshot
  */
 export function restoreFromPoint(id: string, snapshot: string, backend: string, repositorySnapshotRestoreFromPointRequestDto: RepositorySnapshotRestoreFromPointRequestDto, opts?: Oazapfts.RequestOpts) {
     return oazapfts.ok(oazapfts.fetchJson<{

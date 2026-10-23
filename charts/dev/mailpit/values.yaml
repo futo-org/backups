@@ -1,7 +1,7 @@
 replicas: 1
 
 # Stable in-cluster name, independent of the Helm release name (dev == prod).
-# mock-postmark delivers here; e2e assertions read the message API.
+# mock-resend delivers here; e2e assertions read the message API.
 fullnameOverride: yucca-mailpit
 
 image:

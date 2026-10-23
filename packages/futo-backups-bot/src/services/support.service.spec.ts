@@ -111,6 +111,40 @@ describe(SupportService.name, () => {
     });
   });
 
+  describe('attachment permissions', () => {
+    it('repairs support channel attachment permissions on startup', async () => {
+      await sut.onApplicationBootstrap();
+
+      expect(mocks.discord.ensureTicketAttachmentPermissions).toHaveBeenCalled();
+      expect(mocks.discord.ensurePinnedMessage).toHaveBeenCalled();
+    });
+
+    it('keeps support available when attachment permissions need a staff repair', async () => {
+      mocks.discord.ensureTicketAttachmentPermissions.mockRejectedValue(new Error('Missing Manage Roles'));
+
+      await sut.onApplicationBootstrap();
+
+      expect(mocks.logger.warn).toHaveBeenCalled();
+      expect(mocks.discord.ensurePinnedMessage).toHaveBeenCalled();
+    });
+
+    it('warns the customer visibly when Discord still blocks attachments', async () => {
+      mocks.api.getLink.mockResolvedValue(link);
+      mocks.api.getUserSummary.mockResolvedValue(summary);
+      mocks.discord.canSendTicketAttachments.mockResolvedValue(false);
+      const send = jest.fn<() => Promise<{ id: string }>>().mockResolvedValue({ id: 'seed-1' });
+      mocks.discord.createTicketThread.mockResolvedValue(asThread({ id: 'thread-1', send }));
+
+      await sut.handleInteraction(newModalInteraction('My backups are failing.'));
+
+      expect(mocks.discord.canSendTicketAttachments).toHaveBeenCalledWith('123456789');
+      expect(send).toHaveBeenCalledWith(
+        expect.objectContaining({ content: expect.stringContaining('Discord is blocking file attachments') }),
+      );
+      expect(mocks.discord.createStaffThread).toHaveBeenCalled();
+    });
+  });
+
   describe('open ticket button', () => {
     it('starts the link flow for an unlinked user', async () => {
       mocks.api.getLink.mockResolvedValue(null);
@@ -159,6 +193,67 @@ describe(SupportService.name, () => {
   });
 
   describe('ticket modal', () => {
+    it('includes observed client and service versions in the original staff message', async () => {
+      mocks.api.getLink.mockResolvedValue(link);
+      mocks.api.getUserSummary.mockResolvedValue(summary);
+      mocks.columbo.getVersions.mockResolvedValue({
+        versions: [
+          {
+            component: 'orchestration-api (client)',
+            version: '0.40.1',
+            source: 'logs',
+            lastSeen: '2026-10-01T00:00:00Z',
+          },
+          {
+            component: 'orchestration-api (client)',
+            version: '1.2.1',
+            source: 'logs',
+            lastSeen: '2026-10-22T00:00:00Z',
+          },
+          { component: 'michael (service)', version: '1.2.1', source: 'metrics' },
+        ],
+        unavailableSources: [],
+      });
+      mocks.discord.createTicketThread.mockResolvedValue(
+        asThread({
+          id: 'thread-1',
+          send: jest.fn<() => Promise<{ id: string }>>().mockResolvedValue({ id: 'seed-1' }),
+        }),
+      );
+
+      await sut.handleInteraction(newModalInteraction('My backups are failing.'));
+
+      const note = mocks.discord.createStaffThread.mock.calls[0][1];
+      expect(note).toContain('orchestration-api (client): 0.40.1 (logs; last seen 2026-10-01T00:00:00Z)');
+      expect(note).toContain('orchestration-api (client): 1.2.1');
+      expect(note).toContain('michael (service): 1.2.1 (metrics)');
+      expect(mocks.freshdeskSync.onTicketOpened).toHaveBeenCalledWith(
+        expect.objectContaining({ staffNote: expect.stringContaining('0.40.1') }),
+      );
+      expect(JSON.parse(JSON.stringify(mocks.discord.createStaffThread.mock.calls[0][2]?.[0]))).toEqual(
+        expect.objectContaining({ components: [expect.objectContaining({ custom_id: ComponentId.Investigate })] }),
+      );
+    });
+
+    it('still creates the original staff message with unknown versions when discovery fails', async () => {
+      mocks.api.getLink.mockResolvedValue(link);
+      mocks.api.getUserSummary.mockResolvedValue(summary);
+      mocks.columbo.getVersions.mockRejectedValue(new Error('telemetry unavailable'));
+      mocks.discord.createTicketThread.mockResolvedValue(
+        asThread({
+          id: 'thread-1',
+          send: jest.fn<() => Promise<{ id: string }>>().mockResolvedValue({ id: 'seed-1' }),
+        }),
+      );
+
+      await sut.handleInteraction(newModalInteraction('My backups are failing.'));
+
+      expect(mocks.discord.createStaffThread.mock.calls[0][1]).toContain(
+        'Versions: unknown — telemetry lookup unavailable',
+      );
+      expect(mocks.columbo.requestInvestigation).toHaveBeenCalled();
+    });
+
     it('blocks a fourth concurrent ticket', async () => {
       mocks.api.getLink.mockResolvedValue(link);
       mocks.discord.listOpenTicketThreads.mockResolvedValue([
@@ -193,10 +288,12 @@ describe(SupportService.name, () => {
       expect(mocks.discord.createStaffThread).toHaveBeenCalledWith(
         expect.stringMatching(/^staff-someone-6789-/),
         expect.stringContaining('someone@example.test'),
+        expect.any(Array),
       );
       expect(mocks.discord.createStaffThread).toHaveBeenCalledWith(
         expect.stringMatching(/^staff-someone-6789-/),
         expect.stringContaining('/d/yucca-per-user?var-user=user-1'),
+        expect.any(Array),
       );
       expect((interaction as { deferReply: jest.Mock }).deferReply).toHaveBeenCalled();
       expect((interaction as { editReply: jest.Mock }).editReply).toHaveBeenCalledWith(
@@ -278,6 +375,7 @@ describe(SupportService.name, () => {
       expect(mocks.discord.createStaffThread).toHaveBeenCalledWith(
         expect.stringMatching(/^staff-guest-5000-/),
         expect.stringContaining('No linked FUTO Backups account'),
+        expect.any(Array),
       );
       expect((interaction as { editReply: jest.Mock }).editReply).toHaveBeenCalledWith(
         expect.objectContaining({ content: expect.stringContaining('thread-9') }),
