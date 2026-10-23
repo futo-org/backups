@@ -1742,6 +1742,10 @@ msgstr ""
 msgid "Restore Backup"
 msgstr ""
 
+#: src/lib/components/onboarding/restore-point-flow/RestorePointFlow4Restore.svelte
+msgid "Restore cancelled"
+msgstr ""
+
 #: src/lib/components/onboarding/restore-point-flow/RestorePointFlow3ConfirmRestore.svelte
 msgid "Restore configuration"
 msgstr ""
