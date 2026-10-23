@@ -45,6 +45,7 @@ export class JobContext {
         break;
       }
       case 'summary': {
+        this.progress = { ...this.progress, percentDone: 1, secondsRemaining: undefined, currentFiles: [] };
         this.outcome.summary ??=
           'files_new' in event
             ? {
