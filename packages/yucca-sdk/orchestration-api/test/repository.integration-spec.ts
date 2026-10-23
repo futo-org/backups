@@ -117,7 +117,9 @@ describe('Repository', () => {
     const backup = await repositoryService.createBackup(repository.id);
     await backupRunning.promise;
 
+    const queuedJob = waitForEvent(ctx.events, 'JobCreate');
     const forget = repositoryService.forgetSnapshot(repository.id, 'snapshot-1');
+    await queuedJob;
     expect(ctx.resticMock.forget).not.toHaveBeenCalled();
 
     releaseBackup.resolve();
