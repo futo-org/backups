@@ -7,7 +7,8 @@
     | "complete"
     | "warned"
     | "failed"
-    | "cancelled";
+    | "cancelled"
+    | "interrupted";
 </script>
 
 <script lang="ts">
@@ -85,6 +86,12 @@
     forget: msg`Pruning old backups was cancelled`,
   };
 
+  const interrupted: Record<BackupStatusType, string> = {
+    backup: msg`Your backup was interrupted`,
+    restore: msg`Your restore was interrupted`,
+    forget: msg`Pruning old backups was interrupted`,
+  };
+
   const cancelLabels: Record<BackupStatusType, string> = {
     backup: msg`Cancel backup`,
     restore: msg`Cancel restore`,
@@ -122,6 +129,9 @@
       case "cancelled": {
         return $t(cancelled[type]);
       }
+      case "interrupted": {
+        return $t(interrupted[type]);
+      }
       case "complete": {
         return $t(succeeded[type]);
       }
@@ -142,7 +152,9 @@
   const titleColor = $derived(
     backupState === "complete"
       ? "success"
-      : backupState === "warned" || backupState === "cancelled"
+      : backupState === "warned" ||
+        backupState === "cancelled" ||
+        backupState === "interrupted"
         ? "warning"
         : backupState === "failed"
           ? "danger"
@@ -153,7 +165,8 @@
     backupState === "complete" ||
       backupState === "warned" ||
       backupState === "failed" ||
-      backupState === "cancelled",
+      backupState === "cancelled" ||
+      backupState === "interrupted",
   );
 </script>
 

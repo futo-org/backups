@@ -20,18 +20,15 @@
 
   // svelte-ignore state_referenced_locally
   const jobQuery = useJob(jobId);
-  const progress = $derived(jobQuery.data?.progress?.percentDone ?? 0);
-  const errors = $derived(jobQuery.data?.outcome?.errors ?? []);
+  const job = $derived(jobQuery.data);
+  const progress = $derived(job?.progress?.percentDone ?? 0);
+  const errors = $derived(job?.outcome?.errors ?? []);
   const currentFiles = $derived(jobQuery.data?.progress?.currentFiles ?? []);
   const jobEventHandler = useJobEventHandler();
 
   const onJobUpdate = (event: JobUpdateEvent) => {
     jobEventHandler.onJobUpdate(event);
-    if (
-      event.data.jobId === jobId &&
-      isJobFinished(event.data.job.status) &&
-      !event.data.job.outcome?.errors.length
-    ) {
+    if (event.data.jobId === jobId && (event.data.job.status === "complete" || event.data.job.status === "warn")) {
       onFinish();
     }
   };
@@ -40,9 +37,13 @@
 <OnEvents {onJobUpdate} onJobTick={jobEventHandler.onJobTick} />
 
 <Modal focusOnOpen
-  title={errors.length > 0 ? $t`Restore failed` : $t`Restoring`}
+  title={job?.status === "cancelled"
+    ? $t`Restore cancelled`
+    : errors.length > 0 || job?.status === "failed"
+      ? $t`Restore failed`
+      : $t`Restoring`}
   size="small"
-  onClose={errors.length > 0 ? onFinish : undefined}
+  onClose={isJobFinished(job?.status) ? onFinish : undefined}
 >
   <ModalBody>
     <Stack gap={2}>

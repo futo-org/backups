@@ -65,6 +65,10 @@ msgstr "{name} completed with warnings"
 msgid "{name} failed"
 msgstr "{name} failed"
 
+#: src/lib/components/backups/dialogs/ViewStatusModal.svelte
+msgid "{name} interrupted"
+msgstr "{name} interrupted"
+
 #: src/lib/components/ui/PathPickerModal.svelte
 msgid "{name} selected"
 msgstr "{name} selected"
@@ -92,6 +96,10 @@ msgstr "{phase} · {percent}%"
 #: src/lib/components/backups/run-history/RepositoryRunHistoryItem.svelte
 msgid "{running} in progress"
 msgstr "{running} in progress"
+
+#: src/lib/components/backups/run-history/RepositoryRunHistoryItem.svelte
+msgid "{running} queued"
+msgstr "{running} queued"
 
 #: src/lib/components/dashboard/DashboardBackupHealth.svelte
 msgid "{successful} of {total} successful"
@@ -1661,6 +1669,14 @@ msgstr "Pruning old backups"
 msgid "Pruning old backups was cancelled"
 msgstr "Pruning old backups was cancelled"
 
+#: src/lib/components/backups/BackupStatus.svelte
+msgid "Pruning old backups was interrupted"
+msgstr "Pruning old backups was interrupted"
+
+#: src/lib/components/backups/run-history/RepositoryRunHistoryItem.svelte
+msgid "Queued"
+msgstr "Queued"
+
 #: src/lib/components/schedules/ScheduleItem.svelte
 msgid "Ran"
 msgstr "Ran"
@@ -1740,6 +1756,10 @@ msgstr "Restore"
 #: src/lib/components/backups/dialogs/RestoreSnapshotModal.svelte
 msgid "Restore Backup"
 msgstr "Restore Backup"
+
+#: src/lib/components/onboarding/restore-point-flow/RestorePointFlow4Restore.svelte
+msgid "Restore cancelled"
+msgstr "Restore cancelled"
 
 #: src/lib/components/onboarding/restore-point-flow/RestorePointFlow3ConfirmRestore.svelte
 msgid "Restore configuration"
@@ -1981,7 +2001,6 @@ msgid "Start your first backup"
 msgstr "Start your first backup"
 
 #: src/lib/components/backups/BackupStatus.svelte
-#: src/lib/components/backups/run-history/RepositoryRunHistoryItem.svelte
 #: src/lib/components/backups/run-history/RepositoryRunHistoryItem.svelte
 msgid "Started"
 msgstr "Started"
@@ -2281,6 +2300,10 @@ msgstr "Your backup is encrypted and requires your recovery key to restore."
 msgid "Your backup was cancelled"
 msgstr "Your backup was cancelled"
 
+#: src/lib/components/backups/BackupStatus.svelte
+msgid "Your backup was interrupted"
+msgstr "Your backup was interrupted"
+
 #: src/lib/components/dashboard/DashboardBackupHealth.svelte
 msgid "Your backups"
 msgstr "Your backups"
@@ -2348,6 +2371,10 @@ msgstr "Your photos, files, and recovery key are never collected and never leave
 #: src/lib/components/backups/BackupStatus.svelte
 msgid "Your restore was cancelled"
 msgstr "Your restore was cancelled"
+
+#: src/lib/components/backups/BackupStatus.svelte
+msgid "Your restore was interrupted"
+msgstr "Your restore was interrupted"
 
 #: src/lib/components/onboarding/steps/OnboardingStep1FinishSetup.svelte
 msgid "Your subscription is active. Finish setup to create your recovery key and start backing up your Immich library."

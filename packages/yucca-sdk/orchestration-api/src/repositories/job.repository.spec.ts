@@ -55,6 +55,7 @@ const makeRepository = (metatypes: Array<new () => object>) => {
     {} as never,
     {} as never,
     logger as never,
+    {} as never,
   );
 };
 
