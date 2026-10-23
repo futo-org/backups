@@ -174,6 +174,7 @@ export class JobRepository implements OnModuleInit, BeforeApplicationShutdown {
       .selectFrom('jobs')
       .selectAll()
       .where('repositoryId', '=', repositoryId)
+      .orderBy('queuedAt', 'desc')
       .orderBy(sql`rowid`, 'desc')
       .execute();
 
@@ -186,6 +187,7 @@ export class JobRepository implements OnModuleInit, BeforeApplicationShutdown {
       .selectAll()
       .where('repositoryId', '=', repositoryId)
       .where('name', '=', name)
+      .orderBy('queuedAt', 'desc')
       .orderBy(sql`rowid`, 'desc')
       .limit(1)
       .executeTakeFirst();
