@@ -45,10 +45,10 @@ services:
     ports:
       - 8025:8025
 
-  mock-postmark-provider:
+  mock-resend-provider:
     build:
       context: .
-      dockerfile: packages/mock-postmark-provider/Dockerfile
+      dockerfile: packages/mock-resend-provider/Dockerfile
     environment:
       MAILPIT_URL: http://mailpit:8025
     ports:

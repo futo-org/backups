@@ -54,6 +54,23 @@ const DiscordInviteBatchSchema = z
   })
   .meta({ id: 'DiscordInviteBatchDto' });
 
+const DiscordInviteBatchStatusSchema = z
+  .object({
+    id: z.string(),
+    guildId: z.string(),
+    channelId: z.string(),
+    messageId: z.string().nullable(),
+    maxClaims: z.number(),
+    remaining: z.number(),
+    cancelledAt: isoDatetimeToDate.nullable(),
+    createdByDiscordUserId: z.string(),
+  })
+  .meta({ id: 'DiscordInviteBatchStatusDto' });
+
+const DiscordInviteBatchListSchema = z
+  .object({ items: z.array(DiscordInviteBatchStatusSchema) })
+  .meta({ id: 'DiscordInviteBatchListDto' });
+
 const DiscordInviteCreateSchema = z
   .object({
     discordUserId: z.string().max(64),
@@ -133,6 +150,8 @@ export class DiscordLinkDto extends createZodDto(DiscordLinkSchema) {}
 export class DiscordInviteBatchCreateDto extends createZodDto(DiscordInviteBatchCreateSchema) {}
 export class DiscordInviteBatchMessageDto extends createZodDto(DiscordInviteBatchMessageSchema) {}
 export class DiscordInviteBatchDto extends createZodDto(DiscordInviteBatchSchema) {}
+export class DiscordInviteBatchStatusDto extends createZodDto(DiscordInviteBatchStatusSchema) {}
+export class DiscordInviteBatchListDto extends createZodDto(DiscordInviteBatchListSchema) {}
 export class DiscordInviteCreateDto extends createZodDto(DiscordInviteCreateSchema) {}
 export class DiscordInviteCreatedDto extends createZodDto(DiscordInviteCreatedSchema) {}
 export class DiscordInviteResponseDto extends createZodDto(DiscordInviteResponseSchema) {}

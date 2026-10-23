@@ -1,7 +1,7 @@
 ARG ALPINE_IMAGE=alpine:3.24@sha256:294b683cb724975bec92580e1e685676bd4b50bda910ddb8c51d4cabeaec77e6
-ARG NODE_IMAGE=node:25-alpine3.23@sha256:bdf2cca6fe3dabd014ea60163eca3f0f7015fbd5c7ee1b0e9ccb4ced6eb02ef4
+ARG NODE_IMAGE=node:26.12.1-alpine3.23@sha256:b1f4228f07d424dbf2f50e605b4981816e240e640a49f27ec85fab72f00c14b1
 ARG MISE_IMAGE=ghcr.io/jdx/mise:2026.9.9@sha256:a88f300ef4365494b88f8eefd271bb92ba467d4a41835739a714426207215730
-ARG GOLANG_IMAGE=golang:1.27-alpine3.23@sha256:0908ac9b9319e09d7c238aabe914e0395c51d63c4e3d0ae8c554fda9158a5769
+ARG GOLANG_IMAGE=golang:1.27.3-alpine3.23@sha256:895e5feab11a4b3774d24ee3c9579028456b82ad37f42a9eb6f82adaf776a201
 
 FROM ${ALPINE_IMAGE} AS manifests
 WORKDIR /src
@@ -55,7 +55,7 @@ FROM ${ALPINE_IMAGE}
 
 WORKDIR /app
 
-RUN apk add --no-cache libstdc++ dumb-init su-exec \
+RUN apk add --no-cache libstdc++ libatomic dumb-init su-exec \
     && addgroup -g 1000 node && adduser -u 1000 -G node -s /bin/sh -D node
 
 COPY --from=builder /usr/local/bin/node /usr/local/bin/

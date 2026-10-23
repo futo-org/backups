@@ -6,4 +6,7 @@ export enum ComponentId {
   TicketDescription = 'ticket-description',
   ClaimRole = 'claim-role',
   ClaimInvite = 'claim-invite',
+  Investigate = 'investigate',
+  InvestigationModal = 'investigation-modal',
+  InvestigationPrompt = 'investigation-prompt',
 }

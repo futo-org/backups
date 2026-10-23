@@ -16,7 +16,9 @@ import (
 	"columbo/internal/bot"
 	"columbo/internal/config"
 	"columbo/internal/metrics"
+	"columbo/internal/o11y"
 	"columbo/internal/server"
+	"columbo/internal/source"
 	"columbo/internal/version"
 	"columbo/internal/worker"
 
@@ -48,6 +50,10 @@ func main() {
 		log.Warn().Msg("OPENROUTER_API_KEY is unset — investigation requests will be accepted and dropped")
 	}
 
+	repository, err := source.Embedded()
+	if err != nil {
+		log.Fatal().Err(err).Msg("failed to open embedded Git repository")
+	}
 	runner := agent.NewRunner(agent.Config{
 		OpenRouterURL:     cfg.OpenRouterURL,
 		APIKey:            cfg.OpenRouterAPIKey,
@@ -59,6 +65,7 @@ func main() {
 		ToolResultBytes:   cfg.ToolResultBytes,
 		ModelCallTimeout:  cfg.ModelCallTimeout,
 		ModelCallAttempts: cfg.ModelCallAttempts,
+		Source:            repository,
 	})
 	recorder, err := metrics.Setup(cfg.OTLPMetricsEndpoint, cfg.OTLPMetricsURLPath, cfg.OTLPMetricsInterval)
 	if err != nil {
@@ -68,13 +75,19 @@ func main() {
 		log.Info().Str("endpoint", cfg.OTLPMetricsEndpoint).Msg("OpenTelemetry metrics enabled")
 	}
 
-	pool := worker.NewPool(runner, bot.NewClient(cfg.BotURL, cfg.InternalSecret), cfg.InvestigationTimeout, cfg.Workers)
+	pool := worker.NewPool(runner, bot.NewClient(cfg.BotURL, cfg.InternalSecret), cfg.InvestigationTimeout, cfg.Workers, worker.Options{
+		TicketQuietPeriod: cfg.TicketQuietPeriod, FetchTicketContext: true,
+	})
 	pool.GrafanaURL = cfg.GrafanaURL
 	pool.Metrics = recorder
 
 	httpSrv := &http.Server{
-		Addr:    addr,
-		Handler: server.New(cfg.InternalSecret, &gatedPool{Pool: pool, enabled: enabled}).Handler(),
+		Addr: addr,
+		Handler: server.New(cfg.InternalSecret, &gatedPool{Pool: pool, enabled: enabled}).WithVersionLookup(
+			func(ctx context.Context, userID string) (o11y.VersionResult, error) {
+				return o11y.NewClient(cfg.MetricsURL, cfg.LogsURL, userID).Versions(ctx, 30*24*time.Hour), nil
+			},
+		).Handler(),
 	}
 
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
@@ -119,7 +132,7 @@ type gatedPool struct {
 func (g *gatedPool) Enqueue(inv agent.Investigation) bool {
 	if !g.enabled {
 		log.Info().Str("staffThreadId", inv.StaffThreadID).Msg("dropping investigation request (no API key)")
-		return true
+		return inv.RequestedBy == ""
 	}
 	return g.Pool.Enqueue(inv)
 }
