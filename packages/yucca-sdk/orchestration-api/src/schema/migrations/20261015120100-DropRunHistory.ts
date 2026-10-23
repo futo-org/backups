@@ -30,7 +30,10 @@ export async function down(db: Kysely<any>): Promise<void> {
       "repositoryId",
       "start",
       "end",
-      "logFilePath",
+      CASE
+        WHEN "logFilePath" LIKE '/%' THEN "logFilePath"
+        ELSE COALESCE((SELECT "value" FROM "config" WHERE "key" = 'state-path') || '/' || "logFilePath", "logFilePath")
+      END,
       CASE WHEN "status" IN ('queued', 'running') THEN 'incomplete' ELSE "status" END,
       CASE "name" WHEN 'repository-restore' THEN 'restore' WHEN 'repository-prune' THEN 'forget' ELSE 'backup' END
     FROM "jobs"

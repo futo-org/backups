@@ -56,11 +56,17 @@ describe('MigrateRunHistoryToJobs', () => {
     expect(jobs()).toEqual([expect.objectContaining({ logFilePath: 'logs/repository/run.jsonl' })]);
   });
 
-  it('keeps an interrupted run as incomplete', async () => {
+  it('hands an interrupted backup to startup reconciliation and keeps other interrupted runs incomplete', async () => {
     insertRun('interrupted', 'backup', 'incomplete', '/old/state/logs/repository/run.jsonl');
+    insertRun('interrupted-restore', 'restore', 'incomplete', '/old/state/logs/repository/restore.jsonl');
 
     await harness.up();
 
-    expect(jobs()).toEqual([expect.objectContaining({ id: 'interrupted', status: 'incomplete' })]);
+    expect(jobs()).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ id: 'interrupted', status: 'running' }),
+        expect.objectContaining({ id: 'interrupted-restore', status: 'incomplete' }),
+      ]),
+    );
   });
 });

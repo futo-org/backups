@@ -49,7 +49,7 @@ export async function up(db: Kysely<Database>): Promise<void> {
           name: jobNames[run.type],
           repositoryId: run.repositoryId,
           data: JSON.stringify({ repositoryId: run.repositoryId }),
-          status: run.status ?? 'incomplete',
+          status: run.status === 'incomplete' && run.type === 'backup' ? 'running' : (run.status ?? 'incomplete'),
           logFilePath: run.logFilePath
             ? join('logs', run.repositoryId, basename(run.logFilePath))
             : join('logs', 'jobs', `${run.id}.jsonl`),
