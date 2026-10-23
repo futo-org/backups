@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.8.1](https://github.com/futo-org/backups/compare/v1.8.0...v1.8.1) (2026-10-23)
+
+
+### Bug Fixes
+
+* **yucca-metrics-worker:** publish beta backup count ([#60](https://github.com/futo-org/backups/issues/60)) ([7c5ce9a](https://github.com/futo-org/backups/commit/7c5ce9af2f3a3b73a618ff74dc45d9011e7aaebd))
+
 ## [1.8.0](https://github.com/futo-org/backups/compare/v1.7.0...v1.8.0) (2026-10-22)
 
 
