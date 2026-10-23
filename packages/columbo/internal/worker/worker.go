@@ -49,11 +49,18 @@ type AdhocJob struct {
 }
 
 type Pool struct {
-	runner  Investigator
-	bot     *bot.Client
-	timeout time.Duration
-	queue   chan agent.Investigation
-	wg      sync.WaitGroup
+	runner    Investigator
+	bot       *bot.Client
+	timeout   time.Duration
+	queue     chan queuedInvestigation
+	wg        sync.WaitGroup
+	options   Options
+	mu        sync.Mutex
+	jobs      map[*ticketJob]struct{}
+	automatic map[string]*ticketJob
+	completed map[string]time.Time
+	wake      chan struct{}
+	stopped   bool
 
 	// GrafanaURL links the staff note's investigation id to the
 	// yucca-columbo audit dashboard; empty leaves the id as plain text.
@@ -67,28 +74,33 @@ type Pool struct {
 	adhoc    map[string]*AdhocJob
 }
 
-func NewPool(runner Investigator, botClient *bot.Client, timeout time.Duration, workers int) *Pool {
-	return &Pool{
-		runner:   runner,
-		bot:      botClient,
-		timeout:  timeout,
-		queue:    make(chan agent.Investigation, queueSize),
-		adhocSem: make(chan struct{}, workers),
-		adhoc:    map[string]*AdhocJob{},
+func NewPool(runner Investigator, botClient *bot.Client, timeout time.Duration, workers int, options ...Options) *Pool {
+	var settings Options
+	if len(options) > 0 {
+		settings = options[0]
 	}
-}
-
-func (p *Pool) Enqueue(inv agent.Investigation) bool {
-	select {
-	case p.queue <- inv:
-		return true
-	default:
-		return false
+	return &Pool{
+		runner:    runner,
+		bot:       botClient,
+		timeout:   timeout,
+		queue:     make(chan queuedInvestigation, queueSize),
+		options:   settings,
+		jobs:      make(map[*ticketJob]struct{}),
+		automatic: make(map[string]*ticketJob),
+		completed: make(map[string]time.Time),
+		wake:      make(chan struct{}, 1),
+		adhocSem:  make(chan struct{}, workers),
+		adhoc:     map[string]*AdhocJob{},
 	}
 }
 
 func (p *Pool) Run(ctx context.Context, workers int) {
 	p.baseCtx = ctx
+	p.wg.Add(1)
+	go func() {
+		defer p.wg.Done()
+		p.schedule(ctx)
+	}()
 	for range workers {
 		p.wg.Add(1)
 		go func() {
@@ -97,8 +109,8 @@ func (p *Pool) Run(ctx context.Context, workers int) {
 				select {
 				case <-ctx.Done():
 					return
-				case inv := <-p.queue:
-					p.process(ctx, inv)
+				case item := <-p.queue:
+					p.runTicket(ctx, item)
 				}
 			}
 		}()
@@ -195,20 +207,33 @@ func (p *Pool) process(ctx context.Context, inv agent.Investigation) {
 		Str("userId", inv.UserID).
 		Str("trigger", "ticket").
 		Logger()
-	ctx, cancel := context.WithTimeout(logger.WithContext(ctx), p.timeout)
+	lifecycle := logger.WithContext(ctx)
+	ctx, cancel := context.WithTimeout(lifecycle, p.timeout)
 	defer cancel()
+	if preparer, ok := p.runner.(interface {
+		Prepare(context.Context, agent.Investigation) agent.Investigation
+	}); ok {
+		inv = preparer.Prepare(ctx, inv)
+	}
 	logger.Info().Str("audit", "ticket_start").Str("description", inv.Description).Msg("columbo audit: ticket investigation start")
 
-	investigate, reason, err := p.runner.Triage(ctx, inv)
+	investigate, reason := true, "requested by support staff"
+	var err error
+	if inv.RequestedBy == "" {
+		investigate, reason, err = p.runner.Triage(ctx, inv)
+	}
 	if err != nil {
 		logger.Error().Err(err).Msg("triage failed")
 		p.Metrics.Record(context.WithoutCancel(ctx), "ticket", "triage_failed", agent.Outcome{})
 		return
 	}
+	if ctx.Err() != nil {
+		return
+	}
 	if !investigate {
 		logger.Info().Str("reason", reason).Msg("triage: no investigation needed")
 		p.Metrics.Record(context.WithoutCancel(ctx), "ticket", "skipped", agent.Outcome{})
-		postCtx, postCancel := context.WithTimeout(context.WithoutCancel(ctx), 30*time.Second)
+		postCtx, postCancel := context.WithTimeout(lifecycle, 30*time.Second)
 		defer postCancel()
 		if err := p.bot.PostStaffNote(postCtx, inv.StaffThreadID, p.skipNote(reason, id)); err != nil {
 			logger.Error().Err(err).Msg("failed to post the skip note")
@@ -223,11 +248,14 @@ func (p *Pool) process(ctx context.Context, inv agent.Investigation) {
 		p.Metrics.Record(context.WithoutCancel(ctx), "ticket", "failed", outcome)
 		return
 	}
+	if lifecycle.Err() != nil {
+		return
+	}
 	p.Metrics.Record(context.WithoutCancel(ctx), "ticket", "done", outcome)
 
 	// The note must land even when the investigation used the whole time
 	// budget, so posting gets its own deadline.
-	postCtx, postCancel := context.WithTimeout(context.WithoutCancel(ctx), 30*time.Second)
+	postCtx, postCancel := context.WithTimeout(lifecycle, 30*time.Second)
 	defer postCancel()
 	if err := p.bot.PostStaffNote(postCtx, inv.StaffThreadID, p.formatNote(outcome, id)); err != nil {
 		logger.Error().Err(err).Msg("failed to post the staff note")

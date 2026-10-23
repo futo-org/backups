@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"columbo/internal/o11y"
+	"columbo/internal/source"
 
 	"github.com/cloudwego/eino/components/tool"
 	"github.com/cloudwego/eino/components/tool/utils"
@@ -32,8 +33,9 @@ var errToolBudget = errors.New("tool budget exhausted — write your conclusion 
 // in-process jq over stored results. No tool takes a URL, a header, or a
 // credential.
 type toolbox struct {
-	o11y  *o11y.Client
-	store *ResultStore
+	o11y   *o11y.Client
+	store  *ResultStore
+	source *source.Repository
 
 	mu        sync.Mutex
 	calls     int
@@ -67,8 +69,12 @@ func (t *toolbox) tools() ([]tool.BaseTool, error) {
 	// not run failures: the model gets the error text and can correct itself
 	// instead of the whole investigation dying on a syntax error. MaxStep
 	// still bounds a model that never recovers.
-	wrapped := make([]tool.BaseTool, 0, 4)
-	for _, t := range []tool.BaseTool{metrics, logs, health, jq} {
+	sourceTools, err := t.sourceTools()
+	if err != nil {
+		return nil, err
+	}
+	wrapped := make([]tool.BaseTool, 0, 4+len(sourceTools))
+	for _, t := range append([]tool.BaseTool{metrics, logs, health, jq}, sourceTools...) {
 		wrapped = append(wrapped, utils.WrapToolWithErrorHandler(t, func(_ context.Context, err error) string {
 			return "ERROR: " + err.Error()
 		}))

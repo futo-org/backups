@@ -14,12 +14,11 @@ import { CookieName, DeviceFlowEventType, DeviceFlowFailureReason, TicketAction 
 import { env } from 'src/env.js';
 import { ConnectionRepository } from 'src/repositories/connection.repository.js';
 import { CryptoRepository } from 'src/repositories/crypto.repository.js';
-import { DiscordRepository } from 'src/repositories/discord.repository.js';
 import { OidcRepository } from 'src/repositories/oidc.repository.js';
 import { RepositoryRepository } from 'src/repositories/repository.repository.js';
 import { SessionRepository } from 'src/repositories/session.repository.js';
 import { TicketRepository } from 'src/repositories/ticket.repository.js';
-import { UserRepository } from 'src/repositories/user.repository.js';
+import { RegistrationRepositories, UserRepository } from 'src/repositories/user.repository.js';
 import { UserAllowlistRepository } from 'src/repositories/userAllowlist.repository.js';
 import { EmailNotAllowedException, FeatureNotEnabledException, TicketRequiredException } from 'src/utils/exceptions.js';
 
@@ -32,12 +31,10 @@ export class AuthService {
     private readonly logger: LoggerRepository,
     private readonly oidc: OidcRepository,
     private readonly user: UserRepository,
-    private readonly allowlist: UserAllowlistRepository,
     private readonly crypto: CryptoRepository,
     private readonly session: SessionRepository,
     private readonly wideContext: WideContextRepository,
     private readonly connection: ConnectionRepository,
-    private readonly discord: DiscordRepository,
     private readonly ticket: TicketRepository,
     private readonly repository: RepositoryRepository,
   ) {}
@@ -234,14 +231,27 @@ export class AuthService {
       throw new InternalServerErrorException('email is missing from claims');
     }
 
-    let user = await this.user.getBySub(claims.sub);
+    const identity = { sub: claims.sub, name: claims.name, email: claims.email };
+    return this.user.withRegistration(claims.sub, (repositories) =>
+      this.registerUser(identity, repositories, inviteCode, discordInvite),
+    );
+  }
+
+  private async registerUser(
+    claims: { sub: string; name: string; email: string },
+    repositories: RegistrationRepositories,
+    inviteCode?: string,
+    discordInvite?: string,
+  ) {
+    const { user: users, allowlist, connection, discord } = repositories;
+    let user = await users.getBySub(claims.sub);
 
     if (user) {
       if (user.disabled) {
         throw new UnauthorizedException('Account is disabled');
       }
 
-      await this.user.update(user.id, {
+      await users.update(user.id, {
         name: claims.name,
         email: claims.email,
       });
@@ -249,55 +259,42 @@ export class AuthService {
 
     // Consumed before the user row exists: a concurrent redemption of the same
     // single-use token loses here and falls through to the allowlist gate.
-    const invite = discordInvite ? await this.discord.consumeInviteRequest(discordInvite) : undefined;
+    const invite = discordInvite ? await discord.consumeInviteRequest(discordInvite) : undefined;
 
     if (!user) {
       if (!invite) {
-        await this.assertEmailAllowed(claims.email.toLowerCase(), inviteCode);
+        await this.assertEmailAllowed(claims.email.toLowerCase(), allowlist, inviteCode);
       }
 
-      user = await this.user.create({
+      user = await users.create({
         sub: claims.sub,
         name: claims.name,
         email: claims.email,
       });
 
-      await this.connection.getOrCreateDefault(user.id);
+      await connection.getOrCreateDefault(user.id);
     }
 
     if (invite?.allowlistId) {
-      await this.discord.linkDirect(user.id, invite.discordUserId, invite.discordUsername);
-      if (!(await this.allowlist.markUsed(invite.allowlistId))) {
-        this.logger.warn(
-          { userId: user.id, discordUserId: invite.discordUserId },
-          'invite claim was revoked mid-redemption — the account exists without a claim record',
-        );
-      }
+      await discord.linkDirect(user.id, invite.discordUserId, invite.discordUsername);
     }
 
     return user;
   }
 
-  private async assertEmailAllowed(email: string, inviteCode?: string) {
+  private async assertEmailAllowed(email: string, allowlist: UserAllowlistRepository, inviteCode?: string) {
     const domain = email.split('@').pop() ?? '';
     if (env.ALLOWED_EMAIL_DOMAINS.includes(domain)) {
       return;
     }
 
-    const entry = await this.allowlist.getByEmail(email);
-    if (entry?.invited) {
-      if (!entry.inviteUsed) {
-        await this.allowlist.markUsed(entry.id);
-      }
+    const entry = await allowlist.getByEmail(email);
+    if (entry?.invited && (entry.inviteUsed || (await allowlist.markUsed(entry.id)))) {
       return;
     }
 
-    if (inviteCode) {
-      const codeEntry = await this.allowlist.getByInviteCode(inviteCode.trim().toUpperCase());
-      if (codeEntry && !codeEntry.inviteUsed) {
-        await this.allowlist.markUsed(codeEntry.id);
-        return;
-      }
+    if (inviteCode && (await allowlist.consumeInviteCode(inviteCode.trim().toUpperCase()))) {
+      return;
     }
 
     throw new EmailNotAllowedException();

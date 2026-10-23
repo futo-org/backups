@@ -1,5 +1,6 @@
 <script lang="ts">
   import OnboardingBootstrapError from "$lib/components/onboarding/OnboardingBootstrapError.svelte";
+  import OnboardingStepBetaDisclaimer from "$lib/components/onboarding/steps/OnboardingStepBetaDisclaimer.svelte";
   import OnboardingStepChooseStorage from "$lib/components/onboarding/steps/OnboardingStepChooseStorage.svelte";
   import OnboardingStepConnectAccount from "$lib/components/onboarding/steps/OnboardingStep2ConnectAccount.svelte";
   import OnboardingStepSaveRecoveryKey from "$lib/components/onboarding/steps/OnboardingStep3SaveRecoveryKey.svelte";
@@ -34,6 +35,7 @@
     | "key-import"
     | "key-confirm"
     | "backup"
+    | "disclaimer"
     | "finished";
 
   type Props = {
@@ -176,7 +178,17 @@
     <OnboardingStepFirstBackup
       {schedule}
       storageLocation={$t`FUTO Cloud`}
-      {onStartBackup}
+      onStartBackup={() => (stage = "disclaimer")}
+    />
+  </OnboardingStepModal>
+{:else if stage === "disclaimer"}
+  <OnboardingStepModal
+    title={$t`FUTO Backups is in closed beta`}
+    size="medium"
+    onClose={onCancel}
+  >
+    <OnboardingStepBetaDisclaimer
+      onConfirm={onStartBackup}
       loading={defaults.isPending}
     />
   </OnboardingStepModal>

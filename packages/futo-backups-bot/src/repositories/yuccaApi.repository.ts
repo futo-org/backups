@@ -2,6 +2,8 @@ import { Injectable } from '@nestjs/common';
 import { env } from 'src/env.js';
 import { z } from 'zod';
 
+const INVITE_BATCH_LOOKUP_TIMEOUT_MS = 10_000;
+
 const linkRequestCreatedSchema = z.object({
   code: z.string(),
   expiresAt: z.coerce.date(),
@@ -16,6 +18,19 @@ const linkSchema = z.object({
 const inviteBatchCreatedSchema = z.object({
   id: z.string(),
 });
+
+const inviteBatchSchema = z.object({
+  id: z.string(),
+  guildId: z.string(),
+  channelId: z.string(),
+  messageId: z.string().nullable(),
+  maxClaims: z.number().int().positive(),
+  remaining: z.number().int().nonnegative(),
+  cancelledAt: z.coerce.date().nullable(),
+  createdByDiscordUserId: z.string(),
+});
+
+const inviteBatchListSchema = z.object({ items: z.array(inviteBatchSchema) });
 
 const inviteCreatedSchema = z.object({
   code: z.string(),
@@ -68,6 +83,7 @@ export type TicketMappingUpdate = Partial<
 export type InviteResult =
   | ({ status: 'ok' } & z.infer<typeof inviteCreatedSchema>)
   | { status: 'already-linked' | 'invite-used' | 'exhausted' | 'cancelled' };
+export type InviteBatch = z.infer<typeof inviteBatchSchema>;
 
 @Injectable()
 export class YuccaApiRepository {
@@ -117,9 +133,38 @@ export class YuccaApiRepository {
   }
 
   async setInviteBatchMessage(batchId: string, messageId: string): Promise<void> {
-    await this.request('PATCH', `/api/internal/discord/invite-batches/${encodeURIComponent(batchId)}/message`, {
-      messageId,
-    });
+    await this.request(
+      'PATCH',
+      `/api/internal/discord/invite-batches/${encodeURIComponent(batchId)}/message`,
+      { messageId },
+      [],
+      AbortSignal.timeout(INVITE_BATCH_LOOKUP_TIMEOUT_MS),
+    );
+  }
+
+  async getInviteBatch(batchId: string): Promise<InviteBatch | null> {
+    const response = await this.request(
+      'GET',
+      `/api/internal/discord/invite-batches/${encodeURIComponent(batchId)}`,
+      undefined,
+      [404],
+      AbortSignal.timeout(INVITE_BATCH_LOOKUP_TIMEOUT_MS),
+    );
+    if (response.status === 404) {
+      return null;
+    }
+    return inviteBatchSchema.parse(await response.json());
+  }
+
+  async listInviteBatches(): Promise<InviteBatch[]> {
+    const response = await this.request(
+      'GET',
+      '/api/internal/discord/invite-batches',
+      undefined,
+      [],
+      AbortSignal.timeout(INVITE_BATCH_LOOKUP_TIMEOUT_MS),
+    );
+    return inviteBatchListSchema.parse(await response.json()).items;
   }
 
   async createInvite(discordUserId: string, discordUsername: string, batchId?: string): Promise<InviteResult> {
@@ -208,6 +253,7 @@ export class YuccaApiRepository {
     path: string,
     body?: unknown,
     allowedStatuses: number[] = [],
+    signal?: AbortSignal,
   ): Promise<Response> {
     const response = await fetch(new URL(path, env.YUCCA_API_URL), {
       method,
@@ -216,6 +262,7 @@ export class YuccaApiRepository {
         'X-Internal-Secret': env.INTERNAL_SECRET,
       },
       ...(body === undefined ? {} : { body: JSON.stringify(body) }),
+      ...(signal ? { signal } : {}),
     });
     if (!response.ok && !allowedStatuses.includes(response.status)) {
       throw new Error(

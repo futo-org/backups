@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"columbo/internal/agent"
+	"columbo/internal/ticket"
 	"columbo/internal/worker"
 )
 
@@ -17,6 +18,7 @@ type fakeInvestigations struct {
 	enqueue    func(agent.Investigation) bool
 	startAdhoc func(userID, prompt string) (string, error)
 	getAdhoc   func(id string) (worker.AdhocJob, bool)
+	activity   func(string, ticket.Activity)
 }
 
 func (f *fakeInvestigations) Enqueue(inv agent.Investigation) bool {
@@ -141,5 +143,49 @@ func TestAdhocGetReturnsJobOr404(t *testing.T) {
 	}
 	if got := request(handler, http.MethodGet, "/internal/investigations/adhoc/nope", "secret", "").Code; got != http.StatusNotFound {
 		t.Fatalf("status = %d, want 404", got)
+	}
+}
+
+func (f *fakeInvestigations) RecordActivity(threadID string, activity ticket.Activity) {
+	if f.activity != nil {
+		f.activity(threadID, activity)
+	}
+}
+
+func TestTicketActivityRequiresInternalSecretAndValidMessage(t *testing.T) {
+	api := accepting()
+	var gotThread string
+	var gotActivity ticket.Activity
+	api.activity = func(threadID string, activity ticket.Activity) { gotThread = threadID; gotActivity = activity }
+	handler := New("secret", api).Handler()
+	path := "/internal/investigations/tickets/ticket-1/activity"
+	for _, test := range []struct {
+		name, secret, body string
+		status             int
+	}{
+		{"unauthorized", "wrong", `{"authorId":"owner","messageId":"123"}`, 401},
+		{"missing author", "secret", `{"messageId":"123"}`, 400},
+		{"missing message", "secret", `{"authorId":"owner"}`, 400},
+		{"invalid message", "secret", `{"authorId":"owner","messageId":"bad"}`, 400},
+		{"zero message", "secret", `{"authorId":"owner","messageId":"0"}`, 400},
+		{"invalid JSON", "secret", `{`, 400},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			if got := request(handler, http.MethodPost, path, test.secret, test.body).Code; got != test.status {
+				t.Fatalf("status=%d want%d", got, test.status)
+			}
+		})
+	}
+	if gotThread != "" {
+		t.Fatal("invalid activity reached pool")
+	}
+	if got := request(handler, http.MethodPost, path, "secret", `{"authorId":"owner","messageId":"123"}`).Code; got != 204 {
+		t.Fatalf("status=%d", got)
+	}
+	if gotThread != "ticket-1" || gotActivity.AuthorID != "owner" || gotActivity.MessageID != "123" {
+		t.Fatalf("activity=%s %+v", gotThread, gotActivity)
+	}
+	if got := request(New("", api).Handler(), http.MethodPost, path, "", `{"authorId":"owner","messageId":"123"}`).Code; got != 401 {
+		t.Fatalf("unconfigured secret status=%d", got)
 	}
 }

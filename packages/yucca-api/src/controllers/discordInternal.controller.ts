@@ -14,7 +14,9 @@ import { ApiExcludeController } from '@nestjs/swagger';
 import {
   DiscordInviteBatchCreateDto,
   DiscordInviteBatchDto,
+  DiscordInviteBatchListDto,
   DiscordInviteBatchMessageDto,
+  DiscordInviteBatchStatusDto,
   DiscordInviteCreateDto,
   DiscordInviteCreatedDto,
   DiscordLinkDto,
@@ -58,6 +60,16 @@ export class DiscordInternalController {
   @Post('/invite-batches')
   createInviteBatch(@Body() dto: DiscordInviteBatchCreateDto): Promise<DiscordInviteBatchDto> {
     return this.discord.createInviteBatch(dto);
+  }
+
+  @Get('/invite-batches')
+  listInviteBatches(): Promise<DiscordInviteBatchListDto> {
+    return this.discord.listInviteBatches();
+  }
+
+  @Get('/invite-batches/:batchId')
+  getInviteBatch(@Param('batchId', ParseUUIDPipe) batchId: string): Promise<DiscordInviteBatchStatusDto> {
+    return this.discord.getInviteBatch(batchId);
   }
 
   @Patch('/invite-batches/:batchId/message')

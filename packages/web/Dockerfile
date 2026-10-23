@@ -30,7 +30,7 @@ RUN find . -type d -name node_modules -prune -exec rm -rf {} + && \
       -delete && \
     find . -type d -empty -delete
 
-FROM node:25-alpine${ALPINE_VERSION} AS dev
+FROM node:26.12.1-alpine${ALPINE_VERSION} AS dev
 WORKDIR /app
 RUN apk add --no-cache bash && npm install -g pnpm@10.28.1
 ENV NODE_ENV="development"
@@ -50,7 +50,7 @@ RUN pnpm --filter @common/server build && \
 EXPOSE 5173
 CMD ["pnpm", "--filter", "web", "dev", "--host", "0.0.0.0"]
 
-FROM node:25-alpine${ALPINE_VERSION} AS builder
+FROM node:26.12.1-alpine${ALPINE_VERSION} AS builder
 WORKDIR /build-stage
 COPY . ./
 
@@ -75,7 +75,7 @@ FROM ${ALPINE_IMAGE}
 
 WORKDIR /usr/src/app
 
-RUN apk add --no-cache libstdc++ dumb-init \
+RUN apk add --no-cache libstdc++ libatomic dumb-init \
     && addgroup -g 1000 node && adduser -u 1000 -G node -s /bin/sh -D node \
     && chown node:node ./
 COPY --from=builder /usr/local/bin/node /usr/local/bin/

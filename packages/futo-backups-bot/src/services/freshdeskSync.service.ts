@@ -14,9 +14,9 @@ import { TicketMapping, YuccaApiRepository } from 'src/repositories/yuccaApi.rep
 import { MirrorMessage, escapeHtml, groupForMirror, toHtmlBody } from 'src/utils/mirror.js';
 import { isStaff } from 'src/utils/staff.js';
 
-const POLL_LOOKBACK_MS = 15 * 60_000;
 const MAPPING_CACHE_TTL_MS = 60_000;
 const MAX_DISCORD_ATTACHMENT_BYTES = 8 * 1024 * 1024;
+const ATTACHMENT_DOWNLOAD_TIMEOUT_MS = 30_000;
 const MAX_EMBED_DESCRIPTION = 4000;
 const SUBJECT_MAX_LENGTH = 80;
 
@@ -230,24 +230,14 @@ export class FreshdeskSyncService {
     if (!this.discord.enabled || !this.enabled) {
       return;
     }
-    let updated: Set<string> | null;
-    try {
-      const ids = await this.freshdesk.listUpdatedTicketIds(new Date(Date.now() - POLL_LOOKBACK_MS));
-      updated = ids === null ? null : new Set(ids);
-    } catch (error) {
-      this.logger.warn(error, 'could not list updated freshdesk tickets — ingesting every open ticket');
-      updated = null;
-    }
-    for (const { threadId, freshdeskTicketId } of await this.api.listOpenTickets()) {
+    for (const { threadId } of await this.api.listOpenTickets()) {
       try {
         await this.withLock(threadId, async () => {
           if (!this.pendingFlush.has(threadId)) {
             await this.mirrorTicket(threadId, true);
           }
           await this.mirrorStaff(threadId);
-          if (updated === null || updated.has(freshdeskTicketId)) {
-            await this.ingest(threadId);
-          }
+          await this.ingest(threadId);
         });
       } catch (error) {
         this.logger.error(error, `freshdesk sync failed for thread ${threadId}`);
@@ -361,19 +351,47 @@ export class FreshdeskSyncService {
     const links: string[] = [];
     for (const attachment of conversation.attachments) {
       try {
-        const response = await fetch(attachment.attachment_url);
+        const response = await fetch(attachment.attachment_url, {
+          signal: AbortSignal.timeout(ATTACHMENT_DOWNLOAD_TIMEOUT_MS),
+        });
         if (!response.ok) {
+          await response.body?.cancel();
           throw new Error(`${response.status} ${response.statusText}`);
         }
-        const buffer = Buffer.from(await response.arrayBuffer());
-        if (buffer.byteLength > MAX_DISCORD_ATTACHMENT_BYTES) {
+        if (Number(response.headers.get('Content-Length')) > MAX_DISCORD_ATTACHMENT_BYTES) {
+          await response.body?.cancel();
           links.push(Messages.attachmentTooLarge(attachment.name, attachment.attachment_url));
           continue;
         }
-        files.push(new AttachmentBuilder(buffer, { name: attachment.name }));
+        const chunks: Uint8Array[] = [];
+        let size = 0;
+        const reader = response.body?.getReader();
+        if (reader) {
+          try {
+            while (true) {
+              const { done, value } = await reader.read();
+              if (done) {
+                break;
+              }
+              size += value.byteLength;
+              if (size > MAX_DISCORD_ATTACHMENT_BYTES) {
+                await reader.cancel();
+                break;
+              }
+              chunks.push(value);
+            }
+          } finally {
+            reader.releaseLock();
+          }
+        }
+        if (size > MAX_DISCORD_ATTACHMENT_BYTES) {
+          links.push(Messages.attachmentTooLarge(attachment.name, attachment.attachment_url));
+          continue;
+        }
+        files.push(new AttachmentBuilder(Buffer.concat(chunks, size), { name: attachment.name }));
       } catch (error) {
         this.logger.warn(error, `failed to fetch freshdesk attachment ${attachment.name}`);
-        links.push(Messages.attachmentTooLarge(attachment.name, attachment.attachment_url));
+        throw error;
       }
     }
     const body = (conversation.body_text ?? '').trim() || '(attachment)';
