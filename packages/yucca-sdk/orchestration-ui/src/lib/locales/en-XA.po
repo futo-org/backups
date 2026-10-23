@@ -65,6 +65,10 @@ msgstr ""
 msgid "{name} failed"
 msgstr ""
 
+#: src/lib/components/backups/dialogs/ViewStatusModal.svelte
+msgid "{name} interrupted"
+msgstr ""
+
 #: src/lib/components/ui/PathPickerModal.svelte
 msgid "{name} selected"
 msgstr ""
@@ -91,6 +95,10 @@ msgstr ""
 
 #: src/lib/components/backups/run-history/RepositoryRunHistoryItem.svelte
 msgid "{running} in progress"
+msgstr ""
+
+#: src/lib/components/backups/run-history/RepositoryRunHistoryItem.svelte
+msgid "{running} queued"
 msgstr ""
 
 #: src/lib/components/dashboard/DashboardBackupHealth.svelte
@@ -1665,6 +1673,14 @@ msgstr ""
 msgid "Pruning old backups was cancelled"
 msgstr ""
 
+#: src/lib/components/backups/BackupStatus.svelte
+msgid "Pruning old backups was interrupted"
+msgstr ""
+
+#: src/lib/components/backups/run-history/RepositoryRunHistoryItem.svelte
+msgid "Queued"
+msgstr ""
+
 #: src/lib/components/schedules/ScheduleItem.svelte
 msgid "Ran"
 msgstr ""
@@ -1743,6 +1759,10 @@ msgstr ""
 
 #: src/lib/components/backups/dialogs/RestoreSnapshotModal.svelte
 msgid "Restore Backup"
+msgstr ""
+
+#: src/lib/components/onboarding/restore-point-flow/RestorePointFlow4Restore.svelte
+msgid "Restore cancelled"
 msgstr ""
 
 #: src/lib/components/onboarding/restore-point-flow/RestorePointFlow3ConfirmRestore.svelte
@@ -1985,7 +2005,6 @@ msgid "Start your first backup"
 msgstr ""
 
 #: src/lib/components/backups/BackupStatus.svelte
-#: src/lib/components/backups/run-history/RepositoryRunHistoryItem.svelte
 #: src/lib/components/backups/run-history/RepositoryRunHistoryItem.svelte
 msgid "Started"
 msgstr ""
@@ -2289,6 +2308,10 @@ msgstr ""
 msgid "Your backup was cancelled"
 msgstr ""
 
+#: src/lib/components/backups/BackupStatus.svelte
+msgid "Your backup was interrupted"
+msgstr ""
+
 #: src/lib/components/dashboard/DashboardBackupHealth.svelte
 msgid "Your backups"
 msgstr ""
@@ -2355,6 +2378,10 @@ msgstr ""
 
 #: src/lib/components/backups/BackupStatus.svelte
 msgid "Your restore was cancelled"
+msgstr ""
+
+#: src/lib/components/backups/BackupStatus.svelte
+msgid "Your restore was interrupted"
 msgstr ""
 
 #: src/lib/components/onboarding/steps/OnboardingStep1FinishSetup.svelte

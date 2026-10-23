@@ -86,7 +86,7 @@ export class RepositoryController {
   @ApiCreatedResponse({ type: JobResponseDto })
   @ApiOperation({
     summary: 'Start a backup',
-    description: 'Start a backup to a repository and return the ID of its run log.',
+    description: 'Queue a backup to a repository and return the ID of its job.',
   })
   createBackup(@Param('id') id: string): Promise<JobResponseDto> {
     return this.service.createBackup(id);
@@ -144,7 +144,7 @@ export class RepositoryController {
   @ApiCreatedResponse({ type: JobResponseDto })
   @ApiOperation({
     summary: 'Prune a repository',
-    description: 'Remove snapshots outside the retention policy and return the ID of the run log.',
+    description: 'Queue the removal of snapshots outside the retention policy and return the ID of its job.',
   })
   pruneRepository(@Param('id') id: string): Promise<JobResponseDto> {
     return this.service.pruneRepository(id);
@@ -156,7 +156,7 @@ export class RepositoryController {
   @ApiCreatedResponse({ type: JobResponseDto })
   @ApiOperation({
     summary: 'Restore a snapshot',
-    description: 'Restore files from a snapshot and return the ID of the run log.',
+    description: 'Queue a restore of files from a snapshot and return the ID of its job.',
   })
   async restoreSnapshot(
     @Param('id') id: string,

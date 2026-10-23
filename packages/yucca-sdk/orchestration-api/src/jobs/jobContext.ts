@@ -1,5 +1,5 @@
 import type { BackupMessage, ErrorMessage, ForgetMessage, RestoreMessage } from '@futo-org/restic-wrapper';
-import { type WriteStream } from 'node:fs';
+import { type Writable } from 'node:stream';
 import { type JobOutcomeDto, type JobProgressDto } from '../dto/job.dto.js';
 
 export type JobLogEvent = BackupMessage | RestoreMessage | ErrorMessage | ForgetMessage;
@@ -10,7 +10,7 @@ export class JobContext {
 
   constructor(
     readonly signal: AbortSignal,
-    readonly logWriter: WriteStream,
+    readonly logWriter: Writable,
   ) {}
 
   log(event: JobLogEvent) {
