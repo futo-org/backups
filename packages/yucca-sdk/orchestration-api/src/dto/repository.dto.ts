@@ -1,6 +1,5 @@
 import { createZodDto } from 'nestjs-zod';
 import { z } from 'zod';
-import { TaskStatus, TaskType } from '../enum.js';
 import { BackendTypeSchema } from './backend.dto.js';
 
 const BackupStatusSchema = z
@@ -118,22 +117,6 @@ const RepositoryCheckImportResponseSchema = z
   .object({ readable: z.boolean() })
   .meta({ id: 'RepositoryCheckImportResponseDto' });
 
-export const RunSchema = z
-  .object({
-    id: z.string(),
-    repositoryId: z.string(),
-    start: z.string(),
-    end: z.string().optional(),
-    logFilePath: z.string(),
-    status: z.enum(TaskStatus).meta({ id: 'RunStatus' }),
-    type: z.enum(TaskType).meta({ id: 'RunType' }),
-  })
-  .meta({ id: 'RunDto' });
-
-const RunHistoryResponseSchema = z.object({ runs: z.array(RunSchema) }).meta({ id: 'RunHistoryResponseDto' });
-
-const RunResponseSchema = z.object({ run: RunSchema }).meta({ id: 'RunResponseDto' });
-
 const SnapshotSummarySchema = z
   .object({
     filesNew: z.int(),
@@ -203,9 +186,6 @@ export class RepositoryUpdateRequestDto extends createZodDto(RepositoryUpdateReq
 export class RepositoryUpdateResponseDto extends createZodDto(RepositoryUpdateResponseSchema) {}
 export class RepositoryListResponseDto extends createZodDto(RepositoryListResponseSchema) {}
 export class RepositoryCheckImportResponseDto extends createZodDto(RepositoryCheckImportResponseSchema) {}
-export class RunDto extends createZodDto(RunSchema) {}
-export class RunHistoryResponseDto extends createZodDto(RunHistoryResponseSchema) {}
-export class RunResponseDto extends createZodDto(RunResponseSchema) {}
 export class SnapshotSummaryDto extends createZodDto(SnapshotSummarySchema) {}
 export class SnapshotDto extends createZodDto(SnapshotSchema) {}
 export class ListSnapshotsResponseDto extends createZodDto(ListSnapshotsResponseSchema) {}

@@ -797,7 +797,6 @@ msgid "Failed only"
 msgstr "Failed only"
 
 #: src/lib/services/job.service.ts
-#: src/lib/services/task.service.ts
 msgid "Failed to cancel task"
 msgstr "Failed to cancel task"
 
@@ -853,10 +852,6 @@ msgstr "Failed to load onboarding status"
 #: src/lib/services/onboarding.service.ts
 msgid "Failed to load recovery key"
 msgstr "Failed to load recovery key"
-
-#: src/lib/services/task.service.ts
-msgid "Failed to load running tasks"
-msgstr "Failed to load running tasks"
 
 #: src/lib/services/schedule.service.ts
 msgid "Failed to load schedules"

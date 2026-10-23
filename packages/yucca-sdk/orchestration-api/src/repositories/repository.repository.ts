@@ -80,7 +80,6 @@ export class RepositoryRepository {
     await this.db.deleteFrom('repositoryLocalMetrics').where('id', '=', id).execute();
     await this.db.deleteFrom('repositoryPaths').where('id', '=', id).execute();
     await this.db.deleteFrom('repositorySchedules').where('repository', '=', id).execute();
-    await this.db.deleteFrom('runHistory').where('repositoryId', '=', id).execute();
     await this.db.deleteFrom('jobs').where('repositoryId', '=', id).execute();
     await this.db.deleteFrom('repositories').where('id', '=', id).execute();
   }

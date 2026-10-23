@@ -2,12 +2,11 @@ import { Injectable, OnApplicationBootstrap } from '@nestjs/common';
 import { BootstrapRepository } from '../repositories/bootstrap.repository.js';
 import { ConfigRepository } from '../repositories/config.repository.js';
 import { DatabaseRepository } from '../repositories/database.repository.js';
-import { JobRepository } from '../repositories/job.repository.js';
 import { LoggingRepository } from '../repositories/logging.repository.js';
 import { ModuleConfigRepository } from '../repositories/moduleConfig.repository.js';
 import { discardStateCacheDirectory } from '../utils/cache.js';
 import { ConfigService } from './config.service.js';
-import { RunHistoryService } from './runHistory.service.js';
+import { JobService } from './job.service.js';
 import { ScheduleService } from './schedule.service.js';
 
 @Injectable()
@@ -15,12 +14,11 @@ export class BootstrapService implements OnApplicationBootstrap {
   constructor(
     private readonly logger: LoggingRepository,
     private readonly database: DatabaseRepository,
-    private readonly jobs: JobRepository,
+    private readonly jobService: JobService,
     private readonly config: ConfigRepository,
     private readonly configService: ConfigService,
     private readonly schedule: ScheduleService,
     private readonly bootstrap: BootstrapRepository,
-    private readonly runHistory: RunHistoryService,
     private readonly moduleConfig: ModuleConfigRepository,
   ) {
     this.logger.setContext(BootstrapService.name);
@@ -33,11 +31,10 @@ export class BootstrapService implements OnApplicationBootstrap {
       }
 
       await this.database.runMigrations();
-      await this.jobs.start();
       await this.config.bootstrap();
       await this.configService.bootstrap();
       await this.schedule.bootstrap();
-      await this.runHistory.reconcileInterruptedRuns();
+      await this.jobService.bootstrap();
 
       const { backends, repositories, activeSchedules } = await this.config.getStateSummary();
       this.logger.log('Successfully finished FUTO Backups bootstrap.');

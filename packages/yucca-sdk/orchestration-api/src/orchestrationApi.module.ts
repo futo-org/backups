@@ -18,8 +18,6 @@ import { IntegrationsController } from './controllers/integrations.controller.js
 import { JobController } from './controllers/job.controller.js';
 import { OnboardingController } from './controllers/onboarding.controller.js';
 import { RepositoryController } from './controllers/repository.controller.js';
-import { RunHistoryController } from './controllers/runHistory.controller.js';
-import { RunningTasksController } from './controllers/runningTasks.controller.js';
 import { ScheduleController } from './controllers/schedule.controller.js';
 import { EventsGateway } from './events/events.gateway.js';
 import { TelemetryErrorInterceptor } from './interceptors/telemetry-error.interceptor.js';
@@ -45,8 +43,6 @@ import { RepositoryIntegrationImmichRepository } from './repositories/repository
 import { RepositoryLocalMetricsRepository } from './repositories/repositoryLocalMetrics.repository.js';
 import { RepositoryPathRepository } from './repositories/repositoryPath.repository.js';
 import { ResticRepository } from './repositories/restic.repository.js';
-import { RunHistoryRepository } from './repositories/runHistory.repository.js';
-import { RunningTasksRepository } from './repositories/runningTasks.repository.js';
 import { ScheduleRepository } from './repositories/schedule.repository.js';
 import { StorageRepository } from './repositories/storage.repository.js';
 import { AuthService } from './services/auth.service.js';
@@ -56,10 +52,9 @@ import { ConfigService } from './services/config.service.js';
 import { DevelopmentService } from './services/development.service.js';
 import { FilesystemService } from './services/filesystem.service.js';
 import { IntegrationsService } from './services/integrations.service.js';
+import { JobService } from './services/job.service.js';
 import { OnboardingService } from './services/onboarding.service.js';
 import { RepositoryService } from './services/repository.service.js';
-import { RunHistoryService } from './services/runHistory.service.js';
-import { RunningTasksService } from './services/runningTasks.service.js';
 import { ScheduleService } from './services/schedule.service.js';
 import { SessionService } from './services/session.service.js';
 import { TelemetryService } from './services/telemetry.service.js';
@@ -76,8 +71,6 @@ export const controllers = [
   JobController,
   OnboardingController,
   RepositoryController,
-  RunHistoryController,
-  RunningTasksController,
   ScheduleController,
 ];
 
@@ -95,8 +88,6 @@ export const repositories = [
   RepositoryLocalMetricsRepository,
   RepositoryPathRepository,
   ResticRepository,
-  RunHistoryRepository,
-  RunningTasksRepository,
   ScheduleRepository,
   StorageRepository,
 ];
@@ -109,10 +100,9 @@ export const services = [
   DevelopmentService,
   FilesystemService,
   IntegrationsService,
+  JobService,
   OnboardingService,
   RepositoryService,
-  RunHistoryService,
-  RunningTasksService,
   ScheduleService,
   SessionService,
   TelemetryService,
