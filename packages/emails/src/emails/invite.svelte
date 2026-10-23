@@ -10,7 +10,7 @@
   <Text>
     You previously consented to receive emails when we were ready to invite you to the FUTO Backups private beta. Well,
     the time is now. You're officially invited to come test out FUTO Backups with us for the next few weeks, and it's
-    free!
+    free! There is no storage cap during the beta, and we don't collect any billing details.
   </Text>
   <Text>
     During the beta, all support requests must go to Immich's Discord
