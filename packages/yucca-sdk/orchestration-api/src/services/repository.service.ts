@@ -1,3 +1,4 @@
+import { ResticBackupCommandCouldNotReadSourceDataError } from '@futo-org/restic-wrapper';
 import { BadRequestException, forwardRef, Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { Updateable } from 'kysely';
 import { randomUUID } from 'node:crypto';
@@ -617,7 +618,16 @@ export class RepositoryService {
         }
 
         await this.restic.unlockAll(endpoint, key, placement);
-        const summary = await this.restic.backup(endpoint, key, placement, paths, logWriter, taskSignal, tags);
+        let summary;
+        try {
+          summary = await this.restic.backup(endpoint, key, placement, paths, logWriter, taskSignal, tags);
+        } catch (backupError) {
+          if (!(backupError instanceof ResticBackupCommandCouldNotReadSourceDataError)) {
+            throw backupError;
+          }
+
+          warnings.push(backupError);
+        }
 
         this.telemetry.submitStructuredLog('Finished backup to primary backend', {
           repositoryId: id,
@@ -637,7 +647,7 @@ export class RepositoryService {
           }
         }
 
-        if (retentionPolicy) {
+        if (retentionPolicy && warnings.length === 0) {
           await this.runForgetAndPrune(endpoint, key, placement, retentionPolicy, logWriter, taskSignal);
 
           this.telemetry.submitStructuredLog('Finished prune on primary backend', {
