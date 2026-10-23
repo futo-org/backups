@@ -88,7 +88,7 @@ export class JobRepository implements OnModuleInit, BeforeApplicationShutdown {
 
     await this.db
       .updateTable('jobs')
-      .set({ status: JobStatus.Failed, end: new Date().toISOString() })
+      .set({ status: JobStatus.Incomplete, end: new Date().toISOString() })
       .where('status', 'in', [JobStatus.Queued, JobStatus.Running])
       .execute();
   }
