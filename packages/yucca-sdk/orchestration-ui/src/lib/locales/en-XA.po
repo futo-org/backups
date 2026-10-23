@@ -65,6 +65,10 @@ msgstr ""
 msgid "{name} failed"
 msgstr ""
 
+#: src/lib/components/backups/dialogs/ViewStatusModal.svelte
+msgid "{name} interrupted"
+msgstr ""
+
 #: src/lib/components/ui/PathPickerModal.svelte
 msgid "{name} selected"
 msgstr ""
@@ -1674,6 +1678,10 @@ msgstr ""
 msgid "Pruning old backups was cancelled"
 msgstr ""
 
+#: src/lib/components/backups/BackupStatus.svelte
+msgid "Pruning old backups was interrupted"
+msgstr ""
+
 #: src/lib/components/backups/run-history/RepositoryRunHistoryItem.svelte
 msgid "Queued"
 msgstr ""
@@ -2305,6 +2313,10 @@ msgstr ""
 msgid "Your backup was cancelled"
 msgstr ""
 
+#: src/lib/components/backups/BackupStatus.svelte
+msgid "Your backup was interrupted"
+msgstr ""
+
 #: src/lib/components/dashboard/DashboardBackupHealth.svelte
 msgid "Your backups"
 msgstr ""
@@ -2371,6 +2383,10 @@ msgstr ""
 
 #: src/lib/components/backups/BackupStatus.svelte
 msgid "Your restore was cancelled"
+msgstr ""
+
+#: src/lib/components/backups/BackupStatus.svelte
+msgid "Your restore was interrupted"
 msgstr ""
 
 #: src/lib/components/onboarding/steps/OnboardingStep1FinishSetup.svelte
