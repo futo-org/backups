@@ -95,7 +95,15 @@ export class RepositoryBackupJob implements JobHandler<RepositoryBackupData> {
       await this.restic.unlockAll(endpoint, key, placement);
       let summary;
       try {
-        summary = await this.restic.backup(endpoint, key, placement, paths, ctx.logWriter, ctx.signal, tags);
+        summary = await this.restic.backup(
+          endpoint,
+          key,
+          placement,
+          paths,
+          (event) => ctx.log(event),
+          ctx.signal,
+          tags,
+        );
       } catch (backupError) {
         if (!(backupError instanceof ResticBackupCommandCouldNotReadSourceDataError)) {
           throw backupError;

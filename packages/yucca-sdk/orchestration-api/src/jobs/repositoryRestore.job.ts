@@ -32,7 +32,15 @@ export class RepositoryRestoreJob implements JobHandler<RepositoryRestoreData> {
     let summary;
     let error;
     try {
-      summary = await this.restic.restore(endpoint, key, placement, snapshotId, options, ctx.logWriter, ctx.signal);
+      summary = await this.restic.restore(
+        endpoint,
+        key,
+        placement,
+        snapshotId,
+        options,
+        (event) => ctx.log(event),
+        ctx.signal,
+      );
     } catch (error_) {
       error = error_;
     }

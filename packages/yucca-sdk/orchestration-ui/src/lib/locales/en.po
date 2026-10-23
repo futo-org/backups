@@ -126,7 +126,7 @@ msgstr "A folder on this computer."
 msgid "A memorable name for this backup"
 msgstr "A memorable name for this backup"
 
-#: src/lib/services/log.service.svelte.ts
+#: src/lib/services/job.service.ts
 msgid "About {duration} remaining"
 msgstr "About {duration} remaining"
 
@@ -769,10 +769,6 @@ msgstr "Estimated {size}"
 msgid "Event"
 msgstr "Event"
 
-#: src/lib/components/backups/dialogs/ViewStatusModal.svelte
-msgid "Event Log"
-msgstr "Event Log"
-
 #: src/lib/components/backends/dialogs/SelectBackendModal.svelte
 msgid "Existing Local Storage"
 msgstr "Existing Local Storage"
@@ -1396,7 +1392,7 @@ msgstr "Move {name} up"
 msgid "Name"
 msgstr "Name"
 
-#: src/lib/services/log.service.svelte.ts
+#: src/lib/services/job.service.ts
 msgid "Nearly done."
 msgstr "Nearly done."
 
@@ -1660,6 +1656,10 @@ msgstr "Preparing prune"
 #: src/lib/components/backups/BackupStatus.svelte
 msgid "Preparing restore"
 msgstr "Preparing restore"
+
+#: src/lib/components/jobs/JobProgressLabel.svelte
+msgid "Preparing…"
+msgstr "Preparing…"
 
 #: src/lib/components/backups/dialogs/CreateRepositoryModal.svelte
 msgid "Prevent anything being deleted"
@@ -2213,10 +2213,6 @@ msgstr "Unable to copy to clipboard"
 msgid "Unable to link your Discord account."
 msgstr "Unable to link your Discord account."
 
-#: src/lib/services/log.service.svelte.ts
-msgid "Unknown error"
-msgstr "Unknown error"
-
 #: src/lib/components/integrations/immich/settings/ImmichSettingsBandwidth.svelte
 msgid "Until"
 msgstr "Until"
@@ -2268,6 +2264,10 @@ msgstr "View recovery key"
 #: src/lib/components/util/DeviceFlowCode.svelte
 msgid "Waiting for you to confirm login..."
 msgstr "Waiting for you to confirm login..."
+
+#: src/lib/components/jobs/JobProgressLabel.svelte
+msgid "Waiting to start"
+msgstr "Waiting to start"
 
 #: src/lib/components/backups/BackupItem.svelte
 msgid "Warnings"

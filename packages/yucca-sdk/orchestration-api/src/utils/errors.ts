@@ -1,5 +1,8 @@
-import { ResticBackupCommandCouldNotReadSourceDataError } from '@futo-org/restic-wrapper';
-import { Writable } from 'node:stream';
+import {
+  type ErrorMessage,
+  ResticBackupCommandCouldNotReadSourceDataError,
+  TryParseError,
+} from '@futo-org/restic-wrapper';
 import { JobStatus, TaskStatus } from '../enum.js';
 
 export class TaskCancelledError extends Error {
@@ -46,20 +49,21 @@ export function getJobStatus(error?: unknown): JobStatus {
   return JobStatus.Failed;
 }
 
-export function writeError(stream: Writable, error: unknown) {
+export function writeError(log: (event: ErrorMessage) => void, error: unknown) {
   if (error instanceof AggregateError) {
     for (const innerError of error.errors) {
-      writeError(stream, innerError);
+      writeError(log, innerError);
     }
 
     return;
   }
 
-  const events = Array.isArray((error as { error?: unknown })?.error)
-    ? ((error as { error: unknown[] }).error as object[])
-    : [{ message_type: 'error', error: `${error}` }];
+  const events =
+    error instanceof TryParseError && Array.isArray(error.error)
+      ? error.error
+      : [{ message_type: 'error' as const, error: { message: `${error}` } }];
 
   for (const event of events) {
-    stream.write(JSON.stringify(event) + '\n');
+    log(event);
   }
 }

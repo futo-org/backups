@@ -126,7 +126,7 @@ msgstr ""
 msgid "A memorable name for this backup"
 msgstr ""
 
-#: src/lib/services/log.service.svelte.ts
+#: src/lib/services/job.service.ts
 msgid "About {duration} remaining"
 msgstr ""
 
@@ -769,10 +769,6 @@ msgstr ""
 msgid "Event"
 msgstr ""
 
-#: src/lib/components/backups/dialogs/ViewStatusModal.svelte
-msgid "Event Log"
-msgstr ""
-
 #: src/lib/components/backends/dialogs/SelectBackendModal.svelte
 msgid "Existing Local Storage"
 msgstr ""
@@ -1396,7 +1392,7 @@ msgstr ""
 msgid "Name"
 msgstr ""
 
-#: src/lib/services/log.service.svelte.ts
+#: src/lib/services/job.service.ts
 msgid "Nearly done."
 msgstr ""
 
@@ -1659,6 +1655,10 @@ msgstr ""
 
 #: src/lib/components/backups/BackupStatus.svelte
 msgid "Preparing restore"
+msgstr ""
+
+#: src/lib/components/jobs/JobProgressLabel.svelte
+msgid "Preparing…"
 msgstr ""
 
 #: src/lib/components/backups/dialogs/CreateRepositoryModal.svelte
@@ -2213,10 +2213,6 @@ msgstr ""
 msgid "Unable to link your Discord account."
 msgstr ""
 
-#: src/lib/services/log.service.svelte.ts
-msgid "Unknown error"
-msgstr ""
-
 #: src/lib/components/integrations/immich/settings/ImmichSettingsBandwidth.svelte
 msgid "Until"
 msgstr ""
@@ -2267,6 +2263,10 @@ msgstr ""
 
 #: src/lib/components/util/DeviceFlowCode.svelte
 msgid "Waiting for you to confirm login..."
+msgstr ""
+
+#: src/lib/components/jobs/JobProgressLabel.svelte
+msgid "Waiting to start"
 msgstr ""
 
 #: src/lib/components/backups/BackupItem.svelte

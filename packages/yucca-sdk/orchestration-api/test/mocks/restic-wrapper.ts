@@ -11,4 +11,8 @@ export const prune = jest.fn();
 export const unlock = jest.fn();
 export const version = Promise.resolve({ version: '0.0.0' });
 
-export class ResticBackupCommandCouldNotReadSourceDataError extends Error {}
+export class TryParseError extends Error {
+  error: unknown[] | string = [];
+}
+
+export class ResticBackupCommandCouldNotReadSourceDataError extends TryParseError {}

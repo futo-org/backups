@@ -531,38 +531,6 @@
         ]
       }
     },
-    "/api/yucca/jobs/{id}/stream": {
-      "get": {
-        "description": "Stream the log of a job as server-sent events, starting with its last 50 lines.",
-        "operationId": "logStreamSse",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "text/event-stream": {
-                "schema": {
-                  "type": "string"
-                }
-              }
-            },
-            "description": ""
-          }
-        },
-        "summary": "Stream a job log",
-        "tags": [
-          "Job"
-        ]
-      }
-    },
     "/api/yucca/onboarding": {
       "get": {
         "description": "Retrieve which onboarding steps this server has completed.",
@@ -1996,9 +1964,6 @@
           "status": {
             "$ref": "#/components/schemas/JobStatus"
           },
-          "error": {
-            "type": "string"
-          },
           "queuedAt": {
             "type": "string"
           },
@@ -2007,6 +1972,12 @@
           },
           "end": {
             "type": "string"
+          },
+          "progress": {
+            "$ref": "#/components/schemas/JobProgressDto"
+          },
+          "outcome": {
+            "$ref": "#/components/schemas/JobOutcomeDto"
           }
         },
         "required": [
@@ -2038,6 +2009,135 @@
           "failed",
           "cancelled",
           "incomplete"
+        ]
+      },
+      "JobProgressDto": {
+        "type": "object",
+        "properties": {
+          "percentDone": {
+            "type": "number"
+          },
+          "secondsRemaining": {
+            "type": "number"
+          },
+          "bytesDone": {
+            "type": "number"
+          },
+          "totalBytes": {
+            "type": "number"
+          },
+          "currentFiles": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "percentDone",
+          "currentFiles"
+        ]
+      },
+      "JobOutcomeDto": {
+        "type": "object",
+        "properties": {
+          "errors": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "summary": {
+            "$ref": "#/components/schemas/JobSummaryDto"
+          }
+        },
+        "required": [
+          "errors"
+        ]
+      },
+      "JobSummaryDto": {
+        "oneOf": [
+          {
+            "type": "object",
+            "properties": {
+              "type": {
+                "type": "string",
+                "enum": [
+                  "backup"
+                ]
+              },
+              "filesNew": {
+                "type": "number"
+              },
+              "filesChanged": {
+                "type": "number"
+              },
+              "totalFilesProcessed": {
+                "type": "number"
+              },
+              "totalBytesProcessed": {
+                "type": "number"
+              },
+              "snapshotId": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "type",
+              "filesNew",
+              "filesChanged",
+              "totalFilesProcessed",
+              "totalBytesProcessed"
+            ]
+          },
+          {
+            "type": "object",
+            "properties": {
+              "type": {
+                "type": "string",
+                "enum": [
+                  "restore"
+                ]
+              },
+              "filesRestored": {
+                "type": "number"
+              },
+              "filesSkipped": {
+                "type": "number"
+              },
+              "bytesRestored": {
+                "type": "number"
+              }
+            },
+            "required": [
+              "type",
+              "filesRestored",
+              "filesSkipped",
+              "bytesRestored"
+            ]
+          },
+          {
+            "type": "object",
+            "properties": {
+              "type": {
+                "type": "string",
+                "enum": [
+                  "prune"
+                ]
+              },
+              "kept": {
+                "type": "number"
+              },
+              "removed": {
+                "type": "number"
+              }
+            },
+            "required": [
+              "type",
+              "kept",
+              "removed"
+            ]
+          }
         ]
       },
       "ImmichDatabaseDumpConfigDto": {

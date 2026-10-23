@@ -19,8 +19,8 @@ catalogs:
       specifier: ^9.39.2
       version: 9.39.5
     '@futo-org/restic-wrapper':
-      specifier: 1.4.2
-      version: 1.4.2
+      specifier: 1.5.0
+      version: 1.5.0
     '@immich/sql-tools':
       specifier: ^0.3.2
       version: 0.3.2
@@ -177,9 +177,6 @@ catalogs:
     '@types/supertest':
       specifier: ^7.0.0
       version: 7.2.1
-    '@types/tail':
-      specifier: ^2.2.3
-      version: 2.2.3
     '@vitest/browser':
       specifier: ^5.0.0
       version: 5.0.3
@@ -330,9 +327,6 @@ catalogs:
     svelte-i18n-lingui:
       specifier: ^0.2.2
       version: 0.2.2
-    tail:
-      specifier: ^2.2.6
-      version: 2.2.6
     tailwindcss:
       specifier: ^4.1.18
       version: 4.3.3
@@ -534,7 +528,7 @@ importers:
         version: link:../yucca-sdk/orchestration-ui
       '@futo-org/restic-wrapper':
         specifier: 'catalog:'
-        version: 1.4.2
+        version: 1.5.0
       '@jest/globals':
         specifier: 'catalog:'
         version: 30.5.2
@@ -1252,7 +1246,7 @@ importers:
         version: link:../../yucca-api-client
       '@futo-org/restic-wrapper':
         specifier: 'catalog:'
-        version: 1.4.2
+        version: 1.5.0
       '@nestjs/event-emitter':
         specifier: 'catalog:'
         version: 12.0.1(@nestjs/common@12.1.2(class-transformer@0.5.1)(class-validator@0.14.3)(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@12.1.2)
@@ -1295,9 +1289,6 @@ importers:
       socket.io:
         specifier: 'catalog:'
         version: 4.8.4
-      tail:
-        specifier: 'catalog:'
-        version: 2.2.6
       zod:
         specifier: 'catalog:'
         version: 4.4.3
@@ -1344,9 +1335,6 @@ importers:
       '@types/node':
         specifier: 'catalog:'
         version: 26.6.4
-      '@types/tail':
-        specifier: 'catalog:'
-        version: 2.2.3
       jest:
         specifier: 'catalog:'
         version: 30.5.2(@types/node@26.6.4)(ts-node@10.9.2(@types/node@26.6.4)(typescript@6.0.3))
@@ -2102,8 +2090,8 @@ packages:
   '@floating-ui/utils@0.2.10':
     resolution: {integrity: sha512-aGTxbpbg8/b5JfU1HXSrbH3wXZuLPJcNEcZQFMxLs3oSzgtVu6nFPkbbGGUvBcUjKV2YyB9Wxxabo+HEH9tcRQ==}
 
-  '@futo-org/restic-wrapper@1.4.2':
-    resolution: {integrity: sha512-MGpvDeDeN0lglgtZ+noCtExGodbLyUr14Z5WdH++bNUGZ43ZWqrvZxK6H5wdmXPS6Mfg3LtUW8tKfm+bwC1PbA==}
+  '@futo-org/restic-wrapper@1.5.0':
+    resolution: {integrity: sha512-KmXVdCFX4pwZkPcgXoamBbBbn3teyVCWpoc0jUtuVJTPXOWN7JRz9qydPhdGwvXdMg5yIfI6OnzRD6CTIF0yiA==}
     engines: {node: '>=20'}
 
   '@grpc/grpc-js@1.14.3':
@@ -3952,9 +3940,6 @@ packages:
 
   '@types/supertest@7.2.1':
     resolution: {integrity: sha512-4CbBvoYVLHL7+yhbYrZET0vsvuyXTC05aRe7dNQkwMzm56auceoy6Yu3K50uZmwfHna1os3CMSgM/3QVkUtPTw==}
-
-  '@types/tail@2.2.3':
-    resolution: {integrity: sha512-Hnf352egOlDR4nVTaGX0t/kmTNXHMdovF2C7PVDFtHTHJPFmIspOI1b86vEOxU7SfCq/dADS7ptbqgG/WGGxnA==}
 
   '@types/unist@3.0.3':
     resolution: {integrity: sha512-ko/gIFJRv177XgZsZcBwnqJN5x/Gien8qNOn0D5bQU/zAzVf9Zt3BlcUiLqhV9y4ARk0GbT3tnUiPNgnTXzc/Q==}
@@ -7183,10 +7168,6 @@ packages:
   tabbable@6.4.0:
     resolution: {integrity: sha512-05PUHKSNE8ou2dwIxTngl4EzcnsCDZGJ/iCLtDflR/SHB/ny14rXc+qU5P4mG9JkusiV7EivzY9Mhm55AzAvCg==}
 
-  tail@2.2.6:
-    resolution: {integrity: sha512-IQ6G4wK/t8VBauYiGPLx+d3fA5XjSVagjWV5SIYzvEvglbQjwEcukeYI68JOPpdydjxhZ9sIgzRlSmwSpphHyw==}
-    engines: {node: '>= 6.0.0'}
-
   tailwind-merge@3.6.0:
     resolution: {integrity: sha512-uxL7qAVQriqRQPAyK3pj66VqskWqoZ37PW94jwOTwNfq/z9oyu1V+eqrZqtR2+fCiXdYOZe/Modt8GtvqNzu+w==}
 
@@ -8352,7 +8333,7 @@ snapshots:
 
   '@floating-ui/utils@0.2.10': {}
 
-  '@futo-org/restic-wrapper@1.4.2':
+  '@futo-org/restic-wrapper@1.5.0':
     dependencies:
       zod: 4.6.1
 
@@ -10390,8 +10371,6 @@ snapshots:
     dependencies:
       '@types/methods': 1.1.4
       '@types/superagent': 8.1.9
-
-  '@types/tail@2.2.3': {}
 
   '@types/unist@3.0.3': {}
 
@@ -13984,8 +13963,6 @@ snapshots:
   systeminformation@5.31.5: {}
 
   tabbable@6.4.0: {}
-
-  tail@2.2.6: {}
 
   tailwind-merge@3.6.0: {}
 

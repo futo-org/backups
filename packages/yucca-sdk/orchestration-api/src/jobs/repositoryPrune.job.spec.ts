@@ -66,20 +66,19 @@ describe(RepositoryPruneJob.name, () => {
 
   it('logs which snapshots were kept and removed', async () => {
     const { job, restic, lines, context } = makeJob();
-    restic.forgetByPolicy.mockResolvedValue([
+    const groups = [
       {
         keep: [{ id: 'kept-1', time: '2026-10-12T00:00:00Z' }],
         remove: [{ id: 'removed-1', time: '2026-01-01T00:00:00Z' }],
         reasons: [{ snapshot: { id: 'kept-1' }, matches: ['daily snapshot'] }],
       },
-    ] as never);
+    ];
+    restic.forgetByPolicy.mockResolvedValue(groups as never);
 
     await job.run({ repositoryId: 'repository-1' }, context);
 
-    expect(lines.map((line) => JSON.parse(line))).toEqual([
-      { message_type: 'yucca_prune_kept', id: 'kept-1', time: '2026-10-12T00:00:00Z', matches: ['daily snapshot'] },
-      { message_type: 'yucca_prune_removed', id: 'removed-1', time: '2026-01-01T00:00:00Z' },
-    ]);
+    expect(lines.map((line) => JSON.parse(line))).toEqual([groups]);
+    expect(context.outcome.summary).toEqual({ type: 'prune', kept: 1, removed: 1 });
   });
 
   it('queues a metrics sync even when the prune fails', async () => {
