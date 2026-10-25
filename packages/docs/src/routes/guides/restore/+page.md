@@ -36,7 +36,21 @@ This restores your files **and** the Immich database, and restarts the server as
 
 If the machine is gone, the backups are not. They are on your account, encrypted with your [recovery key](/guides/recovery-key).
 
-1. Install the app again, following [Immich](/getting-started/immich) or [the standalone container](/getting-started/standalone).
+### Immich
+
+1. Install Immich again on the beta build, following [switch to the beta build](/getting-started/immich#1-switch-to-the-beta-build). Do not create an admin account yet.
+2. On the **Welcome to Immich** page, select **Restore From Backup** instead of **Getting Started**. Immich goes into maintenance mode.
+3. When asked **Where would you like to restore from?**, choose **FUTO Backups**.
+4. In **Import recovery key**, enter your existing recovery key in the **Recovery Key** field and select **Save**.
+5. Choose **FUTO Backups** as where your backups are stored and connect the same FUTO Backups account.
+6. Pick the backup, then the snapshot you want, and confirm. Once the files are back, Immich restores its database from them and restarts.
+
+> [!WARNING]
+> Do not create an admin account and import your key in the normal backups setup instead. That connects the new server as a fresh one and starts a new first backup rather than restoring. If you have already done this, start again from a fresh Immich install.
+
+### Standalone container
+
+1. Install the app again, following [the standalone container](/getting-started/standalone).
 2. When setup offers to create a key, choose **Import key** and enter your existing recovery key instead.
 3. Connect the same FUTO Backups account.
 4. Your existing backups appear. If one shows "Can't access, is your recovery key correct?", the imported key is not the one that made it.

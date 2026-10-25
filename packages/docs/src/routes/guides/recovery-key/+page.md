@@ -51,6 +51,11 @@ If neither is available to you any more, and you did not save the key, treat the
 
 The key is how a rebuilt machine gets back to your existing backups. When you set up the app again, choose **Import key** on the first screen instead of generating a new one, paste your key into the **Recovery Key** field, and save. Spacing and capitalisation do not matter.
 
+In **Immich**, do this from a fresh install before creating an admin account: select **Restore From Backup** on the **Welcome to Immich** page, choose **FUTO Backups**, and import your key there.
+
+> [!NOTE]
+> Importing the key in Immich's normal backups setup, after creating an admin account, starts a new first backup instead of restoring.
+
 With the right key imported, your existing backups become readable and you can restore from them. See [restoring files](/guides/restore) for the full walkthrough.
 
 If you import the wrong key, nothing is deleted, but the app cannot read those backups. You will see "Can't access, is your recovery key correct?" next to them, or "Can't read repository" when importing. Import the correct key and they become readable again.
