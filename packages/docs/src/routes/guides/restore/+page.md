@@ -43,7 +43,8 @@ If the machine is gone, the backups are not. They are on your account, encrypted
 3. When asked **Where would you like to restore from?**, choose **FUTO Backups**.
 4. In **Import recovery key**, enter your existing recovery key in the **Recovery Key** field and select **Save**.
 5. Choose **FUTO Backups** as where your backups are stored and connect the same FUTO Backups account.
-6. Pick the backup, then the snapshot you want, and confirm. Once the files are back, Immich restores its database from them and restarts.
+6. Pick the backup, then the snapshot you want, and confirm. Wait for the files to finish restoring.
+7. Immich then offers to restore its database from the most recent backup. Select **Continue** (or **Select another backup** to pick a different one), then confirm **Restore**. Immich restores the database and restarts.
 
 > [!WARNING]
 > Do not create an admin account and import your key in the normal backups setup instead. That connects the new server as a fresh one and starts a new first backup rather than restoring. If you have already done this, start again from a fresh Immich install.
