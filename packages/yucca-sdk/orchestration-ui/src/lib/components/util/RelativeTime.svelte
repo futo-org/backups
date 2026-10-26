@@ -5,6 +5,7 @@
 
   type Props = {
     time: string;
+    absolute?: boolean;
   };
 
   const props: Props = $props();
@@ -16,10 +17,16 @@
 
   let text = $state(format());
 
+  const timestamp = $derived(
+    DateTime.fromISO(props.time).toLocaleString(DateTime.DATETIME_MED),
+  );
+
   let interval: ReturnType<typeof setInterval>;
 
   onMount(() => (interval = setInterval(() => (text = format()), 1000)));
   onDestroy(() => clearInterval(interval));
 </script>
 
-{text}
+<time datetime={props.time} title={props.absolute ? text : timestamp}
+  >{props.absolute ? timestamp : text}</time
+>
