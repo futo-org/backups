@@ -3,6 +3,7 @@ import { NotFoundException } from '@nestjs/common';
 import { Job } from '../decorators.js';
 import { JobName, ResticTagPrefix, TaskStatus } from '../enum.js';
 import type { ImmichIntegration } from '../moduleConfig.js';
+import type { ResticPlacement } from '../repositories/config.repository.js';
 import { JobRepository } from '../repositories/job.repository.js';
 import { ModuleConfigRepository } from '../repositories/moduleConfig.repository.js';
 import { RepositoryRepository } from '../repositories/repository.repository.js';
@@ -93,6 +94,7 @@ export class RepositoryBackupJob implements JobHandler<RepositoryBackupData> {
       }
 
       await this.restic.unlockAll(endpoint, key, placement);
+      const parent = await this.findParentSnapshot(repositoryId, endpoint, key, placement, ctx.signal);
       let summary;
       try {
         summary = await this.restic.backup(
@@ -103,6 +105,7 @@ export class RepositoryBackupJob implements JobHandler<RepositoryBackupData> {
           (event) => ctx.log(event),
           ctx.signal,
           tags,
+          parent,
         );
       } catch (backupError) {
         if (!(backupError instanceof ResticBackupCommandCouldNotReadSourceDataError)) {
@@ -176,6 +179,38 @@ export class RepositoryBackupJob implements JobHandler<RepositoryBackupData> {
 
     if (error) {
       throw error;
+    }
+  }
+
+  private async findParentSnapshot(
+    repositoryId: string,
+    endpoint: string,
+    key: Uint8Array,
+    placement: ResticPlacement,
+    signal: AbortSignal,
+  ): Promise<string | undefined> {
+    const snapshotId = await this.jobs.getLastSnapshotId(repositoryId);
+    if (!snapshotId) {
+      return;
+    }
+
+    try {
+      const snapshots = await this.restic.snapshot(endpoint, key, placement, snapshotId, signal);
+      if (snapshots.some(({ id }) => id === snapshotId)) {
+        return snapshotId;
+      }
+
+      this.telemetry.submitStructuredLog('Previous snapshot no longer exists, choosing the parent by paths', {
+        repositoryId,
+        snapshotId,
+      });
+    } catch (error) {
+      signal.throwIfAborted();
+      this.telemetry.submitStructuredLog('Failed to look up the previous snapshot, choosing the parent by paths', {
+        repositoryId,
+        snapshotId,
+        error,
+      });
     }
   }
 }

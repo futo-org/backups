@@ -65,10 +65,13 @@ export class ResticRepository {
     log?: (event: BackupMessage) => void,
     signal?: AbortSignal,
     tags: string[] = [],
+    parent?: string,
   ) {
     const write = createSampledLogWriter(log);
     const { connections, packSizeMib } = await this.config.getResticOptions(placement);
 
+    // restic's default parent match includes the hostname, which in a container changes on every recreate and
+    // would force a full re-read.
     return await this.traced('backup', backup())
       .option(`rest.connections=${connections}`)
       .packSize(packSizeMib)
@@ -76,6 +79,8 @@ export class ResticRepository {
       .cacheDir(this.cacheDir)
       .password(Buffer.from(key).toString('hex'))
       .tag(...tags)
+      .groupBy('paths')
+      .parent(parent)
       .addFile(...paths)
       .excludeCaches()
       .signal(signal)
@@ -146,7 +151,13 @@ export class ResticRepository {
       .run();
   }
 
-  async snapshot(repository: string, key: Uint8Array, placement: ResticPlacement, snapshotId: string) {
+  async snapshot(
+    repository: string,
+    key: Uint8Array,
+    placement: ResticPlacement,
+    snapshotId: string,
+    signal?: AbortSignal,
+  ) {
     const { connections } = await this.config.getResticOptions(placement);
     return await this.traced('snapshots', snapshots())
       .option(`rest.connections=${connections}`)
@@ -154,6 +165,7 @@ export class ResticRepository {
       .cacheDir(this.cacheDir)
       .password(Buffer.from(key).toString('hex'))
       .snapshot(snapshotId)
+      .signal(signal)
       .run();
   }
 
@@ -185,12 +197,15 @@ export class ResticRepository {
     signal?: AbortSignal,
   ) {
     const { connections } = await this.config.getResticOptions(placement);
+    // Policies are measured from each group's newest snapshot, so grouping by the container's hostname leaves the
+    // snapshots of every previous container in a group that never expires.
     return await this.traced('forget', forget())
       .option(`rest.connections=${connections}`)
       .repository(repository)
       .cacheDir(this.cacheDir)
       .password(Buffer.from(key).toString('hex'))
       .signal(signal)
+      .groupBy('paths')
       .keepLast(policy.keepLast)
       .keepWithin(policy.keepWithin)
       .keepWithinHourly(policy.keepWithinHourly)
