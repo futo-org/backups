@@ -86,7 +86,7 @@
         leadingIcon={running ? mdiStopCircleOutline : mdiCloudUploadOutline}
         onclick={() =>
           void (status.kind === "running"
-            ? handleCancelJob(status.jobId)
+            ? handleCancelJob(status.jobId, "backup")
             : handleCreateBackup(repository.id))}
       >
         {running ? $t`Cancel backup` : $t`Back up now`}

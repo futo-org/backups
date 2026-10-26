@@ -448,16 +448,31 @@ msgid "Cancel"
 msgstr ""
 
 #: src/lib/components/backups/BackupStatus.svelte
+#: src/lib/components/backups/dialogs/CancelJobModal.svelte
 #: src/lib/components/integrations/immich/ImmichManageBackupOverview.svelte
 msgid "Cancel backup"
 msgstr ""
 
 #: src/lib/components/backups/BackupStatus.svelte
+#: src/lib/components/backups/dialogs/CancelJobModal.svelte
 msgid "Cancel prune"
 msgstr ""
 
 #: src/lib/components/backups/BackupStatus.svelte
+#: src/lib/components/backups/dialogs/CancelJobModal.svelte
 msgid "Cancel restore"
+msgstr ""
+
+#: src/lib/components/backups/dialogs/CancelJobModal.svelte
+msgid "Cancel this backup?"
+msgstr ""
+
+#: src/lib/components/backups/dialogs/CancelJobModal.svelte
+msgid "Cancel this prune?"
+msgstr ""
+
+#: src/lib/components/backups/dialogs/CancelJobModal.svelte
+msgid "Cancel this restore?"
 msgstr ""
 
 #: src/lib/components/backups/BackupItem.svelte
@@ -1187,8 +1202,20 @@ msgstr ""
 msgid "Join the beta"
 msgstr ""
 
+#: src/lib/components/backups/dialogs/CancelJobModal.svelte
+msgid "Keep backing up"
+msgstr ""
+
 #: src/lib/components/integrations/immich/settings/ImmichSettingsStorage.svelte
 msgid "Keep latest two backups"
+msgstr ""
+
+#: src/lib/components/backups/dialogs/CancelJobModal.svelte
+msgid "Keep pruning"
+msgstr ""
+
+#: src/lib/components/backups/dialogs/CancelJobModal.svelte
+msgid "Keep restoring"
 msgstr ""
 
 #: src/lib/components/onboarding/dialogs/BackupsRecoveryKeyModal.svelte
@@ -1685,6 +1712,10 @@ msgstr ""
 msgid "processed"
 msgstr ""
 
+#: src/lib/components/backups/dialogs/CancelJobModal.svelte
+msgid "Progress since the last snapshot will be lost."
+msgstr ""
+
 #: src/lib/components/onboarding/upsell/UpsellProtectYourImmichLibrary.svelte
 msgid "Protect your Immich library"
 msgstr ""
@@ -1716,6 +1747,10 @@ msgstr ""
 
 #: src/lib/components/backups/BackupStatus.svelte
 msgid "Pruning old backups was interrupted"
+msgstr ""
+
+#: src/lib/components/backups/dialogs/CancelJobModal.svelte
+msgid "Pruning will stop and will need to be started again."
 msgstr ""
 
 #: src/lib/components/backups/run-history/RepositoryRunHistoryItem.svelte
@@ -2148,6 +2183,10 @@ msgstr ""
 
 #: src/lib/services/job.service.ts
 msgid "The backup was stopped before it finished."
+msgstr ""
+
+#: src/lib/components/backups/dialogs/CancelJobModal.svelte
+msgid "The restore will stop and will need to be started again."
 msgstr ""
 
 #: src/lib/components/onboarding/steps/OnboardingStepBetaDisclaimer.svelte

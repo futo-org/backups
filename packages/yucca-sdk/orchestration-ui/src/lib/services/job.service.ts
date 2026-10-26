@@ -1,3 +1,5 @@
+import type { BackupStatusType } from '$lib/components/backups/BackupStatus.svelte';
+import CancelJobModal from '$lib/components/backups/dialogs/CancelJobModal.svelte';
 import ViewStatusModal from '$lib/components/backups/dialogs/ViewStatusModal.svelte';
 import { SocketEvent } from '$lib/events';
 import {
@@ -193,7 +195,15 @@ export const useBackupJobMonitor = () => {
   };
 };
 
-export const handleCancelJob = async (jobId: string) => {
+export const handleCancelJob = async (
+  jobId: string,
+  type: BackupStatusType,
+) => {
+  const confirmed = await modalManager.show(CancelJobModal, { type });
+  if (!confirmed) {
+    return;
+  }
+
   try {
     await cancelJob(jobId);
   } catch (error) {
