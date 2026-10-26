@@ -80,6 +80,17 @@
       <Badge size="tiny" color="warning">
         {$t`Warnings`} <RelativeTime time={repository.metrics.lastBackup!} />
       </Badge>
+    {:else if outcome === "cancelled"}
+      <Badge size="tiny" color="warning">
+        {$t`Cancelled`} <RelativeTime time={repository.metrics.lastBackup!} />
+      </Badge>
+    {:else if outcome === "incomplete"}
+      <Badge size="tiny" color="warning">
+        {$t`Interrupted`}
+        {#if repository.metrics.lastBackup}
+          <RelativeTime time={repository.metrics.lastBackup} />
+        {/if}
+      </Badge>
     {:else if outcome === "complete"}
       <Badge size="tiny" color="success">
         {$t`Successful`} <RelativeTime time={repository.metrics.lastBackup!} />

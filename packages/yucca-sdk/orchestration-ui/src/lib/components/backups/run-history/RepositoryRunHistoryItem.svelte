@@ -121,7 +121,7 @@
   {:else if job.status === "running"}
     {$t`Started`} <RelativeTime time={job.start ?? job.queuedAt} />
   {:else if job.status === "failed" || job.status === "cancelled" || job.status === "incomplete"}
-    {$t`Attempted`} {#if job.end}<RelativeTime time={job.end} />{/if}
+    {$t`Attempted`} <RelativeTime time={job.start ?? job.queuedAt} />
   {:else}
     {$t(noun.done)} {#if job.end}<RelativeTime time={job.end} />{/if}
   {/if}
