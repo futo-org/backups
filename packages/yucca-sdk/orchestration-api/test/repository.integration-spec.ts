@@ -334,6 +334,23 @@ describe('Repository', () => {
     );
   });
 
+  it('skips pruning after a backup with warnings', async () => {
+    const repositoryService = ctx.module.get(RepositoryService);
+
+    const { repository } = await repositoryService.createRepository(
+      { name: 'Warn Prune Repo', worm: false, paths: ['/tmp/warn-prune'] },
+      ctx.backendId,
+    );
+
+    ctx.resticMock.backup.mockRejectedValueOnce(new ResticBackupCommandCouldNotReadSourceDataError('unreadable'));
+    ctx.resticMock.forgetByPolicy.mockClear();
+
+    const { task } = await repositoryService.createBackup(repository.id);
+    await expect(task).rejects.toThrow('Task finished with warnings');
+
+    expect(ctx.resticMock.forgetByPolicy).not.toHaveBeenCalled();
+  });
+
   it('shows offline status when backend errors', async () => {
     const repositoryService = ctx.module.get(RepositoryService);
     const backendRepository = ctx.module.get(BackendRepository);
