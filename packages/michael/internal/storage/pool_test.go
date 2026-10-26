@@ -3,6 +3,7 @@ package storage
 import (
 	"context"
 	"errors"
+	"fmt"
 	"io"
 	"strings"
 	"sync"
@@ -765,6 +766,242 @@ func TestPool_SuccessesRefillRetryBudget(t *testing.T) {
 	}
 	if got := p.PoolStats().RetryBudget; got != p.retryBudgetCap {
 		t.Errorf("budget must cap at %d, got %d", p.retryBudgetCap, got)
+	}
+}
+
+type wrappedCtxErrStore struct{ *fakeStore }
+
+func (c *wrappedCtxErrStore) HeadObject(ctx context.Context, bucket, key string) (int64, error) {
+	if ctx.Err() != nil {
+		return 0, fmt.Errorf("head object: %w", ctx.Err())
+	}
+	return c.fakeStore.HeadObject(ctx, bucket, key)
+}
+
+func (c *wrappedCtxErrStore) GetObject(ctx context.Context, bucket, key, rangeHeader string) (*S3Object, error) {
+	if ctx.Err() != nil {
+		return nil, fmt.Errorf("get object: %w", ctx.Err())
+	}
+	return c.fakeStore.GetObject(ctx, bucket, key, rangeHeader)
+}
+
+func (c *wrappedCtxErrStore) PutObject(ctx context.Context, bucket, key string, body io.Reader, contentLength int64, writeOnce bool, sha256Hex string) error {
+	if ctx.Err() != nil {
+		return fmt.Errorf("put object: %w", ctx.Err())
+	}
+	return c.fakeStore.PutObject(ctx, bucket, key, body, contentLength, writeOnce, sha256Hex)
+}
+
+func cancelledCtx() context.Context {
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	return ctx
+}
+
+func TestPool_CancelledRequestsAreNotScored(t *testing.T) {
+	t.Run("half-open trials stay half-open", func(t *testing.T) {
+		p, _, reg := newTestPool(t, []string{"h"}, 3)
+		h := backendByEndpoint(p, "h")
+		h.store = &wrappedCtxErrStore{fakeStore: reg["h"]}
+		h.state.Store(stateHalfOpen)
+		for range halfOpenCloseAfter {
+			if _, err := p.GetObject(cancelledCtx(), "bucket", "k", ""); err == nil {
+				t.Fatal("expected the cancelled GET to fail")
+			}
+		}
+		if h.state.Load() != stateHalfOpen {
+			t.Errorf("state = %s, want half_open", stateName(h.state.Load()))
+		}
+		if got := h.halfOpenSuccesses.Load(); got != 0 {
+			t.Errorf("halfOpenSuccesses = %d, want 0", got)
+		}
+		if h.trial.Load() != 0 {
+			t.Error("trial slot still held after the cancelled GET")
+		}
+	})
+
+	t.Run("a cancelled canary leaves the backend open", func(t *testing.T) {
+		p, _, reg := newTestPool(t, []string{"a"}, 3)
+		a := backendByEndpoint(p, "a")
+		a.store = &wrappedCtxErrStore{fakeStore: reg["a"]}
+		a.state.Store(stateOpen)
+		a.trafficTripped.Store(true)
+		if _, err := p.HeadObject(cancelledCtx(), "bucket", "k"); err == nil {
+			t.Fatal("expected the cancelled HEAD to fail")
+		}
+		if a.state.Load() != stateOpen {
+			t.Errorf("state = %s, want open", stateName(a.state.Load()))
+		}
+		if p.canaryInflight.Load() != 0 {
+			t.Error("canary slot still held after the cancelled HEAD")
+		}
+	})
+
+	t.Run("a cancelled GET keeps the failure streak", func(t *testing.T) {
+		p, _, reg := newTestPool(t, []string{"a"}, 3)
+		a := backendByEndpoint(p, "a")
+		a.store = &wrappedCtxErrStore{fakeStore: reg["a"]}
+		a.failures.Store(2)
+		if _, err := p.GetObject(cancelledCtx(), "bucket", "k", ""); err == nil {
+			t.Fatal("expected the cancelled GET to fail")
+		}
+		if got := a.failures.Load(); got != 2 {
+			t.Errorf("failures = %d, want 2", got)
+		}
+		if got := a.requests.Load(); got != 0 {
+			t.Errorf("requests = %d, want 0", got)
+		}
+	})
+
+	t.Run("a PUT that still succeeded is scored", func(t *testing.T) {
+		p, _, _ := newTestPool(t, []string{"a"}, 3)
+		a := backendByEndpoint(p, "a")
+		a.failures.Store(2)
+		if err := p.PutObject(cancelledCtx(), "bucket", "k", strings.NewReader("x"), 1, true, ""); err != nil {
+			t.Fatalf("PutObject: %v", err)
+		}
+		if got := a.requests.Load(); got != 1 {
+			t.Errorf("requests = %d, want 1", got)
+		}
+		if got := a.failures.Load(); got != 0 {
+			t.Errorf("failures = %d, want 0: a success resets the streak", got)
+		}
+	})
+}
+
+func TestPool_PutObjectClientDisconnectFreesSlots(t *testing.T) {
+	for _, tc := range []struct {
+		name  string
+		state int32
+	}{
+		{"half-open trial slot", stateHalfOpen},
+		{"fail-open canary slot", stateOpen},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			p, _, reg := newTestPool(t, []string{"a"}, 1)
+			a := backendByEndpoint(p, "a")
+			a.state.Store(tc.state)
+			reg["a"].opFail.Store(true)
+
+			if err := p.PutObject(cancelledCtx(), "bucket", "k", strings.NewReader("x"), 1, true, ""); err == nil {
+				t.Fatal("expected the PUT failure to surface")
+			}
+			if got := reg["a"].calls.Load(); got != 1 {
+				t.Errorf("calls = %d, want 1", got)
+			}
+			if a.trial.Load() != 0 {
+				t.Error("trial slot still held")
+			}
+			if p.canaryInflight.Load() != 0 {
+				t.Error("canary slot still held")
+			}
+			if a.state.Load() != tc.state {
+				t.Errorf("state = %s, want %s", stateName(a.state.Load()), stateName(tc.state))
+			}
+			if got := a.requests.Load(); got != 0 {
+				t.Errorf("requests = %d, want 0", got)
+			}
+			if got := a.errors.Load(); got != 0 {
+				t.Errorf("errors = %d, want 0", got)
+			}
+			if p.lastFailureNano.Load() != 0 {
+				t.Error("shed window re-armed by a client disconnect")
+			}
+		})
+	}
+}
+
+func TestPool_PutObjectClientDisconnectLeavesHealthAlone(t *testing.T) {
+	p, _, reg := newTestPool(t, []string{"a"}, 1)
+	b := backendByEndpoint(p, "a")
+	reg["a"].opFail.Store(true)
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+
+	if err := p.PutObject(ctx, "bucket", "k", strings.NewReader("x"), 1, true, ""); err == nil {
+		t.Fatal("expected the PUT failure to surface")
+	}
+	if b.state.Load() != stateClosed {
+		t.Error("a client disconnect must not eject the backend")
+	}
+	if got := b.failures.Load(); got != 0 {
+		t.Errorf("failure streak = %d, want 0", got)
+	}
+	if got := b.errors.Load(); got != 0 {
+		t.Errorf("errors = %d, want 0", got)
+	}
+	if got := b.requests.Load(); got != 0 {
+		t.Errorf("requests = %d, want 0: a disconnect is not a scored outcome", got)
+	}
+}
+
+func TestPool_GetBodyFailureAfterClientLeftIsNotScored(t *testing.T) {
+	p, _, reg := newTestPool(t, []string{"a"}, 3)
+	a := backendByEndpoint(p, "a")
+	reg["a"].getErr = errors.New("read: connection reset by peer")
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	obj, err := p.GetObject(ctx, "bucket", "k", "")
+	if err != nil {
+		t.Fatalf("GetObject: %v", err)
+	}
+	cancel()
+	if _, err := io.ReadAll(obj.Body); err == nil {
+		t.Fatal("expected the body read to fail")
+	}
+	_ = obj.Body.Close()
+
+	if got := a.inflight.Load(); got != 0 {
+		t.Errorf("inflight = %d, want 0", got)
+	}
+	if got := a.requests.Load(); got != 0 {
+		t.Errorf("requests = %d, want 0", got)
+	}
+	if got := a.errors.Load(); got != 0 {
+		t.Errorf("errors = %d, want 0", got)
+	}
+	if got := a.failures.Load(); got != 0 {
+		t.Errorf("failures = %d, want 0", got)
+	}
+	if a.state.Load() != stateClosed {
+		t.Errorf("state = %s, want closed", stateName(a.state.Load()))
+	}
+}
+
+// isBackendFailure exempts a wrapped DeadlineExceeded, so scoring this at all
+// would book a SUCCESS: the streak reset and a half-open trial credited.
+func TestPool_DeadlineExceededIsNotScored(t *testing.T) {
+	p, _, reg := newTestPool(t, []string{"a"}, 3)
+	a := backendByEndpoint(p, "a")
+	a.store = &wrappedCtxErrStore{fakeStore: reg["a"]}
+	a.state.Store(stateHalfOpen)
+	a.failures.Store(2)
+	a.halfOpenSuccesses.Store(1)
+	ctx, cancel := context.WithDeadline(context.Background(), time.Unix(0, 0))
+	defer cancel()
+
+	err := p.PutObject(ctx, "bucket", "k", strings.NewReader("x"), 1, true, "")
+	if !errors.Is(err, context.DeadlineExceeded) {
+		t.Fatalf("PutObject error = %v, want DeadlineExceeded", err)
+	}
+	if got := a.requests.Load(); got != 0 {
+		t.Errorf("requests = %d, want 0", got)
+	}
+	if got := a.errors.Load(); got != 0 {
+		t.Errorf("errors = %d, want 0", got)
+	}
+	if got := a.failures.Load(); got != 2 {
+		t.Errorf("failures = %d, want 2", got)
+	}
+	if got := a.halfOpenSuccesses.Load(); got != 1 {
+		t.Errorf("halfOpenSuccesses = %d, want 1", got)
+	}
+	if a.state.Load() != stateHalfOpen {
+		t.Errorf("state = %s, want half_open", stateName(a.state.Load()))
+	}
+	if a.trial.Load() != 0 {
+		t.Error("trial slot still held")
 	}
 }
 

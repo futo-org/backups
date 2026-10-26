@@ -8,6 +8,7 @@ import (
 	"crypto/rand"
 	"encoding/base64"
 	"errors"
+	"fmt"
 	"io"
 	"net"
 	"net/http"
@@ -18,9 +19,12 @@ import (
 	"time"
 
 	"michael/internal/handlers"
+	"michael/internal/metrics"
 	"michael/internal/storage"
 
 	"github.com/golang-jwt/jwt/v5"
+	"go.opentelemetry.io/otel/sdk/metric"
+	"go.opentelemetry.io/otel/sdk/metric/metricdata"
 )
 
 var drainKey, _ = ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
@@ -340,4 +344,94 @@ func waitFor(t *testing.T, limit time.Duration, what string, cond func() bool) {
 		time.Sleep(10 * time.Millisecond)
 	}
 	t.Fatalf("timed out after %s waiting for %s", limit, what)
+}
+
+// A real socket, because httptest never cancels the request context on a body-read failure.
+func TestClientDisconnectMidUploadIsBookedAsClientClosed(t *testing.T) {
+	reader := metric.NewManualReader()
+	m, err := metrics.NewMetrics(metric.NewMeterProvider(metric.WithReader(reader)).Meter("test"))
+	if err != nil {
+		t.Fatalf("NewMetrics: %v", err)
+	}
+	store := newDrainStorage()
+	srv := handlers.NewServer(store, &drainKey.PublicKey, m)
+	ln, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatalf("listen: %v", err)
+	}
+	httpSrv := &http.Server{Handler: srv.Handler()}
+	go func() { _ = httpSrv.Serve(ln) }()
+	t.Cleanup(func() {
+		store.releaseAll()
+		_ = httpSrv.Close()
+	})
+
+	conn, err := net.Dial("tcp", ln.Addr().String())
+	if err != nil {
+		t.Fatalf("dial: %v", err)
+	}
+	const declared = 1 << 20
+	_, err = fmt.Fprintf(conn, "POST /%s/data/%s HTTP/1.1\r\nHost: michael\r\nAuthorization: %s\r\nContent-Length: %d\r\n\r\n%s",
+		drainRepo, drainBlob, drainAuthHeader(t), declared, strings.Repeat("x", 64<<10))
+	if err != nil {
+		t.Fatalf("write partial upload: %v", err)
+	}
+	_ = conn.Close()
+
+	waitFor(t, 5*time.Second, "the aborted upload to be accounted", func() bool {
+		return requestsByStatus(t, reader)[handlers.StatusClientClosedRequest] == 1
+	})
+	for status, n := range requestsByStatus(t, reader) {
+		if status >= 500 {
+			t.Errorf("http.server.request.count{status=%d} = %d, want none", status, n)
+		}
+	}
+	if got := requestsByStatus(t, reader); len(got) != 1 {
+		t.Errorf("http.server.request.count by status = %v, want only the 499", got)
+	}
+	if got := storageErrorTotal(t, reader); got != 0 {
+		t.Errorf("storage.backend.errors = %d, want 0", got)
+	}
+}
+
+func collectSums(t *testing.T, reader *metric.ManualReader, name string) []metricdata.DataPoint[int64] {
+	t.Helper()
+	var rm metricdata.ResourceMetrics
+	if err := reader.Collect(context.Background(), &rm); err != nil {
+		t.Fatalf("collect metrics: %v", err)
+	}
+	var points []metricdata.DataPoint[int64]
+	for _, sm := range rm.ScopeMetrics {
+		for _, md := range sm.Metrics {
+			if md.Name != name {
+				continue
+			}
+			sum, ok := md.Data.(metricdata.Sum[int64])
+			if !ok {
+				t.Fatalf("%s is not an int64 sum: %T", name, md.Data)
+			}
+			points = append(points, sum.DataPoints...)
+		}
+	}
+	return points
+}
+
+func requestsByStatus(t *testing.T, reader *metric.ManualReader) map[int]int64 {
+	t.Helper()
+	out := map[int]int64{}
+	for _, dp := range collectSums(t, reader, "http.server.request.count") {
+		if v, ok := dp.Attributes.Value("status"); ok {
+			out[int(v.AsInt64())] += dp.Value
+		}
+	}
+	return out
+}
+
+func storageErrorTotal(t *testing.T, reader *metric.ManualReader) int64 {
+	t.Helper()
+	var total int64
+	for _, dp := range collectSums(t, reader, "storage.backend.errors") {
+		total += dp.Value
+	}
+	return total
 }

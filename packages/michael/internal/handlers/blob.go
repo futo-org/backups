@@ -101,13 +101,17 @@ func (s *Server) listBlobs(w http.ResponseWriter, r *http.Request) {
 	wg.Wait()
 
 	if listErr != nil {
-		hlog.FromRequest(r).Error().Err(listErr).Msg("list blobs failed")
 		if first {
+			if abortIfClientGone(w, r, listErr, "list blobs aborted: client disconnected") {
+				return
+			}
+			hlog.FromRequest(r).Error().Err(listErr).Msg("list blobs failed")
 			writeStorageError(w, r, listErr)
 			return
 		}
 		// The 200 and part of the body are already out; abort the connection
 		// so the client sees a truncated response, not a valid-looking list.
+		logStorageFailure(r, listErr, "list blobs aborted: client disconnected", "list blobs failed")
 		panic(http.ErrAbortHandler)
 	}
 
@@ -115,16 +119,16 @@ func (s *Server) listBlobs(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", ContentTypeResticV2)
 		w.WriteHeader(http.StatusOK)
 		if _, err := w.Write([]byte("[]")); err != nil {
-			hlog.FromRequest(r).Error().Err(err).Msg("failed to write blob list response")
+			logStorageFailure(r, err, "list blobs aborted: client disconnected", "failed to write blob list response")
 		}
 		return
 	}
 	if _, err := buf.WriteString("]"); err != nil {
-		hlog.FromRequest(r).Error().Err(err).Msg("failed to write blob list response")
+		logStorageFailure(r, err, "list blobs aborted: client disconnected", "failed to write blob list response")
 		return
 	}
 	if err := buf.Flush(); err != nil {
-		hlog.FromRequest(r).Error().Err(err).Msg("failed to flush blob list response")
+		logStorageFailure(r, err, "list blobs aborted: client disconnected", "failed to flush blob list response")
 	}
 }
 
@@ -140,6 +144,9 @@ func (s *Server) checkBlob(w http.ResponseWriter, r *http.Request) {
 		// restic, and an infra failure disguised as a missing blob would make it
 		// re-upload or mis-plan around data that exists (docs/restic-retries.md).
 		if !storage.IsNotFound(err) {
+			if abortIfClientGone(w, r, err, "head blob aborted: client disconnected") {
+				return
+			}
 			hlog.FromRequest(r).Error().Err(err).Msg("head blob failed")
 			writeStorageError(w, r, err)
 			return
@@ -163,6 +170,9 @@ func (s *Server) getBlob(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		if storage.IsNotFound(err) {
 			writeError(w, r, http.StatusNotFound, "Not Found")
+			return
+		}
+		if abortIfClientGone(w, r, err, "get blob aborted: client disconnected") {
 			return
 		}
 		hlog.FromRequest(r).Error().Err(err).Str("repository", a.Repository).Str("key", key).Msg("get blob failed: backend storage error")
@@ -190,6 +200,9 @@ func (s *Server) saveBlob(w http.ResponseWriter, r *http.Request) {
 		}
 		if errors.Is(err, storage.ErrChecksumMismatch) {
 			writeError(w, r, http.StatusBadRequest, "Content hash does not match blob name")
+			return
+		}
+		if abortIfClientGone(w, r, err, "save blob aborted: client disconnected") {
 			return
 		}
 		hlog.FromRequest(r).Error().Err(err).Str("repository", a.Repository).Str("key", key).Msg("save blob failed: backend storage error")
@@ -227,12 +240,18 @@ func (s *Server) deleteBlob(w http.ResponseWriter, r *http.Request) {
 			w.WriteHeader(http.StatusOK)
 			return
 		}
+		if abortIfClientGone(w, r, err, "delete blob aborted: client disconnected") {
+			return
+		}
 		hlog.FromRequest(r).Error().Err(err).Msg("head blob for delete failed")
 		writeStorageError(w, r, err)
 		return
 	}
 
 	if err := s.store(r.Context()).DeleteObject(r.Context(), a.Repository, key); err != nil {
+		if abortIfClientGone(w, r, err, "delete blob aborted: client disconnected") {
+			return
+		}
 		hlog.FromRequest(r).Error().Err(err).Msg("delete blob failed")
 		writeStorageError(w, r, err)
 		return

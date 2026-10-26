@@ -3,6 +3,7 @@ package handlers
 import (
 	"context"
 	"errors"
+	"fmt"
 	"io"
 	"net/http"
 	"strings"
@@ -159,5 +160,29 @@ func TestDeleteConfig_WORMForbidden(t *testing.T) {
 
 	if rec.Code != http.StatusForbidden {
 		t.Errorf("expected 403, got %d", rec.Code)
+	}
+}
+
+func TestSaveConfig_ClientDisconnectIsNotAStorageError(t *testing.T) {
+	buf := captureLogOutput(t)
+	store := &mockStorage{
+		putObjectFn: func(ctx context.Context, _, _ string, body io.Reader, _ int64, _ bool, _ string) error {
+			_, _ = io.Copy(io.Discard, body)
+			return fmt.Errorf("put object: %w", ctx.Err())
+		},
+	}
+	srv := newTestServer(store)
+
+	rec := doRequestWithContext(t, cancelledContext(), srv, http.MethodPost, "/"+testRepository+"/config", strings.NewReader("{}"), defaultAuth(), nil)
+
+	if rec.Code != StatusClientClosedRequest {
+		t.Fatalf("expected %d, got %d: %s", StatusClientClosedRequest, rec.Code, rec.Body.String())
+	}
+	entries := parseLogLines(t, buf)
+	if e := findLog(entries, map[string]any{"level": "error"}); e != nil {
+		t.Errorf("client disconnect logged at error level: %v", e)
+	}
+	if findLog(entries, map[string]any{"level": "warn", "message": "save config aborted: client disconnected"}) == nil {
+		t.Errorf("no warn entry for the aborted config save:\n%s", buf.String())
 	}
 }

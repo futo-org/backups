@@ -31,12 +31,34 @@ var sha256HexPattern = regexp.MustCompile(`^[a-f0-9]{64}$`)
 
 var writeError = httputil.WriteError
 
+// net/http cancels the request context on a connection or body-read failure,
+// while the storage call may surface the body's EOF before context.Canceled.
+// A deadline is the server giving up, not the client leaving.
+func clientGone(r *http.Request) bool { return errors.Is(r.Context().Err(), context.Canceled) }
+
+func abortIfClientGone(w http.ResponseWriter, r *http.Request, err error, msg string) bool {
+	if !clientGone(r) {
+		return false
+	}
+	hlog.FromRequest(r).Warn().Err(err).Msg(msg)
+	writeStorageError(w, r, err)
+	return true
+}
+
+func logStorageFailure(r *http.Request, err error, abortedMsg, failedMsg string) {
+	if clientGone(r) {
+		hlog.FromRequest(r).Warn().Err(err).Msg(abortedMsg)
+		return
+	}
+	hlog.FromRequest(r).Error().Err(err).Msg(failedMsg)
+}
+
 // writeStorageError maps a storage-layer failure onto the restic contract
-// (docs/restic-retries.md): a shedding pool answers 503 + Retry-After, which
-// restic retries with backoff, a client that hung up gets 499, and anything
+// (docs/restic-retries.md): a client that hung up gets 499, a shedding pool
+// answers 503 + Retry-After, which restic retries with backoff, and anything
 // else stays the generic 500.
 func writeStorageError(w http.ResponseWriter, r *http.Request, err error) {
-	if errors.Is(err, context.Canceled) && errors.Is(r.Context().Err(), context.Canceled) {
+	if clientGone(r) {
 		writeError(w, r, StatusClientClosedRequest, "Client closed request")
 		return
 	}

@@ -25,6 +25,9 @@ func (s *Server) createRepository(w http.ResponseWriter, r *http.Request) {
 
 	exists, err := s.store(r.Context()).CheckBucket(r.Context(), a.Repository)
 	if err != nil {
+		if abortIfClientGone(w, r, err, "create repository aborted: client disconnected") {
+			return
+		}
 		hlog.FromRequest(r).Error().Err(err).Msg("check bucket failed")
 		writeStorageError(w, r, err)
 		return
@@ -36,6 +39,9 @@ func (s *Server) createRepository(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := s.store(r.Context()).CreateBucket(r.Context(), a.Repository); err != nil {
+		if abortIfClientGone(w, r, err, "create repository aborted: client disconnected") {
+			return
+		}
 		hlog.FromRequest(r).Error().Err(err).Msg("create bucket failed")
 		writeStorageError(w, r, err)
 		return
