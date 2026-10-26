@@ -286,20 +286,6 @@ export type RepositoryCheckImportResponseDto = {
 export type RepositoryPrimaryBackendReconfigureRequestDto = {
     backendId: string;
 };
-export type RunStatus = "incomplete" | "complete" | "warn" | "failed" | "cancelled";
-export type RunType = "schedule" | "restore" | "backup" | "forget";
-export type RunDto = {
-    id: string;
-    repositoryId: string;
-    start: string;
-    end?: string;
-    logFilePath: string;
-    status: RunStatus;
-    "type": RunType;
-};
-export type RunHistoryResponseDto = {
-    runs: RunDto[];
-};
 export type ListSnapshotsResponseDto = {
     snapshots: SnapshotDto[];
 };
@@ -310,24 +296,6 @@ export type RepositorySnapshotRestoreRequestDto = {
 export type RepositorySnapshotRestoreFromPointRequestDto = {
     yuccaConfig?: string;
     include?: string[];
-};
-export type RunResponseDto = {
-    run: RunDto;
-};
-export type TaskType = "schedule" | "restore" | "backup" | "forget";
-export type RunningTaskStatus = "incomplete" | "complete" | "warn" | "failed" | "cancelled";
-export type ActiveScheduleItemDto = {
-    repositoryId: string;
-    status: RunningTaskStatus;
-};
-export type RunningTaskDto = {
-    parentId: string;
-    "type": TaskType;
-    logId?: string;
-    scheduleStatus?: ActiveScheduleItemDto[];
-};
-export type RunningTaskListResponse = {
-    tasks: RunningTaskDto[];
 };
 export type ScheduleCreateRequestDto = {
     name: string;
@@ -773,17 +741,6 @@ export function reconfigureRepositoryPrimaryBackend(id: string, repositoryPrimar
     })));
 }
 /**
- * List backup runs
- */
-export function getRunHistory(id: string, opts?: Oazapfts.RequestOpts) {
-    return oazapfts.ok(oazapfts.fetchJson<{
-        status: 200;
-        data: RunHistoryResponseDto;
-    }>(`/api/yucca/repository/${encodeURIComponent(id)}/runs`, {
-        ...opts
-    }));
-}
-/**
  * List snapshots
  */
 export function getSnapshots(id: string, opts?: Oazapfts.RequestOpts) {
@@ -859,56 +816,6 @@ export function getSnapshotListing(id: string, snapshot: string, { path }: {
         path
     }))}`, {
         ...opts
-    }));
-}
-/**
- * Get a run
- */
-export function getRun(id: string, opts?: Oazapfts.RequestOpts) {
-    return oazapfts.ok(oazapfts.fetchJson<{
-        status: 200;
-        data: RunResponseDto;
-    }>(`/api/yucca/logs/${encodeURIComponent(id)}`, {
-        ...opts
-    }));
-}
-/**
- * Download a run log
- */
-export function downloadRunLog(id: string, opts?: Oazapfts.RequestOpts) {
-    return oazapfts.ok(oazapfts.fetchBlob<{
-        status: 200;
-        data: Blob;
-    }>(`/api/yucca/logs/${encodeURIComponent(id)}/download`, {
-        ...opts
-    }));
-}
-/**
- * Stream a run log
- */
-export function runLogStreamSse(id: string, opts?: Oazapfts.RequestOpts) {
-    return oazapfts.ok(oazapfts.fetchText(`/api/yucca/logs/${encodeURIComponent(id)}/stream`, {
-        ...opts
-    }));
-}
-/**
- * List running tasks
- */
-export function getRunningTasks(opts?: Oazapfts.RequestOpts) {
-    return oazapfts.ok(oazapfts.fetchJson<{
-        status: 200;
-        data: RunningTaskListResponse;
-    }>("/api/yucca/tasks", {
-        ...opts
-    }));
-}
-/**
- * Cancel a task
- */
-export function cancelTask(parentId: string, opts?: Oazapfts.RequestOpts) {
-    return oazapfts.ok(oazapfts.fetchText(`/api/yucca/tasks/${encodeURIComponent(parentId)}/cancel`, {
-        ...opts,
-        method: "POST"
     }));
 }
 /**

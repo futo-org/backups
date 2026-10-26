@@ -17,7 +17,6 @@
     useRepositoryEventHandler,
   } from "$lib/services/repository.service";
   import OnEvents from "../../util/OnEvents.svelte";
-  import ActiveJobs from "./ActiveJobs.svelte";
   import BackupHealth from "./BackupHealth.svelte";
   import BackupStats from "./BackupStats.svelte";
   import RecentBackups from "./RecentBackups.svelte";
@@ -63,8 +62,6 @@
   <BackupHealth repositories={query.data} />
 
   <BackupStats repositories={query.data} />
-
-  <ActiveJobs />
 
   <RecentBackups
     repositories={query.data}

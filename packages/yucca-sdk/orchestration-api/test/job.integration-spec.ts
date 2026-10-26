@@ -191,6 +191,25 @@ describe(JobRepository.name, () => {
     }
   });
 
+  it('keeps a job inserted later but queued earlier behind newer jobs', async () => {
+    const jobs = ctx.module.get(JobRepository);
+
+    const newerId = await jobs.queue(forget('snapshot-1'));
+    await jobs.wait(newerId);
+    ctx.database
+      .prepare(
+        `INSERT INTO jobs (id, name, repositoryId, data, status, logFilePath, queuedAt)
+          VALUES ('imported-history', ?, ?, '{}', 'complete', 'logs/jobs/imported-history.jsonl', '2000-01-01T00:00:00.000Z')`,
+      )
+      .run(JobName.RepositorySnapshotForget, repositoryId);
+
+    const listed = await jobs.getAll(repositoryId);
+    const latest = await jobs.getLatest(repositoryId, JobName.RepositorySnapshotForget);
+
+    expect(listed.at(-1)?.id).toBe('imported-history');
+    expect(latest?.id).not.toBe('imported-history');
+  });
+
   it('lists the jobs of a repository newest first, without their data', async () => {
     const jobs = ctx.module.get(JobRepository);
 

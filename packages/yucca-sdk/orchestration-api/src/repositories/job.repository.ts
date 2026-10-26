@@ -83,13 +83,14 @@ export class JobRepository implements OnModuleInit, BeforeApplicationShutdown {
 
   async start() {
     if (!this.moduleConfig.hasLock()) {
-      return;
+      return [];
     }
 
-    await this.db
+    return this.db
       .updateTable('jobs')
       .set({ status: JobStatus.Incomplete, end: new Date().toISOString() })
       .where('status', 'in', [JobStatus.Queued, JobStatus.Running])
+      .returningAll()
       .execute();
   }
 
@@ -173,6 +174,7 @@ export class JobRepository implements OnModuleInit, BeforeApplicationShutdown {
       .selectFrom('jobs')
       .selectAll()
       .where('repositoryId', '=', repositoryId)
+      .orderBy('queuedAt', 'desc')
       .orderBy(sql`rowid`, 'desc')
       .execute();
 
@@ -185,6 +187,7 @@ export class JobRepository implements OnModuleInit, BeforeApplicationShutdown {
       .selectAll()
       .where('repositoryId', '=', repositoryId)
       .where('name', '=', name)
+      .orderBy('queuedAt', 'desc')
       .orderBy(sql`rowid`, 'desc')
       .limit(1)
       .executeTakeFirst();
