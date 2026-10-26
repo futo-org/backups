@@ -65,6 +65,10 @@ msgstr ""
 msgid "{name} failed"
 msgstr ""
 
+#: src/lib/components/backups/dialogs/ViewStatusModal.svelte
+msgid "{name} interrupted"
+msgstr ""
+
 #: src/lib/components/ui/PathPickerModal.svelte
 msgid "{name} selected"
 msgstr ""
@@ -322,6 +326,10 @@ msgstr ""
 
 #: src/lib/components/backups/metrics-history/MetricsHistoryModal.svelte
 msgid "Backup incomplete"
+msgstr ""
+
+#: src/lib/services/job.service.ts
+msgid "Backup interrupted"
 msgstr ""
 
 #: src/lib/components/integrations/immich/ImmichManageBackupOverview.svelte
@@ -1162,6 +1170,10 @@ msgstr ""
 msgid "Included: {names}"
 msgstr ""
 
+#: src/lib/components/backups/run-history/RepositoryRunHistoryItem.svelte
+msgid "Interrupted {noun}"
+msgstr ""
+
 #: ../../web/src/routes/login/invite/+page.svelte
 #: ../../web/src/routes/login/invite/+page.svelte
 #: ../../web/src/routes/login/invite/+page.svelte
@@ -1699,6 +1711,10 @@ msgstr ""
 msgid "Pruning old backups was cancelled"
 msgstr ""
 
+#: src/lib/components/backups/BackupStatus.svelte
+msgid "Pruning old backups was interrupted"
+msgstr ""
+
 #: src/lib/components/backups/run-history/RepositoryRunHistoryItem.svelte
 msgid "Queued"
 msgstr ""
@@ -2124,6 +2140,10 @@ msgid "That account does not own this instance. Log in with the account it was c
 msgstr ""
 
 #: src/lib/services/job.service.ts
+msgid "The backup stopped before it could finish."
+msgstr ""
+
+#: src/lib/services/job.service.ts
 msgid "The backup was stopped before it finished."
 msgstr ""
 
@@ -2355,6 +2375,10 @@ msgstr ""
 msgid "Your backup was cancelled"
 msgstr ""
 
+#: src/lib/components/backups/BackupStatus.svelte
+msgid "Your backup was interrupted"
+msgstr ""
+
 #: src/lib/components/dashboard/DashboardBackupHealth.svelte
 msgid "Your backups"
 msgstr ""
@@ -2421,6 +2445,10 @@ msgstr ""
 
 #: src/lib/components/backups/BackupStatus.svelte
 msgid "Your restore was cancelled"
+msgstr ""
+
+#: src/lib/components/backups/BackupStatus.svelte
+msgid "Your restore was interrupted"
 msgstr ""
 
 #: src/lib/components/onboarding/steps/OnboardingStep1FinishSetup.svelte

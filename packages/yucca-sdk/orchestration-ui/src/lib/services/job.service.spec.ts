@@ -31,6 +31,7 @@ describe('useBackupJobMonitor', () => {
     ['warn', 'warning', 'Backup completed with warnings'],
     ['failed', 'danger', 'Backup failed'],
     ['cancelled', 'secondary', 'Backup cancelled'],
+    ['incomplete', 'warning', 'Backup interrupted'],
   ] as const)('shows a %s backup as a %s alert', (status, color, title) => {
     const monitor = useBackupJobMonitor();
 

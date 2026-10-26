@@ -140,6 +140,11 @@ export const useBackupJobMonitor = () => {
           title: gt`Backup cancelled`,
           description: gt`The backup was stopped before it finished.`,
         },
+        incomplete: {
+          color: 'warning',
+          title: gt`Backup interrupted`,
+          description: gt`The backup stopped before it could finish.`,
+        },
       };
 
       toastManager.show(alerts[job.status], { closable: true });

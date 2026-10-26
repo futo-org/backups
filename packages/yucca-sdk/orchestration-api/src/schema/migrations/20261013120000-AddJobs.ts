@@ -8,7 +8,9 @@ export async function up(db: Kysely<any>): Promise<void> {
     .addColumn('repositoryId', 'text', (col) => col.notNull())
     .addColumn('data', 'text', (col) => col.notNull())
     .addColumn('status', 'text', (col) =>
-      col.notNull().check(sql`status IN ('queued', 'running', 'complete', 'warn', 'failed', 'cancelled')`),
+      col
+        .notNull()
+        .check(sql`status IN ('queued', 'running', 'complete', 'warn', 'failed', 'cancelled', 'incomplete')`),
     )
     .addColumn('error', 'text')
     .addColumn('logFilePath', 'text', (col) => col.notNull())

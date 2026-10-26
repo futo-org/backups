@@ -28,7 +28,7 @@
 
   let search = $state("");
   let newestFirst = $state(true);
-  let status = $state<"all" | "complete" | "warn" | "failed" | "incomplete">(
+  let status = $state<"all" | "complete" | "warn" | "failed" | "in-progress">(
     "all",
   );
   let page = $state(1);
@@ -53,7 +53,7 @@
     { value: "complete", title: msg`Successful only` },
     { value: "warn", title: msg`With warnings only` },
     { value: "failed", title: msg`Failed only` },
-    { value: "incomplete", title: msg`In progress only` },
+    { value: "in-progress", title: msg`In progress only` },
   ];
 
   const tick = (selected: boolean) =>
@@ -97,7 +97,7 @@
 
   const filtered = $derived(
     (query.data ?? [])
-      .filter((job) => status === "all" || (status === "incomplete" ? !isJobFinished(job.status) : job.status === status))
+      .filter((job) => status === "all" || (status === "in-progress" ? !isJobFinished(job.status) : job.status === status))
       .filter(matches)
       .toSorted((a, b) =>
         newestFirst
