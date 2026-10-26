@@ -141,7 +141,6 @@
       dataFolders: integration.configuration.dataFolders,
       backupConfiguration: integration.configuration.backupConfiguration,
       libraries: integration.configuration.libraries,
-      retentionPolicy: repository.configuration?.retentionPolicy ?? null,
       cron,
       paused: !enabled,
     });
