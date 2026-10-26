@@ -21,6 +21,9 @@ func (s *Server) checkConfig(w http.ResponseWriter, r *http.Request) {
 		// Restic stats the config to decide whether the repository exists — an
 		// infra failure answered as 404 would present a live repo as absent.
 		if !storage.IsNotFound(err) {
+			if abortIfClientGone(w, r, err, "head config aborted: client disconnected") {
+				return
+			}
 			hlog.FromRequest(r).Error().Err(err).Msg("head config failed")
 			writeStorageError(w, r, err)
 			return
@@ -44,6 +47,9 @@ func (s *Server) getConfig(w http.ResponseWriter, r *http.Request) {
 			writeError(w, r, http.StatusNotFound, "Not Found")
 			return
 		}
+		if abortIfClientGone(w, r, err, "get config aborted: client disconnected") {
+			return
+		}
 		hlog.FromRequest(r).Error().Err(err).Msg("get config failed")
 		writeStorageError(w, r, err)
 		return
@@ -60,6 +66,9 @@ func (s *Server) saveConfig(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		if errors.Is(err, storage.ErrPreconditionFailed) {
 			writeError(w, r, http.StatusForbidden, "Config already exists")
+			return
+		}
+		if abortIfClientGone(w, r, err, "save config aborted: client disconnected") {
 			return
 		}
 		hlog.FromRequest(r).Error().Err(err).Msg("save config failed")
@@ -85,12 +94,18 @@ func (s *Server) deleteConfig(w http.ResponseWriter, r *http.Request) {
 
 	size, err := s.store(r.Context()).HeadObject(r.Context(), a.Repository, "config")
 	if err != nil {
+		if abortIfClientGone(w, r, err, "delete config aborted: client disconnected") {
+			return
+		}
 		hlog.FromRequest(r).Error().Err(err).Msg("head config for delete failed")
 		writeStorageError(w, r, err)
 		return
 	}
 
 	if err := s.store(r.Context()).DeleteObject(r.Context(), a.Repository, "config"); err != nil {
+		if abortIfClientGone(w, r, err, "delete config aborted: client disconnected") {
+			return
+		}
 		hlog.FromRequest(r).Error().Err(err).Msg("delete config failed")
 		writeStorageError(w, r, err)
 		return

@@ -135,7 +135,12 @@ func newTestServer(store *mockStorage) *Server {
 // doRequest creates and executes a request against the test server with a real JWT auth header.
 func doRequest(t *testing.T, srv *Server, method, path string, body io.Reader, a auth.Auth, headers map[string]string) *httptest.ResponseRecorder {
 	t.Helper()
-	req := httptest.NewRequest(method, path, body)
+	return doRequestWithContext(t, context.Background(), srv, method, path, body, a, headers)
+}
+
+func doRequestWithContext(t *testing.T, ctx context.Context, srv *Server, method, path string, body io.Reader, a auth.Auth, headers map[string]string) *httptest.ResponseRecorder {
+	t.Helper()
+	req := httptest.NewRequest(method, path, body).WithContext(ctx)
 
 	// Generate a real JWT for the auth middleware
 	claims := jwt.MapClaims{

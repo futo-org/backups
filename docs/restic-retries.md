@@ -76,3 +76,33 @@ Restic retries `Save` with a rewindable body — but the stream michael proxies
 to S3 is **not** seekable, which is why the aws-sdk retryer is disabled on
 michael's PUT path and michael never retries an upload itself: any transient
 failure surfaces once, cleanly, and restic re-drives the upload end-to-end.
+
+A storage failure on a request whose context is already cancelled (restic
+killed, the link dropped, or the gateway resetting its upstream) is answered
+499 whatever error the SDK surfaced first, the body's EOF included, and logged
+at warn instead of error: blob save, load, HEAD, list and delete, config save,
+load, HEAD and delete, repository create. Blob save and load, the two handlers
+that count `storage.backend.errors`, leave that counter alone. Three cases
+differ: a download that fails mid-stream still logs "error streaming response"
+at error; a list whose response write or flush fails has already sent its 200
+and is logged at warn only; and a list that fails after part of the body is
+out has already sent its 200 too, so the handler logs the warn and panics with
+`http.ErrAbortHandler` to truncate the response, and that panic also skips the
+`http.server.request.count` increment in the metrics middleware, so the
+request is missing from the series. The 499 stays in
+`http.server.request.count` and `http.server.request.errors` (status >= 400)
+but out of the `status=~"5.."` alerts: a 5xx there would read as "backups are
+down" every time a client restarts. The pool asks a different question, is
+this a backend signal: a failure on any context the caller ended, cancelled or
+past its deadline, is not scored for or against the backend and is not counted
+in `s3.backend.requests` or `s3.backend.errors`. The 499 itself is keyed on
+the request context being cancelled, so a request that hit a deadline would
+still be a 500 with the error log (and `storage.backend.errors` for blob save
+and load) while leaving the backend's health score alone; nothing in michael
+sets a request deadline today. michael cannot tell a client abort from an
+envoy upstream reset, so a stalled RGW that envoy times out lands here too,
+and pool health will not flag it either: the health probe treats its
+own 5s timeout as a pass, so `s3.backend.healthy` stays 1. That case shows up
+as time-to-first-byte (MichaelHighTTFB), as a climbing `s3.backend.inflight`
+on the gateway, and as a 499 rate in `http.server.request.count`, not in the
+5xx alerts.

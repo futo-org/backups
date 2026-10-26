@@ -587,11 +587,21 @@ func (p *Pool) noteCanaryLiveness(b *backend) bool {
 	return false
 }
 
-func (p *Pool) runOn(b *backend, fn func(s Storage) error) error {
+// A context the caller ended, cancelled or past its deadline, is not a backend
+// health signal, and the SDK may surface the body's EOF instead of the context
+// error, which isBackendFailure would score.
+func (p *Pool) settle(ctx context.Context, b *backend, err error) {
+	if err != nil && ctx.Err() != nil {
+		return
+	}
+	p.recordResult(b, err)
+}
+
+func (p *Pool) runOn(ctx context.Context, b *backend, fn func(s Storage) error) error {
 	b.inflight.Add(1)
 	err := fn(b.store)
 	b.inflight.Add(-1)
-	p.recordResult(b, err)
+	p.settle(ctx, b, err)
 	return err
 }
 
@@ -608,7 +618,7 @@ func (p *Pool) do(ctx context.Context, canRetry func() bool, fn func(s Storage) 
 	if perr != nil {
 		return perr
 	}
-	err := p.runOn(pk.b, fn)
+	err := p.runOn(ctx, pk.b, fn)
 	p.release(pk)
 	if !isBackendFailure(err) || canRetry == nil || !canRetry() || ctx.Err() != nil {
 		return err
@@ -622,7 +632,7 @@ func (p *Pool) do(ctx context.Context, canRetry func() bool, fn func(s Storage) 
 		return err
 	}
 	p.retries.Add(1)
-	rerr := p.runOn(next, fn)
+	rerr := p.runOn(ctx, next, fn)
 	if !isBackendFailure(rerr) {
 		p.retrySuccesses.Add(1)
 	}
@@ -728,7 +738,7 @@ func (p *Pool) PutObject(ctx context.Context, bucket, key string, body io.Reader
 	if err == nil && contentLength > 0 {
 		b.uploadedBytes.Add(contentLength)
 	}
-	p.recordResult(b, err)
+	p.settle(ctx, b, err)
 	p.release(pk)
 	return err
 }
@@ -770,7 +780,7 @@ func (p *Pool) getFrom(ctx context.Context, pk picked, bucket, key, rangeHeader 
 	obj, err := b.store.GetObject(ctx, bucket, key, rangeHeader)
 	if err != nil {
 		b.inflight.Add(-1)
-		p.recordResult(b, err)
+		p.settle(ctx, b, err)
 		p.release(pk)
 		return nil, err
 	}
@@ -782,7 +792,7 @@ func (p *Pool) getFrom(ctx context.Context, pk picked, bucket, key, rangeHeader 
 		p.release(pk)
 		pk = picked{b: b}
 	}
-	obj.Body = &poolBody{ReadCloser: obj.Body, pool: p, picked: pk}
+	obj.Body = &poolBody{ReadCloser: obj.Body, ctx: ctx, pool: p, picked: pk}
 	return obj, nil
 }
 
@@ -792,6 +802,7 @@ func (p *Pool) getFrom(ctx context.Context, pk picked, bucket, key, rangeHeader 
 // dead gateway has no HTTP status and so counts as a transport failure).
 type poolBody struct {
 	io.ReadCloser
+	ctx     context.Context
 	pool    *Pool
 	picked  picked
 	n       int64
@@ -813,7 +824,7 @@ func (b *poolBody) Close() error {
 	if b.done.CompareAndSwap(false, true) {
 		b.picked.b.inflight.Add(-1)
 		b.picked.b.downloadedBytes.Add(b.n)
-		b.pool.recordResult(b.picked.b, b.readErr)
+		b.pool.settle(b.ctx, b.picked.b, b.readErr)
 		b.pool.release(b.picked)
 	}
 	return err
