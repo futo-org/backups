@@ -4,9 +4,8 @@
     type BackupStatusType,
   } from "$lib/components/backups/BackupStatus.svelte";
   import OnEvents from "$lib/components/util/OnEvents.svelte";
-  import { options } from "$lib/options";
-  import { createLogObserver } from "$lib/services/log.service.svelte";
   import {
+    getRemainingText,
     handleCancelJob,
     jobKinds,
     useJob,
@@ -37,21 +36,17 @@
 
   const { jobId, onClose, onRetry }: Props = $props();
 
-  const advanced = options.advanced;
-  const showAdvanced = $derived($advanced);
-  // svelte-ignore state_referenced_locally
-  const log = createLogObserver(jobId);
   // svelte-ignore state_referenced_locally
   const jobQuery = useJob(jobId);
   const job = $derived(jobQuery.data);
-  const { onJobUpdate } = useJobEventHandler();
+  const { onJobUpdate, onJobTick } = useJobEventHandler();
+  const summary = $derived(job?.outcome?.summary);
 
   let now = $state(DateTime.now());
   const tick = setInterval(() => (now = DateTime.now()), 1000);
 
   onDestroy(() => {
     clearInterval(tick);
-    log.destroy();
   });
 
   const kind = $derived(job ? jobKinds[job.name] : "backup");
@@ -151,7 +146,7 @@
   });
 </script>
 
-<OnEvents {onJobUpdate} />
+<OnEvents {onJobUpdate} {onJobTick} />
 
 <Modal
   size="medium"
@@ -171,70 +166,49 @@
       {title}
       {type}
       state={backupState}
-      progress={log.status.progress}
+      progress={job?.progress?.percentDone ?? (summary ? 1 : 0)}
       start={job?.start}
       {duration}
-      remaining={log.status.text}
-      errors={log.errors}
-      currentFiles={log.status.currentFiles}
+      remaining={getRemainingText(job?.progress)}
+      errors={job?.outcome?.errors}
+      currentFiles={job?.progress?.currentFiles}
       onRetry={retry}
       onCancel={job ? () => void handleCancelJob(job.id) : undefined}
     >
       {#snippet details()}
-        {#if log.summary && type === "backup"}
+        {#if summary?.type === "backup"}
           {$t({
             message: "{count} items backed up",
             values: {
-              count: (log.summary.total_files_processed ?? 0).toLocaleString(),
+              count: summary.totalFilesProcessed.toLocaleString(),
             },
           })} &middot;
           {$t({
             message: "{count} new items",
-            values: { count: (log.summary.files_new ?? 0).toLocaleString() },
+            values: { count: summary.filesNew.toLocaleString() },
           })}
-          {#if log.summary.total_bytes_processed !== undefined}
-            &middot;
-            <FormatBytes bytes={log.summary.total_bytes_processed} /> {$t`processed`}
-          {/if}
-        {:else if log.summary && type === "restore"}
+          &middot;
+          <FormatBytes bytes={summary.totalBytesProcessed} /> {$t`processed`}
+        {:else if summary?.type === "restore"}
           {$t({
             message: "{count} items restored",
-            values: { count: (log.summary.files_restored ?? 0).toLocaleString() },
-          })}{#if log.summary.files_skipped}
+            values: { count: summary.filesRestored.toLocaleString() },
+          })}{#if summary.filesSkipped}
             &middot; {$t({
               message: "{count} skipped",
-              values: { count: log.summary.files_skipped.toLocaleString() },
+              values: { count: summary.filesSkipped.toLocaleString() },
             })}
           {/if}
-          {#if log.summary.bytes_restored !== undefined}
-            &middot; <FormatBytes bytes={log.summary.bytes_restored} /> {$t`restored`}
-          {/if}
-        {:else if type === "forget"}
-          {$plural(log.pruned.removed, {
+          &middot; <FormatBytes bytes={summary.bytesRestored} /> {$t`restored`}
+        {:else if summary?.type === "prune"}
+          {$plural(summary.removed, {
             one: "# backup removed",
             other: "# backups removed",
           })} &middot;
           {$t({
             message: "{count} kept",
-            values: { count: log.pruned.kept.toLocaleString() },
+            values: { count: summary.kept.toLocaleString() },
           })}
-        {/if}
-      {/snippet}
-
-      {#snippet advanced()}
-        {#if showAdvanced}
-          <Stack gap={1}>
-            <Heading tag="h3" size="small">{$t`Event Log`}</Heading>
-            <Scrollable class="h-80 overflow-x-hidden">
-              <Stack gap={1}>
-                {#each log.events as event, index (index)}
-                  <Text size="tiny" class="font-mono select-all">
-                    {JSON.stringify(event)}
-                  </Text>
-                {/each}
-              </Stack>
-            </Scrollable>
-          </Stack>
         {/if}
       {/snippet}
     </BackupStatus>

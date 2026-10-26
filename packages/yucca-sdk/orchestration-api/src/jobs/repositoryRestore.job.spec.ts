@@ -38,7 +38,7 @@ describe(RepositoryRestoreJob.name, () => {
       resticParameters.placement,
       'snapshot-1',
       options,
-      context.logWriter,
+      expect.any(Function),
       context.signal,
     );
   });

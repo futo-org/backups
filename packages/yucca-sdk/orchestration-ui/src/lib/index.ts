@@ -32,7 +32,6 @@ export * from './services/backend.service';
 export * from './services/filesystem.service';
 export * from './services/integrations.service';
 export * from './services/job.service';
-export * from './services/log.service.svelte';
 export * from './services/metricsHistory.service';
 export * from './services/onboarding.service';
 export * from './services/repository.service';

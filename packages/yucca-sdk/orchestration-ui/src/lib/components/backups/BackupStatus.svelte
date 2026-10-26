@@ -37,7 +37,6 @@
     errors?: string[];
     details?: Snippet;
     currentFiles?: string[];
-    advanced?: Snippet;
     onRetry?: () => void;
     onCancel?: () => void;
   };
@@ -53,7 +52,6 @@
     errors = [],
     details,
     currentFiles = [],
-    advanced,
     onRetry,
     onCancel,
   }: Props = $props();
@@ -260,5 +258,4 @@
     </Stack>
   {/if}
 
-  {@render advanced?.()}
 </Stack>

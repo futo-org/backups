@@ -1,7 +1,6 @@
-import { Controller, Delete, Get, HttpCode, NotFoundException, Param, Query, Res, Sse } from '@nestjs/common';
+import { Controller, Delete, Get, HttpCode, NotFoundException, Param, Query, Res } from '@nestjs/common';
 import { ApiNoContentResponse, ApiOkResponse, ApiOperation, ApiParam } from '@nestjs/swagger';
 import { type Response } from 'express';
-import { Observable } from 'rxjs';
 import { JobDto, JobListRequestDto, JobListResponseDto } from '../dto/job.dto.js';
 import { JobRepository } from '../repositories/job.repository.js';
 import { StorageRepository } from '../repositories/storage.repository.js';
@@ -74,16 +73,5 @@ export class JobController {
       dotfiles: 'allow',
       headers: { 'Content-Type': 'application/jsonl' },
     });
-  }
-
-  @Sse('/:id/stream')
-  @ApiParam({ name: 'id', type: String })
-  @ApiOperation({
-    summary: 'Stream a job log',
-    description: 'Stream the log of a job as server-sent events, starting with its last 50 lines.',
-  })
-  @ApiOkResponse({ content: { 'text/event-stream': { schema: { type: 'string' } } } })
-  logStreamSse(@Param('id') id: string): Observable<MessageEvent> {
-    return this.repository.getObservable(id);
   }
 }

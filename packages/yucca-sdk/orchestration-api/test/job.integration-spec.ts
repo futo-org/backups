@@ -15,7 +15,7 @@ const forget = (snapshotId: string) =>
   ({ name: JobName.RepositorySnapshotForget, data: { repositoryId, snapshotId } }) as const;
 
 const getJob = (id: string) =>
-  ctx.database.prepare('SELECT * FROM jobs WHERE id = ?').get(id) as { status: JobStatus; error: string | null };
+  ctx.database.prepare('SELECT * FROM jobs WHERE id = ?').get(id) as { status: JobStatus; outcome: string | null };
 
 const blockForgetUntilAborted = () => {
   const started = Promise.withResolvers<void>();
@@ -82,7 +82,8 @@ describe(JobRepository.name, () => {
     const id = await jobs.queue(forget('snapshot-1'));
 
     await expect(jobs.wait(id)).rejects.toThrow('restic forget failed');
-    expect(getJob(id)).toMatchObject({ status: JobStatus.Failed, error: 'Error: restic forget failed' });
+    expect(getJob(id).status).toBe(JobStatus.Failed);
+    expect(JSON.parse(getJob(id).outcome!)).toEqual({ errors: ['Error: restic forget failed'] });
 
     const log = await readFile(join(ctx.statePath, 'logs', 'jobs', `${id}.jsonl`), 'utf8');
     expect(log).toContain('restic forget failed');
@@ -189,6 +190,44 @@ describe(JobRepository.name, () => {
     } finally {
       ctx.events.off(record);
     }
+  });
+
+  it('reports and publishes the progress of the running job until it finishes', async () => {
+    const jobs = ctx.module.get(JobRepository);
+    const started = Promise.withResolvers<void>();
+    const released = Promise.withResolvers<void>();
+    ctx.resticMock.restore.mockImplementationOnce((...args: unknown[]) => {
+      const log = args[5] as (event: object) => void;
+      log({ message_type: 'status', percent_done: 0.5, total_bytes: 100, bytes_restored: 50 });
+      started.resolve();
+      return released.promise as never;
+    });
+
+    const id = await jobs.queue({
+      name: JobName.RepositoryRestore,
+      data: { repositoryId, snapshotId: 'snapshot-1', options: {} },
+    });
+    await started.promise;
+
+    const progress = { percentDone: 0.5, bytesDone: 50, totalBytes: 100, currentFiles: [] };
+    await expect(jobs.get(id)).resolves.toMatchObject({ progress });
+
+    const events: GatewayEvent[] = [];
+    const record = (event: GatewayEvent) => events.push(event);
+    ctx.events.on(record);
+    try {
+      jobs.publishProgress();
+      jobs.publishProgress();
+    } finally {
+      ctx.events.off(record);
+    }
+
+    expect(events).toEqual([{ type: 'JobTick', jobId: id, repositoryId, progress: expect.objectContaining(progress) }]);
+
+    released.resolve();
+    await jobs.wait(id);
+
+    await expect(jobs.get(id)).resolves.toMatchObject({ progress: undefined });
   });
 
   it('keeps a job inserted later but queued earlier behind newer jobs', async () => {

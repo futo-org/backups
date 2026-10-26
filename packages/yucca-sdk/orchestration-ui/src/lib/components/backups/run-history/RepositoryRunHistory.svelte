@@ -20,7 +20,7 @@
 
   let { repository, limit = 5, onViewAll }: Props = $props();
 
-  const query = useJobs(() => repository.id);
+  const query = useJobs(() => repository.id, "repository-backup");
   const { onJobCreate, onJobUpdate } = useJobEventHandler();
 </script>
 

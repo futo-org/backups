@@ -7,7 +7,7 @@ export class JobTable {
   repositoryId!: string;
 
   status!: JobStatus;
-  error?: string;
+  outcome?: string;
   logFilePath!: string;
 
   queuedAt!: string;

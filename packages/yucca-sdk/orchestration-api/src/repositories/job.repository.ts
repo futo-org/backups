@@ -1,15 +1,13 @@
 import { BeforeApplicationShutdown, Injectable, NotFoundException, OnModuleInit } from '@nestjs/common';
 import { DiscoveryService, Reflector } from '@nestjs/core';
-import { EventIterator } from 'event-iterator';
+import { Interval } from '@nestjs/schedule';
 import { Kysely, Selectable, sql, UpdateQueryBuilder, UpdateResult } from 'kysely';
 import { InjectKysely } from 'nestjs-kysely';
 import { randomUUID } from 'node:crypto';
 import { dirname, join, resolve } from 'node:path';
 import { Writable } from 'node:stream';
-import { from } from 'rxjs';
-import { Tail } from 'tail';
 import { JobConfig } from '../decorators.js';
-import { JobDto } from '../dto/job.dto.js';
+import { JobDto, JobProgressDto } from '../dto/job.dto.js';
 import { JobName, JobStatus, MetadataKey } from '../enum.js';
 import { EventsGateway, GatewayEvent } from '../events/events.gateway.js';
 import { JobContext } from '../jobs/jobContext.js';
@@ -24,7 +22,10 @@ import { StorageRepository } from './storage.repository.js';
 
 export type Job = Selectable<JobTable>;
 
-const toJobDto = ({ data: _data, logFilePath: _logFilePath, ...job }: Job): JobDto => job;
+const toJobDto = ({ data: _data, logFilePath: _logFilePath, outcome, ...job }: Job): JobDto => ({
+  ...job,
+  outcome: outcome ? JSON.parse(outcome) : undefined,
+});
 
 const finishedStatuses = new Set([JobStatus.Complete, JobStatus.Warn, JobStatus.Failed, JobStatus.Cancelled]);
 
@@ -33,7 +34,13 @@ export class JobRepository implements OnModuleInit, BeforeApplicationShutdown {
   private handlers = new Map<JobName, { label: string; handler: JobHandler<unknown> }>();
 
   private dispatching?: Promise<void>;
-  private running?: { id: string; repositoryId: string; controller: AbortController };
+  private running?: {
+    id: string;
+    repositoryId: string;
+    controller: AbortController;
+    ctx?: JobContext;
+    lastProgressTick?: JobProgressDto;
+  };
   private stopped = false;
   private activeJobs = new Map<string, PromiseWithResolvers<Job>>();
 
@@ -161,8 +168,11 @@ export class JobRepository implements OnModuleInit, BeforeApplicationShutdown {
 
   async get(id: string) {
     const job = await this.find(id);
+    if (!job) {
+      return;
+    }
 
-    return job && toJobDto(job);
+    return { ...toJobDto(job), progress: this.running?.id === id ? this.running.ctx?.progress : undefined };
   }
 
   private find(id: string) {
@@ -193,39 +203,6 @@ export class JobRepository implements OnModuleInit, BeforeApplicationShutdown {
       .executeTakeFirst();
 
     return job && toJobDto(job);
-  }
-
-  getObservable(id: string) {
-    return from(
-      new EventIterator<MessageEvent>((queue) => {
-        let tail: Tail | undefined;
-        let logFilePath = '';
-
-        this.getLogFilePath(id)
-          .then((path) => {
-            if (!path) {
-              throw new NotFoundException('Job not found');
-            }
-
-            logFilePath = path;
-          })
-          .then(() => this.storage.mkdir(dirname(logFilePath), { recursive: true }))
-          .then(() => this.storage.touch(logFilePath))
-          .then(() => {
-            tail = new Tail(logFilePath, { fromBeginning: true, nLines: 50 });
-            tail.on('line', (data) => queue.push({ data } as MessageEvent));
-            tail.on('error', (error) => {
-              this.logger.warn(`tail ${logFilePath} stopped:`, error);
-              tail?.unwatch();
-            });
-          })
-          .catch(queue.fail);
-
-        return () => {
-          tail?.unwatch();
-        };
-      }),
-    );
   }
 
   async onEvent(event: GatewayEvent) {
@@ -350,7 +327,7 @@ export class JobRepository implements OnModuleInit, BeforeApplicationShutdown {
     if (job.status === JobStatus.Complete) {
       waiter.resolve(job);
     } else {
-      waiter.reject(error ?? new Error(job.error ?? job.status));
+      waiter.reject(error ?? new Error(toJobDto(job).outcome?.errors.at(-1) ?? job.status));
     }
   }
 
@@ -417,20 +394,23 @@ export class JobRepository implements OnModuleInit, BeforeApplicationShutdown {
     this.running = { id: job.id, repositoryId: job.repositoryId, controller: new AbortController() };
 
     const ctx = await this.createCtx(job, this.running.controller.signal);
+    this.running.ctx = ctx;
 
     let error: unknown;
     try {
       await handler.run(JSON.parse(job.data), ctx);
     } catch (error_) {
       error = error_;
-      writeError(ctx.logWriter, error);
+      writeError((event) => ctx.log(event), error);
+    } finally {
+      this.running = undefined;
     }
 
     await new Promise<void>((done) => ctx.logWriter.end(done));
 
     const updateSet = {
       status: getJobStatus(error),
-      error: error ? `${error}` : undefined,
+      outcome: JSON.stringify(ctx.outcome),
       end: new Date().toISOString(),
     };
 
@@ -448,9 +428,20 @@ export class JobRepository implements OnModuleInit, BeforeApplicationShutdown {
       type: 'JobUpdate',
       jobId: job.id,
       repositoryId: job.repositoryId,
-      job: { status: job.status, error: job.error, end: job.end },
+      job: { status: job.status, outcome: ctx.outcome, end: job.end },
     });
 
     this.settle(job, error);
+  }
+
+  @Interval(1000)
+  publishProgress() {
+    const progress = this.running?.ctx?.progress;
+    if (!this.running || !progress || progress === this.running.lastProgressTick) {
+      return;
+    }
+
+    this.running.lastProgressTick = progress;
+    this.events.publish({ type: 'JobTick', jobId: this.running.id, repositoryId: this.running.repositoryId, progress });
   }
 }
