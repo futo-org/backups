@@ -8,16 +8,16 @@ import {
   ImmichRollbackRequestDto,
   IntegrationsResponseDto,
 } from '../dto/integrations.dto.js';
-import { InternalEvent, TaskType } from '../enum.js';
+import { InternalEvent, JobName } from '../enum.js';
 import { EventsGateway } from '../events/events.gateway.js';
 import type { ImmichIntegration, ModuleConfig } from '../moduleConfig.js';
 import { ConfigRepository } from '../repositories/config.repository.js';
+import { JobRepository } from '../repositories/job.repository.js';
 import { LockRepository } from '../repositories/lock.repository.js';
 import { ModuleConfigRepository } from '../repositories/moduleConfig.repository.js';
 import { RepositoryRepository } from '../repositories/repository.repository.js';
 import { RepositoryIntegrationImmichRepository } from '../repositories/repositoryIntegrationImmich.repository.js';
 import { RepositoryPathRepository } from '../repositories/repositoryPath.repository.js';
-import { RunHistoryRepository } from '../repositories/runHistory.repository.js';
 import { ScheduleRepository } from '../repositories/schedule.repository.js';
 import { ImmichRepositoryConfig } from '../schema/tables/repositoryIntegrationImmich.table.js';
 import { BackendService } from './backend.service.js';
@@ -35,8 +35,8 @@ export class IntegrationsService {
     private readonly repositoryIntegrationImmich: RepositoryIntegrationImmichRepository,
     private readonly repositoryPath: RepositoryPathRepository,
     private readonly repositoryService: RepositoryService,
+    private readonly jobs: JobRepository,
     private readonly repository: RepositoryRepository,
-    private readonly runHistory: RunHistoryRepository,
     private readonly schedule: ScheduleRepository,
     private readonly scheduleService: ScheduleService,
     private readonly telemetry: TelemetryService,
@@ -74,12 +74,12 @@ export class IntegrationsService {
       return {};
     }
 
-    const [{ repositories }, { backends }, schedule, latestBackupRun, databaseDump, databaseDumpWarningIgnored] =
+    const [{ repositories }, { backends }, schedule, latestBackupJob, databaseDump, databaseDumpWarningIgnored] =
       await Promise.all([
         this.repositoryService.getRepositories(),
         this.backendService.getBackends(),
         this.schedule.get(integration.scheduleId),
-        this.runHistory.getLatest(integration.id, TaskType.Backup),
+        this.jobs.getLatest(integration.id, JobName.RepositoryBackup),
         immichIntegration.hooks.getImmichDatabaseDumpConfig(),
         this.config.hasIgnoredImmichDatabaseDumpWarning(),
       ]);
@@ -91,7 +91,7 @@ export class IntegrationsService {
       repository,
       backend: backends.find((entry) => entry.id === repository?.backends?.primary.id),
       schedule,
-      latestBackupRun,
+      latestBackupJob,
       databaseDump,
       databaseDumpWarningIgnored,
     };

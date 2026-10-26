@@ -4,9 +4,9 @@
   import RelativeTime from "$lib/components/util/RelativeTime.svelte";
   import type { LocalRepositoryDto, ScheduleDto } from "$lib/fetch-client";
   import type { ImmichBackupStatus } from "$lib/services/immich.integration.service";
+  import { handleCancelJob } from "$lib/services/job.service";
   import { handleCreateBackup } from "$lib/services/repository.service";
   import { handleResumeSchedule } from "$lib/services/schedule.service";
-  import { handleCancelTask } from "$lib/services/task.service";
   import { Button, FormatBytes, Icon } from "@immich/ui";
   import {
     mdiAlert,
@@ -84,8 +84,8 @@
         class="whitespace-nowrap"
         leadingIcon={running ? mdiStopCircleOutline : mdiCloudUploadOutline}
         onclick={() =>
-          void (running
-            ? handleCancelTask(repository.id)
+          void (status.kind === "running"
+            ? handleCancelJob(status.jobId)
             : handleCreateBackup(repository.id))}
       >
         {running ? $t`Cancel backup` : $t`Back up now`}

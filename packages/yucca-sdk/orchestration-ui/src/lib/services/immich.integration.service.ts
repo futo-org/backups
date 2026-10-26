@@ -12,6 +12,7 @@ import { queryClient } from '$lib/query-client';
 import { handleError } from '$lib/utils/handle-error';
 import { getBackupOutcome } from '$lib/utils/backup-status';
 import { createMutation, createQuery } from '@tanstack/svelte-query';
+import { isJobFinished } from './job.service';
 import { handleCreateBackup } from './repository.service';
 import { gt, msg } from 'svelte-i18n-lingui';
 
@@ -64,21 +65,16 @@ export const useImmichBackupStatusEventHandler = () => ({
   onRepositoryUpdate: invalidateImmichBackupStatus,
   onRepositoryDelete: invalidateImmichBackupStatus,
   onScheduleUpdate: invalidateImmichBackupStatus,
-  onRunCreate: invalidateImmichBackupStatus,
-  onRunUpdate: invalidateImmichBackupStatus,
+  onJobCreate: invalidateImmichBackupStatus,
+  onJobUpdate: invalidateImmichBackupStatus,
 });
 
 export type ImmichBackupStatus =
   | {
       kind:
-        | 'loading'
-        | 'offline'
-        | 'missing'
-        | 'running'
-        | 'paused'
-        | 'unconfigured'
-        | 'never';
+        'loading' | 'offline' | 'missing' | 'paused' | 'unconfigured' | 'never';
     }
+  | { kind: 'running'; jobId: string }
   | {
       kind: 'complete' | 'warn' | 'incomplete' | 'failed' | 'cancelled';
       lastBackup: string;
@@ -100,8 +96,8 @@ export const toImmichBackupStatus = (
     return { kind: 'missing' };
   }
 
-  if (data.latestBackupRun?.status === 'incomplete') {
-    return { kind: 'running' };
+  if (data.latestBackupJob && !isJobFinished(data.latestBackupJob.status)) {
+    return { kind: 'running', jobId: data.latestBackupJob.id };
   }
 
   const outcome = getBackupOutcome(data.repository?.metrics);

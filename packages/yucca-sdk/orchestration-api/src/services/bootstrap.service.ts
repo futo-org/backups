@@ -2,6 +2,7 @@ import { Injectable, OnApplicationBootstrap } from '@nestjs/common';
 import { BootstrapRepository } from '../repositories/bootstrap.repository.js';
 import { ConfigRepository } from '../repositories/config.repository.js';
 import { DatabaseRepository } from '../repositories/database.repository.js';
+import { JobRepository } from '../repositories/job.repository.js';
 import { LoggingRepository } from '../repositories/logging.repository.js';
 import { ModuleConfigRepository } from '../repositories/moduleConfig.repository.js';
 import { discardStateCacheDirectory } from '../utils/cache.js';
@@ -14,6 +15,7 @@ export class BootstrapService implements OnApplicationBootstrap {
   constructor(
     private readonly logger: LoggingRepository,
     private readonly database: DatabaseRepository,
+    private readonly jobs: JobRepository,
     private readonly config: ConfigRepository,
     private readonly configService: ConfigService,
     private readonly schedule: ScheduleService,
@@ -31,6 +33,7 @@ export class BootstrapService implements OnApplicationBootstrap {
       }
 
       await this.database.runMigrations();
+      await this.jobs.start();
       await this.config.bootstrap();
       await this.configService.bootstrap();
       await this.schedule.bootstrap();

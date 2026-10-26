@@ -181,7 +181,7 @@ export const handleCreateBackup = async (id: string) => {
     toastManager.info(gt`Started backup`);
     const response = await sdk.createBackup(id);
     void modalManager.open(ViewStatusModal, {
-      logId: response.logId,
+      jobId: response.jobId,
       onRetry: () => void handleCreateBackup(id),
     });
     return response;
@@ -196,7 +196,7 @@ export const handlePruneRepository = async (id: string) => {
     toastManager.info(gt`Cleaning up old backups`);
     const response = await sdk.pruneRepository(id);
     void modalManager.open(ViewStatusModal, {
-      logId: response.logId,
+      jobId: response.jobId,
       onRetry: () => void handlePruneRepository(id),
     });
     return response;

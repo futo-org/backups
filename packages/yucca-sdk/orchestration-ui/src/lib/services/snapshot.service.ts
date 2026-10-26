@@ -1,16 +1,15 @@
 import { sdk } from '$lib';
 import RestoreSnapshotModal from '$lib/components/backups/dialogs/RestoreSnapshotModal.svelte';
 import RollbackSnapshotModal from '$lib/components/backups/dialogs/RollbackSnapshotModal.svelte';
-import { SocketEvent } from '$lib/events';
 import {
   getSnapshots,
   type ImmichRollbackRequestDto,
   type RepositorySnapshotRestoreFromPointRequestDto,
   type RepositorySnapshotRestoreRequestDto,
-  type RunDto,
   type SnapshotDto,
 } from '$lib/fetch-client';
 import { queryClient } from '$lib/query-client';
+import type { JobUpdateEvent } from '$lib/services/job.service';
 import { handleError } from '$lib/utils/handle-error';
 import { modalManager, toastManager, type ActionItem } from '@immich/ui';
 import { mdiBackupRestore, mdiDeleteOutline, mdiHistory } from '@mdi/js';
@@ -35,14 +34,8 @@ export const useSnapshots = (repositoryId: string) =>
 
 export const useSnapshotEventHandler = () => {
   return {
-    onRunUpdate(
-      event: SocketEvent<{
-        runId: string;
-        repositoryId: string;
-        run: Partial<RunDto>;
-      }>,
-    ) {
-      if (event.data.run.status === 'complete') {
+    onJobUpdate(event: JobUpdateEvent) {
+      if (event.data.job.status === 'complete') {
         void queryClient.invalidateQueries({
           queryKey: snapshotKeys.byRepository(event.data.repositoryId),
         });

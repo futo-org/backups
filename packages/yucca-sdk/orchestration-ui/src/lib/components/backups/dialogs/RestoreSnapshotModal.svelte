@@ -44,11 +44,11 @@
     mutation.mutate(
       { repositoryId: repository, snapshotId: snapshot, options: dto },
       {
-        onSuccess: ({ logId }) => {
+        onSuccess: ({ jobId }) => {
           onClose();
 
           modalManager.open(ViewStatusModal, {
-            logId,
+            jobId,
           });
         },
       },

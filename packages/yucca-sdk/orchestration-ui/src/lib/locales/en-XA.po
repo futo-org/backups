@@ -93,6 +93,10 @@ msgstr ""
 msgid "{running} in progress"
 msgstr ""
 
+#: src/lib/components/backups/run-history/RepositoryRunHistoryItem.svelte
+msgid "{running} queued"
+msgstr ""
+
 #: src/lib/components/dashboard/DashboardBackupHealth.svelte
 msgid "{successful} of {total} successful"
 msgstr ""
@@ -257,15 +261,15 @@ msgid "Backup"
 msgstr ""
 
 #: src/lib/components/backups/metrics-history/MetricsHistoryModal.svelte
-#: src/lib/services/runHistory.service.ts
+#: src/lib/services/job.service.ts
 msgid "Backup cancelled"
 msgstr ""
 
-#: src/lib/services/runHistory.service.ts
+#: src/lib/services/job.service.ts
 msgid "Backup complete"
 msgstr ""
 
-#: src/lib/services/runHistory.service.ts
+#: src/lib/services/job.service.ts
 msgid "Backup completed with warnings"
 msgstr ""
 
@@ -288,7 +292,7 @@ msgstr ""
 
 #: src/lib/components/backups/metrics-history/MetricsHistoryModal.svelte
 #: src/lib/components/integrations/immich/ImmichBackupsSidebarItem.svelte
-#: src/lib/services/runHistory.service.ts
+#: src/lib/services/job.service.ts
 msgid "Backup failed"
 msgstr ""
 
@@ -599,7 +603,7 @@ msgstr ""
 msgid "Copy code"
 msgstr ""
 
-#: src/lib/services/runHistory.service.ts
+#: src/lib/services/job.service.ts
 msgid "Could not finish backing up."
 msgstr ""
 
@@ -690,7 +694,7 @@ msgstr ""
 msgid "Discord account linked. You can head back to Discord."
 msgstr ""
 
-#: src/lib/services/runHistory.service.ts
+#: src/lib/services/job.service.ts
 msgid "Download Full Log"
 msgstr ""
 
@@ -784,6 +788,7 @@ msgstr ""
 msgid "Failed only"
 msgstr ""
 
+#: src/lib/services/job.service.ts
 #: src/lib/services/task.service.ts
 msgid "Failed to cancel task"
 msgstr ""
@@ -839,10 +844,6 @@ msgstr ""
 
 #: src/lib/services/onboarding.service.ts
 msgid "Failed to load recovery key"
-msgstr ""
-
-#: src/lib/services/runHistory.service.ts
-msgid "Failed to load run history"
 msgstr ""
 
 #: src/lib/services/task.service.ts
@@ -1223,7 +1224,7 @@ msgstr ""
 msgid "Libraries stored outside of Immich. New libraries are included automatically unless you choose specific ones."
 msgstr ""
 
-#: src/lib/services/runHistory.service.ts
+#: src/lib/services/job.service.ts
 msgid "Library successfully backed up."
 msgstr ""
 
@@ -1347,6 +1348,18 @@ msgstr ""
 
 #: src/lib/components/backups/metrics-history/MetricsHistoryModal.svelte
 msgid "Metrics history for {name}"
+msgstr ""
+
+#: src/lib/components/backups/run-history/RepositoryRunHistoryItem.svelte
+msgid "metrics sync"
+msgstr ""
+
+#: src/lib/components/backups/run-history/RepositoryRunHistoryItem.svelte
+msgid "Metrics sync"
+msgstr ""
+
+#: src/lib/components/backups/run-history/RepositoryRunHistoryItem.svelte
+msgid "Metrics synced"
 msgstr ""
 
 #: src/lib/components/backends/BackendItem.svelte
@@ -1686,6 +1699,10 @@ msgstr ""
 msgid "Pruning old backups was cancelled"
 msgstr ""
 
+#: src/lib/components/backups/run-history/RepositoryRunHistoryItem.svelte
+msgid "Queued"
+msgstr ""
+
 #: src/lib/components/schedules/ScheduleItem.svelte
 msgid "Ran"
 msgstr ""
@@ -1772,6 +1789,10 @@ msgstr ""
 
 #: src/lib/components/backups/dialogs/RestoreSnapshotModal.svelte
 msgid "Restore Backup"
+msgstr ""
+
+#: src/lib/components/onboarding/restore-point-flow/RestorePointFlow4Restore.svelte
+msgid "Restore cancelled"
 msgstr ""
 
 #: src/lib/components/onboarding/restore-point-flow/RestorePointFlow3ConfirmRestore.svelte
@@ -1991,7 +2012,7 @@ msgstr ""
 msgid "Snapshots for {name}"
 msgstr ""
 
-#: src/lib/services/runHistory.service.ts
+#: src/lib/services/job.service.ts
 msgid "Some files could not be backed up. Check the backup log for details."
 msgstr ""
 
@@ -2102,7 +2123,7 @@ msgstr ""
 msgid "That account does not own this instance. Log in with the account it was connected with."
 msgstr ""
 
-#: src/lib/services/runHistory.service.ts
+#: src/lib/services/job.service.ts
 msgid "The backup was stopped before it finished."
 msgstr ""
 
@@ -2220,7 +2241,7 @@ msgstr ""
 msgid "View history"
 msgstr ""
 
-#: src/lib/services/runHistory.service.ts
+#: src/lib/services/job.service.ts
 msgid "View Log"
 msgstr ""
 

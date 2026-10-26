@@ -152,16 +152,17 @@ export type ScheduleDto = {
     lastRun?: string;
     lastFinished?: string;
 };
-export type RunStatus = "incomplete" | "complete" | "warn" | "failed" | "cancelled";
-export type RunType = "schedule" | "restore" | "backup" | "forget";
-export type RunDto = {
+export type JobName = "repository-backup" | "repository-prune" | "repository-restore" | "repository-restore-from-point" | "repository-snapshot-forget" | "repository-sync-metrics";
+export type JobStatus = "queued" | "running" | "complete" | "warn" | "failed" | "cancelled";
+export type JobDto = {
     id: string;
+    name: JobName;
     repositoryId: string;
-    start: string;
+    status: JobStatus;
+    error?: string;
+    queuedAt: string;
+    start?: string;
     end?: string;
-    logFilePath: string;
-    status: RunStatus;
-    "type": RunType;
 };
 export type ImmichDatabaseDumpConfigDto = {
     enabled: boolean;
@@ -172,7 +173,7 @@ export type ImmichBackupStatusDto = {
     repository?: LocalRepositoryDto;
     backend?: BackendDto;
     schedule?: ScheduleDto;
-    latestBackupRun?: RunDto;
+    latestBackupJob?: JobDto;
     databaseDump?: ImmichDatabaseDumpConfigDto;
     databaseDumpWarningIgnored?: boolean;
 };
@@ -199,6 +200,9 @@ export type ImmichRollbackRequestDto = {
     repositoryId: string;
     snapshotId: string;
     backupFileName?: string;
+};
+export type JobListResponseDto = {
+    jobs: JobDto[];
 };
 export type BootstrapStatus = "not-ready" | "ready" | "error";
 export type TelemetryLevel = "full" | "none";
@@ -273,14 +277,25 @@ export type RepositoryUpdateRequestDto = {
 export type RepositoryUpdateResponseDto = {
     repository: LocalRepositoryDto;
 };
-export type LogResponseDto = {
-    logId: string;
+export type JobResponseDto = {
+    jobId: string;
 };
 export type RepositoryCheckImportResponseDto = {
     readable: boolean;
 };
 export type RepositoryPrimaryBackendReconfigureRequestDto = {
     backendId: string;
+};
+export type RunStatus = "incomplete" | "complete" | "warn" | "failed" | "cancelled";
+export type RunType = "schedule" | "restore" | "backup" | "forget";
+export type RunDto = {
+    id: string;
+    repositoryId: string;
+    start: string;
+    end?: string;
+    logFilePath: string;
+    status: RunStatus;
+    "type": RunType;
 };
 export type RunHistoryResponseDto = {
     runs: RunDto[];
@@ -517,6 +532,58 @@ export function startImmichRollback(immichRollbackRequestDto: ImmichRollbackRequ
     })));
 }
 /**
+ * List jobs
+ */
+export function getJobs(repositoryId: string, opts?: Oazapfts.RequestOpts) {
+    return oazapfts.ok(oazapfts.fetchJson<{
+        status: 200;
+        data: JobListResponseDto;
+    }>(`/api/yucca/jobs${QS.query(QS.explode({
+        repositoryId
+    }))}`, {
+        ...opts
+    }));
+}
+/**
+ * Get a job
+ */
+export function getJob(id: string, opts?: Oazapfts.RequestOpts) {
+    return oazapfts.ok(oazapfts.fetchJson<{
+        status: 200;
+        data: JobDto;
+    }>(`/api/yucca/jobs/${encodeURIComponent(id)}`, {
+        ...opts
+    }));
+}
+/**
+ * Cancel a job
+ */
+export function cancelJob(id: string, opts?: Oazapfts.RequestOpts) {
+    return oazapfts.ok(oazapfts.fetchText(`/api/yucca/jobs/${encodeURIComponent(id)}`, {
+        ...opts,
+        method: "DELETE"
+    }));
+}
+/**
+ * Download a job log
+ */
+export function downloadJobLog(id: string, opts?: Oazapfts.RequestOpts) {
+    return oazapfts.ok(oazapfts.fetchBlob<{
+        status: 200;
+        data: Blob;
+    }>(`/api/yucca/jobs/${encodeURIComponent(id)}/download`, {
+        ...opts
+    }));
+}
+/**
+ * Stream a job log
+ */
+export function logStreamSse(id: string, opts?: Oazapfts.RequestOpts) {
+    return oazapfts.ok(oazapfts.fetchText(`/api/yucca/jobs/${encodeURIComponent(id)}/stream`, {
+        ...opts
+    }));
+}
+/**
  * Get backup onboarding status
  */
 export function onboardingStatus(opts?: Oazapfts.RequestOpts) {
@@ -659,7 +726,7 @@ export function deleteRepository(id: string, opts?: Oazapfts.RequestOpts) {
 export function createBackup(id: string, opts?: Oazapfts.RequestOpts) {
     return oazapfts.ok(oazapfts.fetchJson<{
         status: 201;
-        data: LogResponseDto;
+        data: JobResponseDto;
     }>(`/api/yucca/repository/${encodeURIComponent(id)}`, {
         ...opts,
         method: "POST"
@@ -733,7 +800,7 @@ export function getSnapshots(id: string, opts?: Oazapfts.RequestOpts) {
 export function pruneRepository(id: string, opts?: Oazapfts.RequestOpts) {
     return oazapfts.ok(oazapfts.fetchJson<{
         status: 201;
-        data: LogResponseDto;
+        data: JobResponseDto;
     }>(`/api/yucca/repository/${encodeURIComponent(id)}/snapshots/prune`, {
         ...opts,
         method: "POST"
@@ -745,7 +812,7 @@ export function pruneRepository(id: string, opts?: Oazapfts.RequestOpts) {
 export function restoreSnapshot(id: string, snapshot: string, repositorySnapshotRestoreRequestDto: RepositorySnapshotRestoreRequestDto, opts?: Oazapfts.RequestOpts) {
     return oazapfts.ok(oazapfts.fetchJson<{
         status: 201;
-        data: LogResponseDto;
+        data: JobResponseDto;
     }>(`/api/yucca/repository/${encodeURIComponent(id)}/snapshots/${encodeURIComponent(snapshot)}`, oazapfts.json({
         ...opts,
         method: "POST",
@@ -770,7 +837,7 @@ export function forgetSnapshot(id: string, snapshot: string, opts?: Oazapfts.Req
 export function restoreFromPoint(id: string, snapshot: string, backend: string, repositorySnapshotRestoreFromPointRequestDto: RepositorySnapshotRestoreFromPointRequestDto, opts?: Oazapfts.RequestOpts) {
     return oazapfts.ok(oazapfts.fetchJson<{
         status: 201;
-        data: LogResponseDto;
+        data: JobResponseDto;
     }>(`/api/yucca/repository/${encodeURIComponent(id)}/snapshots/${encodeURIComponent(snapshot)}/restore-from-point${QS.query(QS.explode({
         backend
     }))}`, oazapfts.json({
@@ -819,7 +886,7 @@ export function downloadRunLog(id: string, opts?: Oazapfts.RequestOpts) {
 /**
  * Stream a run log
  */
-export function logStreamSse(id: string, opts?: Oazapfts.RequestOpts) {
+export function runLogStreamSse(id: string, opts?: Oazapfts.RequestOpts) {
     return oazapfts.ok(oazapfts.fetchText(`/api/yucca/logs/${encodeURIComponent(id)}/stream`, {
         ...opts
     }));

@@ -1,6 +1,6 @@
 import { ResticBackupCommandCouldNotReadSourceDataError } from '@futo-org/restic-wrapper';
 import { SchedulerRegistry } from '@nestjs/schedule';
-import { TaskStatus } from '../src/enum.js';
+import { JobStatus } from '../src/enum.js';
 import { ModuleConfigRepository } from '../src/repositories/moduleConfig.repository.js';
 import { RepositoryIntegrationImmichRepository } from '../src/repositories/repositoryIntegrationImmich.repository.js';
 import { RepositoryService } from '../src/services/repository.service.js';
@@ -92,7 +92,16 @@ describe('Schedule', () => {
       repositories: [repo1.id, repo2.id],
     });
 
-    const lastRunEvent = waitForEvent(ctx.events, 'ScheduleUpdate');
+    const lastRunEvent = waitForEvent(
+      ctx.events,
+      'ScheduleUpdate',
+      (event) => event.type === 'ScheduleUpdate' && event.schedule.lastRun !== undefined,
+    );
+    const lastFinishedEvent = waitForEvent(
+      ctx.events,
+      'ScheduleUpdate',
+      (event) => event.type === 'ScheduleUpdate' && event.schedule.lastFinished !== undefined,
+    );
 
     ctx.resticMock.backup.mockReset();
     void ctx.module.get(SchedulerRegistry).getCronJob(schedule.id).fireOnTick();
@@ -103,10 +112,9 @@ describe('Schedule', () => {
         schedule: expect.objectContaining({ lastRun: expect.any(String) }),
       }),
     );
+    await expect(lastFinishedEvent).resolves.toEqual(expect.objectContaining({ scheduleId: schedule.id }));
 
-    await new Promise((resolve) => setTimeout(resolve, 200));
-
-    expect(ctx.resticMock.backup).toHaveBeenCalled();
+    expect(ctx.resticMock.backup.mock.calls.map((call) => call[3])).toEqual([['/tmp/test1'], ['/tmp/test2']]);
   });
 
   it('continues to next repository when a backup fails', async () => {
@@ -154,14 +162,10 @@ describe('Schedule', () => {
     ctx.resticMock.backup.mockReset();
     ctx.resticMock.backup.mockRejectedValue(new ResticBackupCommandCouldNotReadSourceDataError('unreadable'));
 
-    const statuses: TaskStatus[] = [];
+    const statuses: JobStatus[] = [];
     ctx.events.on((event) => {
-      if (event.type === 'TaskUpdate') {
-        for (const item of event.task.scheduleStatus ?? []) {
-          if (item.repositoryId === warnRepo.id) {
-            statuses.push(item.status);
-          }
-        }
+      if (event.type === 'JobUpdate' && event.repositoryId === warnRepo.id && event.job.status) {
+        statuses.push(event.job.status);
       }
     });
 
@@ -174,9 +178,9 @@ describe('Schedule', () => {
 
     void ctx.module.get(SchedulerRegistry).getCronJob(schedule.id).fireOnTick();
 
-    await waitFor(() => statuses.includes(TaskStatus.Warn));
+    await waitFor(() => statuses.includes(JobStatus.Warn));
 
-    expect(statuses).not.toContain(TaskStatus.Failed);
+    expect(statuses).not.toContain(JobStatus.Failed);
 
     ctx.resticMock.backup.mockReset();
   });

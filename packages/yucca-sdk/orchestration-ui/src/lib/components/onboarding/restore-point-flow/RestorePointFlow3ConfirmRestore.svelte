@@ -58,10 +58,10 @@
     snapshot.paths.filter((path) => !path.includes("yucca")),
   );
 
-  let logId: string | undefined = $state();
+  let jobId: string | undefined = $state();
 
   async function handleRestore() {
-    ({ logId } = await handleRestoreFromPoint(
+    ({ jobId } = await handleRestoreFromPoint(
       repository.id,
       snapshot.id,
       repository.backends!.primary.id,
@@ -73,8 +73,8 @@
   }
 </script>
 
-{#if logId}
-  <RestorePointFlow4Restore {onFinish} {logId} taskId={repository.id} />
+{#if jobId}
+  <RestorePointFlow4Restore {onFinish} {jobId} />
 {:else}
   <Modal focusOnOpen title={$t`Confirm restore from snapshot`} size="small" onClose={onBack}>
     <ModalBody>

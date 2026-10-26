@@ -5,9 +5,9 @@
   import Suspense from "$lib/components/util/Suspense.svelte";
   import type { LocalRepositoryDto } from "$lib/fetch-client";
   import {
-    useRunEventHandler,
-    useRunHistory,
-  } from "$lib/services/runHistory.service";
+    useJobEventHandler,
+    useJobs,
+  } from "$lib/services/job.service";
   import { Button } from "@immich/ui";
   import RepositoryRunHistoryItem from "./RepositoryRunHistoryItem.svelte";
   import { t } from "svelte-i18n-lingui";
@@ -20,11 +20,11 @@
 
   let { repository, limit = 5, onViewAll }: Props = $props();
 
-  const query = useRunHistory(() => repository.id);
-  const { onRunCreate, onRunUpdate } = useRunEventHandler();
+  const query = useJobs(() => repository.id);
+  const { onJobCreate, onJobUpdate } = useJobEventHandler();
 </script>
 
-<OnEvents {onRunCreate} {onRunUpdate} />
+<OnEvents {onJobCreate} {onJobUpdate} />
 
 <StackList>
   {#snippet title()}
@@ -38,12 +38,12 @@
   {/snippet}
 
   <Suspense {query}>
-    {#snippet children(runs)}
-      {#each runs.slice(0, limit) as run (run.id)}
-        <RepositoryRunHistoryItem {run} />
+    {#snippet children(jobs)}
+      {#each jobs.slice(0, limit) as job (job.id)}
+        <RepositoryRunHistoryItem {job} />
       {/each}
 
-      {#if runs.length === 0}
+      {#if jobs.length === 0}
         <StackListPlaceholder>{$t`No recent backups`}</StackListPlaceholder>
       {/if}
     {/snippet}

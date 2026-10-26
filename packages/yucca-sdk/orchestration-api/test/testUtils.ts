@@ -1,4 +1,5 @@
 import { INestApplication } from '@nestjs/common';
+import { DiscoveryModule } from '@nestjs/core';
 import { EventEmitterModule } from '@nestjs/event-emitter';
 import { JwtModule } from '@nestjs/jwt';
 import { ScheduleModule } from '@nestjs/schedule';
@@ -13,7 +14,7 @@ import { join } from 'node:path';
 import { BackendType } from '../src/enum.js';
 import { EventsGateway, GatewayEvent } from '../src/events/events.gateway.js';
 import { ModuleConfigProvider } from '../src/moduleConfig.js';
-import { controllers, repositories, services } from '../src/orchestrationApi.module.js';
+import { controllers, jobs, repositories, services } from '../src/orchestrationApi.module.js';
 import { BackendRepository } from '../src/repositories/backend.repository.js';
 import { ResticRepository } from '../src/repositories/restic.repository.js';
 import { newResticRepositoryMock, RepositoryInterface } from './mocks.js';
@@ -77,6 +78,7 @@ export async function createTestingModule(): Promise<TestContext> {
       EventEmitterModule.forRoot(),
       JwtModule.register({}),
       ScheduleModule.forRoot(),
+      DiscoveryModule,
     ],
     controllers,
     providers: [
@@ -92,6 +94,7 @@ export async function createTestingModule(): Promise<TestContext> {
       EventsGateway,
       ...repositories,
       ...services,
+      ...jobs,
     ],
   })
     .overrideProvider(ResticRepository)

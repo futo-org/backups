@@ -6,8 +6,12 @@
   import OnEvents from "$lib/components/util/OnEvents.svelte";
   import { options } from "$lib/options";
   import { createLogObserver } from "$lib/services/log.service.svelte";
-  import { useRun, useRunEventHandler } from "$lib/services/runHistory.service";
-  import { handleCancelTask } from "$lib/services/task.service";
+  import {
+    handleCancelJob,
+    jobKinds,
+    useJob,
+    useJobEventHandler,
+  } from "$lib/services/job.service";
   import { formatDuration } from "$lib/utils/format";
   import {
     CloseButton,
@@ -26,21 +30,21 @@
   import { msg, plural, t } from "svelte-i18n-lingui";
 
   type Props = {
-    logId: string;
+    jobId: string;
     onClose: () => void;
     onRetry?: () => void;
   };
 
-  const { logId, onClose, onRetry }: Props = $props();
+  const { jobId, onClose, onRetry }: Props = $props();
 
   const advanced = options.advanced;
   const showAdvanced = $derived($advanced);
   // svelte-ignore state_referenced_locally
-  const log = createLogObserver(logId);
+  const log = createLogObserver(jobId);
   // svelte-ignore state_referenced_locally
-  const runQuery = useRun(logId);
-  const run = $derived(runQuery.data);
-  const { onRunUpdate } = useRunEventHandler();
+  const jobQuery = useJob(jobId);
+  const job = $derived(jobQuery.data);
+  const { onJobUpdate } = useJobEventHandler();
 
   let now = $state(DateTime.now());
   const tick = setInterval(() => (now = DateTime.now()), 1000);
@@ -50,17 +54,19 @@
     log.destroy();
   });
 
+  const kind = $derived(job ? jobKinds[job.name] : "backup");
   const type: BackupStatusType = $derived(
-    run?.type === "restore" || run?.type === "forget" ? run.type : "backup",
+    kind === "syncMetrics" ? "backup" : kind,
   );
 
   const backupState: BackupStatusState = $derived.by(() => {
-    if (!run) {
+    if (!job) {
       return "connecting";
     }
 
-    switch (run.status) {
-      case "incomplete": {
+    switch (job.status) {
+      case "queued":
+      case "running": {
         return "running";
       }
       case "failed": {
@@ -79,10 +85,10 @@
   });
 
   const duration = $derived(
-    run
+    job?.start
       ? formatDuration(
-          (run.end ? DateTime.fromISO(run.end) : now).toMillis() -
-            DateTime.fromISO(run.start).toMillis(),
+          (job.end ? DateTime.fromISO(job.end) : now).toMillis() -
+            DateTime.fromISO(job.start).toMillis(),
           "long",
         )
       : "",
@@ -136,7 +142,7 @@
   });
 </script>
 
-<OnEvents {onRunUpdate} />
+<OnEvents {onJobUpdate} />
 
 <Modal
   size="medium"
@@ -157,13 +163,13 @@
       {type}
       state={backupState}
       progress={log.status.progress}
-      start={run?.start}
+      start={job?.start}
       {duration}
       remaining={log.status.text}
       errors={log.errors}
       currentFiles={log.status.currentFiles}
       onRetry={retry}
-      onCancel={run ? () => void handleCancelTask(run.repositoryId) : undefined}
+      onCancel={job ? () => void handleCancelJob(job.id) : undefined}
     >
       {#snippet details()}
         {#if log.summary && type === "backup"}

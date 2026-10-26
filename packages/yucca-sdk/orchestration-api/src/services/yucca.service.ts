@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { ResticTagPrefix } from '../enum.js';
 import { EventsGateway, GatewayEvent } from '../events/events.gateway.js';
 import type { ImmichIntegration } from '../moduleConfig.js';
+import { JobRepository } from '../repositories/job.repository.js';
 import { ModuleConfigRepository } from '../repositories/moduleConfig.repository.js';
 import { RepositoryService } from './repository.service.js';
 
@@ -11,6 +12,7 @@ export class YuccaService {
     private readonly moduleConfig: ModuleConfigRepository,
     private readonly events: EventsGateway,
     private readonly repositoryService: RepositoryService,
+    private readonly jobs: JobRepository,
   ) {}
 
   setExternalBaseUrl(externalBaseUrl: string) {
@@ -27,6 +29,7 @@ export class YuccaService {
 
   emit(event: GatewayEvent) {
     this.events.emit(event);
+    void this.jobs.onEvent(event);
   }
 
   async restoreSnapshotInplace(repositoryId: string, snapshotId: string) {
@@ -35,8 +38,11 @@ export class YuccaService {
       ?.find((tag) => tag.startsWith(`${ResticTagPrefix.ImmichBackupFileName}=`))
       ?.slice(ResticTagPrefix.ImmichBackupFileName.length + 1);
 
+    const { jobId } = await this.repositoryService.restoreSnapshot(repositoryId, snapshotId, {});
+
     return {
-      ...(await this.repositoryService.restoreSnapshot(repositoryId, snapshotId, {})),
+      jobId,
+      task: this.jobs.wait(jobId),
       immichBackupFileName,
     };
   }
