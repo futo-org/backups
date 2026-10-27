@@ -1,9 +1,11 @@
 import { jest } from '@jest/globals';
-import { execFile } from 'node:child_process';
-import { mkdir, mkdtemp, writeFile } from 'node:fs/promises';
+import { type ChildProcess, execFile, spawn } from 'node:child_process';
+import { once } from 'node:events';
+import { mkdir, mkdtemp, readdir, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { PassThrough } from 'node:stream';
+import { setTimeout } from 'node:timers/promises';
 import { promisify } from 'node:util';
 import type { SupportLogLine } from '../utils/supportLogShipper.js';
 import { SupportSession } from '../utils/supportSession.js';
@@ -150,6 +152,48 @@ describe(ResticRepository.name, () => {
     expect(snapshots.map(({ hostname }) => hostname)).not.toContain('previous-container');
     expect(snapshots).toHaveLength(1);
   }, 30_000);
+
+  it('lists snapshots while a prune holds the exclusive lock', async () => {
+    await restic.backup(repository, key, placement, [source]);
+    const [snapshot] = await restic.snapshots(repository, key, placement);
+    const locked = async () => {
+      const names = await readdir(join(repository, 'locks'));
+      return names.some((name) => !name.includes('-tmp-'));
+    };
+
+    let prune: ChildProcess | undefined;
+    for (let attempt = 0; attempt < 20 && !prune; attempt++) {
+      const child = spawn('restic', ['prune', '--no-cache'], {
+        env: {
+          PATH: process.env.PATH,
+          HOME: process.env.HOME,
+          RESTIC_REPOSITORY: repository,
+          RESTIC_PASSWORD: Buffer.from(key).toString('hex'),
+        },
+      });
+      const exited = once(child, 'exit');
+      while (child.exitCode === null && !(await locked())) {
+        await setTimeout(1);
+      }
+      if (child.exitCode === null && child.kill('SIGSTOP') && (await locked())) {
+        prune = child;
+      } else {
+        child.kill('SIGCONT');
+        await exited;
+      }
+    }
+    expect(prune).toBeDefined();
+
+    try {
+      await expect(restic.snapshots(repository, key, placement)).resolves.toMatchObject([{ id: snapshot.id }]);
+      await expect(restic.snapshot(repository, key, placement, snapshot.id)).resolves.toMatchObject([
+        { id: snapshot.id },
+      ]);
+    } finally {
+      prune!.kill('SIGCONT');
+      await once(prune!, 'exit');
+    }
+  }, 60_000);
 
   it('stops a snapshot lookup when cancelled', async () => {
     const controller = new AbortController();
