@@ -1,0 +1,10 @@
+apiVersion: v2
+name: support-logs-streamer
+description: Streams client support-mode restic logs into VictoriaLogs (Go)
+type: application
+version: 0.1.0
+appVersion: "main"
+dependencies:
+  - name: yucca-common
+    version: 0.2.0
+    repository: "file://../../lib/yucca-common"

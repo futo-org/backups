@@ -4,7 +4,7 @@ import {
   TicketCreateRequestDto,
   type DeviceFlowEventDto as UpstreamDeviceFlowEvent,
 } from '@futo-org/backups-api-client';
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { GoneException, Injectable, NotFoundException } from '@nestjs/common';
 import { EventIterator } from 'event-iterator';
 import { createEventSource, EventSourceClient } from 'eventsource-client';
 import { hostname } from 'node:os';
@@ -18,6 +18,7 @@ import { BackendRepository } from '../repositories/backend.repository.js';
 import { ConfigRepository } from '../repositories/config.repository.js';
 import { ModuleConfigRepository } from '../repositories/moduleConfig.repository.js';
 import { RepositoryRepository } from '../repositories/repository.repository.js';
+import { isNotFoundError } from '../utils/errors.js';
 import { yuccaWellKnown } from '../wellKnown.js';
 import { SessionService } from './session.service.js';
 import { TelemetryService } from './telemetry.service.js';
@@ -243,9 +244,17 @@ export class AuthService {
       throw new NotFoundException('Backend not found locally');
     }
 
-    return await result.backend.createTicket({
-      action: dto.action,
-      repositoryId: localRepository.remoteId,
-    });
+    try {
+      return await result.backend.createTicket({
+        action: dto.action,
+        repositoryId: localRepository.remoteId,
+      });
+    } catch (error) {
+      if (isNotFoundError(error)) {
+        throw new GoneException('Repository not found remotely');
+      }
+
+      throw error;
+    }
   }
 }

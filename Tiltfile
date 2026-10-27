@@ -143,6 +143,7 @@ docker_build(
         '**/dist',
         '**/.svelte-kit',
         'packages/michael',
+        'packages/support-logs-streamer',
         'packages/e2e',
     ],
     live_update=[
@@ -169,6 +170,7 @@ docker_build(
         '**/dist',
         '**/.svelte-kit',
         'packages/michael',
+        'packages/support-logs-streamer',
         'packages/e2e',
     ],
     live_update=[
@@ -195,6 +197,18 @@ docker_build(
 )
 
 docker_build(
+    'support-logs-streamer',
+    context='.',
+    dockerfile='packages/support-logs-streamer/Dockerfile',
+    target='dev',
+    only=['./packages/support-logs-streamer'],
+    live_update=[
+        sync('./packages/support-logs-streamer', '/src'),
+        run('cd /src && go mod download', trigger=['./packages/support-logs-streamer/go.sum']),
+    ],
+)
+
+docker_build(
     'yucca-admin-api',
     context='.',
     dockerfile='packages/yucca-admin-api/Dockerfile',
@@ -211,6 +225,7 @@ docker_build(
         '**/dist',
         '**/.svelte-kit',
         'packages/michael',
+        'packages/support-logs-streamer',
         'packages/e2e',
     ],
     live_update=[
@@ -241,6 +256,7 @@ docker_build(
         '**/dist',
         '**/.svelte-kit',
         'packages/michael',
+        'packages/support-logs-streamer',
         'packages/e2e',
     ],
     live_update=[
@@ -269,6 +285,7 @@ docker_build(
         '**/dist',
         '**/.svelte-kit',
         'packages/michael',
+        'packages/support-logs-streamer',
         'packages/e2e',
     ],
     live_update=[
@@ -322,7 +339,7 @@ docker_build(
 # ---------------------------------------------------------------------------
 local_resource(
     'helm-deps',
-    cmd='rm -rf charts/apps/yucca-api/charts charts/apps/yucca-admin-api/charts charts/apps/yucca-metrics-worker/charts charts/apps/futo-backups-bot/charts charts/apps/web/charts charts/apps/meta/charts charts/apps/michael/charts charts/dev/mock-oidc/charts charts/dev/mock-resend/charts charts/dev/mailpit/charts && for d in charts/apps/yucca-api charts/apps/yucca-admin-api charts/apps/yucca-metrics-worker charts/apps/futo-backups-bot charts/apps/web charts/apps/meta charts/apps/michael charts/dev/mock-oidc charts/dev/mock-resend charts/dev/mailpit; do (cd $d && helm dependency build); done',
+    cmd='rm -rf charts/apps/yucca-api/charts charts/apps/yucca-admin-api/charts charts/apps/yucca-metrics-worker/charts charts/apps/futo-backups-bot/charts charts/apps/web/charts charts/apps/meta/charts charts/apps/michael/charts charts/apps/support-logs-streamer/charts charts/dev/mock-oidc/charts charts/dev/mock-resend/charts charts/dev/mailpit/charts && for d in charts/apps/yucca-api charts/apps/yucca-admin-api charts/apps/yucca-metrics-worker charts/apps/futo-backups-bot charts/apps/web charts/apps/meta charts/apps/michael charts/apps/support-logs-streamer charts/dev/mock-oidc charts/dev/mock-resend charts/dev/mailpit; do (cd $d && helm dependency build); done',
     deps=[
         'charts/apps/yucca-api',
         'charts/apps/yucca-admin-api',
@@ -331,6 +348,7 @@ local_resource(
         'charts/apps/web',
         'charts/apps/meta',
         'charts/apps/michael',
+        'charts/apps/support-logs-streamer',
         'charts/dev/mock-oidc',
         'charts/dev/mock-resend',
         'charts/dev/mailpit',
@@ -374,6 +392,8 @@ APP_WIRING = {
     # API whose URL it advertises).
     'yucca-meta':             {'build': None,                 'deps': []},
     'yucca-michael':          {'build': 'michael',            'deps': ['yucca-object-user'], 'dev_keypair': True},
+    # Reports session stats to yucca-api per flush, not at boot, so no dep on it.
+    'support-logs-streamer':  {'build': 'support-logs-streamer', 'deps': ['yucca-victoria-logs'], 'dev_env': True, 'dev_keypair': True},
     'yucca-mock-oidc':        {'build': 'mock-oidc-provider', 'deps': []},
     'yucca-mailpit':          {'build': None,                 'deps': []},
     'yucca-mock-resend':    {'build': 'mock-resend-provider', 'deps': ['yucca-mailpit']},
@@ -568,6 +588,7 @@ kubectl port-forward -n yucca svc/yucca-admin-api 3030:3030 &
 kubectl port-forward -n yucca svc/yucca-web 5173:5173 &
 kubectl port-forward -n yucca svc/yucca-meta 8081:8080 &
 kubectl port-forward -n yucca svc/yucca-michael 3010:3010 &
+kubectl port-forward -n yucca svc/support-logs-streamer 3040:3040 &
 kubectl port-forward -n yucca svc/yucca-mock-oidc 8092:8092 &
 kubectl port-forward -n yucca svc/yucca-mailpit 8025:8025 &
 kubectl port-forward -n yucca svc/yucca-mock-resend 8093:8093 &
@@ -582,6 +603,7 @@ wait''',
         link('http://localhost:3020', 'yucca-api'),
         link('http://localhost:3030', 'yucca-admin-api'),
         link('http://localhost:3010', 'michael'),
+        link('http://localhost:3040/readyz', 'support-logs-streamer'),
         link('http://localhost:8081/.well-known/yucca.json', 'meta (.well-known)'),
         link('http://localhost:8092', 'mock-oidc'),
         link('http://localhost:8025', 'mailpit (inbox)'),

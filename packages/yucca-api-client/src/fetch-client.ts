@@ -200,6 +200,21 @@ export type RepositoryUpdateResponseDto = {
 export type RepositoryCreateResticUrlDto = {
     url: string;
 };
+export type SupportLogSessionCreateRequestDto = {
+    jobId: string;
+    jobName: string;
+    /** Whether the streamed lines carry file paths or redacted placeholders */
+    includesPaths: boolean;
+    clientVersion?: string;
+};
+export type SupportLogSessionTokenDto = {
+    id: string;
+    /** Bearer token for the support-logs streamer, bound to this session */
+    token: string;
+    /** Where to POST the session’s log batches */
+    url: string;
+    expiresAt: string;
+};
 export function getAuth(opts?: Oazapfts.RequestOpts) {
     return oazapfts.ok(oazapfts.fetchJson<{
         status: 200;
@@ -446,5 +461,24 @@ export function disableWorm(id: string, ticketId: string, opts?: Oazapfts.Reques
     }))}`, {
         ...opts,
         method: "DELETE"
+    }));
+}
+export function createSupportLogSession(supportLogSessionCreateRequestDto: SupportLogSessionCreateRequestDto, opts?: Oazapfts.RequestOpts) {
+    return oazapfts.ok(oazapfts.fetchJson<{
+        status: 201;
+        data: SupportLogSessionTokenDto;
+    }>("/api/support-logs/sessions", oazapfts.json({
+        ...opts,
+        method: "POST",
+        body: supportLogSessionCreateRequestDto
+    })));
+}
+export function refreshSupportLogSessionToken(id: string, opts?: Oazapfts.RequestOpts) {
+    return oazapfts.ok(oazapfts.fetchJson<{
+        status: 201;
+        data: SupportLogSessionTokenDto;
+    }>(`/api/support-logs/sessions/${encodeURIComponent(id)}/token`, {
+        ...opts,
+        method: "POST"
     }));
 }

@@ -12,6 +12,7 @@ import {
   RepositoryPrimaryBackendReconfigureRequestDto,
   RepositorySnapshotRestoreFromPointRequestDto,
   RepositorySnapshotRestoreRequestDto,
+  RepositorySyncDeletionResponseDto,
   RepositoryUpdateRequestDto,
   RepositoryUpdateResponseDto,
 } from '../dto/repository.dto.js';
@@ -79,6 +80,16 @@ export class RepositoryController {
   @ApiOkResponse()
   deleteRepository(@Param('id') id: string): Promise<void> {
     return this.service.deleteRepository(id);
+  }
+
+  @Post('/:id/sync-deletion')
+  @ApiCreatedResponse({ type: RepositorySyncDeletionResponseDto })
+  @ApiOperation({
+    summary: 'Sync a remote deletion',
+    description: 'Remove a repository from this server once it has been deleted from its backend.',
+  })
+  syncRepositoryDeletion(@Param('id') id: string): Promise<RepositorySyncDeletionResponseDto> {
+    return this.service.syncDeletion(id);
   }
 
   @Post('/:id')

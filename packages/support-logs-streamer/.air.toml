@@ -1,0 +1,9 @@
+root = "."
+tmp_dir = "tmp"
+
+[build]
+  cmd = "go build -o ./tmp/support-logs-streamer ."
+  bin = "./tmp/support-logs-streamer"
+  include_ext = ["go"]
+  exclude_dir = ["tmp"]
+  delay = 500

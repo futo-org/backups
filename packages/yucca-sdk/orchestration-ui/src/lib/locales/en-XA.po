@@ -77,6 +77,10 @@ msgstr ""
 msgid "{num, plural, one {# backup removed} other {# backups removed}}"
 msgstr ""
 
+#: src/lib/components/backups/dialogs/SelectRepositoryModal.svelte
+msgid "{num, plural, one {# backup} other {# backups}}"
+msgstr ""
+
 #: src/lib/components/backups/snapshots-list/RepositorySnapshotsListItem.svelte
 msgid "{num, plural, one {# file} other {# files}}"
 msgstr ""
@@ -87,6 +91,10 @@ msgstr ""
 
 #: src/lib/components/backups/BackupStatus.svelte
 msgid "{num, plural, one {Completed with # warning.} other {Completed with # warnings.}}"
+msgstr ""
+
+#: src/lib/components/settings/SettingsSupportMode.svelte
+msgid "{num, plural, one {Support mode is on for the next run.} other {Support mode is on for the next # runs.}}"
 msgstr ""
 
 #: src/lib/components/backups/BackupStatus.svelte
@@ -443,6 +451,7 @@ msgstr ""
 
 #: src/lib/components/backends/dialogs/OAuthDeviceFlowModal.svelte
 #: src/lib/components/backends/dialogs/SelectBackendModal.svelte
+#: src/lib/components/backups/dialogs/RemoveDeletedRepositoryModal.svelte
 #: src/lib/components/backups/dialogs/RollbackSnapshotModal.svelte
 #: src/lib/components/backups/dialogs/SelectRepositoryModal.svelte
 #: src/lib/components/onboarding/steps/OnboardingStepBackupServices.svelte
@@ -733,6 +742,10 @@ msgstr ""
 msgid "Download recovery key"
 msgstr ""
 
+#: src/lib/services/job.service.ts
+msgid "Download Support Log"
+msgstr ""
+
 #: src/lib/components/onboarding/RecoveryKeyDisplay.svelte
 msgid "Downloaded"
 msgstr ""
@@ -892,6 +905,10 @@ msgstr ""
 msgid "Failed to reconfigure backend"
 msgstr ""
 
+#: src/lib/services/repository.service.ts
+msgid "Failed to remove repository"
+msgstr ""
+
 #: src/lib/services/onboarding.service.ts
 msgid "Failed to report error"
 msgstr ""
@@ -911,6 +928,10 @@ msgstr ""
 
 #: src/lib/services/config.service.ts
 msgid "Failed to save settings"
+msgstr ""
+
+#: src/lib/services/supportMode.service.ts
+msgid "Failed to save support mode"
 msgstr ""
 
 #: src/lib/services/repository.service.ts
@@ -1119,6 +1140,10 @@ msgstr ""
 msgid "I understand my beta backups may be deleted."
 msgstr ""
 
+#: src/lib/components/backups/dialogs/SelectRepositoryModal.svelte
+msgid "ID {id}"
+msgstr ""
+
 #: src/lib/components/integrations/immich/ImmichDatabaseDumpAlert.svelte
 msgid "Ignore"
 msgstr ""
@@ -1170,6 +1195,10 @@ msgstr ""
 
 #: src/lib/components/dashboard/DashboardBackupHealth.svelte
 msgid "In-progress or incomplete"
+msgstr ""
+
+#: src/lib/components/settings/SettingsSupportMode.svelte
+msgid "Include file names"
 msgstr ""
 
 #: src/lib/components/integrations/immich/settings/ImmichSettingsBackupContents.svelte
@@ -1595,6 +1624,10 @@ msgstr ""
 msgid "Notify me when FUTO Backups billing needs attention."
 msgstr ""
 
+#: src/lib/components/settings/SettingsSupportMode.svelte
+msgid "Off"
+msgstr ""
+
 #: src/lib/components/backends/BackendItem.svelte
 #: src/lib/components/backups/BackupItem.svelte
 #: src/lib/components/dashboard/DashboardBackupHealth.svelte
@@ -1782,6 +1815,10 @@ msgstr ""
 msgid "Reconfigure"
 msgstr ""
 
+#: src/lib/components/settings/SettingsSupportMode.svelte
+msgid "Record detailed logs to help FUTO support look into a problem."
+msgstr ""
+
 #: src/lib/components/onboarding/dialogs/BackupsRecoveryKeyModal.svelte
 msgid "Recovery key"
 msgstr ""
@@ -1808,6 +1845,10 @@ msgstr ""
 msgid "Remove {path}"
 msgstr ""
 
+#: src/lib/components/backups/dialogs/RemoveDeletedRepositoryModal.svelte
+msgid "Remove from this machine"
+msgstr ""
+
 #: src/lib/components/integrations/immich/ImmichManageBackupPage.svelte
 msgid "Report An Issue"
 msgstr ""
@@ -1828,9 +1869,14 @@ msgstr ""
 msgid "Repository is readable and accessible!"
 msgstr ""
 
+#: src/lib/components/backups/dialogs/RemoveDeletedRepositoryModal.svelte
+msgid "Repository no longer on FUTO Backups"
+msgstr ""
+
 #: src/lib/components/integrations/immich/settings/ImmichSettingsBandwidth.svelte
 #: src/lib/components/integrations/immich/settings/ImmichSettingsSchedule.svelte
 #: src/lib/components/integrations/immich/settings/ImmichSettingsStorage.svelte
+#: src/lib/components/settings/SettingsSupportMode.svelte
 msgid "Reset"
 msgstr ""
 
@@ -1951,6 +1997,10 @@ msgstr ""
 msgid "Run History for {name}"
 msgstr ""
 
+#: src/lib/components/settings/SettingsSupportMode.svelte
+msgid "Runs in support mode"
+msgstr ""
+
 #: src/lib/components/onboarding/steps/OnboardingStepChooseStorage.svelte
 msgid "S3 Bucket"
 msgstr ""
@@ -1966,6 +2016,7 @@ msgstr ""
 #: src/lib/components/integrations/immich/settings/ImmichSettingsStorage.svelte
 #: src/lib/components/onboarding/steps/OnboardingStepImportRecoveryKey.svelte
 #: src/lib/components/settings/SettingsNotifications.svelte
+#: src/lib/components/settings/SettingsSupportMode.svelte
 #: src/lib/components/ui/PathPickerModal.svelte
 msgid "Save"
 msgstr ""
@@ -2031,6 +2082,14 @@ msgstr ""
 #: src/lib/components/ui/PathPickerModal.svelte
 #: src/lib/components/ui/PathPickerModal.svelte
 msgid "Selected paths"
+msgstr ""
+
+#: src/lib/components/settings/SettingsSupportMode.svelte
+msgid "Send file and folder names as they are. When off, they are replaced with placeholders before they leave this server."
+msgstr ""
+
+#: src/lib/components/settings/SettingsSupportMode.svelte
+msgid "Send logs to FUTO"
 msgstr ""
 
 #: src/lib/components/integrations/immich/ImmichBackupsSidebarItem.svelte
@@ -2155,6 +2214,10 @@ msgstr ""
 msgid "Store backups on storage you manage."
 msgstr ""
 
+#: src/lib/components/settings/SettingsSupportMode.svelte
+msgid "Stream the detailed logs to FUTO while each run happens, so support can read them. Runs with a lot of files produce a lot of logs."
+msgstr ""
+
 #: src/lib/components/onboarding/steps/OnboardingStepChooseStorage.svelte
 msgid "Subscription"
 msgstr ""
@@ -2170,6 +2233,18 @@ msgstr ""
 
 #: src/lib/components/backups/run-history/RepositoryRunHistoryPage.svelte
 msgid "Successful only"
+msgstr ""
+
+#: src/lib/components/backups/dialogs/ViewStatusModal.svelte
+msgid "Support code: {code}. Share it with FUTO support so they can find this run's logs."
+msgstr ""
+
+#: src/lib/components/settings/SettingsSupportMode.svelte
+msgid "Support mode"
+msgstr ""
+
+#: src/lib/components/settings/SettingsSupportMode.svelte
+msgid "Support mode is off."
 msgstr ""
 
 #: src/lib/components/backups/dialogs/RestoreSnapshotModal.svelte
@@ -2196,6 +2271,10 @@ msgstr ""
 
 #: src/lib/services/job.service.ts
 msgid "The backup was stopped before it finished."
+msgstr ""
+
+#: src/lib/components/settings/SettingsSupportMode.svelte
+msgid "The next backups, cleanups and restores record detailed logs, which you can download from their history. Support mode turns itself off once they have run."
 msgstr ""
 
 #: src/lib/components/backups/dialogs/CancelJobModal.svelte
@@ -2228,6 +2307,10 @@ msgstr ""
 
 #: ../../web/src/routes/link/discord/+page.svelte
 msgid "This link is invalid or has expired. Click the support button in Discord to get a new one."
+msgstr ""
+
+#: src/lib/components/backups/dialogs/RemoveDeletedRepositoryModal.svelte
+msgid "This repository no longer exists on FUTO Backups. Remove it from this machine? Local settings (paths, schedules) will be removed; no backup data is affected."
 msgstr ""
 
 #: src/lib/components/schedules/dialogs/ConfigureScheduleModal.svelte

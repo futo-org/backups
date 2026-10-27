@@ -1,4 +1,5 @@
 <script lang="ts">
+  import SettingsSupportMode from "$lib/components/settings/SettingsSupportMode.svelte";
   import { Container } from "@immich/ui";
   import ImmichConfiguredGate from "./ImmichConfiguredGate.svelte";
   import ImmichSettingsBackupContents from "./settings/ImmichSettingsBackupContents.svelte";
@@ -20,6 +21,7 @@
       <ImmichSettingsSchedule />
       <ImmichSettingsBandwidth />
       <ImmichSettingsStorage />
+      <SettingsSupportMode />
     </Container>
   {/snippet}
 </ImmichConfiguredGate>

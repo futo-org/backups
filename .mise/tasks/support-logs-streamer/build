@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+#MISE description="Build support-logs-streamer"
+set -e
+
+cd packages/support-logs-streamer && go build -o ../../dist/support-logs-streamer .

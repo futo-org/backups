@@ -7,9 +7,9 @@ import {
   getJob,
   getJobs,
   type JobDto,
-  type JobName,
+  type YuccaJobName,
   type JobProgressDto,
-  type JobStatus,
+  type YuccaJobStatus,
 } from '$lib/fetch-client';
 import { getProvider } from '$lib/providers';
 import { queryClient } from '$lib/query-client';
@@ -42,7 +42,7 @@ export const jobKeys = {
 };
 
 export const jobKinds: Record<
-  JobName,
+  YuccaJobName,
   'backup' | 'restore' | 'forget' | 'syncMetrics'
 > = {
   'repository-backup': 'backup',
@@ -54,8 +54,8 @@ export const jobKinds: Record<
 };
 
 export const isJobFinished = (
-  status?: JobStatus,
-): status is Exclude<JobStatus, 'queued' | 'running'> =>
+  status?: YuccaJobStatus,
+): status is Exclude<YuccaJobStatus, 'queued' | 'running'> =>
   status !== undefined && status !== 'queued' && status !== 'running';
 
 export const getRemainingText = (
@@ -98,7 +98,7 @@ export const getRemainingText = (
 
 export const useJobs = (
   repositoryId: () => string | undefined,
-  name?: JobName,
+  name?: YuccaJobName,
 ) =>
   createQuery(
     () => ({
@@ -181,7 +181,7 @@ export const useBackupJobMonitor = () => {
       watching.delete(jobId);
 
       const alerts: Record<
-        Exclude<JobStatus, 'queued' | 'running'>,
+        Exclude<YuccaJobStatus, 'queued' | 'running'>,
         ToastShow
       > = {
         complete: {
@@ -249,5 +249,15 @@ export const getJobActions = (job: JobDto, t: typeof gt) => {
       ),
   };
 
-  return { ViewLog, DownloadLog };
+  const DownloadSupportLog: ActionItem = {
+    title: t(msg`Download Support Log`),
+    onAction: () =>
+      window.open(
+        `${getProvider().baseUrl}/api/yucca/jobs/${job.id}/support-log/download`,
+        '_blank',
+      ),
+    $if: () => Boolean(job.outcome?.support),
+  };
+
+  return { ViewLog, DownloadLog, DownloadSupportLog };
 };

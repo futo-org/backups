@@ -17,6 +17,10 @@ export class TaskWarningsError extends AggregateError {
   }
 }
 
+export function isNotFoundError(error: unknown) {
+  return (error as { status?: number } | undefined)?.status === 404;
+}
+
 export function getTaskStatus(error?: unknown): TaskStatus {
   if (!error) {
     return TaskStatus.Complete;

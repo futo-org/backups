@@ -1,9 +1,9 @@
 import { SocketEvent } from '$lib/events';
 import type {
   JobDto,
-  JobName,
   JobProgressDto,
-  JobStatus,
+  YuccaJobName,
+  YuccaJobStatus,
 } from '$lib/fetch-client';
 import {
   getRemainingText,
@@ -19,12 +19,12 @@ vi.mock('@immich/ui', async (importOriginal) => ({
   toastManager: { show: vi.fn() },
 }));
 
-const createJob = (id: string, name: JobName) =>
+const createJob = (id: string, name: YuccaJobName) =>
   new SocketEvent('JobCreate', {
     job: { id, name, repositoryId: 'repository-1' } as JobDto,
   });
 
-const updateJob = (jobId: string, status: JobStatus) =>
+const updateJob = (jobId: string, status: YuccaJobStatus) =>
   new SocketEvent('JobUpdate', {
     jobId,
     repositoryId: 'repository-1',

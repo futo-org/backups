@@ -1,0 +1,35 @@
+---
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: support-logs-streamer
+  namespace: yucca
+spec:
+  interval: 1h
+  chart:
+    spec:
+      chart: charts/apps/support-logs-streamer
+      sourceRef:
+        kind: GitRepository
+        name: yucca
+        namespace: flux-system
+  install:
+    remediation:
+      retries: 3
+  upgrade:
+    cleanupOnFail: true
+    remediation:
+      retries: 3
+  values:
+    # DEV-ONLY relaxation: Tilt live_update syncs source into the running
+    # container and `air` rebuilds in place — both need a writable rootfs (the
+    # chart default is readOnlyRootFilesystem: true).
+    containerSecurityContext:
+      allowPrivilegeEscalation: false
+      readOnlyRootFilesystem: false
+      capabilities:
+        drop: [ALL]
+    useDevKeypair: true
+    image:
+      repository: ghcr.io/futo-org/backups/support-logs-streamer
+      tag: 0.0.1

@@ -531,6 +531,39 @@
         ]
       }
     },
+    "/api/yucca/jobs/{id}/support-log/download": {
+      "get": {
+        "description": "Download the verbose restic output recorded while the job ran in support mode, as JSON lines.",
+        "operationId": "downloadJobSupportLog",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/jsonl": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "summary": "Download a job support log",
+        "tags": [
+          "Job"
+        ]
+      }
+    },
     "/api/yucca/onboarding": {
       "get": {
         "description": "Retrieve which onboarding steps this server has completed.",
@@ -856,6 +889,38 @@
           }
         },
         "summary": "Start a backup",
+        "tags": [
+          "Repository"
+        ]
+      }
+    },
+    "/api/yucca/repository/{id}/sync-deletion": {
+      "post": {
+        "description": "Remove a repository from this server once it has been deleted from its backend.",
+        "operationId": "syncRepositoryDeletion",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RepositorySyncDeletionResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Sync a remote deletion",
         "tags": [
           "Repository"
         ]
@@ -1355,6 +1420,60 @@
         "summary": "Delete a schedule",
         "tags": [
           "Schedule"
+        ]
+      }
+    },
+    "/api/yucca/support-mode": {
+      "get": {
+        "description": "Retrieve how many upcoming runs use verbose restic logging, and whether they stream to FUTO.",
+        "operationId": "getSupportMode",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SupportModeResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Get support mode",
+        "tags": [
+          "SupportMode"
+        ]
+      },
+      "put": {
+        "description": "Set how many upcoming runs use verbose restic logging, and whether they stream to FUTO.",
+        "operationId": "updateSupportMode",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SupportModeUpdateRequestDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SupportModeResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Update support mode",
+        "tags": [
+          "SupportMode"
         ]
       }
     }
@@ -1956,13 +2075,13 @@
             "type": "string"
           },
           "name": {
-            "$ref": "#/components/schemas/JobName"
+            "$ref": "#/components/schemas/YuccaJobName"
           },
           "repositoryId": {
             "type": "string"
           },
           "status": {
-            "$ref": "#/components/schemas/JobStatus"
+            "$ref": "#/components/schemas/YuccaJobStatus"
           },
           "queuedAt": {
             "type": "string"
@@ -1988,7 +2107,7 @@
           "queuedAt"
         ]
       },
-      "JobName": {
+      "YuccaJobName": {
         "type": "string",
         "enum": [
           "repository-backup",
@@ -1999,7 +2118,7 @@
           "repository-sync-metrics"
         ]
       },
-      "JobStatus": {
+      "YuccaJobStatus": {
         "type": "string",
         "enum": [
           "queued",
@@ -2053,6 +2172,9 @@
           },
           "summary": {
             "$ref": "#/components/schemas/JobSummaryDto"
+          },
+          "support": {
+            "$ref": "#/components/schemas/JobSupportDto"
           }
         },
         "required": [
@@ -2142,6 +2264,27 @@
               "removed"
             ]
           }
+        ]
+      },
+      "JobSupportDto": {
+        "type": "object",
+        "properties": {
+          "sessionId": {
+            "description": "Support code to share with FUTO when the logs were streamed",
+            "type": "string"
+          },
+          "droppedLines": {
+            "type": "number",
+            "description": "Log lines that could not be streamed in time"
+          },
+          "localDroppedLines": {
+            "type": "number",
+            "description": "Log lines that could not be written to the local support log"
+          }
+        },
+        "required": [
+          "droppedLines",
+          "localDroppedLines"
         ]
       },
       "ImmichDatabaseDumpConfigDto": {
@@ -2608,6 +2751,18 @@
           "repository"
         ]
       },
+      "RepositorySyncDeletionResponseDto": {
+        "type": "object",
+        "properties": {
+          "deleted": {
+            "type": "boolean",
+            "description": "Whether the repository was deleted remotely and removed from this server"
+          }
+        },
+        "required": [
+          "deleted"
+        ]
+      },
       "JobResponseDto": {
         "type": "object",
         "properties": {
@@ -2763,6 +2918,59 @@
         },
         "required": [
           "schedule"
+        ]
+      },
+      "SupportModeResponseDto": {
+        "type": "object",
+        "properties": {
+          "remainingRuns": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 20,
+            "description": "How many more backup, cleanup, restore and delete runs use verbose restic logging"
+          },
+          "streamToFuto": {
+            "type": "boolean",
+            "description": "Stream those runs’ logs to FUTO; requires the support-log-streaming feature"
+          },
+          "includePaths": {
+            "type": "boolean",
+            "description": "Send file paths as-is instead of redacted placeholders"
+          },
+          "streamingAvailable": {
+            "type": "boolean",
+            "description": "Whether this account may stream support logs to FUTO"
+          }
+        },
+        "required": [
+          "remainingRuns",
+          "streamToFuto",
+          "includePaths",
+          "streamingAvailable"
+        ]
+      },
+      "SupportModeUpdateRequestDto": {
+        "type": "object",
+        "properties": {
+          "remainingRuns": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 20,
+            "description": "How many more backup, cleanup, restore and delete runs use verbose restic logging"
+          },
+          "streamToFuto": {
+            "type": "boolean",
+            "description": "Stream those runs’ logs to FUTO; requires the support-log-streaming feature"
+          },
+          "includePaths": {
+            "type": "boolean",
+            "description": "Send file paths as-is instead of redacted placeholders"
+          }
+        },
+        "required": [
+          "remainingRuns",
+          "streamToFuto",
+          "includePaths"
         ]
       }
     }

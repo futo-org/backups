@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+#MISE description="Run support-logs-streamer in development mode"
+set -e
+source "$(dirname "$0")/env"
+
+# No load balancer in front of a local run, so there is nothing to drain away from.
+export DRAIN_DELAY_MS=${DRAIN_DELAY_MS:-0}
+
+cd packages/support-logs-streamer && go run .

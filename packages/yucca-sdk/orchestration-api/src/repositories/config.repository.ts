@@ -13,6 +13,13 @@ import { LoggingRepository } from './logging.repository.js';
 
 export type ResticPlacement = { siteCode: string | null; storageClusterCode: string | null };
 
+export type SupportModeSettings = { remainingRuns: number; streamToFuto: boolean; includePaths: boolean };
+
+const SUPPORT_MODE_OFF: SupportModeSettings = { remainingRuns: 0, streamToFuto: false, includePaths: false };
+
+const parseSupportMode = (value: string | undefined): SupportModeSettings =>
+  value ? { ...SUPPORT_MODE_OFF, ...(JSON.parse(value) as Partial<SupportModeSettings>) } : SUPPORT_MODE_OFF;
+
 @Injectable()
 export class ConfigRepository {
   constructor(
@@ -219,6 +226,37 @@ export class ConfigRepository {
     await this.setAll({
       [ConfigurationKey.ThrottleBytesPerSec]: String(bytesPerSec),
       [ConfigurationKey.ThrottleQuietHours]: quietHours ?? '',
+    });
+  }
+
+  async getSupportMode(): Promise<SupportModeSettings> {
+    return parseSupportMode(await this.getOptional(ConfigurationKey.SupportMode));
+  }
+
+  async setSupportMode(settings: SupportModeSettings) {
+    await this.set(ConfigurationKey.SupportMode, JSON.stringify(settings));
+  }
+
+  async consumeSupportModeRun(): Promise<SupportModeSettings | undefined> {
+    return this.db.transaction().execute(async (trx) => {
+      const row = await trx
+        .selectFrom('config')
+        .where('config.key', '=', ConfigurationKey.SupportMode)
+        .select('config.value')
+        .executeTakeFirst();
+
+      const settings = parseSupportMode(row?.value);
+      if (settings.remainingRuns <= 0) {
+        return;
+      }
+
+      await trx
+        .updateTable('config')
+        .set({ value: JSON.stringify({ ...settings, remainingRuns: settings.remainingRuns - 1 }) })
+        .where('config.key', '=', ConfigurationKey.SupportMode)
+        .execute();
+
+      return settings;
     });
   }
 

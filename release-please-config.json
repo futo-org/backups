@@ -73,6 +73,10 @@
         {
           "type": "generic",
           "path": "packages/columbo/internal/version/version.go"
+        },
+        {
+          "type": "generic",
+          "path": "packages/support-logs-streamer/internal/version/version.go"
         }
       ]
     }

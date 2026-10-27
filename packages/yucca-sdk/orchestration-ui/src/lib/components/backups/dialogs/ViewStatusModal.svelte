@@ -41,6 +41,7 @@
   const job = $derived(jobQuery.data);
   const { onJobUpdate, onJobTick } = useJobEventHandler();
   const summary = $derived(job?.outcome?.summary);
+  const supportCode = $derived(job?.outcome?.support?.sessionId);
 
   const kind = $derived(job ? jobKinds[job.name] : "backup");
   const type: BackupStatusType = $derived(
@@ -206,5 +207,14 @@
         {/if}
       {/snippet}
     </BackupStatus>
+
+    {#if supportCode}
+      <Text size="small" color="muted" class="mt-4">
+        {$t({
+          message: "Support code: {code}. Share it with FUTO support so they can find this run's logs.",
+          values: { code: supportCode },
+        })}
+      </Text>
+    {/if}
   </ModalBody>
 </Modal>

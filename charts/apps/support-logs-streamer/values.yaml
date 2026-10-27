@@ -1,0 +1,95 @@
+# Stateless and horizontally scalable: every batch is exported synchronously
+# and session stats are reported to yucca-api as increments, so replicas share
+# nothing. Two replicas + a PDB keep a node drain from failing client uploads.
+replicas: 2
+
+strategy:
+  type: RollingUpdate
+  rollingUpdate:
+    maxSurge: 25%
+    maxUnavailable: 0
+
+# Must exceed DRAIN_DELAY_MS + SHUTDOWN_TIMEOUT_MS (15s + 60s defaults), or the
+# kubelet kills the pod while a batch is still being exported and the client
+# has to resend it.
+terminationGracePeriodSeconds: 90
+
+# A request holds at most one export slice (4 MiB of lines) in memory, but
+# many clients can upload at once.
+resources:
+  requests: { cpu: 100m, memory: 128Mi }
+  limits: { memory: 1Gi }
+
+# Stable in-cluster name, independent of the Helm release name (dev == prod).
+fullnameOverride: support-logs-streamer
+nameOverride: support-logs-streamer
+
+image:
+  repository: ghcr.io/futo-org/backups/support-logs-streamer
+  # Empty defaults to the chart appVersion, which CI sets to the image tag it ships with.
+  tag: ""
+  pullPolicy: IfNotPresent
+
+ports:
+  - name: http
+    containerPort: 3040
+
+service:
+  type: ClusterIP
+
+# Dev-only literal; prod's arrives via the Secret of the same name (secretData
+# nulled in the base HelmRelease), matching yucca-api's INTERNAL_SECRET.
+secretData:
+  INTERNAL_SECRET: dev-internal-secret
+
+# OPT-IN dev verification key — the public half of the project's well-known
+# local-dev keypair (see charts/apps/michael/values.yaml). Renders into the
+# Secret ONLY when useDevKeypair is true (dev/local overlay). Default false: with
+# no key provided the pod fails loudly instead of trusting tokens anyone can
+# mint with the committed private half. Tokens are minted by yucca-api with its
+# JWT_PRIVATE_KEY, so prod provides that key's public half.
+useDevKeypair: false
+devJwtPublicKey: |
+  -----BEGIN PUBLIC KEY-----
+  MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEpLmwUSBO0p7P1UvGReVxFTvAsCfg
+  GS7NQtJ3AnJkYaigO1MS5J59I4uRXCmpLtcwTocUGHMRVZrGLQMWdZY4DQ==
+  -----END PUBLIC KEY-----
+
+env:
+  - name: SUPPORT_LOGS_PORT
+    value: "3040"
+  - name: LOG_LEVEL
+    value: debug
+  # Dev only: the fleet default is 15s, which would make every `tilt down` and
+  # pod delete sit for a quarter minute with nothing to drain.
+  - name: DRAIN_DELAY_MS
+    value: "1000"
+  - name: YUCCA_API_URL
+    value: http://yucca-api:3020/api
+  - name: OTLP_LOGS_ENDPOINT
+    value: victoria-logs:9428
+  - name: OTLP_LOGS_URL_PATH
+    value: /insert/opentelemetry/v1/logs
+  - name: OTLP_METRICS_ENDPOINT
+    value: victoria-metrics:8428
+  - name: OTLP_METRICS_URL_PATH
+    value: /opentelemetry/v1/metrics
+
+envFrom:
+  - secretRef:
+      name: support-logs-streamer
+
+# Appended after envFrom, so a key here wins over the chart Secret (Tilt points
+# it at the yucca-dev-env Secret built from the root .env).
+extraEnvFrom: []
+
+startupProbe:
+  tcpSocket: { port: http }
+  periodSeconds: 2
+  failureThreshold: 90
+# HTTP rather than TCP so a draining pod leaves the Service's endpoints before
+# its listener closes.
+readinessProbe:
+  httpGet: { path: /readyz, port: http }
+  periodSeconds: 2
+  failureThreshold: 2

@@ -5,15 +5,22 @@
   import Suspense from "$lib/components/util/Suspense.svelte";
   import { useInspectRepositories } from "$lib/services/repository.service";
   import {
+    isRestorable,
+    latestSnapshot,
+    sortRestoreCandidates,
+  } from "$lib/utils/repository";
+  import {
     Button,
+    FormatBytes,
     HStack,
     Modal,
     ModalBody,
     ModalFooter,
     Stack,
   } from "@immich/ui";
+  import { DateTime } from "luxon";
   import type { Snippet } from "svelte";
-  import { t } from "svelte-i18n-lingui";
+  import { plural, t } from "svelte-i18n-lingui";
 
   type Props = {
     title?: string;
@@ -38,15 +45,7 @@
   // svelte-ignore state_referenced_locally
   const query = useInspectRepositories(backendId);
 
-  const sortedRepositories = $derived(
-    query.data?.toSorted((a, b) => {
-      const validA = a.snapshots !== undefined;
-      const validB = b.snapshots !== undefined;
-      return validA !== validB
-        ? Number(validB) - Number(validA)
-        : Number(b.name.includes("Immich")) - Number(a.name.includes("Immich"));
-    }),
-  );
+  const sortedRepositories = $derived(sortRestoreCandidates(query.data ?? []));
 </script>
 
 <Modal title={title ?? $t`Select Backup`} size="small" onClose={onCancel}>
@@ -56,31 +55,50 @@
 
       <StackList>
         <Suspense {query}>
-          {#each sortedRepositories ?? [] as repository (repository.id)}
-            {@const accessible = repository.snapshots !== undefined}
+          {#each sortedRepositories as repository (repository.id)}
             {@const snapshots = repository.snapshots ?? []}
+            {@const latest = latestSnapshot(snapshots)}
 
             <StackListOption
               title={repository.name}
-              disabled={!accessible}
+              disabled={!isRestorable(repository)}
               onclick={() => onSelect(repository.id)}
             >
-              {#if !accessible}
+              {#if repository.snapshots === undefined}
                 {$t`Can't access, is your recovery key correct?`}
-              {:else if snapshots.length}
+              {:else if latest}
                 {$t({
                   message: "Last backup: {date}",
                   values: {
-                    date: new Date(snapshots[0].time).toLocaleDateString(),
+                    date: DateTime.fromISO(latest.time).toLocaleString(
+                      DateTime.DATETIME_MED,
+                    ),
                   },
                 })}
               {:else}
                 {$t`No backups yet`}
               {/if}
+
+              <span class="block">
+                {#if latest}
+                  {$plural(snapshots.length, {
+                    one: "# backup",
+                    other: "# backups",
+                  })}
+                  {#if latest.summary}
+                    &middot; <FormatBytes bytes={latest.summary.totalBytes} />
+                  {/if}
+                  &middot;
+                {/if}
+                {$t({
+                  message: "ID {id}",
+                  values: { id: repository.id.slice(0, 8) },
+                })}
+              </span>
             </StackListOption>
           {/each}
 
-          {#if (sortedRepositories ?? []).length === 0}
+          {#if sortedRepositories.length === 0}
             <StackListPlaceholder>{$t`No backups found.`}</StackListPlaceholder>
           {/if}
         </Suspense>

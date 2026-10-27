@@ -1,20 +1,26 @@
 import {
   createRepository,
   createResticUrl,
+  createTicket,
+  getRepositories,
   getRepository,
   submitMetricBackupEnd,
   submitMetricBackupStart,
 } from '@futo-org/backups-api-client';
 import { ResticBackupCommandCouldNotReadSourceDataError } from '@futo-org/restic-wrapper';
 import { jest } from '@jest/globals';
+import { GoneException, NotFoundException } from '@nestjs/common';
 import { randomUUID } from 'node:crypto';
 import { mkdir, readdir } from 'node:fs/promises';
-import { BackendType, JobName, TaskStatus } from '../src/enum.js';
+import { LocalBackend } from '../src/backends/local.backend.js';
+import { BackendType, JobName, TaskStatus, TicketAction } from '../src/enum.js';
 import { ResticProxyPool } from '../src/proxy/resticProxyPool.js';
 import { BackendRepository } from '../src/repositories/backend.repository.js';
 import { JobRepository } from '../src/repositories/job.repository.js';
 import { ModuleConfigRepository } from '../src/repositories/moduleConfig.repository.js';
+import { RepositoryRepository } from '../src/repositories/repository.repository.js';
 import { RepositoryIntegrationImmichRepository } from '../src/repositories/repositoryIntegrationImmich.repository.js';
+import { AuthService } from '../src/services/auth.service.js';
 import { IntegrationsService } from '../src/services/integrations.service.js';
 import { RepositoryService } from '../src/services/repository.service.js';
 import { YuccaService } from '../src/services/yucca.service.js';
@@ -132,6 +138,39 @@ describe('Repository', () => {
     );
   });
 
+  it('uses the snapshot of the previous backup as the parent of the next one', async () => {
+    const repositoryService = ctx.module.get(RepositoryService);
+    const jobs = ctx.module.get(JobRepository);
+
+    const { repository } = await repositoryService.createRepository(
+      { name: 'Parent Repo', worm: false, paths: ['/tmp/parent'] },
+      ctx.backendId,
+    );
+
+    ctx.resticMock.backup.mockImplementationOnce((...args: unknown[]) => {
+      const log = args[4] as (event: object) => void;
+      log({ message_type: 'summary', files_new: 1, files_changed: 0, snapshot_id: 'snapshot-a' });
+      return Promise.resolve({ snapshot_id: 'snapshot-a' }) as never;
+    });
+    ctx.resticMock.snapshot.mockResolvedValue([{ id: 'snapshot-a', time: new Date() }] as never);
+
+    const first = await repositoryService.createBackup(repository.id);
+    await jobs.wait(first.jobId);
+    const second = await repositoryService.createBackup(repository.id);
+    await jobs.wait(second.jobId);
+
+    expect(ctx.resticMock.backup).toHaveBeenCalledTimes(2);
+    expect(ctx.resticMock.backup.mock.calls[0][7]).toBeUndefined();
+    expect(ctx.resticMock.backup.mock.calls[1][7]).toBe('snapshot-a');
+    expect(ctx.resticMock.snapshot).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.anything(),
+      expect.anything(),
+      'snapshot-a',
+      expect.any(AbortSignal),
+    );
+  });
+
   it('rejects backup when no paths are configured', async () => {
     const repositoryService = ctx.module.get(RepositoryService);
 
@@ -214,6 +253,7 @@ describe('Repository', () => {
         expect.anything(),
         expect.any(AbortSignal),
         ['yucca.v1.immichBackupFileName=dump.sql.gz'],
+        undefined,
       );
     });
 
@@ -269,6 +309,7 @@ describe('Repository', () => {
         expect.anything(),
         expect.any(AbortSignal),
         [],
+        undefined,
       );
     });
 
@@ -547,6 +588,95 @@ describe('Repository', () => {
     });
   });
 
+  describe('deleted from FUTO Backups', () => {
+    const notFound = () => Object.assign(new Error('Error: 404'), { status: 404 });
+    let yuccaBackendId: string;
+    let remoteId: string;
+    let repositoryId: string;
+
+    beforeEach(async () => {
+      yuccaBackendId = randomUUID();
+      remoteId = randomUUID();
+
+      await ctx.module.get(BackendRepository).updateBackend(yuccaBackendId, {
+        type: BackendType.Yucca,
+        url: 'http://yucca.test',
+        accessToken: 'test-token',
+      });
+      (createRepository as jest.Mock).mockResolvedValueOnce(remoteRepository(remoteId, 'Deleted'));
+      const { repository } = await ctx.module
+        .get(RepositoryService)
+        .createRepository({ name: 'Deleted', worm: false }, yuccaBackendId);
+      repositoryId = repository.id;
+    });
+
+    afterEach(async () => {
+      await ctx.module.get(RepositoryService).deleteRepository(repositoryId);
+      ctx.database.prepare('DELETE FROM backends WHERE id = ?').run(yuccaBackendId);
+    });
+
+    const isKnownLocally = async () => Boolean(await ctx.module.get(RepositoryRepository).get(repositoryId));
+
+    it('lists the leftover repository as unknown and offline', async () => {
+      (getRepositories as jest.Mock).mockResolvedValueOnce({ repositories: [] });
+
+      const { repositories } = await ctx.module.get(RepositoryService).getRepositories();
+      expect(repositories.find(({ id }) => id === repositoryId)).toMatchObject({
+        name: 'Unknown',
+        backends: { primary: { online: false } },
+      });
+    });
+
+    it('reports the repository as gone when creating a ticket', async () => {
+      (createTicket as jest.Mock).mockRejectedValueOnce(notFound());
+
+      await expect(
+        ctx.module.get(AuthService).createTicket({ action: TicketAction.DeleteRepository, repositoryId }),
+      ).rejects.toBeInstanceOf(GoneException);
+      expect(await isKnownLocally()).toBe(true);
+    });
+
+    it('reports a repository unknown locally as not found when creating a ticket', async () => {
+      (createTicket as jest.Mock).mockClear();
+
+      await expect(
+        ctx.module.get(AuthService).createTicket({ action: TicketAction.DeleteRepository, repositoryId: randomUUID() }),
+      ).rejects.toBeInstanceOf(NotFoundException);
+      expect(createTicket).not.toHaveBeenCalled();
+    });
+
+    it('passes other backend failures through when creating a ticket', async () => {
+      const failure = Object.assign(new Error('Error: 500'), { status: 500 });
+      (createTicket as jest.Mock).mockRejectedValueOnce(failure);
+
+      await expect(
+        ctx.module.get(AuthService).createTicket({ action: TicketAction.DeleteRepository, repositoryId }),
+      ).rejects.toBe(failure);
+    });
+
+    it('removes the repository once it has been deleted remotely', async () => {
+      (getRepository as jest.Mock).mockRejectedValueOnce(notFound());
+
+      await expect(ctx.module.get(RepositoryService).syncDeletion(repositoryId)).resolves.toEqual({ deleted: true });
+      expect(getRepository).toHaveBeenCalledWith(remoteId, expect.anything());
+      expect(await isKnownLocally()).toBe(false);
+    });
+
+    it('keeps the repository while it still exists remotely', async () => {
+      (getRepository as jest.Mock).mockResolvedValueOnce(remoteRepository(remoteId, 'Deleted'));
+
+      await expect(ctx.module.get(RepositoryService).syncDeletion(repositoryId)).resolves.toEqual({ deleted: false });
+      expect(await isKnownLocally()).toBe(true);
+    });
+
+    it('keeps the repository when the backend fails', async () => {
+      (getRepository as jest.Mock).mockRejectedValueOnce(Object.assign(new Error('Error: 500'), { status: 500 }));
+
+      await expect(ctx.module.get(RepositoryService).syncDeletion(repositoryId)).rejects.toThrow('Error: 500');
+      expect(await isKnownLocally()).toBe(true);
+    });
+  });
+
   it('lists remote-only repositories not in local database', async () => {
     const repositoryService = ctx.module.get(RepositoryService);
 
@@ -559,6 +689,47 @@ describe('Repository', () => {
     expect(remoteOnly).toBeDefined();
     expect(remoteOnly?.name).toBe('Unknown');
     expect(remoteOnly?.backends?.primary.online).toBe(true);
+  });
+
+  it('lists a local repository under the name it was created with', async () => {
+    const repositoryService = ctx.module.get(RepositoryService);
+
+    const { repository } = await repositoryService.createRepository({ name: 'Immich', worm: false }, ctx.backendId);
+
+    const { repositories } = await repositoryService.getRepositories();
+
+    expect(repositories.find((repo) => repo.id === repository.id)?.name).toBe('Immich');
+  });
+
+  describe('after a fresh install pointed at an existing local backend', () => {
+    const createRepositoryFromPreviousInstall = async (name: string) => {
+      const { repository } = await new LocalBackend({
+        type: BackendType.Local,
+        path: ctx.backendPath,
+      }).createRepository({ name, worm: false });
+      return repository.id;
+    };
+
+    it('offers the repository for restore under its stored name', async () => {
+      const remoteId = await createRepositoryFromPreviousInstall('Immich');
+
+      const { repositories } = await ctx.module.get(RepositoryService).inspectRepositories(ctx.backendId);
+
+      expect(repositories.find((repo) => repo.id === remoteId)).toEqual(
+        expect.objectContaining({ name: 'Immich', snapshots: [] }),
+      );
+    });
+
+    it('keeps the stored name when importing the repository', async () => {
+      const repositoryService = ctx.module.get(RepositoryService);
+      const remoteId = await createRepositoryFromPreviousInstall('Immich');
+
+      const { repository } = await repositoryService.importRepository(remoteId, ctx.backendId);
+      const { repositories } = await repositoryService.getRepositories();
+
+      expect(repository.name).toBe('Immich');
+      expect(repositories.find((repo) => repo.id === repository.id)?.name).toBe('Immich');
+    });
   });
 });
 
@@ -611,10 +782,33 @@ describe('Primary backend reconfiguration', () => {
     expect(moved).toEqual(expect.objectContaining({ id: repository.id, name: 'Family Photos' }));
   });
 
-  it('names the repository as restored when the old backend cannot report its name', async () => {
+  it('keeps the name of a local repository when moving to another backend', async () => {
     const repositoryService = ctx.module.get(RepositoryService);
 
     const { repository } = await repositoryService.createRepository({ name: 'Local Only', worm: false }, ctx.backendId);
+
+    const { repository: moved } = await repositoryService.reconfigureRepositoryPrimaryBackend(repository.id, {
+      backendId: ctx.backendId,
+    });
+
+    expect(moved.name).toBe('Local Only');
+  });
+
+  it('names the repository as restored when the old backend cannot report its name', async () => {
+    const repositoryService = ctx.module.get(RepositoryService);
+    const yuccaBackendId = randomUUID();
+    await ctx.module.get(BackendRepository).updateBackend(yuccaBackendId, {
+      type: BackendType.Yucca,
+      url: 'http://yucca.test',
+      accessToken: 'test-token',
+    });
+
+    (createRepository as jest.Mock).mockResolvedValueOnce(remoteRepository(randomUUID(), 'Unreachable'));
+    (getRepository as jest.Mock).mockRejectedValueOnce(new Error('Backend is offline'));
+    const { repository } = await repositoryService.createRepository(
+      { name: 'Unreachable', worm: false },
+      yuccaBackendId,
+    );
 
     const { repository: moved } = await repositoryService.reconfigureRepositoryPrimaryBackend(repository.id, {
       backendId: ctx.backendId,

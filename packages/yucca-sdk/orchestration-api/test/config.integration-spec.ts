@@ -203,3 +203,27 @@ describe('Configuration upsert', () => {
     await expect(booted.config.hasTelemetry()).resolves.toBe(true);
   });
 });
+
+describe('Support mode', () => {
+  it('is off until configured', async () => {
+    await expect(booted.config.getSupportMode()).resolves.toEqual({
+      remainingRuns: 0,
+      streamToFuto: false,
+      includePaths: false,
+    });
+    await expect(booted.config.consumeSupportModeRun()).resolves.toBeUndefined();
+  });
+
+  it('counts down one run at a time and then switches itself off', async () => {
+    await booted.config.setSupportMode({ remainingRuns: 2, streamToFuto: true, includePaths: false });
+
+    await expect(booted.config.consumeSupportModeRun()).resolves.toMatchObject({ remainingRuns: 2 });
+    await expect(booted.config.consumeSupportModeRun()).resolves.toMatchObject({ remainingRuns: 1 });
+    await expect(booted.config.consumeSupportModeRun()).resolves.toBeUndefined();
+    await expect(booted.config.getSupportMode()).resolves.toEqual({
+      remainingRuns: 0,
+      streamToFuto: true,
+      includePaths: false,
+    });
+  });
+});

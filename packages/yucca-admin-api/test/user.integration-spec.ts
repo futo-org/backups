@@ -149,4 +149,56 @@ describe('UserController (e2e)', () => {
       await expect(testUtils.getUser(user.id)).resolves.toBeTruthy();
     });
   });
+
+  describe('GET /user/:id/support-log-sessions', () => {
+    it('requires authentication', async () => {
+      const user = await testUtils.createUser();
+
+      await request(app.getHttpServer()).get(`/api/user/${user.id}/support-log-sessions`).expect(401);
+    });
+
+    it("lists only that user's sessions, newest first", async () => {
+      const alice = await testUtils.createUser();
+      const bob = await testUtils.createUser();
+      const connection = await testUtils.createConnection(alice.id);
+      const older = await testUtils.createSupportLogSession(alice.id, {
+        createdAt: new Date('2026-10-27T10:00:00.000Z'),
+      });
+      const newer = await testUtils.createSupportLogSession(alice.id, {
+        connectionId: connection.id,
+        createdAt: new Date('2026-10-27T11:00:00.000Z'),
+        lineCount: 3_000_000_000,
+        byteCount: 42,
+        batchCount: 2,
+        droppedLineCount: 1,
+        lastBatchAt: new Date('2026-10-27T11:05:00.000Z'),
+        finishedAt: new Date('2026-10-27T11:06:00.000Z'),
+      });
+      await testUtils.createSupportLogSession(bob.id);
+
+      const { body } = await request(app.getHttpServer())
+        .get(`/api/user/${alice.id}/support-log-sessions`)
+        .set('Cookie', authCookie)
+        .expect(200);
+
+      expect(body.sessions.map(({ id }: { id: string }) => id)).toEqual([newer.id, older.id]);
+      expect(body.sessions[0]).toMatchObject({
+        userId: alice.id,
+        connectionId: connection.id,
+        lineCount: 3_000_000_000,
+        byteCount: 42,
+        batchCount: 2,
+        droppedLineCount: 1,
+        lastBatchAt: '2026-10-27T11:05:00.000Z',
+        finishedAt: '2026-10-27T11:06:00.000Z',
+      });
+      expect(body.sessions[1]).toMatchObject({
+        connectionId: null,
+        lineCount: 0,
+        lastBatchAt: null,
+        finishedAt: null,
+        clientVersion: null,
+      });
+    });
+  });
 });

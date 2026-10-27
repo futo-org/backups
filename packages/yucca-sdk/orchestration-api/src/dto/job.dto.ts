@@ -41,15 +41,23 @@ const JobOutcomeSchema = z
   .object({
     errors: z.array(z.string()),
     summary: JobSummarySchema.optional(),
+    support: z
+      .object({
+        sessionId: z.string().optional().describe('Support code to share with FUTO when the logs were streamed'),
+        droppedLines: z.number().describe('Log lines that could not be streamed in time'),
+        localDroppedLines: z.number().describe('Log lines that could not be written to the local support log'),
+      })
+      .optional()
+      .meta({ id: 'JobSupportDto' }),
   })
   .meta({ id: 'JobOutcomeDto' });
 
 export const JobSchema = z
   .object({
     id: z.string(),
-    name: z.enum(JobName).meta({ id: 'JobName' }),
+    name: z.enum(JobName).meta({ id: 'YuccaJobName' }),
     repositoryId: z.string(),
-    status: z.enum(JobStatus).meta({ id: 'JobStatus' }),
+    status: z.enum(JobStatus).meta({ id: 'YuccaJobStatus' }),
     queuedAt: z.string(),
     start: z.string().optional(),
     end: z.string().optional(),

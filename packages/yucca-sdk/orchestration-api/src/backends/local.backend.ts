@@ -7,15 +7,19 @@ import {
   RepositoryListResponseDto,
   RepositoryUpdateRequestDto,
   RepositoryUpdateResponseDto,
+  RepositoryWithMetricsDto,
   TicketCreateRequestDto,
   TicketCreateResponseDto,
 } from '@futo-org/backups-api-client';
 import { randomUUID } from 'node:crypto';
 import { mkdir, readdir, stat } from 'node:fs/promises';
-import { resolve } from 'node:path';
+import { dirname, resolve } from 'node:path';
 import { BackendType } from '../enum.js';
 import { BackendConfiguration } from '../schema/tables/backend.table.js';
 import { Backend } from './backend.js';
+import { LocalMetadata } from './local.metadata.js';
+
+const UNKNOWN_REPOSITORY_NAME = 'Unknown';
 
 export class LocalBackend extends Backend {
   constructor(protected readonly configuration: BackendConfiguration & { type: BackendType.Local }) {
@@ -32,48 +36,71 @@ export class LocalBackend extends Backend {
 
   async checkOnline(): Promise<void> {}
 
+  private repositoryPath(id: string) {
+    const root = resolve(this.configuration.path);
+    const path = resolve(root, id);
+    if (dirname(path) !== root) {
+      throw new Error(`Invalid repository id ${id}`);
+    }
+    return path;
+  }
+
+  private metadata(id: string) {
+    return new LocalMetadata(this.repositoryPath(id));
+  }
+
+  private async readName(id: string): Promise<string> {
+    const { name } = await this.metadata(id).read();
+    return name ?? UNKNOWN_REPOSITORY_NAME;
+  }
+
+  private toRepository(id: string, name: string, worm = false): RepositoryWithMetricsDto {
+    return {
+      id,
+      name,
+      worm,
+      siteCode: null,
+      storageClusterCode: null,
+      connectionId: '',
+      connectionType: 'local',
+      metrics: {
+        sizeBytes: 0,
+      },
+    };
+  }
+
   async createRepository(dto: RepositoryCreateRequestDto): Promise<RepositoryCreateResponseDto> {
     const id = randomUUID();
 
-    await mkdir(resolve(this.configuration.path, id), {
+    await mkdir(this.repositoryPath(id), {
       recursive: true,
     });
+    await this.metadata(id).update({ name: dto.name });
 
     return {
-      repository: {
-        id,
-        name: dto.name,
-        worm: dto.worm,
-        siteCode: null,
-        storageClusterCode: null,
-        connectionId: '',
-        connectionType: 'local',
-        metrics: {
-          sizeBytes: 0,
-        },
-      },
+      repository: this.toRepository(id, dto.name, dto.worm),
     };
   }
 
   async updateRepository(id: string, dto: RepositoryUpdateRequestDto): Promise<RepositoryUpdateResponseDto> {
+    if (dto.name !== undefined) {
+      await this.metadata(id).update({ name: dto.name });
+    }
+
     return {
-      repository: {
-        id,
-        name: dto.name ?? 'new name',
-        worm: dto.worm ?? false,
-        siteCode: null,
-        storageClusterCode: null,
-        connectionId: '',
-        connectionType: 'local',
-        metrics: {
-          sizeBytes: 0,
-        },
-      },
+      repository: this.toRepository(id, dto.name ?? (await this.readName(id)), dto.worm),
     };
   }
 
-  getRepository(_id: string): Promise<RepositoryGetResponseDto> {
-    throw new Error('Method not implemented.');
+  async getRepository(id: string): Promise<RepositoryGetResponseDto> {
+    const stats = await stat(this.repositoryPath(id));
+    if (!stats.isDirectory()) {
+      throw new Error(`Repository ${id} is not a directory`);
+    }
+
+    return {
+      repository: this.toRepository(id, await this.readName(id)),
+    };
   }
 
   async getRepositories(): Promise<RepositoryListResponseDto> {
@@ -84,27 +111,11 @@ export class LocalBackend extends Backend {
       files = [];
     }
 
+    const stats = await Promise.all(files.map((file) => stat(this.repositoryPath(file))));
+    const ids = files.filter((_, index) => stats[index].isDirectory());
+
     return {
-      repositories: await Promise.all(files.map((path) => stat(resolve(this.configuration.path, path)))).then((list) =>
-        list
-          .map((f, index) =>
-            f.isDirectory()
-              ? {
-                  id: files[index],
-                  name: 'Unknown',
-                  worm: false,
-                  siteCode: null,
-                  storageClusterCode: null,
-                  connectionId: '',
-                  connectionType: 'local',
-                  metrics: {
-                    sizeBytes: 0,
-                  },
-                }
-              : null,
-          )
-          .filter((f) => f !== null),
-      ),
+      repositories: await Promise.all(ids.map(async (id) => this.toRepository(id, await this.readName(id)))),
     };
   }
 
@@ -117,7 +128,7 @@ export class LocalBackend extends Backend {
   }
 
   async getResticEndpoint(id: string): Promise<string> {
-    return resolve(this.configuration.path, id);
+    return this.repositoryPath(id);
   }
 
   submitMetricBackupStart(): void {

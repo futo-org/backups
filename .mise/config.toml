@@ -48,6 +48,7 @@ depends = ["install:deps", "common:build", "docker:start"]
 run = [
   { tasks = [
     "michael:dev",
+    "support-logs-streamer:dev",
     "//packages/restic-proxy:dev",
     "//packages/web:dev",
     "//packages/yucca-admin-api:dev",
