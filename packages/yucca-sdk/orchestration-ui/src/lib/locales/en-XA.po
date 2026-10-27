@@ -439,6 +439,7 @@ msgstr ""
 
 #: src/lib/components/backends/dialogs/OAuthDeviceFlowModal.svelte
 #: src/lib/components/backends/dialogs/SelectBackendModal.svelte
+#: src/lib/components/backups/dialogs/RemoveDeletedRepositoryModal.svelte
 #: src/lib/components/backups/dialogs/RollbackSnapshotModal.svelte
 #: src/lib/components/backups/dialogs/SelectRepositoryModal.svelte
 #: src/lib/components/onboarding/steps/OnboardingStepBackupServices.svelte
@@ -886,6 +887,10 @@ msgstr ""
 
 #: src/lib/services/repository.service.ts
 msgid "Failed to reconfigure backend"
+msgstr ""
+
+#: src/lib/services/repository.service.ts
+msgid "Failed to remove repository"
 msgstr ""
 
 #: src/lib/services/onboarding.service.ts
@@ -1799,6 +1804,10 @@ msgstr ""
 msgid "Remove {path}"
 msgstr ""
 
+#: src/lib/components/backups/dialogs/RemoveDeletedRepositoryModal.svelte
+msgid "Remove from this machine"
+msgstr ""
+
 #: src/lib/components/integrations/immich/ImmichManageBackupPage.svelte
 msgid "Report An Issue"
 msgstr ""
@@ -1817,6 +1826,10 @@ msgstr ""
 
 #: src/lib/components/backups/dialogs/ImportRepositoryModal.svelte
 msgid "Repository is readable and accessible!"
+msgstr ""
+
+#: src/lib/components/backups/dialogs/RemoveDeletedRepositoryModal.svelte
+msgid "Repository no longer on FUTO Backups"
 msgstr ""
 
 #: src/lib/components/integrations/immich/settings/ImmichSettingsBandwidth.svelte
@@ -2215,6 +2228,10 @@ msgstr ""
 
 #: ../../web/src/routes/link/discord/+page.svelte
 msgid "This link is invalid or has expired. Click the support button in Discord to get a new one."
+msgstr ""
+
+#: src/lib/components/backups/dialogs/RemoveDeletedRepositoryModal.svelte
+msgid "This repository no longer exists on FUTO Backups. Remove it from this machine? Local settings (paths, schedules) will be removed; no backup data is affected."
 msgstr ""
 
 #: src/lib/components/schedules/dialogs/ConfigureScheduleModal.svelte

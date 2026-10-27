@@ -1,6 +1,7 @@
 import { sdk } from '$lib';
 import ConfigureRepositoryModal from '$lib/components/backups/dialogs/ConfigureRepositoryModal.svelte';
 import ImportRepositoryModal from '$lib/components/backups/dialogs/ImportRepositoryModal.svelte';
+import RemoveDeletedRepositoryModal from '$lib/components/backups/dialogs/RemoveDeletedRepositoryModal.svelte';
 import ViewStatusModal from '$lib/components/backups/dialogs/ViewStatusModal.svelte';
 import MetricsHistoryModal from '$lib/components/backups/metrics-history/MetricsHistoryModal.svelte';
 import RunHistoryModal from '$lib/components/backups/run-history/RunHistoryModal.svelte';
@@ -206,6 +207,41 @@ export const handlePruneRepository = async (id: string) => {
   }
 };
 
+const REMOTE_DELETION_SYNC_TIMEOUT_MS = 15 * 60 * 1000;
+
+const isRepositoryGone = (error: unknown) =>
+  (error as { status?: number }).status === 410;
+
+const syncRemoteDeletion = (repositoryId: string) => {
+  const stop = () => {
+    window.removeEventListener('focus', onFocus);
+    clearTimeout(timeout);
+  };
+
+  const onFocus = () =>
+    void sdk
+      .syncRepositoryDeletion(repositoryId)
+      .then(({ deleted }) => deleted && stop())
+      .catch(stop);
+
+  const timeout = setTimeout(stop, REMOTE_DELETION_SYNC_TIMEOUT_MS);
+  window.addEventListener('focus', onFocus);
+};
+
+const handleRemoveDeletedRepository = async (repositoryId: string) => {
+  const confirmed = await modalManager.show(RemoveDeletedRepositoryModal, {});
+  if (!confirmed) {
+    return;
+  }
+
+  try {
+    await sdk.deleteRepository(repositoryId);
+  } catch (error) {
+    handleError(error, gt`Failed to remove repository`);
+    throw error;
+  }
+};
+
 export const handleDeleteRepository = async (
   repositoryId: string,
   local?: boolean,
@@ -220,13 +256,17 @@ export const handleDeleteRepository = async (
 
     window.open(redirectTo, '_blank');
   } catch (error) {
-    if (local && (error as { status?: number }).status === 404) {
-      await sdk.deleteRepository(repositoryId);
+    if (local && isRepositoryGone(error)) {
+      await handleRemoveDeletedRepository(repositoryId);
       return;
     }
 
     handleError(error, gt`Failed to start deletion`);
     throw error;
+  }
+
+  if (local) {
+    syncRemoteDeletion(repositoryId);
   }
 };
 

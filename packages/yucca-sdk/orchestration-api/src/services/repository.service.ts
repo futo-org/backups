@@ -18,6 +18,7 @@ import {
   RepositoryPrimaryBackendReconfigureRequestDto,
   RepositorySnapshotRestoreFromPointRequestDto,
   RepositorySnapshotRestoreRequestDto,
+  RepositorySyncDeletionResponseDto,
   RepositoryUpdateRequestDto,
   RepositoryUpdateResponseDto,
   RepositoryWithMetricsDto,
@@ -33,6 +34,7 @@ import { RepositoryLocalMetricsRepository } from '../repositories/repositoryLoca
 import { RepositoryPathRepository } from '../repositories/repositoryPath.repository.js';
 import { ResticRepository } from '../repositories/restic.repository.js';
 import { RepositoryLocalMetricsTable } from '../schema/tables/repositoryLocalMetrics.table.js';
+import { isNotFoundError } from '../utils/errors.js';
 import { DEFAULT_RETENTION_POLICY } from '../utils/restic.js';
 import { TelemetryService } from './telemetry.service.js';
 
@@ -380,6 +382,27 @@ export class RepositoryService {
       type: 'RepositoryDelete',
       repositoryId: id,
     });
+  }
+
+  async syncDeletion(id: string): Promise<RepositorySyncDeletionResponseDto> {
+    const localRepository = await this.repository.get(id);
+    if (!localRepository) {
+      return { deleted: true };
+    }
+
+    const { backend } = await this.getBackendOrThrow(localRepository.backendId);
+
+    try {
+      await backend.getRepository(localRepository.remoteId);
+      return { deleted: false };
+    } catch (error) {
+      if (!isNotFoundError(error)) {
+        throw error;
+      }
+    }
+
+    await this.deleteRepository(id);
+    return { deleted: true };
   }
 
   async getResticParameters(

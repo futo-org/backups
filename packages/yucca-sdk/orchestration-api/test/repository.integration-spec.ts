@@ -9,7 +9,7 @@ import {
 } from '@futo-org/backups-api-client';
 import { ResticBackupCommandCouldNotReadSourceDataError } from '@futo-org/restic-wrapper';
 import { jest } from '@jest/globals';
-import { NotFoundException } from '@nestjs/common';
+import { GoneException, NotFoundException } from '@nestjs/common';
 import { randomUUID } from 'node:crypto';
 import { mkdir, readdir } from 'node:fs/promises';
 import { BackendType, JobName, TaskStatus, TicketAction } from '../src/enum.js';
@@ -17,6 +17,7 @@ import { ResticProxyPool } from '../src/proxy/resticProxyPool.js';
 import { BackendRepository } from '../src/repositories/backend.repository.js';
 import { JobRepository } from '../src/repositories/job.repository.js';
 import { ModuleConfigRepository } from '../src/repositories/moduleConfig.repository.js';
+import { RepositoryRepository } from '../src/repositories/repository.repository.js';
 import { RepositoryIntegrationImmichRepository } from '../src/repositories/repositoryIntegrationImmich.repository.js';
 import { AuthService } from '../src/services/auth.service.js';
 import { IntegrationsService } from '../src/services/integrations.service.js';
@@ -551,38 +552,93 @@ describe('Repository', () => {
     });
   });
 
-  it('reports a repository deleted from FUTO Backups as not found when creating a ticket', async () => {
-    const repositoryService = ctx.module.get(RepositoryService);
-    const yuccaBackendId = randomUUID();
-    const remoteId = randomUUID();
+  describe('deleted from FUTO Backups', () => {
+    const notFound = () => Object.assign(new Error('Error: 404'), { status: 404 });
+    let yuccaBackendId: string;
+    let remoteId: string;
+    let repositoryId: string;
 
-    await ctx.module.get(BackendRepository).updateBackend(yuccaBackendId, {
-      type: BackendType.Yucca,
-      url: 'http://yucca.test',
-      accessToken: 'test-token',
+    beforeEach(async () => {
+      yuccaBackendId = randomUUID();
+      remoteId = randomUUID();
+
+      await ctx.module.get(BackendRepository).updateBackend(yuccaBackendId, {
+        type: BackendType.Yucca,
+        url: 'http://yucca.test',
+        accessToken: 'test-token',
+      });
+      (createRepository as jest.Mock).mockResolvedValueOnce(remoteRepository(remoteId, 'Deleted'));
+      const { repository } = await ctx.module
+        .get(RepositoryService)
+        .createRepository({ name: 'Deleted', worm: false }, yuccaBackendId);
+      repositoryId = repository.id;
     });
-    (createRepository as jest.Mock).mockResolvedValueOnce(remoteRepository(remoteId, 'Deleted'));
-    const { repository } = await repositoryService.createRepository({ name: 'Deleted', worm: false }, yuccaBackendId);
 
-    (getRepositories as jest.Mock).mockResolvedValueOnce({ repositories: [] });
-    (createTicket as jest.Mock).mockRejectedValueOnce(Object.assign(new Error('Error: 404'), { status: 404 }));
+    afterEach(async () => {
+      await ctx.module.get(RepositoryService).deleteRepository(repositoryId);
+      ctx.database.prepare('DELETE FROM backends WHERE id = ?').run(yuccaBackendId);
+    });
 
-    try {
-      const { repositories } = await repositoryService.getRepositories();
-      expect(repositories.find(({ id }) => id === repository.id)).toMatchObject({
+    const isKnownLocally = async () => Boolean(await ctx.module.get(RepositoryRepository).get(repositoryId));
+
+    it('lists the leftover repository as unknown and offline', async () => {
+      (getRepositories as jest.Mock).mockResolvedValueOnce({ repositories: [] });
+
+      const { repositories } = await ctx.module.get(RepositoryService).getRepositories();
+      expect(repositories.find(({ id }) => id === repositoryId)).toMatchObject({
         name: 'Unknown',
         backends: { primary: { online: false } },
       });
+    });
+
+    it('reports the repository as gone when creating a ticket', async () => {
+      (createTicket as jest.Mock).mockRejectedValueOnce(notFound());
 
       await expect(
-        ctx.module
-          .get(AuthService)
-          .createTicket({ action: TicketAction.DeleteRepository, repositoryId: repository.id }),
+        ctx.module.get(AuthService).createTicket({ action: TicketAction.DeleteRepository, repositoryId }),
+      ).rejects.toBeInstanceOf(GoneException);
+      expect(await isKnownLocally()).toBe(true);
+    });
+
+    it('reports a repository unknown locally as not found when creating a ticket', async () => {
+      (createTicket as jest.Mock).mockClear();
+
+      await expect(
+        ctx.module.get(AuthService).createTicket({ action: TicketAction.DeleteRepository, repositoryId: randomUUID() }),
       ).rejects.toBeInstanceOf(NotFoundException);
-    } finally {
-      await repositoryService.deleteRepository(repository.id);
-      ctx.database.prepare('DELETE FROM backends WHERE id = ?').run(yuccaBackendId);
-    }
+      expect(createTicket).not.toHaveBeenCalled();
+    });
+
+    it('passes other backend failures through when creating a ticket', async () => {
+      const failure = Object.assign(new Error('Error: 500'), { status: 500 });
+      (createTicket as jest.Mock).mockRejectedValueOnce(failure);
+
+      await expect(
+        ctx.module.get(AuthService).createTicket({ action: TicketAction.DeleteRepository, repositoryId }),
+      ).rejects.toBe(failure);
+    });
+
+    it('removes the repository once it has been deleted remotely', async () => {
+      (getRepository as jest.Mock).mockRejectedValueOnce(notFound());
+
+      await expect(ctx.module.get(RepositoryService).syncDeletion(repositoryId)).resolves.toEqual({ deleted: true });
+      expect(getRepository).toHaveBeenCalledWith(remoteId, expect.anything());
+      expect(await isKnownLocally()).toBe(false);
+    });
+
+    it('keeps the repository while it still exists remotely', async () => {
+      (getRepository as jest.Mock).mockResolvedValueOnce(remoteRepository(remoteId, 'Deleted'));
+
+      await expect(ctx.module.get(RepositoryService).syncDeletion(repositoryId)).resolves.toEqual({ deleted: false });
+      expect(await isKnownLocally()).toBe(true);
+    });
+
+    it('keeps the repository when the backend fails', async () => {
+      (getRepository as jest.Mock).mockRejectedValueOnce(Object.assign(new Error('Error: 500'), { status: 500 }));
+
+      await expect(ctx.module.get(RepositoryService).syncDeletion(repositoryId)).rejects.toThrow('Error: 500');
+      expect(await isKnownLocally()).toBe(true);
+    });
   });
 
   it('lists remote-only repositories not in local database', async () => {

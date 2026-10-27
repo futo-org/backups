@@ -439,6 +439,7 @@ msgstr "Can't read repository."
 
 #: src/lib/components/backends/dialogs/OAuthDeviceFlowModal.svelte
 #: src/lib/components/backends/dialogs/SelectBackendModal.svelte
+#: src/lib/components/backups/dialogs/RemoveDeletedRepositoryModal.svelte
 #: src/lib/components/backups/dialogs/RollbackSnapshotModal.svelte
 #: src/lib/components/backups/dialogs/SelectRepositoryModal.svelte
 #: src/lib/components/onboarding/steps/OnboardingStepBackupServices.svelte
@@ -887,6 +888,10 @@ msgstr "Failed to pause schedule"
 #: src/lib/services/repository.service.ts
 msgid "Failed to reconfigure backend"
 msgstr "Failed to reconfigure backend"
+
+#: src/lib/services/repository.service.ts
+msgid "Failed to remove repository"
+msgstr "Failed to remove repository"
 
 #: src/lib/services/onboarding.service.ts
 msgid "Failed to report error"
@@ -1799,6 +1804,10 @@ msgstr "Remove {name}"
 msgid "Remove {path}"
 msgstr "Remove {path}"
 
+#: src/lib/components/backups/dialogs/RemoveDeletedRepositoryModal.svelte
+msgid "Remove from this machine"
+msgstr "Remove from this machine"
+
 #: src/lib/components/integrations/immich/ImmichManageBackupPage.svelte
 msgid "Report An Issue"
 msgstr "Report An Issue"
@@ -1818,6 +1827,10 @@ msgstr "Repositories"
 #: src/lib/components/backups/dialogs/ImportRepositoryModal.svelte
 msgid "Repository is readable and accessible!"
 msgstr "Repository is readable and accessible!"
+
+#: src/lib/components/backups/dialogs/RemoveDeletedRepositoryModal.svelte
+msgid "Repository no longer on FUTO Backups"
+msgstr "Repository no longer on FUTO Backups"
 
 #: src/lib/components/integrations/immich/settings/ImmichSettingsBandwidth.svelte
 #: src/lib/components/integrations/immich/settings/ImmichSettingsSchedule.svelte
@@ -2216,6 +2229,10 @@ msgstr "This is an early version of FUTO Backups. The service may be reset and y
 #: ../../web/src/routes/link/discord/+page.svelte
 msgid "This link is invalid or has expired. Click the support button in Discord to get a new one."
 msgstr "This link is invalid or has expired. Click the support button in Discord to get a new one."
+
+#: src/lib/components/backups/dialogs/RemoveDeletedRepositoryModal.svelte
+msgid "This repository no longer exists on FUTO Backups. Remove it from this machine? Local settings (paths, schedules) will be removed; no backup data is affected."
+msgstr "This repository no longer exists on FUTO Backups. Remove it from this machine? Local settings (paths, schedules) will be removed; no backup data is affected."
 
 #: src/lib/components/schedules/dialogs/ConfigureScheduleModal.svelte
 #: src/lib/components/schedules/dialogs/CreateScheduleModal.svelte
