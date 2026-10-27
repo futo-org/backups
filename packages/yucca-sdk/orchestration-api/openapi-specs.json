@@ -2075,13 +2075,13 @@
             "type": "string"
           },
           "name": {
-            "$ref": "#/components/schemas/JobName"
+            "$ref": "#/components/schemas/YuccaJobName"
           },
           "repositoryId": {
             "type": "string"
           },
           "status": {
-            "$ref": "#/components/schemas/JobStatus"
+            "$ref": "#/components/schemas/YuccaJobStatus"
           },
           "queuedAt": {
             "type": "string"
@@ -2107,7 +2107,7 @@
           "queuedAt"
         ]
       },
-      "JobName": {
+      "YuccaJobName": {
         "type": "string",
         "enum": [
           "repository-backup",
@@ -2118,7 +2118,7 @@
           "repository-sync-metrics"
         ]
       },
-      "JobStatus": {
+      "YuccaJobStatus": {
         "type": "string",
         "enum": [
           "queued",
