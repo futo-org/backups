@@ -20,6 +20,9 @@ const forget = (snapshotId: string) =>
 const getJob = (id: string) =>
   ctx.database.prepare('SELECT * FROM jobs WHERE id = ?').get(id) as { status: JobStatus; outcome: string | null };
 
+const backupOutcome = (snapshotId?: string) =>
+  JSON.stringify({ errors: [], summary: snapshotId ? { type: 'backup', snapshotId } : undefined });
+
 const blockForgetUntilAborted = () => {
   const started = Promise.withResolvers<void>();
   ctx.resticMock.forget.mockImplementationOnce(
@@ -250,6 +253,65 @@ describe(JobRepository.name, () => {
 
     expect(listed.at(-1)?.id).toBe('imported-history');
     expect(latest?.id).not.toBe('imported-history');
+  });
+
+  it('finds the snapshot of the most recent backup that produced one', async () => {
+    const jobs = ctx.module.get(JobRepository);
+    const insert = ctx.database.prepare(
+      `INSERT INTO jobs (id, name, repositoryId, data, status, outcome, logFilePath, queuedAt)
+        VALUES (?, ?, ?, '{}', ?, ?, 'logs/jobs/backup.jsonl', ?)`,
+    );
+
+    await expect(jobs.getLastSnapshotId(repositoryId)).resolves.toBeUndefined();
+
+    insert.run(
+      'backup-old',
+      JobName.RepositoryBackup,
+      repositoryId,
+      'complete',
+      backupOutcome('snapshot-old'),
+      '2100-01-01T00:00:00.000Z',
+    );
+    insert.run(
+      'backup-new',
+      JobName.RepositoryBackup,
+      repositoryId,
+      'warn',
+      backupOutcome('snapshot-new'),
+      '2100-01-02T00:00:00.000Z',
+    );
+    insert.run(
+      'backup-failed',
+      JobName.RepositoryBackup,
+      repositoryId,
+      'failed',
+      backupOutcome(),
+      '2100-01-03T00:00:00.000Z',
+    );
+    insert.run(
+      'backup-interrupted',
+      JobName.RepositoryBackup,
+      repositoryId,
+      'incomplete',
+      null,
+      '2100-01-04T00:00:00.000Z',
+    );
+    insert.run(
+      'restore',
+      JobName.RepositoryRestore,
+      repositoryId,
+      'complete',
+      backupOutcome('snapshot-restore'),
+      '2100-01-05T00:00:00.000Z',
+    );
+
+    await expect(jobs.getLastSnapshotId(repositoryId)).resolves.toBe('snapshot-new');
+
+    ctx.database
+      .prepare(
+        `DELETE FROM jobs WHERE id IN ('backup-old', 'backup-new', 'backup-failed', 'backup-interrupted', 'restore')`,
+      )
+      .run();
   });
 
   it('lists the jobs of a repository newest first, without their data', async () => {

@@ -217,6 +217,22 @@ export class JobRepository implements OnModuleInit, BeforeApplicationShutdown {
     return job && toJobDto(job);
   }
 
+  async getLastSnapshotId(repositoryId: string): Promise<string | undefined> {
+    const snapshotId = sql<string | null>`json_extract(outcome, '$.summary.snapshotId')`;
+    const job = await this.db
+      .selectFrom('jobs')
+      .select(snapshotId.as('snapshotId'))
+      .where('repositoryId', '=', repositoryId)
+      .where('name', '=', JobName.RepositoryBackup)
+      .where(snapshotId, 'is not', null)
+      .orderBy('queuedAt', 'desc')
+      .orderBy(sql`rowid`, 'desc')
+      .limit(1)
+      .executeTakeFirst();
+
+    return job?.snapshotId ?? undefined;
+  }
+
   async onEvent(event: GatewayEvent) {
     if (event.type === 'JobCreate') {
       void this.dispatch();

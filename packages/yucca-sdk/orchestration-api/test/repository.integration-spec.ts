@@ -137,6 +137,39 @@ describe('Repository', () => {
     );
   });
 
+  it('uses the snapshot of the previous backup as the parent of the next one', async () => {
+    const repositoryService = ctx.module.get(RepositoryService);
+    const jobs = ctx.module.get(JobRepository);
+
+    const { repository } = await repositoryService.createRepository(
+      { name: 'Parent Repo', worm: false, paths: ['/tmp/parent'] },
+      ctx.backendId,
+    );
+
+    ctx.resticMock.backup.mockImplementationOnce((...args: unknown[]) => {
+      const log = args[4] as (event: object) => void;
+      log({ message_type: 'summary', files_new: 1, files_changed: 0, snapshot_id: 'snapshot-a' });
+      return Promise.resolve({ snapshot_id: 'snapshot-a' }) as never;
+    });
+    ctx.resticMock.snapshot.mockResolvedValue([{ id: 'snapshot-a', time: new Date() }] as never);
+
+    const first = await repositoryService.createBackup(repository.id);
+    await jobs.wait(first.jobId);
+    const second = await repositoryService.createBackup(repository.id);
+    await jobs.wait(second.jobId);
+
+    expect(ctx.resticMock.backup).toHaveBeenCalledTimes(2);
+    expect(ctx.resticMock.backup.mock.calls[0][7]).toBeUndefined();
+    expect(ctx.resticMock.backup.mock.calls[1][7]).toBe('snapshot-a');
+    expect(ctx.resticMock.snapshot).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.anything(),
+      expect.anything(),
+      'snapshot-a',
+      expect.any(AbortSignal),
+    );
+  });
+
   it('rejects backup when no paths are configured', async () => {
     const repositoryService = ctx.module.get(RepositoryService);
 
@@ -219,6 +252,7 @@ describe('Repository', () => {
         expect.anything(),
         expect.any(AbortSignal),
         ['yucca.v1.immichBackupFileName=dump.sql.gz'],
+        undefined,
       );
     });
 
@@ -274,6 +308,7 @@ describe('Repository', () => {
         expect.anything(),
         expect.any(AbortSignal),
         [],
+        undefined,
       );
     });
 
