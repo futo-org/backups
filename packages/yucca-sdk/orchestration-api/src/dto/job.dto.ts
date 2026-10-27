@@ -29,7 +29,8 @@ const JobSummarySchema = z
 const JobProgressSchema = z
   .object({
     percentDone: z.number(),
-    secondsRemaining: z.number().optional(),
+    scanning: z.boolean(),
+    estimatedEndAt: z.string().optional(),
     bytesDone: z.number().optional(),
     totalBytes: z.number().optional(),
     currentFiles: z.array(z.string()),

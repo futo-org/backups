@@ -156,7 +156,8 @@ export type JobName = "repository-backup" | "repository-prune" | "repository-res
 export type JobStatus = "queued" | "running" | "complete" | "warn" | "failed" | "cancelled" | "incomplete";
 export type JobProgressDto = {
     percentDone: number;
-    secondsRemaining?: number;
+    scanning: boolean;
+    estimatedEndAt?: string;
     bytesDone?: number;
     totalBytes?: number;
     currentFiles: string[];

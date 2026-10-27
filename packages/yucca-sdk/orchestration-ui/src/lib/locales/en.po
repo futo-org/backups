@@ -429,6 +429,10 @@ msgstr "Buddy Backups"
 msgid "Built for Immich"
 msgstr "Built for Immich"
 
+#: src/lib/services/job.service.ts
+msgid "Calculating time remaining…"
+msgstr "Calculating time remaining…"
+
 #: src/lib/components/backups/dialogs/SelectRepositoryModal.svelte
 msgid "Can't access, is your recovery key correct?"
 msgstr "Can't access, is your recovery key correct?"
@@ -1258,6 +1262,10 @@ msgstr "Last backup: {date}"
 msgid "Learn More"
 msgstr "Learn More"
 
+#: src/lib/services/job.service.ts
+msgid "Less than a minute remaining"
+msgstr "Less than a minute remaining"
+
 #: src/lib/components/integrations/immich/settings/ImmichSettingsBackupContents.svelte
 msgid "Libraries stored outside of Immich. New libraries are included automatically unless you choose specific ones."
 msgstr "Libraries stored outside of Immich. New libraries are included automatically unless you choose specific ones."
@@ -1689,6 +1697,7 @@ msgid "Preparing prune"
 msgstr "Preparing prune"
 
 #: src/lib/components/backups/BackupStatus.svelte
+#: src/lib/components/onboarding/restore-point-flow/RestorePointFlow4Restore.svelte
 msgid "Preparing restore"
 msgstr "Preparing restore"
 
@@ -1971,6 +1980,10 @@ msgstr "Save to password manager"
 #: src/lib/components/onboarding/upsell/UpsellHowItWorks.svelte
 msgid "Save your recovery key"
 msgstr "Save your recovery key"
+
+#: src/lib/services/job.service.ts
+msgid "Scanning files…"
+msgstr "Scanning files…"
 
 #: src/lib/components/integrations/immich/settings/ImmichSettingsSchedule.svelte
 #: src/lib/components/onboarding/steps/OnboardingStep4FirstBackup.svelte

@@ -7,6 +7,7 @@
     useJobEventHandler,
     type JobUpdateEvent,
   } from "$lib/services/job.service";
+  import { now } from "$lib/utils/now";
   import { Alert, Modal, ModalBody, ProgressBar, Stack, Text } from "@immich/ui";
   import { t } from "svelte-i18n-lingui";
 
@@ -54,14 +55,16 @@
       <ProgressBar
         {progress}
         aria-label={$t`Restore progress`}
-        valueLabel={`${Math.round(progress * 100)}%`}
+        valueLabel={jobQuery.data?.progress?.scanning
+          ? $t`Preparing restore`
+          : `${Math.round(progress * 100)}%`}
         size="large"
       >
         <Text
           size="small"
           class={progress > 0.5 ? "text-light" : "text-dark"}
         >
-          {getRemainingText(jobQuery.data?.progress)}
+          {getRemainingText(jobQuery.data?.progress, $now)}
         </Text>
       </ProgressBar>
 

@@ -5,6 +5,7 @@
     useJob,
     useJobEventHandler,
   } from "$lib/services/job.service";
+  import { now } from "$lib/utils/now";
   import { t } from "svelte-i18n-lingui";
 
   type Props = {
@@ -22,7 +23,11 @@
 <OnEvents {onJobUpdate} {onJobTick} />
 
 {#if progress}
-  &middot; <span class="tabular-nums">{Math.round(progress.percentDone * 100)}%</span> &middot; {getRemainingText(progress)}
+  {#if !progress.scanning}
+    &middot;
+    <span class="tabular-nums">{Math.round(progress.percentDone * 100)}%</span>
+  {/if}
+  &middot; {getRemainingText(progress, $now)}
 {:else if query.data?.status === "queued"}
   &middot; {$t`Waiting to start`}
 {:else}

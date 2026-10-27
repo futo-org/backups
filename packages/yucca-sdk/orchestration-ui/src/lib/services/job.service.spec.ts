@@ -1,6 +1,14 @@
 import { SocketEvent } from '$lib/events';
-import type { JobDto, JobName, JobStatus } from '$lib/fetch-client';
-import { useBackupJobMonitor } from '$lib/services/job.service';
+import type {
+  JobDto,
+  JobName,
+  JobProgressDto,
+  JobStatus,
+} from '$lib/fetch-client';
+import {
+  getRemainingText,
+  useBackupJobMonitor,
+} from '$lib/services/job.service';
 import { toastManager } from '@immich/ui';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -66,5 +74,69 @@ describe('useBackupJobMonitor', () => {
     monitor.onJobUpdate(updateJob('job-3', 'complete'));
 
     expect(toastManager.show).not.toHaveBeenCalled();
+  });
+});
+
+const now = Date.parse('2026-01-01T12:00:00Z');
+
+const progress = (overrides: Partial<JobProgressDto> = {}): JobProgressDto => ({
+  percentDone: 0.5,
+  scanning: false,
+  bytesDone: 50,
+  totalBytes: 100,
+  currentFiles: [],
+  ...overrides,
+});
+
+const endingIn = (milliseconds: number) =>
+  new Date(now + milliseconds).toISOString();
+
+describe('getRemainingText', () => {
+  it('says nothing without progress', () => {
+    expect(getRemainingText(undefined, now)).toBe('');
+  });
+
+  it('says files are being scanned before restic has counted them', () => {
+    expect(
+      getRemainingText(
+        progress({ scanning: true, estimatedEndAt: endingIn(600_000) }),
+        now,
+      ),
+    ).toBe('Scanning files…');
+  });
+
+  it('says the time is being calculated before the first estimate', () => {
+    expect(getRemainingText(progress(), now)).toBe(
+      'Calculating time remaining…',
+    );
+  });
+
+  it('says nearly done once every byte is uploaded', () => {
+    expect(
+      getRemainingText(progress({ bytesDone: 100, percentDone: 1 }), now),
+    ).toBe('Nearly done.');
+  });
+
+  it('says nearly done once the estimated end has passed', () => {
+    expect(
+      getRemainingText(progress({ estimatedEndAt: endingIn(-5000) }), now),
+    ).toBe('Nearly done.');
+  });
+
+  it('says less than a minute in the final minute', () => {
+    expect(
+      getRemainingText(progress({ estimatedEndAt: endingIn(45_000) }), now),
+    ).toBe('Less than a minute remaining');
+  });
+
+  it('rounds the time left to the nearest minute', () => {
+    expect(
+      getRemainingText(
+        progress({ estimatedEndAt: endingIn(150_000 + 29_000) }),
+        now,
+      ),
+    ).toBe(
+      getRemainingText(progress({ estimatedEndAt: endingIn(180_000) }), now),
+    );
   });
 });

@@ -2017,8 +2017,11 @@
           "percentDone": {
             "type": "number"
           },
-          "secondsRemaining": {
-            "type": "number"
+          "scanning": {
+            "type": "boolean"
+          },
+          "estimatedEndAt": {
+            "type": "string"
           },
           "bytesDone": {
             "type": "number"
@@ -2035,6 +2038,7 @@
         },
         "required": [
           "percentDone",
+          "scanning",
           "currentFiles"
         ]
       },
