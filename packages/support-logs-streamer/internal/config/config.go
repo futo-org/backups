@@ -39,6 +39,10 @@ type Config struct {
 	LogPretty bool
 }
 
+// Well under vmagent's 1m -http.idleConnTimeout: exporting once a minute races the server closing the
+// kept-alive connection, and about one export in ten fails with EOF.
+const defaultOTLPMetricsInterval = 15 * time.Second
+
 func LoadConfig() Config {
 	port := envIntMin("SUPPORT_LOGS_PORT", 0, 1000)
 	if port == 0 {
@@ -100,7 +104,7 @@ func LoadConfig() Config {
 		OTLPLogsInsecure:    envBool("OTLP_LOGS_INSECURE", true),
 		OTLPMetricsEndpoint: otlpMetricsEndpoint,
 		OTLPMetricsURLPath:  os.Getenv("OTLP_METRICS_URL_PATH"),
-		OTLPMetricsInterval: envDurationMS("OTLP_METRICS_INTERVAL_MS", 60*time.Second),
+		OTLPMetricsInterval: envDurationMS("OTLP_METRICS_INTERVAL_MS", defaultOTLPMetricsInterval),
 		OTLPMetricsEnabled:  otlpMetricsEndpoint != "",
 		LogLevel:            logLevel,
 		LogPretty:           logPretty,
