@@ -437,6 +437,10 @@ msgstr ""
 msgid "Built for Immich"
 msgstr ""
 
+#: src/lib/services/job.service.ts
+msgid "Calculating time remaining…"
+msgstr ""
+
 #: src/lib/components/backups/dialogs/SelectRepositoryModal.svelte
 msgid "Can't access, is your recovery key correct?"
 msgstr ""
@@ -1287,6 +1291,10 @@ msgstr ""
 msgid "Learn More"
 msgstr ""
 
+#: src/lib/services/job.service.ts
+msgid "Less than a minute remaining"
+msgstr ""
+
 #: src/lib/components/integrations/immich/settings/ImmichSettingsBackupContents.svelte
 msgid "Libraries stored outside of Immich. New libraries are included automatically unless you choose specific ones."
 msgstr ""
@@ -1722,6 +1730,7 @@ msgid "Preparing prune"
 msgstr ""
 
 #: src/lib/components/backups/BackupStatus.svelte
+#: src/lib/components/onboarding/restore-point-flow/RestorePointFlow4Restore.svelte
 msgid "Preparing restore"
 msgstr ""
 
@@ -2021,6 +2030,10 @@ msgstr ""
 #: src/lib/components/onboarding/steps/OnboardingStep1FinishSetup.svelte
 #: src/lib/components/onboarding/upsell/UpsellHowItWorks.svelte
 msgid "Save your recovery key"
+msgstr ""
+
+#: src/lib/services/job.service.ts
+msgid "Scanning files…"
 msgstr ""
 
 #: src/lib/components/integrations/immich/settings/ImmichSettingsSchedule.svelte

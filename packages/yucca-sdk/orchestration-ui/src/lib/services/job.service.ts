@@ -58,21 +58,42 @@ export const isJobFinished = (
 ): status is Exclude<YuccaJobStatus, 'queued' | 'running'> =>
   status !== undefined && status !== 'queued' && status !== 'running';
 
-export const getRemainingText = (progress?: JobProgressDto) => {
+export const getRemainingText = (
+  progress: JobProgressDto | undefined,
+  now: number,
+) => {
   if (!progress) {
     return '';
   }
 
-  const { secondsRemaining, bytesDone, totalBytes, percentDone } = progress;
-  const unfinished =
-    bytesDone && totalBytes ? bytesDone < totalBytes : percentDone < 1;
+  const { estimatedEndAt, bytesDone, totalBytes, percentDone, scanning } =
+    progress;
+  if (scanning) {
+    return gt`Scanning files…`;
+  }
 
-  return secondsRemaining && unfinished
-    ? gt({
-        message: 'About {duration} remaining',
-        values: { duration: formatDuration(secondsRemaining * 1000) },
-      })
-    : gt`Nearly done.`;
+  const finished =
+    bytesDone && totalBytes ? bytesDone >= totalBytes : percentDone >= 1;
+
+  if (estimatedEndAt === undefined && !finished) {
+    return gt`Calculating time remaining…`;
+  }
+
+  const remaining = estimatedEndAt ? Date.parse(estimatedEndAt) - now : 0;
+  if (finished || remaining <= 0) {
+    return gt`Nearly done.`;
+  }
+
+  if (remaining < 60_000) {
+    return gt`Less than a minute remaining`;
+  }
+
+  return gt({
+    message: 'About {duration} remaining',
+    values: {
+      duration: formatDuration(Math.round(remaining / 60_000) * 60_000),
+    },
+  });
 };
 
 export const useJobs = (

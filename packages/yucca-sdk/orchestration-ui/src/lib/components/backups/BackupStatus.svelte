@@ -31,6 +31,7 @@
     type: BackupStatusType;
     state: BackupStatusState;
     progress?: number;
+    scanning?: boolean;
     start?: string;
     duration?: string;
     remaining?: string;
@@ -46,6 +47,7 @@
     type,
     state: backupState,
     progress = 0,
+    scanning = false,
     start,
     duration,
     remaining,
@@ -139,6 +141,10 @@
         return $t(warned[type]);
       }
       default: {
+        if (scanning) {
+          return phase;
+        }
+
         return $t({
           message: "{phase} · {percent}%",
           values: { phase, percent: Math.round(progress * 100) },
@@ -205,7 +211,7 @@
     <ProgressBar
       {progress}
       aria-label={phase}
-      valueLabel={`${Math.round(progress * 100)}%`}
+      valueLabel={scanning ? phase : `${Math.round(progress * 100)}%`}
       shape="round"
       size="small"
       class="bg-primary-100 border-none"

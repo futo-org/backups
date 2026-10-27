@@ -1,12 +1,22 @@
 import type { BackupMessage, ErrorMessage, ForgetMessage, RestoreMessage } from '@futo-org/restic-wrapper';
 import { type Writable } from 'node:stream';
+import { isDeepStrictEqual } from 'node:util';
 import { type JobOutcomeDto, type JobProgressDto } from '../dto/job.dto.js';
+import { easeRemaining, holdPublishedEnd, type ShownEstimate } from '../utils/endEstimate.js';
+import { getBytesPerMs, sampleUploadRate, startUploadRate, type UploadRate } from '../utils/uploadRate.js';
 
 export type JobLogEvent = BackupMessage | RestoreMessage | ErrorMessage | ForgetMessage;
+
+type StatusMessage<T> = Extract<T, { message_type: 'status' }>;
+type ResticStatus = StatusMessage<BackupMessage> & Partial<StatusMessage<RestoreMessage>>;
 
 export class JobContext {
   readonly outcome: JobOutcomeDto = { errors: [] };
   progress?: JobProgressDto;
+
+  private scanFinished = false;
+  private rate?: UploadRate;
+  private shown?: ShownEstimate;
 
   constructor(
     readonly signal: AbortSignal,
@@ -27,25 +37,35 @@ export class JobContext {
 
     switch (event.message_type) {
       case 'status': {
-        const status: {
-          percent_done: number;
-          seconds_remaining?: number;
-          bytes_done?: number;
-          bytes_restored?: number;
-          total_bytes?: number;
-          current_files?: string[];
-        } = event;
-        this.progress = {
-          percentDone: status.percent_done,
-          secondsRemaining: status.seconds_remaining,
-          bytesDone: status.bytes_done ?? status.bytes_restored,
+        const status: ResticStatus = event;
+        const bytesDone = status.bytes_done ?? status.bytes_restored;
+
+        this.scanFinished ||= status.seconds_remaining !== undefined || status.bytes_restored !== undefined;
+
+        const progress = {
+          percentDone: Math.min(status.percent_done, 1),
+          scanning: !this.scanFinished,
+          estimatedEndAt: this.estimateEnd(bytesDone, status.total_bytes),
+          bytesDone,
           totalBytes: status.total_bytes,
           currentFiles: status.current_files ?? [],
         };
+
+        if (!isDeepStrictEqual(progress, this.progress)) {
+          this.progress = progress;
+        }
+
         break;
       }
       case 'summary': {
-        this.progress = { ...this.progress, percentDone: 1, secondsRemaining: undefined, currentFiles: [] };
+        this.progress = {
+          ...this.progress,
+          percentDone: 1,
+          scanning: false,
+          estimatedEndAt: undefined,
+          currentFiles: [],
+        };
+
         this.outcome.summary ??=
           'files_new' in event
             ? {
@@ -78,5 +98,29 @@ export class JobContext {
         break;
       }
     }
+  }
+
+  private estimateEnd(bytesDone: number | undefined, totalBytes: number | undefined) {
+    const now = Date.now();
+    if (bytesDone === undefined || totalBytes === undefined || !this.scanFinished) {
+      this.rate = undefined;
+      this.shown = undefined;
+      return;
+    }
+
+    if (!this.rate || bytesDone < this.rate.lastBytes) {
+      this.rate = startUploadRate(bytesDone, now);
+      this.shown = undefined;
+      return;
+    }
+
+    this.rate = sampleUploadRate(this.rate, bytesDone, now);
+    const bytesPerMs = getBytesPerMs(this.rate);
+    if (bytesPerMs === undefined) {
+      return this.progress?.estimatedEndAt;
+    }
+
+    this.shown = easeRemaining(this.shown, Math.max(totalBytes - bytesDone, 0) / bytesPerMs, now);
+    return holdPublishedEnd(this.progress?.estimatedEndAt, this.shown);
   }
 }

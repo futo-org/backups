@@ -12,6 +12,7 @@
     useJobEventHandler,
   } from "$lib/services/job.service";
   import { formatDuration } from "$lib/utils/format";
+  import { now } from "$lib/utils/now";
   import {
     CloseButton,
     FormatBytes,
@@ -25,7 +26,6 @@
     Text,
   } from "@immich/ui";
   import { DateTime } from "luxon";
-  import { onDestroy } from "svelte";
   import { msg, plural, t } from "svelte-i18n-lingui";
 
   type Props = {
@@ -42,13 +42,6 @@
   const { onJobUpdate, onJobTick } = useJobEventHandler();
   const summary = $derived(job?.outcome?.summary);
   const supportCode = $derived(job?.outcome?.support?.sessionId);
-
-  let now = $state(DateTime.now());
-  const tick = setInterval(() => (now = DateTime.now()), 1000);
-
-  onDestroy(() => {
-    clearInterval(tick);
-  });
 
   const kind = $derived(job ? jobKinds[job.name] : "backup");
   const type: BackupStatusType = $derived(
@@ -86,7 +79,7 @@
   const duration = $derived(
     job?.start
       ? formatDuration(
-          (job.end ? DateTime.fromISO(job.end) : now).toMillis() -
+          (job.end ? DateTime.fromISO(job.end).toMillis() : $now) -
             DateTime.fromISO(job.start).toMillis(),
           "long",
         )
@@ -168,9 +161,10 @@
       {type}
       state={backupState}
       progress={job?.progress?.percentDone ?? (summary ? 1 : 0)}
+      scanning={job?.progress?.scanning}
       start={job?.start}
       {duration}
-      remaining={getRemainingText(job?.progress)}
+      remaining={getRemainingText(job?.progress, $now)}
       errors={job?.outcome?.errors}
       currentFiles={job?.progress?.currentFiles}
       onRetry={retry}

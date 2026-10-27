@@ -156,7 +156,8 @@ export type YuccaJobName = "repository-backup" | "repository-prune" | "repositor
 export type YuccaJobStatus = "queued" | "running" | "complete" | "warn" | "failed" | "cancelled" | "incomplete";
 export type JobProgressDto = {
     percentDone: number;
-    secondsRemaining?: number;
+    scanning: boolean;
+    estimatedEndAt?: string;
     bytesDone?: number;
     totalBytes?: number;
     currentFiles: string[];
