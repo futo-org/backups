@@ -173,7 +173,7 @@
       errors={job?.outcome?.errors}
       currentFiles={job?.progress?.currentFiles}
       onRetry={retry}
-      onCancel={job ? () => void handleCancelJob(job.id) : undefined}
+      onCancel={job ? () => void handleCancelJob(job.id, type) : undefined}
     >
       {#snippet details()}
         {#if summary?.type === "backup"}

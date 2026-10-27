@@ -448,17 +448,32 @@ msgid "Cancel"
 msgstr "Cancel"
 
 #: src/lib/components/backups/BackupStatus.svelte
+#: src/lib/components/backups/dialogs/CancelJobModal.svelte
 #: src/lib/components/integrations/immich/ImmichManageBackupOverview.svelte
 msgid "Cancel backup"
 msgstr "Cancel backup"
 
 #: src/lib/components/backups/BackupStatus.svelte
+#: src/lib/components/backups/dialogs/CancelJobModal.svelte
 msgid "Cancel prune"
 msgstr "Cancel prune"
 
 #: src/lib/components/backups/BackupStatus.svelte
+#: src/lib/components/backups/dialogs/CancelJobModal.svelte
 msgid "Cancel restore"
 msgstr "Cancel restore"
+
+#: src/lib/components/backups/dialogs/CancelJobModal.svelte
+msgid "Cancel this backup?"
+msgstr "Cancel this backup?"
+
+#: src/lib/components/backups/dialogs/CancelJobModal.svelte
+msgid "Cancel this prune?"
+msgstr "Cancel this prune?"
+
+#: src/lib/components/backups/dialogs/CancelJobModal.svelte
+msgid "Cancel this restore?"
+msgstr "Cancel this restore?"
 
 #: src/lib/components/backups/BackupItem.svelte
 msgid "Cancelled"
@@ -1187,9 +1202,21 @@ msgstr "It is highly recommended you back this up!"
 msgid "Join the beta"
 msgstr "Join the beta"
 
+#: src/lib/components/backups/dialogs/CancelJobModal.svelte
+msgid "Keep backing up"
+msgstr "Keep backing up"
+
 #: src/lib/components/integrations/immich/settings/ImmichSettingsStorage.svelte
 msgid "Keep latest two backups"
 msgstr "Keep latest two backups"
+
+#: src/lib/components/backups/dialogs/CancelJobModal.svelte
+msgid "Keep pruning"
+msgstr "Keep pruning"
+
+#: src/lib/components/backups/dialogs/CancelJobModal.svelte
+msgid "Keep restoring"
+msgstr "Keep restoring"
 
 #: src/lib/components/onboarding/dialogs/BackupsRecoveryKeyModal.svelte
 msgid "Keep this key somewhere safe. It is required to restore your backups."
@@ -1685,6 +1712,10 @@ msgstr "Print"
 msgid "processed"
 msgstr "processed"
 
+#: src/lib/components/backups/dialogs/CancelJobModal.svelte
+msgid "Progress since the last snapshot will be lost."
+msgstr "Progress since the last snapshot will be lost."
+
 #: src/lib/components/onboarding/upsell/UpsellProtectYourImmichLibrary.svelte
 msgid "Protect your Immich library"
 msgstr "Protect your Immich library"
@@ -1717,6 +1748,10 @@ msgstr "Pruning old backups was cancelled"
 #: src/lib/components/backups/BackupStatus.svelte
 msgid "Pruning old backups was interrupted"
 msgstr "Pruning old backups was interrupted"
+
+#: src/lib/components/backups/dialogs/CancelJobModal.svelte
+msgid "Pruning will stop and will need to be started again."
+msgstr "Pruning will stop and will need to be started again."
 
 #: src/lib/components/backups/run-history/RepositoryRunHistoryItem.svelte
 msgid "Queued"
@@ -2149,6 +2184,10 @@ msgstr "The backup stopped before it could finish."
 #: src/lib/services/job.service.ts
 msgid "The backup was stopped before it finished."
 msgstr "The backup was stopped before it finished."
+
+#: src/lib/components/backups/dialogs/CancelJobModal.svelte
+msgid "The restore will stop and will need to be started again."
+msgstr "The restore will stop and will need to be started again."
 
 #: src/lib/components/onboarding/steps/OnboardingStepBetaDisclaimer.svelte
 msgid "The service may be reset and your backup data may be deleted when the beta ends."
