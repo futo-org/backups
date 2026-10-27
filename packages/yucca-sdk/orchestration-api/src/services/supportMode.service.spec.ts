@@ -83,6 +83,7 @@ describe(SupportModeService.name, () => {
     expect(session?.sessionId).toBe('session-1');
     expect(create).toHaveBeenCalledWith(
       expect.objectContaining({ jobId: 'job-1', jobName: JobName.RepositoryBackup, includesPaths: false }),
+      expect.any(AbortSignal),
     );
   });
 
@@ -94,6 +95,29 @@ describe(SupportModeService.name, () => {
 
     expect(session).toBeDefined();
     expect(session?.sessionId).toBeUndefined();
+  });
+
+  it('starts the job with local logs when opening the streaming session hangs', async () => {
+    const { service, backend } = makeService({ remainingRuns: 1, streamToFuto: true, includePaths: false });
+    const previous = SupportModeService.streamOpenTimeoutMs;
+    SupportModeService.streamOpenTimeoutMs = 50;
+    jest
+      .spyOn(backend, 'createSupportLogSession')
+      .mockImplementation(
+        (_dto, signal) =>
+          new Promise((_, reject) => signal?.addEventListener('abort', () => reject(signal.reason), { once: true })),
+      );
+
+    try {
+      const started = Date.now();
+      const session = await service.begin(backup, '/state/logs/jobs/job-1.jsonl');
+
+      expect(Date.now() - started).toBeLessThan(2000);
+      expect(session).toBeDefined();
+      expect(session?.sessionId).toBeUndefined();
+    } finally {
+      SupportModeService.streamOpenTimeoutMs = previous;
+    }
   });
 
   it('reports streaming as available only with the feature', async () => {

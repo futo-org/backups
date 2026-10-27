@@ -2,10 +2,10 @@ import { createHmac, randomBytes } from 'node:crypto';
 import { extname } from 'node:path';
 
 const ABSOLUTE_PATH = /^(?:\/|[A-Za-z]:\\)/;
-// Quotes, apostrophes and ": " are all legal in file names, so nothing inside a name reliably ends it. An
+// Quotes, apostrophes, newlines and ": " are all legal in file names, so nothing inside a name reliably ends it. An
 // embedded path is redacted through the last ": " (where Go appends the error reason) or to the end of the
 // message, at the cost of also hiding any text between the path and that point.
-const EMBEDDED_PATH = /(?<=^|[\s"'(=[])(?:\/|[A-Za-z]:\\)(?:.*(?=: )|.*)/g;
+const EMBEDDED_PATH = /(?<=^|[\s"'(=[])(?:\/|[A-Za-z]:\\)(?:.*(?=: )|.*)/gs;
 const PATH_FIELDS = new Set(['item', 'current_files', 'path', 'paths', 'name', 'target', 'excludes']);
 const MAX_EXTENSION_LENGTH = 8;
 

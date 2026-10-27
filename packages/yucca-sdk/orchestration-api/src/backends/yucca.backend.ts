@@ -60,8 +60,8 @@ export class YuccaBackend extends Backend {
     return features;
   }
 
-  async createSupportLogSession(dto: SupportLogSessionCreateRequestDto) {
-    return await createSupportLogSession(dto, await this.getRequestOptions());
+  async createSupportLogSession(dto: SupportLogSessionCreateRequestDto, signal?: AbortSignal) {
+    return await createSupportLogSession(dto, { ...(await this.getRequestOptions()), signal });
   }
 
   async refreshSupportLogSessionToken(id: string) {

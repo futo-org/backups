@@ -27,6 +27,9 @@ const (
 	maxCompressedBytes   = 16 << 20
 	maxDecompressedBytes = 128 << 20
 	maxMessageBytes      = 64 << 10
+	// Room for a maxMessageBytes message even if every byte needs JSON escaping; a longer line is
+	// discarded as malformed instead of being buffered whole.
+	maxLineBytes = 1 << 20
 	// Large batches are exported in slices so a single OTLP request stays well
 	// under VictoriaLogs' insert request size limit.
 	exportChunkBytes = 4 << 20
@@ -115,7 +118,7 @@ func (s *Server) postBatch(w http.ResponseWriter, r *http.Request) {
 	defer func() { _ = gz.Close() }()
 
 	decompressed := &countingReader{r: io.LimitReader(gz, maxDecompressedBytes+1)}
-	reader := bufio.NewReaderSize(decompressed, 64<<10)
+	reader := bufio.NewReaderSize(decompressed, maxLineBytes)
 
 	common := []attribute.KeyValue{
 		attribute.String("user", session.User),
@@ -150,7 +153,10 @@ func (s *Server) postBatch(w http.ResponseWriter, r *http.Request) {
 	}
 
 	for {
-		raw, readErr := reader.ReadBytes('\n')
+		raw, tooLong, readErr := readLine(reader)
+		if tooLong {
+			malformed++
+		}
 		if decompressed.n > maxDecompressedBytes {
 			readErr = errTooLarge
 		}
@@ -203,6 +209,17 @@ func (s *Server) postBatch(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.WriteHeader(http.StatusNoContent)
+}
+
+func readLine(reader *bufio.Reader) ([]byte, bool, error) {
+	line, err := reader.ReadSlice('\n')
+	if !errors.Is(err, bufio.ErrBufferFull) {
+		return line, false, err
+	}
+	for errors.Is(err, bufio.ErrBufferFull) {
+		_, err = reader.ReadSlice('\n')
+	}
+	return nil, true, err
 }
 
 func toRecord(raw []byte, now time.Time, common []attribute.KeyValue) (otellog.Record, bool) {

@@ -25,6 +25,8 @@ export const supportLogFilePath = (logFilePath: string) => logFilePath.replace(/
 
 @Injectable()
 export class SupportModeService {
+  static streamOpenTimeoutMs = 10_000;
+
   constructor(
     private readonly config: ConfigRepository,
     private readonly backends: BackendRepository,
@@ -77,12 +79,15 @@ export class SupportModeService {
         return;
       }
 
-      const { id, token, url, expiresAt } = await backend.createSupportLogSession({
-        jobId: job.id,
-        jobName: job.name,
-        includesPaths: settings.includePaths,
-        clientVersion: packageJson.version,
-      });
+      const { id, token, url, expiresAt } = await backend.createSupportLogSession(
+        {
+          jobId: job.id,
+          jobName: job.name,
+          includesPaths: settings.includePaths,
+          clientVersion: packageJson.version,
+        },
+        AbortSignal.timeout(SupportModeService.streamOpenTimeoutMs),
+      );
 
       const shipper = new SupportLogShipper({
         url,

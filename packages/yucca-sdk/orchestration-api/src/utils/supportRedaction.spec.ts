@@ -88,4 +88,17 @@ describe(createPathRedactor.name, () => {
     expect(colon).toMatch(/^lstat <path:[0-9a-f]{12}\.jpg>: no such file or directory$/);
     expect(JSON.stringify(quoted) + colon).not.toMatch(/album|day one|a\.jpg|b\.jpg/);
   });
+
+  it('redacts the rest of a name after a newline inside it', () => {
+    const redacted = JSON.parse(
+      redact(
+        JSON.stringify({
+          message_type: 'error',
+          error: { message: 'open /photos/private\nalbum/a.jpg: permission denied' },
+        }),
+      ),
+    );
+
+    expect(redacted.error.message).toMatch(/^open <path:[0-9a-f]{12}\.jpg>: permission denied$/);
+  });
 });

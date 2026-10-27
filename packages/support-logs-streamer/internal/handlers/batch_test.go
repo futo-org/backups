@@ -12,6 +12,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"runtime"
 	"strings"
 	"sync"
 	"testing"
@@ -227,6 +228,39 @@ func TestBatchCountsMalformedLinesAsDropped(t *testing.T) {
 	h.server.Stats.Flush(context.Background())
 
 	if reported.Lines != 1 || reported.DroppedLines != 6 || reported.Batches != 1 || reported.Bytes != int64(len(body)) {
+		t.Errorf("unexpected stats %+v", reported)
+	}
+}
+
+func TestBatchDiscardsOverlongLinesWithoutLosingTheirNeighbours(t *testing.T) {
+	var reported stats.Delta
+	api := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		_ = json.NewDecoder(r.Body).Decode(&reported)
+		w.WriteHeader(http.StatusNoContent)
+	}))
+	defer api.Close()
+
+	h := newHarness()
+	h.server.Stats = stats.NewTracker(api.URL, "secret")
+	body := ndjson(clientLine{Stream: "stdout", Message: "before"}) +
+		strings.Repeat("x", 64<<20) + "\n" +
+		ndjson(clientLine{Stream: "stdout", Message: "after"})
+	compressed := gzipped(t, body)
+
+	var before, after runtime.MemStats
+	runtime.GC()
+	runtime.ReadMemStats(&before)
+	rec := h.post(t, compressed, nil)
+	runtime.ReadMemStats(&after)
+	if allocated := after.TotalAlloc - before.TotalAlloc; allocated > 16<<20 {
+		t.Errorf("handling a 64 MiB line allocated %d MiB", allocated>>20)
+	}
+	if rec.Code != http.StatusNoContent {
+		t.Fatalf("got %d: %s", rec.Code, rec.Body)
+	}
+	h.server.Stats.Flush(context.Background())
+
+	if reported.Lines != 2 || reported.DroppedLines != 1 {
 		t.Errorf("unexpected stats %+v", reported)
 	}
 }
