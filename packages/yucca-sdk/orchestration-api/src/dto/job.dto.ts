@@ -40,6 +40,13 @@ const JobOutcomeSchema = z
   .object({
     errors: z.array(z.string()),
     summary: JobSummarySchema.optional(),
+    support: z
+      .object({
+        sessionId: z.string().optional().describe('Support code to share with FUTO when the logs were streamed'),
+        droppedLines: z.number().describe('Log lines that could not be streamed in time'),
+      })
+      .optional()
+      .meta({ id: 'JobSupportDto' }),
   })
   .meta({ id: 'JobOutcomeDto' });
 

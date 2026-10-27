@@ -8,6 +8,7 @@ import type { OidcRepository } from 'src/repositories/oidc.repository.js';
 import type { RepositoryRepository } from 'src/repositories/repository.repository.js';
 import type { SessionRepository } from 'src/repositories/session.repository.js';
 import type { SettingsRepository } from 'src/repositories/settings.repository.js';
+import type { SupportLogSessionRepository } from 'src/repositories/supportLogSession.repository.js';
 import type { TicketRepository } from 'src/repositories/ticket.repository.js';
 import type { TopologyRepository } from 'src/repositories/topology.repository.js';
 import type { UserRepository } from 'src/repositories/user.repository.js';
@@ -137,6 +138,14 @@ export const newSettingsRepositoryMock = (): jest.Mocked<RepositoryInterface<Set
   };
 };
 
+export const newSupportLogSessionRepositoryMock = (): jest.Mocked<RepositoryInterface<SupportLogSessionRepository>> => {
+  return {
+    create: jest.fn(),
+    getById: jest.fn(),
+    addStats: jest.fn(),
+  };
+};
+
 export const newTopologyRepositoryMock = (): jest.Mocked<RepositoryInterface<TopologyRepository>> => {
   return {
     load: jest.fn(),
@@ -188,6 +197,7 @@ export const newMocks = () => {
     userAllowlist: newUserAllowlistRepositoryMock(),
     repository: newRepositoryRepositoryMock(),
     settings: newSettingsRepositoryMock(),
+    supportLogSession: newSupportLogSessionRepositoryMock(),
     topology: newTopologyRepositoryMock(),
     logger: newLoggerRepositoryMock(),
     wideContext: newWideContextRepositoryMock(),

@@ -41,6 +41,7 @@
   const job = $derived(jobQuery.data);
   const { onJobUpdate, onJobTick } = useJobEventHandler();
   const summary = $derived(job?.outcome?.summary);
+  const supportCode = $derived(job?.outcome?.support?.sessionId);
 
   let now = $state(DateTime.now());
   const tick = setInterval(() => (now = DateTime.now()), 1000);
@@ -212,5 +213,14 @@
         {/if}
       {/snippet}
     </BackupStatus>
+
+    {#if supportCode}
+      <Text size="small" color="muted" class="mt-4">
+        {$t({
+          message: "Support code: {code}. Share it with FUTO support so they can find this run's logs.",
+          values: { code: supportCode },
+        })}
+      </Text>
+    {/if}
   </ModalBody>
 </Modal>

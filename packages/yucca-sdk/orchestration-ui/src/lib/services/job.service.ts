@@ -228,5 +228,15 @@ export const getJobActions = (job: JobDto, t: typeof gt) => {
       ),
   };
 
-  return { ViewLog, DownloadLog };
+  const DownloadSupportLog: ActionItem = {
+    title: t(msg`Download Support Log`),
+    onAction: () =>
+      window.open(
+        `${getProvider().baseUrl}/api/yucca/jobs/${job.id}/support-log/download`,
+        '_blank',
+      ),
+    $if: () => Boolean(job.outcome?.support),
+  };
+
+  return { ViewLog, DownloadLog, DownloadSupportLog };
 };

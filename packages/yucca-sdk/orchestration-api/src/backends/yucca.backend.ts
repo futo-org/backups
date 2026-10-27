@@ -2,16 +2,19 @@ import {
   BackupStatus,
   createRepository,
   createResticUrl,
+  createSupportLogSession,
   createTicket,
   getAuth,
   getRepositories,
   getRepository,
+  refreshSupportLogSessionToken,
   RepositoryCreateRequestDto,
   RepositoryUpdateRequestDto,
   submitMetricBackupEnd,
   submitMetricBackupStart,
   submitMetricRepositorySize,
   submitStructuredLog,
+  SupportLogSessionCreateRequestDto,
   TicketCreateRequestDto,
   TicketCreateResponseDto,
   updateRepository,
@@ -50,6 +53,19 @@ export class YuccaBackend extends Backend {
 
   async checkOnline() {
     await getAuth(await this.getRequestOptions());
+  }
+
+  async getFeatures() {
+    const { features } = await getAuth(await this.getRequestOptions());
+    return features;
+  }
+
+  async createSupportLogSession(dto: SupportLogSessionCreateRequestDto) {
+    return await createSupportLogSession(dto, await this.getRequestOptions());
+  }
+
+  async refreshSupportLogSessionToken(id: string) {
+    return await refreshSupportLogSessionToken(id, await this.getRequestOptions());
   }
 
   async createRepository(dto: RepositoryCreateRequestDto) {

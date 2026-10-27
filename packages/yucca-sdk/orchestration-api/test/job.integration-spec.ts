@@ -1,8 +1,9 @@
-import { cp, mkdir, mkdtemp, readFile } from 'node:fs/promises';
+import { access, cp, mkdir, mkdtemp, readFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { JobName, JobStatus } from '../src/enum.js';
 import { type GatewayEvent } from '../src/events/events.gateway.js';
+import { ConfigRepository } from '../src/repositories/config.repository.js';
 import { JobRepository } from '../src/repositories/job.repository.js';
 import { ModuleConfigRepository } from '../src/repositories/moduleConfig.repository.js';
 import { RepositoryService } from '../src/services/repository.service.js';
@@ -474,5 +475,22 @@ describe('restore from point', () => {
 
     expect(marker()).toBeUndefined();
     expect(getJob(jobId)).toMatchObject({ status: JobStatus.Failed });
+  });
+
+  it('runs a job in support mode once per remaining run and keeps its verbose log next to the job log', async () => {
+    const jobs = ctx.module.get(JobRepository);
+    const config = ctx.module.get(ConfigRepository);
+    await config.setSupportMode({ remainingRuns: 1, streamToFuto: false, includePaths: false });
+
+    const supported = await jobs.queue(forget('snapshot-1'));
+    await jobs.wait(supported);
+    const unsupported = await jobs.queue(forget('snapshot-1'));
+    await jobs.wait(unsupported);
+
+    expect(JSON.parse(getJob(supported).outcome!)).toMatchObject({ support: { droppedLines: 0 } });
+    expect(JSON.parse(getJob(unsupported).outcome!)).not.toHaveProperty('support');
+    await expect(access(join(ctx.statePath, 'logs', 'jobs', `${supported}.support.jsonl`))).resolves.toBeUndefined();
+    await expect(access(join(ctx.statePath, 'logs', 'jobs', `${unsupported}.support.jsonl`))).rejects.toThrow();
+    await expect(config.getSupportMode()).resolves.toMatchObject({ remainingRuns: 0 });
   });
 });

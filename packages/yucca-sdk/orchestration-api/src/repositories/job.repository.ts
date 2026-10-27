@@ -13,12 +13,14 @@ import { EventsGateway, GatewayEvent } from '../events/events.gateway.js';
 import { JobContext } from '../jobs/jobContext.js';
 import { DB } from '../schema/index.js';
 import { JobTable } from '../schema/tables/job.table.js';
+import { SupportModeService } from '../services/supportMode.service.js';
 import { TelemetryService } from '../services/telemetry.service.js';
 import { getJobStatus, TaskCancelledError, writeError } from '../utils/errors.js';
 import type { JobHandler, JobItem } from '../utils/types.js';
 import { LoggingRepository } from './logging.repository.js';
 import { ModuleConfigRepository } from './moduleConfig.repository.js';
 import { StorageRepository } from './storage.repository.js';
+import { SupportContextRepository } from './supportContext.repository.js';
 
 export type Job = Selectable<JobTable>;
 
@@ -53,6 +55,8 @@ export class JobRepository implements OnModuleInit, BeforeApplicationShutdown {
     private readonly events: EventsGateway,
     private readonly logger: LoggingRepository,
     private readonly telemetry: TelemetryService,
+    private readonly supportMode: SupportModeService,
+    private readonly supportContext: SupportContextRepository,
   ) {
     this.logger.setContext(JobRepository.name);
   }
@@ -123,6 +127,14 @@ export class JobRepository implements OnModuleInit, BeforeApplicationShutdown {
     }
 
     return new JobContext(signal, this.storage.createWriteStream(logFilePath));
+  }
+
+  private async beginSupportSession(job: Job) {
+    try {
+      return await this.supportMode.begin(job, this.resolveLogFilePath(job));
+    } catch (error) {
+      this.logger.warn(`Support mode is unavailable for job ${job.id}, running it without`, error);
+    }
   }
 
   async queue(item: JobItem) {
@@ -396,14 +408,20 @@ export class JobRepository implements OnModuleInit, BeforeApplicationShutdown {
     const ctx = await this.createCtx(job, this.running.controller.signal);
     this.running.ctx = ctx;
 
+    const support = await this.beginSupportSession(job);
+
     let error: unknown;
     try {
-      await handler.run(JSON.parse(job.data), ctx);
+      await this.supportContext.run(support, () => handler.run(JSON.parse(job.data), ctx));
     } catch (error_) {
       error = error_;
       writeError((event) => ctx.log(event), error);
     } finally {
       this.running = undefined;
+    }
+
+    if (support) {
+      ctx.outcome.support = await support.finish();
     }
 
     await new Promise<void>((done) => ctx.logWriter.end(done));

@@ -13,25 +13,43 @@ import {
   unlock,
 } from '@futo-org/restic-wrapper';
 import { Injectable } from '@nestjs/common';
+import type { ChildProcess } from 'node:child_process';
 import { RepositorySnapshotRestoreRequestDto } from '../dto/repository.dto.js';
 import { createSampledLogWriter, RetentionPolicy } from '../utils/restic.js';
 import { ConfigRepository, ResticPlacement } from './config.repository.js';
 import { ModuleConfigRepository } from './moduleConfig.repository.js';
+import { SupportContextRepository } from './supportContext.repository.js';
+
+type Traceable = {
+  verbose(level?: boolean | number): unknown;
+  on(event: 'process', listener: (process: ChildProcess) => void): unknown;
+};
 
 @Injectable()
 export class ResticRepository {
   constructor(
     private readonly config: ConfigRepository,
     private readonly moduleConfig: ModuleConfigRepository,
+    private readonly supportContext: SupportContextRepository,
   ) {}
 
   private get cacheDir() {
     return this.moduleConfig.get().cachePath;
   }
 
+  private traced<T extends Traceable>(command: string, builder: T): T {
+    const session = this.supportContext.current();
+    if (session) {
+      builder.verbose(session.verbosity);
+      builder.on('process', (process) => session.attach(process, command));
+    }
+
+    return builder;
+  }
+
   async init(repository: string, key: Uint8Array, placement: ResticPlacement) {
     const { connections } = await this.config.getResticOptions(placement);
-    await init()
+    await this.traced('init', init())
       .option(`rest.connections=${connections}`)
       .repository(repository)
       .cacheDir(this.cacheDir)
@@ -51,7 +69,7 @@ export class ResticRepository {
     const write = createSampledLogWriter(log);
     const { connections, packSizeMib } = await this.config.getResticOptions(placement);
 
-    return await backup()
+    return await this.traced('backup', backup())
       .option(`rest.connections=${connections}`)
       .packSize(packSizeMib)
       .repository(repository)
@@ -77,7 +95,7 @@ export class ResticRepository {
     const write = createSampledLogWriter(log);
     const { connections } = await this.config.getResticOptions(placement);
 
-    let command = restore()
+    let command = this.traced('restore', restore())
       .option(`rest.connections=${connections}`)
       .repository(repository)
       .cacheDir(this.cacheDir)
@@ -96,7 +114,7 @@ export class ResticRepository {
 
   async ls(repository: string, key: Uint8Array, placement: ResticPlacement, snapshotId: string, path: string) {
     const { connections } = await this.config.getResticOptions(placement);
-    return await ls()
+    return await this.traced('ls', ls())
       .option(`rest.connections=${connections}`)
       .repository(repository)
       .cacheDir(this.cacheDir)
@@ -108,7 +126,7 @@ export class ResticRepository {
 
   async stats(repository: string, key: Uint8Array, placement: ResticPlacement, signal?: AbortSignal) {
     const { connections } = await this.config.getResticOptions(placement);
-    return await stats()
+    return await this.traced('stats', stats())
       .option(`rest.connections=${connections}`)
       .repository(repository)
       .cacheDir(this.cacheDir)
@@ -120,7 +138,7 @@ export class ResticRepository {
 
   async snapshots(repository: string, key: Uint8Array, placement: ResticPlacement) {
     const { connections } = await this.config.getResticOptions(placement);
-    return await snapshots()
+    return await this.traced('snapshots', snapshots())
       .option(`rest.connections=${connections}`)
       .repository(repository)
       .cacheDir(this.cacheDir)
@@ -130,7 +148,7 @@ export class ResticRepository {
 
   async snapshot(repository: string, key: Uint8Array, placement: ResticPlacement, snapshotId: string) {
     const { connections } = await this.config.getResticOptions(placement);
-    return await snapshots()
+    return await this.traced('snapshots', snapshots())
       .option(`rest.connections=${connections}`)
       .repository(repository)
       .cacheDir(this.cacheDir)
@@ -148,7 +166,7 @@ export class ResticRepository {
     signal?: AbortSignal,
   ) {
     const { connections } = await this.config.getResticOptions(placement);
-    return await forget()
+    return await this.traced('forget', forget())
       .option(`rest.connections=${connections}`)
       .repository(repository)
       .cacheDir(this.cacheDir)
@@ -167,7 +185,7 @@ export class ResticRepository {
     signal?: AbortSignal,
   ) {
     const { connections } = await this.config.getResticOptions(placement);
-    return await forget()
+    return await this.traced('forget', forget())
       .option(`rest.connections=${connections}`)
       .repository(repository)
       .cacheDir(this.cacheDir)
@@ -185,7 +203,7 @@ export class ResticRepository {
 
   async prune(repository: string, key: Uint8Array, placement: ResticPlacement, signal?: AbortSignal) {
     const { connections, packSizeMib } = await this.config.getResticOptions(placement);
-    return await prune()
+    return await this.traced('prune', prune())
       .option(`rest.connections=${connections}`)
       .packSize(packSizeMib)
       .repository(repository)
@@ -197,7 +215,7 @@ export class ResticRepository {
 
   async keyList(repository: string, key: Uint8Array, placement: ResticPlacement) {
     const { connections } = await this.config.getResticOptions(placement);
-    return await keyList()
+    return await this.traced('key list', keyList())
       .option(`rest.connections=${connections}`)
       .repository(repository)
       .cacheDir(this.cacheDir)
@@ -207,7 +225,7 @@ export class ResticRepository {
 
   async unlockAll(repository: string, key: Uint8Array, placement: ResticPlacement) {
     const { connections } = await this.config.getResticOptions(placement);
-    return await unlock()
+    return await this.traced('unlock', unlock())
       .option(`rest.connections=${connections}`)
       .removeAll()
       .repository(repository)

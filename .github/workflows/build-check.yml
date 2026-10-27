@@ -56,6 +56,7 @@ jobs:
             michael: ['packages/michael/**', '.dockerignore']
             columbo: ['packages/**', 'docs/**', 'CHANGELOG.md', 'package.json', '.dockerignore']
             restic-proxy: ['packages/restic-proxy/**', '.dockerignore']
+            support-logs-streamer: ['packages/support-logs-streamer/**', '.dockerignore']
 
       # A Dockerfile without a filter is the silent gap this workflow exists
       # to close: its first build would happen post-merge (or at release, for
@@ -64,7 +65,7 @@ jobs:
       # name whose filter key is renamed or dropped never builds again.
       - name: Require every Dockerfile to carry a filter
         run: |
-          covered='yucca-api yucca-admin-api yucca-metrics-worker futo-backups-bot web standalone-app michael columbo restic-proxy'
+          covered='yucca-api yucca-admin-api yucca-metrics-worker futo-backups-bot web standalone-app michael columbo restic-proxy support-logs-streamer'
           excluded='mock-oidc-provider mock-resend-provider'
           # Apps with no Deploy leg, delivered by the release-event workflows.
           publish_only='standalone-app restic-proxy'

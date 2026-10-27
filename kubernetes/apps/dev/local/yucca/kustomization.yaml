@@ -12,6 +12,7 @@ resources:
   - ./victoria-metrics/ks.yaml
   - ./victoria-logs/ks.yaml
   - ./michael/ks.yaml
+  - ./support-logs-streamer/ks.yaml
   - ./metrics-worker/ks.yaml
   - ./futo-backups-bot/ks.yaml
   - ./yucca-api/ks.yaml

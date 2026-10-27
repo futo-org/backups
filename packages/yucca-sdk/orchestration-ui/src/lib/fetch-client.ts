@@ -178,9 +178,16 @@ export type JobSummaryDto = {
     kept: number;
     removed: number;
 };
+export type JobSupportDto = {
+    /** Support code to share with FUTO when the logs were streamed */
+    sessionId?: string;
+    /** Log lines that could not be streamed in time */
+    droppedLines: number;
+};
 export type JobOutcomeDto = {
     errors: string[];
     summary?: JobSummaryDto;
+    support?: JobSupportDto;
 };
 export type JobDto = {
     id: string;
@@ -350,6 +357,24 @@ export type ScheduleUpdateRequestDto = {
 };
 export type ScheduleUpdateResponseDto = {
     schedule: ScheduleDto;
+};
+export type SupportModeResponseDto = {
+    /** How many more backup, cleanup, restore and delete runs use verbose restic logging */
+    remainingRuns: number;
+    /** Stream those runs’ logs to FUTO; requires the support-log-streaming feature */
+    streamToFuto: boolean;
+    /** Send file paths as-is instead of redacted placeholders */
+    includePaths: boolean;
+    /** Whether this account may stream support logs to FUTO */
+    streamingAvailable: boolean;
+};
+export type SupportModeUpdateRequestDto = {
+    /** How many more backup, cleanup, restore and delete runs use verbose restic logging */
+    remainingRuns: number;
+    /** Stream those runs’ logs to FUTO; requires the support-log-streaming feature */
+    streamToFuto: boolean;
+    /** Send file paths as-is instead of redacted placeholders */
+    includePaths: boolean;
 };
 /**
  * Connect a FUTO Backups account
@@ -573,6 +598,17 @@ export function downloadJobLog(id: string, opts?: Oazapfts.RequestOpts) {
         status: 200;
         data: Blob;
     }>(`/api/yucca/jobs/${encodeURIComponent(id)}/download`, {
+        ...opts
+    }));
+}
+/**
+ * Download a job support log
+ */
+export function downloadJobSupportLog(id: string, opts?: Oazapfts.RequestOpts) {
+    return oazapfts.ok(oazapfts.fetchBlob<{
+        status: 200;
+        data: Blob;
+    }>(`/api/yucca/jobs/${encodeURIComponent(id)}/support-log/download`, {
         ...opts
     }));
 }
@@ -900,4 +936,28 @@ export function removeSchedule(id: string, opts?: Oazapfts.RequestOpts) {
         ...opts,
         method: "DELETE"
     }));
+}
+/**
+ * Get support mode
+ */
+export function getSupportMode(opts?: Oazapfts.RequestOpts) {
+    return oazapfts.ok(oazapfts.fetchJson<{
+        status: 200;
+        data: SupportModeResponseDto;
+    }>("/api/yucca/support-mode", {
+        ...opts
+    }));
+}
+/**
+ * Update support mode
+ */
+export function updateSupportMode(supportModeUpdateRequestDto: SupportModeUpdateRequestDto, opts?: Oazapfts.RequestOpts) {
+    return oazapfts.ok(oazapfts.fetchJson<{
+        status: 200;
+        data: SupportModeResponseDto;
+    }>("/api/yucca/support-mode", oazapfts.json({
+        ...opts,
+        method: "PUT",
+        body: supportModeUpdateRequestDto
+    })));
 }

@@ -28,6 +28,7 @@ export enum ConfigurationKey {
   StatePath = 'state-path',
   ThrottleBytesPerSec = 'throttle-bytes-per-sec',
   ThrottleQuietHours = 'throttle-quiet-hours',
+  SupportMode = 'support-mode',
 }
 
 export enum MetadataKey {

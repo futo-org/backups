@@ -21,6 +21,7 @@ charts/**/Chart.lock
 
 # air (Go live-reload) temp build output in michael package
 packages/michael/tmp/
+packages/support-logs-streamer/tmp/
 
 # Backstop so a downloaded key or fetched kubeconfig can't be added by accident.
 *.pem
