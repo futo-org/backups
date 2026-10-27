@@ -1,5 +1,6 @@
 import Database from 'better-sqlite3';
-import { FileMigrationProvider, Kysely, Migrator, SqliteDialect } from 'kysely';
+import { Kysely, SqliteDialect } from 'kysely';
+import { FileMigrationProvider, Migrator } from 'kysely/migration';
 import { mkdtemp, readdir } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';

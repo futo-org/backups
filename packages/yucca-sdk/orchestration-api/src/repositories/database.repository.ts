@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
-import { FileMigrationProvider, Kysely, Migrator, sql } from 'kysely';
+import { Kysely, sql } from 'kysely';
+import { FileMigrationProvider, Migrator } from 'kysely/migration';
 import { InjectKysely } from 'nestjs-kysely';
 import { join } from 'node:path';
 import { DB } from '../schema/index.js';

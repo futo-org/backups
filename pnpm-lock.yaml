@@ -241,8 +241,8 @@ catalogs:
       specifier: ^9.0.3
       version: 9.0.3
     kysely:
-      specifier: 0.28.17
-      version: 0.28.17
+      specifier: 0.29.5
+      version: 0.29.5
     kysely-postgres-js:
       specifier: ^3.0.0
       version: 3.0.0
@@ -906,16 +906,16 @@ importers:
         version: 2.0.0
       kysely:
         specifier: 'catalog:'
-        version: 0.28.17
+        version: 0.29.5
       kysely-postgres-js:
         specifier: 'catalog:'
-        version: 3.0.0(kysely@0.28.17)(postgres@3.4.8)
+        version: 3.0.0(kysely@0.29.5)(postgres@3.4.8)
       luxon:
         specifier: 'catalog:'
         version: 3.7.2
       nestjs-kysely:
         specifier: 'catalog:'
-        version: 3.1.4(@nestjs/common@12.1.2(class-transformer@0.5.1)(class-validator@0.14.3)(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@12.1.2)(kysely@0.28.17)(reflect-metadata@0.2.2)
+        version: 3.1.4(@nestjs/common@12.1.2(class-transformer@0.5.1)(class-validator@0.14.3)(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@12.1.2)(kysely@0.29.5)(reflect-metadata@0.2.2)
       nestjs-zod:
         specifier: 'catalog:'
         version: 5.5.0(@nestjs/common@12.1.2(class-transformer@0.5.1)(class-validator@0.14.3)(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/swagger@12.0.2(@nestjs/common@12.1.2(class-transformer@0.5.1)(class-validator@0.14.3)(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@12.1.2)(class-transformer@0.5.1)(class-validator@0.14.3)(reflect-metadata@0.2.2)(typescript@6.0.3))(rxjs@7.8.2)(zod@4.4.3)
@@ -1033,16 +1033,16 @@ importers:
         version: 2.0.0
       kysely:
         specifier: 'catalog:'
-        version: 0.28.17
+        version: 0.29.5
       kysely-postgres-js:
         specifier: 'catalog:'
-        version: 3.0.0(kysely@0.28.17)(postgres@3.4.8)
+        version: 3.0.0(kysely@0.29.5)(postgres@3.4.8)
       luxon:
         specifier: 'catalog:'
         version: 3.7.2
       nestjs-kysely:
         specifier: 'catalog:'
-        version: 3.1.4(@nestjs/common@12.1.2(class-transformer@0.5.1)(class-validator@0.14.3)(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@12.1.2)(kysely@0.28.17)(reflect-metadata@0.2.2)
+        version: 3.1.4(@nestjs/common@12.1.2(class-transformer@0.5.1)(class-validator@0.14.3)(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@12.1.2)(kysely@0.29.5)(reflect-metadata@0.2.2)
       nestjs-zod:
         specifier: 'catalog:'
         version: 5.5.0(@nestjs/common@12.1.2(class-transformer@0.5.1)(class-validator@0.14.3)(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/swagger@12.0.2(@nestjs/common@12.1.2(class-transformer@0.5.1)(class-validator@0.14.3)(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@12.1.2)(class-transformer@0.5.1)(class-validator@0.14.3)(reflect-metadata@0.2.2)(typescript@6.0.3))(rxjs@7.8.2)(zod@4.4.3)
@@ -1167,13 +1167,13 @@ importers:
         version: 1.0.20
       kysely:
         specifier: 'catalog:'
-        version: 0.28.17
+        version: 0.29.5
       kysely-postgres-js:
         specifier: 'catalog:'
-        version: 3.0.0(kysely@0.28.17)(postgres@3.4.8)
+        version: 3.0.0(kysely@0.29.5)(postgres@3.4.8)
       nestjs-kysely:
         specifier: 'catalog:'
-        version: 3.1.4(@nestjs/common@12.1.2(class-transformer@0.5.1)(class-validator@0.14.3)(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@12.1.2)(kysely@0.28.17)(reflect-metadata@0.2.2)
+        version: 3.1.4(@nestjs/common@12.1.2(class-transformer@0.5.1)(class-validator@0.14.3)(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@12.1.2)(kysely@0.29.5)(reflect-metadata@0.2.2)
       postgres:
         specifier: 'catalog:'
         version: 3.4.8
@@ -1265,12 +1265,9 @@ importers:
       express:
         specifier: 'catalog:'
         version: 5.2.1
-      kysely:
-        specifier: 'catalog:'
-        version: 0.28.17
       nestjs-kysely:
         specifier: 'catalog:'
-        version: 3.1.4(@nestjs/common@12.1.2(class-transformer@0.5.1)(class-validator@0.14.3)(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@12.1.2)(kysely@0.28.17)(reflect-metadata@0.2.2)
+        version: 3.1.4(@nestjs/common@12.1.2(class-transformer@0.5.1)(class-validator@0.14.3)(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@12.1.2)(kysely@0.29.5)(reflect-metadata@0.2.2)
       nestjs-zod:
         specifier: 'catalog:'
         version: 5.5.0(@nestjs/common@12.1.2(class-transformer@0.5.1)(class-validator@0.14.3)(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/swagger@12.0.2(@nestjs/common@12.1.2(class-transformer@0.5.1)(class-validator@0.14.3)(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@12.1.2)(class-transformer@0.5.1)(class-validator@0.14.3)(reflect-metadata@0.2.2)(typescript@6.0.3))(rxjs@7.8.2)(zod@4.4.3)
@@ -1332,6 +1329,9 @@ importers:
       jest:
         specifier: 'catalog:'
         version: 30.5.2(@types/node@26.6.4)(ts-node@10.9.2(@types/node@26.6.4)(typescript@6.0.3))
+      kysely:
+        specifier: 'catalog:'
+        version: 0.29.5
       ts-jest:
         specifier: 'catalog:'
         version: 29.4.14(@babel/core@7.28.5)(@jest/transform@30.5.2)(@jest/types@30.5.1)(babel-jest@30.5.2(@babel/core@7.28.5))(esbuild@0.27.7)(jest-util@30.5.1)(jest@30.5.2(@types/node@26.6.4)(ts-node@10.9.2(@types/node@26.6.4)(typescript@6.0.3)))(typescript@6.0.3)
@@ -5813,6 +5813,10 @@ packages:
   kysely@0.28.17:
     resolution: {integrity: sha512-nbD8lB9EB3wNdMhOCdx5Li8DxnLbvKByylRLcJ1h+4SkrowVeECAyZlyiKMThF7xFdRz0jSQ2MoJr+wXux2y0Q==}
     engines: {node: '>=20.0.0'}
+
+  kysely@0.29.5:
+    resolution: {integrity: sha512-ooa+eSbBNPTo3MycPEuW5jdrxQdQwdtB3LC3h43FiXQbIry5tR0C5lDG7eealK0E4D7XjrnOP5DIUg/LyjRMYQ==}
+    engines: {node: '>=22.0.0'}
 
   leac@0.7.0:
     resolution: {integrity: sha512-qMrZeyEekgdRQ9o6a4NAB2EQZrv827GJdn1vnapwSJ90hWRB4TzUSunvacPkxQ2TnNqHNI1/zSt0hlo0crG8Jw==}
@@ -12591,7 +12595,15 @@ snapshots:
     optionalDependencies:
       postgres: 3.4.8
 
+  kysely-postgres-js@3.0.0(kysely@0.29.5)(postgres@3.4.8):
+    dependencies:
+      kysely: 0.29.5
+    optionalDependencies:
+      postgres: 3.4.8
+
   kysely@0.28.17: {}
+
+  kysely@0.29.5: {}
 
   leac@0.7.0: {}
 
@@ -12912,11 +12924,11 @@ snapshots:
 
   neo-async@2.6.2: {}
 
-  nestjs-kysely@3.1.4(@nestjs/common@12.1.2(class-transformer@0.5.1)(class-validator@0.14.3)(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@12.1.2)(kysely@0.28.17)(reflect-metadata@0.2.2):
+  nestjs-kysely@3.1.4(@nestjs/common@12.1.2(class-transformer@0.5.1)(class-validator@0.14.3)(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@12.1.2)(kysely@0.29.5)(reflect-metadata@0.2.2):
     dependencies:
       '@nestjs/common': 12.1.2(class-transformer@0.5.1)(class-validator@0.14.3)(reflect-metadata@0.2.2)(rxjs@7.8.2)
       '@nestjs/core': 12.1.2(@nestjs/common@12.1.2(class-transformer@0.5.1)(class-validator@0.14.3)(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/platform-express@12.1.2)(@nestjs/websockets@12.1.2)(reflect-metadata@0.2.2)(rxjs@7.8.2)
-      kysely: 0.28.17
+      kysely: 0.29.5
       reflect-metadata: 0.2.2
 
   nestjs-otel@8.1.1(@nestjs/common@12.1.2(class-transformer@0.5.1)(class-validator@0.14.3)(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@12.1.2)(rxjs@7.8.2):

@@ -1,4 +1,5 @@
-import { FileMigrationProvider, Kysely, Migrator, sql } from 'kysely';
+import { Kysely, sql } from 'kysely';
+import { FileMigrationProvider, Migrator } from 'kysely/migration';
 import { readdir } from 'node:fs/promises';
 import { join } from 'node:path';
 import { BackupStatus } from 'src/enum.js';
