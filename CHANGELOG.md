@@ -1,5 +1,20 @@
 # Changelog
 
+## [1.10.0](https://github.com/futo-org/backups/compare/v1.9.0...v1.10.0) (2026-10-27)
+
+
+### Features
+
+* **yucca sdk:** show the stored name of local-backend repositories ([#106](https://github.com/futo-org/backups/issues/106)) ([3f2a7c0](https://github.com/futo-org/backups/commit/3f2a7c0dd73acc8d3a8e95619a0dc15967ec54b3))
+* **yucca sdk:** time estimate on dash; better ETAs ([#104](https://github.com/futo-org/backups/issues/104)) ([b9a922d](https://github.com/futo-org/backups/commit/b9a922d25bf5a87d75129a5c160ada8c5ddfb0a3))
+
+
+### Bug Fixes
+
+* **support-logs-streamer:** export metrics every 15s, under vmagent's idle timeout ([#109](https://github.com/futo-org/backups/issues/109)) ([3f95d03](https://github.com/futo-org/backups/commit/3f95d03fdc9aa7ce392e035e7f8850875d4bd0bb))
+* **yucca sdk:** keep the parent snapshot and retention across hostname changes ([#101](https://github.com/futo-org/backups/issues/101)) ([e0a80a7](https://github.com/futo-org/backups/commit/e0a80a79b25bacb4ffb31d45430780bdb4364e88))
+* **yucca sdk:** prefix job enum schema ids so hosts' OpenAPI documents don't collide ([#108](https://github.com/futo-org/backups/issues/108)) ([34d3723](https://github.com/futo-org/backups/commit/34d3723f8b8da35f6ac93e3e4d558ac8311921e3))
+
 ## [1.9.0](https://github.com/futo-org/backups/compare/v1.8.1...v1.9.0) (2026-10-27)
 
 
