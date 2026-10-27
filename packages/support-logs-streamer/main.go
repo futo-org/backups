@@ -85,7 +85,11 @@ func main() {
 
 	statsCtx, stopStats := context.WithCancel(context.Background())
 	defer stopStats()
-	go tracker.Run(statsCtx, cfg.StatsFlushInterval)
+	statsDone := make(chan struct{})
+	go func() {
+		defer close(statsDone)
+		tracker.Run(statsCtx, cfg.StatsFlushInterval)
+	}()
 
 	go func() {
 		log.Info().Int("port", cfg.Port).Str("version", version.Version).Msg("starting support-logs-streamer")
@@ -101,6 +105,8 @@ func main() {
 		log.Error().Err(err).Msg("shutdown deadline hit with requests still in flight")
 	}
 	stopStats()
+	<-statsDone
+	tracker.Wait()
 
 	telemetryCtx, cancelTelemetry := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancelTelemetry()

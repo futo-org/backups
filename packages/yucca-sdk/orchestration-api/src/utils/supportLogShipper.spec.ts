@@ -171,4 +171,57 @@ describe(SupportLogShipper.name, () => {
 
     expect(shipper.droppedLines).toBe(1);
   });
+
+  it('stops the active send at its finish deadline and counts that batch as dropped', async () => {
+    let requests = 0;
+    const stalled = createServer(() => {
+      requests++;
+    });
+    await new Promise<void>((resolve) => stalled.listen(0, '127.0.0.1', resolve));
+    const stalledUrl = `http://127.0.0.1:${(stalled.address() as AddressInfo).port}/v1/batches`;
+
+    try {
+      const shipper = new SupportLogShipper(
+        {
+          url: stalledUrl,
+          credentials: { token: 'token', expiresAt: hourFromNow() },
+          refresh: jest.fn<() => Promise<never>>(),
+        },
+        { flushIntervalMs: 60_000, finishTimeoutMs: 200 },
+      );
+
+      for (const message of ['one', 'two']) {
+        shipper.push(line(message));
+      }
+      const started = Date.now();
+      await shipper.finish();
+      const requestsAtFinish = requests;
+      await new Promise((resolve) => setTimeout(resolve, 1500));
+
+      expect(Date.now() - started).toBeLessThan(2000);
+      expect(shipper.droppedLines).toBe(2);
+      expect(requests).toBe(requestsAtFinish);
+    } finally {
+      stalled.closeAllConnections();
+      await new Promise((resolve) => stalled.close(resolve));
+    }
+  });
+
+  it('enforces its buffer limit in encoded bytes for multibyte lines', async () => {
+    const shipper = new SupportLogShipper(
+      { url, credentials: { token: 'token', expiresAt: hourFromNow() }, refresh: jest.fn<() => Promise<never>>() },
+      { maxBufferBytes: 4096, batchBytes: 1_000_000, flushIntervalMs: 60_000 },
+    );
+    const message = '写真'.repeat(100);
+    const encoded = Buffer.byteLength(JSON.stringify(line(message)), 'utf8') + 1;
+
+    for (let index = 0; index < 20; index++) {
+      shipper.push(line(message));
+    }
+    await shipper.finish();
+
+    const sent = received.flatMap(({ lines }) => lines).length;
+    expect(sent).toBe(Math.floor(4096 / encoded));
+    expect(sent + shipper.droppedLines).toBe(20);
+  });
 });

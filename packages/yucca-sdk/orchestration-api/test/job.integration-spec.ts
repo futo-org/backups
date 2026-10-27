@@ -1,3 +1,4 @@
+import { jest } from '@jest/globals';
 import { access, cp, mkdir, mkdtemp, readFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -7,6 +8,7 @@ import { ConfigRepository } from '../src/repositories/config.repository.js';
 import { JobRepository } from '../src/repositories/job.repository.js';
 import { ModuleConfigRepository } from '../src/repositories/moduleConfig.repository.js';
 import { RepositoryService } from '../src/services/repository.service.js';
+import { SupportSession } from '../src/utils/supportSession.js';
 import { createTestingModule, TestContext } from './testUtils.js';
 
 let ctx: TestContext;
@@ -477,6 +479,47 @@ describe('restore from point', () => {
     expect(getJob(jobId)).toMatchObject({ status: JobStatus.Failed });
   });
 
+  it('makes repository deletion wait for a job that is still finishing its support session', async () => {
+    const jobs = ctx.module.get(JobRepository);
+    const repositoryService = ctx.module.get(RepositoryService);
+    await ctx.module
+      .get(ConfigRepository)
+      .setSupportMode({ remainingRuns: 1, streamToFuto: false, includePaths: false });
+    const { repository } = await repositoryService.createRepository(
+      { name: 'Finishing', worm: false, paths: ['/tmp/finishing'] },
+      ctx.backendId,
+    );
+    const finishing = Promise.withResolvers<void>();
+    const release = Promise.withResolvers<void>();
+    const finish = jest.spyOn(SupportSession.prototype, 'finish').mockImplementationOnce(async () => {
+      finishing.resolve();
+      await release.promise;
+      return { sessionId: undefined, droppedLines: 0, localDroppedLines: 0 };
+    });
+
+    try {
+      const jobId = await jobs.queue({
+        name: JobName.RepositorySnapshotForget,
+        data: { repositoryId: repository.id, snapshotId: 'snapshot-1' },
+      });
+      const settled = jobs.wait(jobId).catch(() => undefined);
+      await finishing.promise;
+
+      let deleted = false;
+      const deletion = repositoryService.deleteRepository(repository.id).then(() => (deleted = true));
+      await new Promise((resolve) => setTimeout(resolve, 100));
+      expect(deleted).toBe(false);
+
+      release.resolve();
+      await deletion;
+      await settled;
+
+      expect(await jobs.getAll(repository.id)).toEqual([]);
+    } finally {
+      finish.mockRestore();
+    }
+  });
+
   it('runs a job in support mode once per remaining run and keeps its verbose log next to the job log', async () => {
     const jobs = ctx.module.get(JobRepository);
     const config = ctx.module.get(ConfigRepository);
@@ -487,7 +530,9 @@ describe('restore from point', () => {
     const unsupported = await jobs.queue(forget('snapshot-1'));
     await jobs.wait(unsupported);
 
-    expect(JSON.parse(getJob(supported).outcome!)).toMatchObject({ support: { droppedLines: 0 } });
+    expect(JSON.parse(getJob(supported).outcome!)).toMatchObject({
+      support: { droppedLines: 0, localDroppedLines: 0 },
+    });
     expect(JSON.parse(getJob(unsupported).outcome!)).not.toHaveProperty('support');
     await expect(access(join(ctx.statePath, 'logs', 'jobs', `${supported}.support.jsonl`))).resolves.toBeUndefined();
     await expect(access(join(ctx.statePath, 'logs', 'jobs', `${unsupported}.support.jsonl`))).rejects.toThrow();

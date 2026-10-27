@@ -15,6 +15,7 @@ import { RepositoryMetricsHistoryTable } from './tables/repositoryMetricsHistory
 import { SessionTable } from './tables/session.table.js';
 import { SettingsTable } from './tables/settings.table.js';
 import { SupportLogSessionTable } from './tables/supportLogSession.table.js';
+import { SupportLogSessionReportTable } from './tables/supportLogSessionReport.table.js';
 import { TicketTable } from './tables/ticket.table.js';
 import { UserTable } from './tables/user.table.js';
 import { UserAllowlistTable } from './tables/userAllowlist.table.js';
@@ -42,6 +43,7 @@ export class ImmichDatabase {
     DiscordInviteBatchTable,
     DiscordTicketTable,
     SupportLogSessionTable,
+    SupportLogSessionReportTable,
   ];
 
   functions = [];
@@ -69,4 +71,5 @@ export interface DB {
   discordInviteBatches: DiscordInviteBatchTable;
   discordTickets: DiscordTicketTable;
   supportLogSessions: SupportLogSessionTable;
+  supportLogSessionReports: SupportLogSessionReportTable;
 }

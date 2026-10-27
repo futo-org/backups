@@ -23,6 +23,9 @@ export const useSupportMode = () =>
     () => queryClient,
   );
 
+export const refreshSupportMode = () =>
+  void queryClient.invalidateQueries({ queryKey: supportModeKeys.all });
+
 export const useUpdateSupportMode = () =>
   createMutation(
     () => ({

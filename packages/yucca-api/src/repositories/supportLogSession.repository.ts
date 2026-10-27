@@ -25,8 +25,39 @@ export class SupportLogSessionRepository {
     return this.db.selectFrom('supportLogSessions').selectAll().where('id', '=', id).executeTakeFirst();
   }
 
-  addStats(id: string, { lines, bytes, batches, droppedLines, lastBatchAt, finished }: SupportLogSessionStats) {
-    return this.db
+  addStats(id: string, reportId: string, stats: SupportLogSessionStats): Promise<'applied' | 'duplicate' | 'missing'> {
+    return this.db.transaction().execute(async (trx) => {
+      const session = await trx
+        .selectFrom('supportLogSessions')
+        .select('id')
+        .where('id', '=', id)
+        .forUpdate()
+        .executeTakeFirst();
+      if (!session) {
+        return 'missing';
+      }
+
+      const report = await trx
+        .insertInto('supportLogSessionReports')
+        .values({ id: reportId, sessionId: id })
+        .onConflict((oc) => oc.column('id').doNothing())
+        .returning('id')
+        .executeTakeFirst();
+      if (!report) {
+        return 'duplicate';
+      }
+
+      await this.incrementStats(trx, id, stats);
+      return 'applied';
+    });
+  }
+
+  private incrementStats(
+    db: Kysely<DB>,
+    id: string,
+    { lines, bytes, batches, droppedLines, lastBatchAt, finished }: SupportLogSessionStats,
+  ) {
+    return db
       .updateTable('supportLogSessions')
       .set((eb) => ({
         lineCount: eb('lineCount', '+', lines),
@@ -39,7 +70,6 @@ export class SupportLogSessionRepository {
         finishedAt: finished ? sql<Date>`coalesce(${eb.ref('finishedAt')}, now())` : eb.ref('finishedAt'),
       }))
       .where('id', '=', id)
-      .returning('id')
-      .executeTakeFirst();
+      .execute();
   }
 }

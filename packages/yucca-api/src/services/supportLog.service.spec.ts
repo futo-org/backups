@@ -27,6 +27,8 @@ const session = {
   finishedAt: null,
 };
 
+const reportId = '9f1c2d3e-4b5a-4c6d-8e7f-0a1b2c3d4e5f';
+
 describe(SupportLogService.name, () => {
   let sut: SupportLogService;
   let mocks: Mocks;
@@ -118,9 +120,10 @@ describe(SupportLogService.name, () => {
 
   describe('recordStats', () => {
     it('adds the reported increments', async () => {
-      mocks.supportLogSession.addStats.mockResolvedValue({ id: session.id });
+      mocks.supportLogSession.addStats.mockResolvedValue('applied');
 
       await sut.recordStats(session.id, {
+        reportId,
         lines: 10,
         bytes: 100,
         batches: 1,
@@ -129,7 +132,7 @@ describe(SupportLogService.name, () => {
         finished: true,
       });
 
-      expect(mocks.supportLogSession.addStats).toHaveBeenCalledWith(session.id, {
+      expect(mocks.supportLogSession.addStats).toHaveBeenCalledWith(session.id, reportId, {
         lines: 10,
         bytes: 100,
         batches: 1,
@@ -140,11 +143,20 @@ describe(SupportLogService.name, () => {
     });
 
     it('reports unknown sessions so the streamer stops retrying them', async () => {
-      mocks.supportLogSession.addStats.mockResolvedValue(undefined);
+      mocks.supportLogSession.addStats.mockResolvedValue('missing');
 
       await expect(
-        sut.recordStats(session.id, { lines: 1, bytes: 1, batches: 1, droppedLines: 0, finished: false }),
+        sut.recordStats(session.id, { reportId, lines: 1, bytes: 1, batches: 1, droppedLines: 0, finished: false }),
       ).rejects.toBeInstanceOf(NotFoundException);
+    });
+
+    it('accepts a report it has already applied without counting it again', async () => {
+      mocks.supportLogSession.addStats.mockResolvedValue('duplicate');
+
+      await expect(
+        sut.recordStats(session.id, { reportId, lines: 1, bytes: 1, batches: 1, droppedLines: 0, finished: false }),
+      ).resolves.toBeUndefined();
+      expect(mocks.supportLogSession.addStats).toHaveBeenCalledTimes(1);
     });
   });
 });

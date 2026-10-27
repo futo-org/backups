@@ -44,6 +44,7 @@ const JobOutcomeSchema = z
       .object({
         sessionId: z.string().optional().describe('Support code to share with FUTO when the logs were streamed'),
         droppedLines: z.number().describe('Log lines that could not be streamed in time'),
+        localDroppedLines: z.number().describe('Log lines that could not be written to the local support log'),
       })
       .optional()
       .meta({ id: 'JobSupportDto' }),

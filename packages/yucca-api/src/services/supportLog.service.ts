@@ -47,12 +47,12 @@ export class SupportLogService {
     return this.issueToken(session, url);
   }
 
-  async recordStats(id: string, dto: SupportLogSessionStatsRequestDto) {
-    const updated = await this.sessions.addStats(id, {
+  async recordStats(id: string, { reportId, ...dto }: SupportLogSessionStatsRequestDto) {
+    const outcome = await this.sessions.addStats(id, reportId, {
       ...dto,
       lastBatchAt: dto.lastBatchAt ? new Date(dto.lastBatchAt) : undefined,
     });
-    if (!updated) {
+    if (outcome === 'missing') {
       throw new NotFoundException(`No support log session with id ${id}`);
     }
   }

@@ -54,4 +54,21 @@ describe(createPathRedactor.name, () => {
   it('keeps Windows paths out of the stream', () => {
     expect(redact(JSON.stringify({ item: String.raw`C:\Users\me\a.txt` }))).not.toContain('Users');
   });
+
+  it('redacts the whole path when a name contains an apostrophe', () => {
+    const redacted = redact("error: lstat /photos/Alice's private album/a.jpg: permission denied");
+
+    expect(redacted).toMatch(/^error: lstat <path:[0-9a-f]{12}\.jpg>: permission denied$/);
+    expect(redact("open '/photos/Alice's album/b.jpg' failed")).not.toMatch(/album|b\.jpg'/);
+  });
+
+  it('redacts relative names in fields that hold paths', () => {
+    const redacted = JSON.parse(
+      redact(JSON.stringify({ message_type: 'verbose_status', action: 'restored', item: 'photos/private.jpg' })),
+    );
+
+    expect(redacted).toMatchObject({ message_type: 'verbose_status', action: 'restored' });
+    expect(redacted.item).toMatch(/^<path:[0-9a-f]{12}\.jpg>$/);
+    expect(JSON.parse(redact(JSON.stringify({ current_files: ['a/b.mov'] }))).current_files[0]).toMatch(/^<path:/);
+  });
 });

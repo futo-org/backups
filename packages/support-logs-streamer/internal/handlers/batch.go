@@ -192,7 +192,7 @@ func (s *Server) postBatch(w http.ResponseWriter, r *http.Request) {
 		Finished:     headers.final,
 	})
 	if headers.final {
-		go s.Stats.FlushSession(context.WithoutCancel(ctx), session.Session)
+		s.Stats.FlushSessionAsync(context.WithoutCancel(ctx), session.Session)
 	}
 
 	if s.Metrics != nil {

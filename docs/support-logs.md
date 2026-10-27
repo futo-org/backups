@@ -35,7 +35,9 @@ actually does on their machine, and optionally stream it to FUTO.
 - `support-logs-streamer` verifies the token offline with `JWT_PUBLIC_KEY`, exports each
   batch to VictoriaLogs over OTLP before acknowledging it (503 tells the client to retry),
   and reports per-session increments to `POST /api/internal/support-logs/sessions/:id/stats`
-  (`X-Internal-Secret`).
+  (`X-Internal-Secret`). Each report has a `reportId` that it keeps across retries, and
+  yucca-api applies each id once (`supportLogSessionReports`), so a retry after a lost
+  response is not counted twice.
 - Records carry `user` and `customerId` (so columbo's per-user scope matches),
   `support_session`, `connection`, `job`, `job_name`, `command`, `stream` and `batch_seq`.
   A retried batch can appear twice; `batch_seq` tells the copies apart.

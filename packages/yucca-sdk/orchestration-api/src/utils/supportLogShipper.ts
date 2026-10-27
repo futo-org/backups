@@ -1,3 +1,4 @@
+import { setTimeout as sleep } from 'node:timers/promises';
 import { promisify } from 'node:util';
 import { gzip } from 'node:zlib';
 import { LoggingRepository } from '../repositories/logging.repository.js';
@@ -38,8 +39,11 @@ const DEFAULT_OPTIONS: SupportLogShipperOptions = {
 const REFRESH_MARGIN_MS = 10 * 60 * 1000;
 const REQUEST_TIMEOUT_MS = 60_000;
 const MAX_BACKOFF_MS = 30_000;
+const ABORT_GRACE_MS = 1000;
 
 type Batch = { lines: string[]; bytes: number };
+
+type InFlight = { lines: number; settled: boolean };
 
 class PermanentError extends Error {}
 
@@ -53,8 +57,10 @@ export class SupportLogShipper {
   private droppedSinceLastBatch = 0;
   private seq = 0;
   private draining?: Promise<void>;
+  private inFlight?: InFlight;
   private timer?: NodeJS.Timeout;
   private stopped = false;
+  private readonly abort = new AbortController();
 
   droppedLines = 0;
 
@@ -69,14 +75,15 @@ export class SupportLogShipper {
 
   push(line: SupportLogLine) {
     const json = JSON.stringify(line);
-    if (this.stopped || this.bufferedBytes + json.length > this.options.maxBufferBytes) {
+    const bytes = Buffer.byteLength(json, 'utf8') + 1;
+    if (this.stopped || this.bufferedBytes + bytes > this.options.maxBufferBytes) {
       this.drop(1);
       return;
     }
 
     this.current.lines.push(json);
-    this.current.bytes += json.length + 1;
-    this.bufferedBytes += json.length + 1;
+    this.current.bytes += bytes;
+    this.bufferedBytes += bytes;
 
     if (this.current.bytes >= this.options.batchBytes) {
       this.seal();
@@ -87,12 +94,29 @@ export class SupportLogShipper {
     clearInterval(this.timer);
     this.seal();
 
-    const deadline = new Promise<void>((resolve) => setTimeout(resolve, this.options.finishTimeoutMs).unref());
-    await Promise.race([this.drain(true), deadline]);
+    const drained = this.drain(true).then(() => true);
+    const finished = await Promise.race([drained, sleep(this.options.finishTimeoutMs, false, { ref: false })]);
 
     this.stopped = true;
+    if (!finished) {
+      this.abort.abort();
+      await Promise.race([drained, sleep(ABORT_GRACE_MS, false, { ref: false })]);
+      this.settle(this.inFlight, false);
+    }
+
     this.drop(this.sealed.reduce((total, batch) => total + batch.lines.length, 0));
     this.sealed = [];
+  }
+
+  private settle(inFlight: InFlight | undefined, delivered: boolean) {
+    if (!inFlight || inFlight.settled) {
+      return;
+    }
+
+    inFlight.settled = true;
+    if (!delivered) {
+      this.drop(inFlight.lines);
+    }
   }
 
   private drop(lines: number) {
@@ -150,20 +174,31 @@ export class SupportLogShipper {
     const dropped = this.droppedSinceLastBatch;
     this.droppedSinceLastBatch = 0;
     const seq = this.seq++;
+    const inFlight: InFlight = { lines: batch.lines.length, settled: false };
+    this.inFlight = inFlight;
     const body = await gzipAsync(batch.lines.length > 0 ? batch.lines.join('\n') + '\n' : '');
 
     for (let attempt = 1; attempt <= this.options.maxAttempts; attempt++) {
       try {
         await this.post(body, seq, dropped, final);
+        this.settle(inFlight, true);
         return true;
       } catch (error) {
-        if (error instanceof PermanentError || attempt === this.options.maxAttempts) {
+        const aborted = this.abort.signal.aborted;
+        if (aborted || error instanceof PermanentError || attempt === this.options.maxAttempts) {
           this.logger.warn(`Dropping support log batch ${seq} (${batch.lines.length} lines)`, error);
-          this.drop(batch.lines.length);
+          this.settle(inFlight, false);
           this.droppedSinceLastBatch += dropped;
           return false;
         }
-        await new Promise((resolve) => setTimeout(resolve, Math.min(MAX_BACKOFF_MS, 1000 * 2 ** (attempt - 1))));
+
+        try {
+          await sleep(Math.min(MAX_BACKOFF_MS, 1000 * 2 ** (attempt - 1)), undefined, { signal: this.abort.signal });
+        } catch {
+          this.settle(inFlight, false);
+          this.droppedSinceLastBatch += dropped;
+          return false;
+        }
       }
     }
 
@@ -183,7 +218,7 @@ export class SupportLogShipper {
         ...(final && { 'x-batch-final': 'true' }),
       },
       body: new Uint8Array(body),
-      signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+      signal: AbortSignal.any([this.abort.signal, AbortSignal.timeout(REQUEST_TIMEOUT_MS)]),
     });
 
     if (response.ok) {

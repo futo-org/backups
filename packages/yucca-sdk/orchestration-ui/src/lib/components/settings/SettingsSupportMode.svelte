@@ -1,7 +1,9 @@
 <script lang="ts">
   import Accordion from "$lib/components/ui/Accordion.svelte";
+  import OnEvents from "$lib/components/util/OnEvents.svelte";
   import {
     maxSupportModeRuns,
+    refreshSupportMode,
     useSupportMode,
     useUpdateSupportMode,
   } from "$lib/services/supportMode.service";
@@ -61,6 +63,8 @@
     });
   };
 </script>
+
+<OnEvents onJobUpdate={refreshSupportMode} />
 
 <Accordion
   title={$t`Support mode`}

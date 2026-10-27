@@ -79,6 +79,10 @@ envFrom:
   - secretRef:
       name: support-logs-streamer
 
+# Appended after envFrom, so a key here wins over the chart Secret (Tilt points
+# it at the yucca-dev-env Secret built from the root .env).
+extraEnvFrom: []
+
 startupProbe:
   tcpSocket: { port: http }
   periodSeconds: 2

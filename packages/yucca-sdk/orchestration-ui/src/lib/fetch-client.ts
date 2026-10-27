@@ -183,6 +183,8 @@ export type JobSupportDto = {
     sessionId?: string;
     /** Log lines that could not be streamed in time */
     droppedLines: number;
+    /** Log lines that could not be written to the local support log */
+    localDroppedLines: number;
 };
 export type JobOutcomeDto = {
     errors: string[];

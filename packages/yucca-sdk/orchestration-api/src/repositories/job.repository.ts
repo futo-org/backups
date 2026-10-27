@@ -412,16 +412,18 @@ export class JobRepository implements OnModuleInit, BeforeApplicationShutdown {
 
     let error: unknown;
     try {
-      await this.supportContext.run(support, () => handler.run(JSON.parse(job.data), ctx));
-    } catch (error_) {
-      error = error_;
-      writeError((event) => ctx.log(event), error);
+      try {
+        await this.supportContext.run(support, () => handler.run(JSON.parse(job.data), ctx));
+      } catch (error_) {
+        error = error_;
+        writeError((event) => ctx.log(event), error);
+      }
+
+      if (support) {
+        ctx.outcome.support = await support.finish();
+      }
     } finally {
       this.running = undefined;
-    }
-
-    if (support) {
-      ctx.outcome.support = await support.finish();
     }
 
     await new Promise<void>((done) => ctx.logWriter.end(done));

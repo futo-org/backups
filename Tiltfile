@@ -393,7 +393,7 @@ APP_WIRING = {
     'yucca-meta':             {'build': None,                 'deps': []},
     'yucca-michael':          {'build': 'michael',            'deps': ['yucca-object-user'], 'dev_keypair': True},
     # Reports session stats to yucca-api per flush, not at boot, so no dep on it.
-    'support-logs-streamer':  {'build': 'support-logs-streamer', 'deps': ['yucca-victoria-logs'], 'dev_keypair': True},
+    'support-logs-streamer':  {'build': 'support-logs-streamer', 'deps': ['yucca-victoria-logs'], 'dev_env': True, 'dev_keypair': True},
     'yucca-mock-oidc':        {'build': 'mock-oidc-provider', 'deps': []},
     'yucca-mailpit':          {'build': None,                 'deps': []},
     'yucca-mock-resend':    {'build': 'mock-resend-provider', 'deps': ['yucca-mailpit']},

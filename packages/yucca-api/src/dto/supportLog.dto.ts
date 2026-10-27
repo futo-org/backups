@@ -21,6 +21,7 @@ const SupportLogSessionTokenSchema = z
   .meta({ id: 'SupportLogSessionTokenDto' });
 
 const SupportLogSessionStatsRequestSchema = z.object({
+  reportId: z.uuid(),
   lines: z.int().min(0),
   bytes: z.int().min(0),
   batches: z.int().min(0),

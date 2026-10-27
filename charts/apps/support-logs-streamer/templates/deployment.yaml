@@ -1,1 +1,4 @@
+{{- /* extraEnvFrom comes after the chart secret: for duplicate keys Kubernetes
+takes the LAST envFrom source, so these act as overrides. */}}
+{{- $_ := set .Values "envFrom" (concat .Values.envFrom (.Values.extraEnvFrom | default (list))) }}
 {{- include "yucca-common.deployment" . }}

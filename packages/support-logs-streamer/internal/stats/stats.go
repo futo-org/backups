@@ -12,6 +12,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/rs/zerolog/log"
 )
 
@@ -35,15 +36,35 @@ func (d *Delta) merge(other Delta) {
 	d.Finished = d.Finished || other.Finished
 }
 
+type report struct {
+	ID string `json:"reportId"`
+	Delta
+}
+
+type sessionState struct {
+	pending    Delta
+	hasPending bool
+	inflight   *report
+	sending    bool
+}
+
+func (s *sessionState) idle() bool {
+	return !s.hasPending && s.inflight == nil && !s.sending
+}
+
 // Tracker aggregates per-session counters and reports them to yucca-api as
-// increments, so any number of replicas can serve the same session.
+// increments, so any number of replicas can serve the same session. A report
+// keeps its ID across retries and yucca-api applies each ID once, so a report
+// whose response was lost is never counted twice; anything recorded while it
+// is outstanding waits for the next report instead of joining it.
 type Tracker struct {
 	endpoint string
 	secret   string
 	client   *http.Client
 
 	mu       sync.Mutex
-	sessions map[string]Delta
+	sessions map[string]*sessionState
+	async    sync.WaitGroup
 }
 
 func NewTracker(yuccaAPIURL, internalSecret string) *Tracker {
@@ -51,24 +72,20 @@ func NewTracker(yuccaAPIURL, internalSecret string) *Tracker {
 		endpoint: strings.TrimSuffix(yuccaAPIURL, "/") + "/internal/support-logs/sessions/",
 		secret:   internalSecret,
 		client:   &http.Client{Timeout: 10 * time.Second},
-		sessions: make(map[string]Delta),
+		sessions: make(map[string]*sessionState),
 	}
 }
 
 func (t *Tracker) Record(session string, delta Delta) {
 	t.mu.Lock()
 	defer t.mu.Unlock()
-	current := t.sessions[session]
-	current.merge(delta)
-	t.sessions[session] = current
-}
-
-func (t *Tracker) take(session string) (Delta, bool) {
-	t.mu.Lock()
-	defer t.mu.Unlock()
-	delta, ok := t.sessions[session]
-	delete(t.sessions, session)
-	return delta, ok
+	state, ok := t.sessions[session]
+	if !ok {
+		state = &sessionState{}
+		t.sessions[session] = state
+	}
+	state.pending.merge(delta)
+	state.hasPending = true
 }
 
 func (t *Tracker) sessionIDs() []string {
@@ -87,28 +104,80 @@ func (t *Tracker) Flush(ctx context.Context) {
 	}
 }
 
-// FlushSession reports one session's pending increments. A failed report is
-// merged back so the next flush retries it; a 404 means yucca-api has no such
-// session, and retrying would only grow the backlog.
-func (t *Tracker) FlushSession(ctx context.Context, session string) {
-	delta, ok := t.take(session)
-	if !ok {
-		return
-	}
+// FlushSessionAsync reports a session in the background; Wait joins every such
+// report, so shutdown can finish them before its final Flush.
+func (t *Tracker) FlushSessionAsync(ctx context.Context, session string) {
+	t.async.Add(1)
+	go func() {
+		defer t.async.Done()
+		t.FlushSession(ctx, session)
+	}()
+}
 
-	status, err := t.post(ctx, session, delta)
+func (t *Tracker) Wait() {
+	t.async.Wait()
+}
+
+func (t *Tracker) next(session string) *report {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	state, ok := t.sessions[session]
+	if !ok || state.sending {
+		return nil
+	}
+	if state.inflight == nil {
+		if !state.hasPending {
+			return nil
+		}
+		state.inflight = &report{ID: uuid.NewString(), Delta: state.pending}
+		state.pending = Delta{}
+		state.hasPending = false
+	}
+	state.sending = true
+	return state.inflight
+}
+
+func (t *Tracker) settle(session string, acknowledged, unknown bool) {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	state := t.sessions[session]
+	state.sending = false
 	switch {
-	case err == nil && status == http.StatusNoContent:
-	case err == nil && status == http.StatusNotFound:
-		log.Warn().Str("support_session", session).Msg("yucca-api does not know this support session; dropping its stats")
-	default:
-		log.Warn().Err(err).Int("status", status).Str("support_session", session).Msg("failed to report support session stats; will retry")
-		t.Record(session, delta)
+	case unknown:
+		delete(t.sessions, session)
+		return
+	case acknowledged:
+		state.inflight = nil
+	}
+	if state.idle() {
+		delete(t.sessions, session)
 	}
 }
 
-func (t *Tracker) post(ctx context.Context, session string, delta Delta) (int, error) {
-	body, err := json.Marshal(delta)
+// FlushSession reports one session's increments. A failed report stays
+// in flight under the same ID for the next flush; a 404 means yucca-api has no
+// such session, and retrying would only grow the backlog.
+func (t *Tracker) FlushSession(ctx context.Context, session string) {
+	r := t.next(session)
+	if r == nil {
+		return
+	}
+
+	status, err := t.post(ctx, session, *r)
+	switch {
+	case err == nil && status == http.StatusNoContent:
+		t.settle(session, true, false)
+	case err == nil && status == http.StatusNotFound:
+		log.Warn().Str("support_session", session).Msg("yucca-api does not know this support session; dropping its stats")
+		t.settle(session, false, true)
+	default:
+		log.Warn().Err(err).Int("status", status).Str("support_session", session).Msg("failed to report support session stats; will retry")
+		t.settle(session, false, false)
+	}
+}
+
+func (t *Tracker) post(ctx context.Context, session string, r report) (int, error) {
+	body, err := json.Marshal(r)
 	if err != nil {
 		return 0, err
 	}

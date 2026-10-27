@@ -5,6 +5,7 @@ import (
 	"crypto/elliptic"
 	"crypto/x509"
 	"encoding/pem"
+	"errors"
 	"net/url"
 	"os"
 	"strconv"
@@ -91,7 +92,7 @@ func LoadConfig() Config {
 		JWTPublicKey:        parseES256PublicKey(os.Getenv("JWT_PUBLIC_KEY")),
 		YuccaAPIURL:         yuccaAPIURL,
 		InternalSecret:      internalSecret,
-		StatsFlushInterval:  envDurationMS("STATS_FLUSH_INTERVAL_MS", 15*time.Second),
+		StatsFlushInterval:  envPositiveDurationMS("STATS_FLUSH_INTERVAL_MS", 15*time.Second),
 		DrainDelay:          envDurationMS("DRAIN_DELAY_MS", 15*time.Second),
 		ShutdownTimeout:     envDurationMS("SHUTDOWN_TIMEOUT_MS", 60*time.Second),
 		OTLPLogsEndpoint:    otlpLogsEndpoint,
@@ -128,6 +129,27 @@ func envBool(key string, fallback bool) bool {
 		log.Fatal().Msgf("%s must be true or false", key)
 	}
 	return b
+}
+
+func envPositiveDurationMS(key string, fallback time.Duration) time.Duration {
+	d, err := parsePositiveDurationMS(os.Getenv(key), fallback)
+	if err != nil {
+		log.Fatal().Msgf("%s %s", key, err)
+	}
+	return d
+}
+
+// A ticker interval: time.NewTicker panics on zero, so unlike the drain
+// settings zero is not a way to switch it off.
+func parsePositiveDurationMS(v string, fallback time.Duration) (time.Duration, error) {
+	if v == "" {
+		return fallback, nil
+	}
+	ms, err := strconv.Atoi(v)
+	if err != nil || ms <= 0 {
+		return 0, errors.New("must be a number > 0")
+	}
+	return time.Duration(ms) * time.Millisecond, nil
 }
 
 func envDurationMS(key string, fallback time.Duration) time.Duration {

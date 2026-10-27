@@ -61,9 +61,9 @@ export class SupportModeService {
 
     const localPath = supportLogFilePath(logFilePath);
     await this.storage.mkdir(dirname(localPath), { recursive: true });
-    const local = this.storage.createWriteStream(localPath);
+    const stream = settings.streamToFuto ? await this.openStream(job, settings) : undefined;
 
-    return new SupportSession(local, settings.streamToFuto ? await this.openStream(job, settings) : undefined);
+    return new SupportSession(this.storage.createWriteStream(localPath), stream);
   }
 
   private async openStream(

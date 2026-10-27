@@ -16,6 +16,7 @@ import (
 	"sync"
 	"testing"
 	"time"
+	"unicode/utf8"
 
 	"support-logs-streamer/internal/auth"
 	"support-logs-streamer/internal/otel"
@@ -230,16 +231,53 @@ func TestBatchCountsMalformedLinesAsDropped(t *testing.T) {
 	}
 }
 
+func TestFinalBatchReportIsJoinedByWait(t *testing.T) {
+	reported := make(chan stats.Delta, 1)
+	api := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		time.Sleep(50 * time.Millisecond)
+		var delta stats.Delta
+		_ = json.NewDecoder(r.Body).Decode(&delta)
+		reported <- delta
+		w.WriteHeader(http.StatusNoContent)
+	}))
+	defer api.Close()
+
+	h := newHarness()
+	h.server.Stats = stats.NewTracker(api.URL, "secret")
+	rec := h.post(t, gzipped(t, ndjson(clientLine{Stream: "stdout", Message: "last"})), func(r *http.Request) {
+		r.Header.Set("X-Batch-Final", "true")
+	})
+	if rec.Code != http.StatusNoContent {
+		t.Fatalf("got %d", rec.Code)
+	}
+
+	h.server.Stats.Wait()
+	select {
+	case delta := <-reported:
+		if !delta.Finished || delta.Lines != 1 {
+			t.Errorf("unexpected final report %+v", delta)
+		}
+	default:
+		t.Fatal("Wait returned before the final batch's report was sent")
+	}
+}
+
 func TestBatchTruncatesLongMessages(t *testing.T) {
 	h := newHarness()
-	long := strings.Repeat("é", maxMessageBytes)
+	long := strings.Repeat("€", maxMessageBytes)
+	if maxMessageBytes%len("€") == 0 {
+		t.Fatal("the limit must fall inside a rune for this test to mean anything")
+	}
 	rec := h.post(t, gzipped(t, ndjson(clientLine{Stream: "stdout", Message: long})), nil)
 	if rec.Code != http.StatusNoContent {
 		t.Fatalf("got %d", rec.Code)
 	}
 	body := h.exporter.records[0].Body().AsString()
+	if !utf8.ValidString(body) {
+		t.Error("truncation split a rune")
+	}
 	if len(body) > maxMessageBytes || !strings.HasPrefix(long, body) {
-		t.Errorf("message not truncated on a rune boundary: %d bytes", len(body))
+		t.Errorf("message not truncated to a prefix within the limit: %d bytes", len(body))
 	}
 }
 
