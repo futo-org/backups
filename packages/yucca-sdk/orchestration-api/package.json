@@ -30,6 +30,7 @@
     "@futo-org/restic-wrapper": "catalog:",
     "@nestjs/event-emitter": "catalog:",
     "@nestjs/jwt": "catalog:",
+    "@immich/sql-tools": "catalog:",
     "better-sqlite3": "catalog:",
     "cookie": "catalog:",
     "cron": "catalog:",

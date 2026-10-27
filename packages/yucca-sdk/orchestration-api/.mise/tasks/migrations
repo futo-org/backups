@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+#MISE description="yucca-sdk/orchestration-api: database migrations script"
+set -e
+
+coproc PGLITE { exec node src/bin/pglite.ts; }
+pglite_pid=$PGLITE_PID
+trap 'kill "$pglite_pid" 2>/dev/null || true; wait "$pglite_pid" 2>/dev/null || true' EXIT
+trap 'exit 130' INT
+trap 'exit 143' TERM
+
+read -r database_url <&"${PGLITE[0]}"
+pnpm exec sql-tools -u "$database_url" "$@"
