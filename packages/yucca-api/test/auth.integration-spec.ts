@@ -59,7 +59,7 @@ describe('AuthController (e2e)', () => {
           email: user.email,
           sessionId: session.id,
           connectionId: null,
-          features: { 'connection-restic': false },
+          features: { 'connection-restic': false, 'support-log-streaming': false },
         });
     });
 
@@ -71,7 +71,7 @@ describe('AuthController (e2e)', () => {
         .set('Cookie', `yucca-access-token=${session.accessToken}`)
         .expect(200);
 
-      expect(body.features).toEqual({ 'connection-restic': true });
+      expect(body.features).toEqual({ 'connection-restic': true, 'support-log-streaming': false });
     });
 
     it('rejects a disabled user with an existing session', async () => {
