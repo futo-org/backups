@@ -145,6 +145,7 @@ export class ResticRepository {
     const { connections } = await this.config.getResticOptions(placement);
     return await this.traced('snapshots', snapshots())
       .option(`rest.connections=${connections}`)
+      .noLock()
       .repository(repository)
       .cacheDir(this.cacheDir)
       .password(Buffer.from(key).toString('hex'))
@@ -161,6 +162,7 @@ export class ResticRepository {
     const { connections } = await this.config.getResticOptions(placement);
     return await this.traced('snapshots', snapshots())
       .option(`rest.connections=${connections}`)
+      .noLock()
       .repository(repository)
       .cacheDir(this.cacheDir)
       .password(Buffer.from(key).toString('hex'))
