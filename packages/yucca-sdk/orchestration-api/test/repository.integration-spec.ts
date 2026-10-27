@@ -12,6 +12,7 @@ import { jest } from '@jest/globals';
 import { GoneException, NotFoundException } from '@nestjs/common';
 import { randomUUID } from 'node:crypto';
 import { mkdir, readdir } from 'node:fs/promises';
+import { LocalBackend } from '../src/backends/local.backend.js';
 import { BackendType, JobName, TaskStatus, TicketAction } from '../src/enum.js';
 import { ResticProxyPool } from '../src/proxy/resticProxyPool.js';
 import { BackendRepository } from '../src/repositories/backend.repository.js';
@@ -689,6 +690,47 @@ describe('Repository', () => {
     expect(remoteOnly?.name).toBe('Unknown');
     expect(remoteOnly?.backends?.primary.online).toBe(true);
   });
+
+  it('lists a local repository under the name it was created with', async () => {
+    const repositoryService = ctx.module.get(RepositoryService);
+
+    const { repository } = await repositoryService.createRepository({ name: 'Immich', worm: false }, ctx.backendId);
+
+    const { repositories } = await repositoryService.getRepositories();
+
+    expect(repositories.find((repo) => repo.id === repository.id)?.name).toBe('Immich');
+  });
+
+  describe('after a fresh install pointed at an existing local backend', () => {
+    const createRepositoryFromPreviousInstall = async (name: string) => {
+      const { repository } = await new LocalBackend({
+        type: BackendType.Local,
+        path: ctx.backendPath,
+      }).createRepository({ name, worm: false });
+      return repository.id;
+    };
+
+    it('offers the repository for restore under its stored name', async () => {
+      const remoteId = await createRepositoryFromPreviousInstall('Immich');
+
+      const { repositories } = await ctx.module.get(RepositoryService).inspectRepositories(ctx.backendId);
+
+      expect(repositories.find((repo) => repo.id === remoteId)).toEqual(
+        expect.objectContaining({ name: 'Immich', snapshots: [] }),
+      );
+    });
+
+    it('keeps the stored name when importing the repository', async () => {
+      const repositoryService = ctx.module.get(RepositoryService);
+      const remoteId = await createRepositoryFromPreviousInstall('Immich');
+
+      const { repository } = await repositoryService.importRepository(remoteId, ctx.backendId);
+      const { repositories } = await repositoryService.getRepositories();
+
+      expect(repository.name).toBe('Immich');
+      expect(repositories.find((repo) => repo.id === repository.id)?.name).toBe('Immich');
+    });
+  });
 });
 
 const remoteRepository = (id: string, name: string) => ({
@@ -740,10 +782,33 @@ describe('Primary backend reconfiguration', () => {
     expect(moved).toEqual(expect.objectContaining({ id: repository.id, name: 'Family Photos' }));
   });
 
-  it('names the repository as restored when the old backend cannot report its name', async () => {
+  it('keeps the name of a local repository when moving to another backend', async () => {
     const repositoryService = ctx.module.get(RepositoryService);
 
     const { repository } = await repositoryService.createRepository({ name: 'Local Only', worm: false }, ctx.backendId);
+
+    const { repository: moved } = await repositoryService.reconfigureRepositoryPrimaryBackend(repository.id, {
+      backendId: ctx.backendId,
+    });
+
+    expect(moved.name).toBe('Local Only');
+  });
+
+  it('names the repository as restored when the old backend cannot report its name', async () => {
+    const repositoryService = ctx.module.get(RepositoryService);
+    const yuccaBackendId = randomUUID();
+    await ctx.module.get(BackendRepository).updateBackend(yuccaBackendId, {
+      type: BackendType.Yucca,
+      url: 'http://yucca.test',
+      accessToken: 'test-token',
+    });
+
+    (createRepository as jest.Mock).mockResolvedValueOnce(remoteRepository(randomUUID(), 'Unreachable'));
+    (getRepository as jest.Mock).mockRejectedValueOnce(new Error('Backend is offline'));
+    const { repository } = await repositoryService.createRepository(
+      { name: 'Unreachable', worm: false },
+      yuccaBackendId,
+    );
 
     const { repository: moved } = await repositoryService.reconfigureRepositoryPrimaryBackend(repository.id, {
       backendId: ctx.backendId,
