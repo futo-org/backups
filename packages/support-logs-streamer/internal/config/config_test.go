@@ -18,3 +18,9 @@ func TestParsePositiveDurationMS(t *testing.T) {
 		}
 	}
 }
+
+func TestDefaultMetricsIntervalStaysUnderTheCollectorIdleTimeout(t *testing.T) {
+	if defaultOTLPMetricsInterval >= time.Minute {
+		t.Fatalf("default metrics interval %s reaches vmagent's 1m idle timeout", defaultOTLPMetricsInterval)
+	}
+}
