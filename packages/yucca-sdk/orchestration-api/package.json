@@ -65,6 +65,7 @@
     "@types/node": "catalog:",
     "jest": "catalog:",
     "kysely": "catalog:",
+    "kysely-pglite-dialect": "catalog:",
     "ts-jest": "catalog:",
     "ts-loader": "catalog:"
   },

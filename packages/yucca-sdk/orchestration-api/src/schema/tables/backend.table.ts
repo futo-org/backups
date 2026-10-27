@@ -1,4 +1,4 @@
-import { Generated } from 'kysely';
+import { Column, type Generated, PrimaryColumn, Table } from '@immich/sql-tools';
 import { BackendType } from '../../enum.js';
 
 export type BackendConfiguration =
@@ -38,7 +38,11 @@ export type BackendConfiguration =
       secretAccessKey: string;
     };
 
+@Table({ name: 'futo_backups_backends' })
 export class BackendTable {
+  @PrimaryColumn({ type: 'uuid', default: () => 'gen_random_uuid()' })
   id!: Generated<string>;
-  configuration!: string;
+
+  @Column({ type: 'jsonb' })
+  configuration!: BackendConfiguration;
 }
