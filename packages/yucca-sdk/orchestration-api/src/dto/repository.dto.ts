@@ -117,6 +117,10 @@ const RepositoryCheckImportResponseSchema = z
   .object({ readable: z.boolean() })
   .meta({ id: 'RepositoryCheckImportResponseDto' });
 
+const RepositorySyncDeletionResponseSchema = z
+  .object({ deleted: z.boolean().describe('Whether the repository was deleted remotely and removed from this server') })
+  .meta({ id: 'RepositorySyncDeletionResponseDto' });
+
 const SnapshotSummarySchema = z
   .object({
     filesNew: z.int(),
@@ -186,6 +190,7 @@ export class RepositoryUpdateRequestDto extends createZodDto(RepositoryUpdateReq
 export class RepositoryUpdateResponseDto extends createZodDto(RepositoryUpdateResponseSchema) {}
 export class RepositoryListResponseDto extends createZodDto(RepositoryListResponseSchema) {}
 export class RepositoryCheckImportResponseDto extends createZodDto(RepositoryCheckImportResponseSchema) {}
+export class RepositorySyncDeletionResponseDto extends createZodDto(RepositorySyncDeletionResponseSchema) {}
 export class SnapshotSummaryDto extends createZodDto(SnapshotSummarySchema) {}
 export class SnapshotDto extends createZodDto(SnapshotSchema) {}
 export class ListSnapshotsResponseDto extends createZodDto(ListSnapshotsResponseSchema) {}

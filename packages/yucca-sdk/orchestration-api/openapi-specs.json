@@ -861,6 +861,38 @@
         ]
       }
     },
+    "/api/yucca/repository/{id}/sync-deletion": {
+      "post": {
+        "description": "Remove a repository from this server once it has been deleted from its backend.",
+        "operationId": "syncRepositoryDeletion",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RepositorySyncDeletionResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Sync a remote deletion",
+        "tags": [
+          "Repository"
+        ]
+      }
+    },
     "/api/yucca/repository/{id}/import": {
       "get": {
         "description": "Check that an existing repository on a backend can be opened with the recovery key.",
@@ -2602,6 +2634,18 @@
         },
         "required": [
           "repository"
+        ]
+      },
+      "RepositorySyncDeletionResponseDto": {
+        "type": "object",
+        "properties": {
+          "deleted": {
+            "type": "boolean",
+            "description": "Whether the repository was deleted remotely and removed from this server"
+          }
+        },
+        "required": [
+          "deleted"
         ]
       },
       "JobResponseDto": {

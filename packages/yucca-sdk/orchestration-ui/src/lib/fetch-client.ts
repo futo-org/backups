@@ -309,6 +309,10 @@ export type RepositoryUpdateResponseDto = {
 export type JobResponseDto = {
     jobId: string;
 };
+export type RepositorySyncDeletionResponseDto = {
+    /** Whether the repository was deleted remotely and removed from this server */
+    deleted: boolean;
+};
 export type RepositoryCheckImportResponseDto = {
     readable: boolean;
 };
@@ -717,6 +721,18 @@ export function createBackup(id: string, opts?: Oazapfts.RequestOpts) {
         status: 201;
         data: JobResponseDto;
     }>(`/api/yucca/repository/${encodeURIComponent(id)}`, {
+        ...opts,
+        method: "POST"
+    }));
+}
+/**
+ * Sync a remote deletion
+ */
+export function syncRepositoryDeletion(id: string, opts?: Oazapfts.RequestOpts) {
+    return oazapfts.ok(oazapfts.fetchJson<{
+        status: 201;
+        data: RepositorySyncDeletionResponseDto;
+    }>(`/api/yucca/repository/${encodeURIComponent(id)}/sync-deletion`, {
         ...opts,
         method: "POST"
     }));
