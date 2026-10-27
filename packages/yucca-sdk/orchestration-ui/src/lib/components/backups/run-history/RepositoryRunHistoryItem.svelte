@@ -117,12 +117,12 @@
   {/snippet}
 
   {#if job.status === "queued"}
-    {$t`Queued`} <RelativeTime time={job.queuedAt} />
+    {$t`Queued`} <RelativeTime time={job.queuedAt} absolute />
   {:else if job.status === "running"}
-    {$t`Started`} <RelativeTime time={job.start ?? job.queuedAt} />
+    {$t`Started`} <RelativeTime time={job.start ?? job.queuedAt} absolute />
   {:else if job.status === "failed" || job.status === "cancelled" || job.status === "incomplete"}
-    {$t`Attempted`} <RelativeTime time={job.start ?? job.queuedAt} />
+    {$t`Attempted`} <RelativeTime time={job.start ?? job.queuedAt} absolute />
   {:else}
-    {$t(noun.done)} {#if job.end}<RelativeTime time={job.end} />{/if}
+    {$t(noun.done)} {#if job.end}<RelativeTime time={job.end} absolute />{/if}
   {/if}
 </StackListItem>

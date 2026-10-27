@@ -180,13 +180,8 @@
             {/if}
 
             {#snippet trailing()}
-              <Text
-                color="secondary"
-                size="small"
-                class="shrink-0"
-                title={isoDate(entry.createdAt)}
-              >
-                <RelativeTime time={entry.createdAt} />
+              <Text color="secondary" size="small" class="shrink-0">
+                <RelativeTime time={entry.createdAt} absolute />
               </Text>
             {/snippet}
           </StackListItem>
