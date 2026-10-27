@@ -243,9 +243,17 @@ export class AuthService {
       throw new NotFoundException('Backend not found locally');
     }
 
-    return await result.backend.createTicket({
-      action: dto.action,
-      repositoryId: localRepository.remoteId,
-    });
+    try {
+      return await result.backend.createTicket({
+        action: dto.action,
+        repositoryId: localRepository.remoteId,
+      });
+    } catch (error) {
+      if ((error as { status?: number }).status === 404) {
+        throw new NotFoundException('Repository not found remotely');
+      }
+
+      throw error;
+    }
   }
 }

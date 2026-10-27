@@ -1,20 +1,24 @@
 import {
   createRepository,
   createResticUrl,
+  createTicket,
+  getRepositories,
   getRepository,
   submitMetricBackupEnd,
   submitMetricBackupStart,
 } from '@futo-org/backups-api-client';
 import { ResticBackupCommandCouldNotReadSourceDataError } from '@futo-org/restic-wrapper';
 import { jest } from '@jest/globals';
+import { NotFoundException } from '@nestjs/common';
 import { randomUUID } from 'node:crypto';
 import { mkdir, readdir } from 'node:fs/promises';
-import { BackendType, JobName, TaskStatus } from '../src/enum.js';
+import { BackendType, JobName, TaskStatus, TicketAction } from '../src/enum.js';
 import { ResticProxyPool } from '../src/proxy/resticProxyPool.js';
 import { BackendRepository } from '../src/repositories/backend.repository.js';
 import { JobRepository } from '../src/repositories/job.repository.js';
 import { ModuleConfigRepository } from '../src/repositories/moduleConfig.repository.js';
 import { RepositoryIntegrationImmichRepository } from '../src/repositories/repositoryIntegrationImmich.repository.js';
+import { AuthService } from '../src/services/auth.service.js';
 import { IntegrationsService } from '../src/services/integrations.service.js';
 import { RepositoryService } from '../src/services/repository.service.js';
 import { YuccaService } from '../src/services/yucca.service.js';
@@ -545,6 +549,40 @@ describe('Repository', () => {
       type: 'local' as any,
       path: ctx.backendPath,
     });
+  });
+
+  it('reports a repository deleted from FUTO Backups as not found when creating a ticket', async () => {
+    const repositoryService = ctx.module.get(RepositoryService);
+    const yuccaBackendId = randomUUID();
+    const remoteId = randomUUID();
+
+    await ctx.module.get(BackendRepository).updateBackend(yuccaBackendId, {
+      type: BackendType.Yucca,
+      url: 'http://yucca.test',
+      accessToken: 'test-token',
+    });
+    (createRepository as jest.Mock).mockResolvedValueOnce(remoteRepository(remoteId, 'Deleted'));
+    const { repository } = await repositoryService.createRepository({ name: 'Deleted', worm: false }, yuccaBackendId);
+
+    (getRepositories as jest.Mock).mockResolvedValueOnce({ repositories: [] });
+    (createTicket as jest.Mock).mockRejectedValueOnce(Object.assign(new Error('Error: 404'), { status: 404 }));
+
+    try {
+      const { repositories } = await repositoryService.getRepositories();
+      expect(repositories.find(({ id }) => id === repository.id)).toMatchObject({
+        name: 'Unknown',
+        backends: { primary: { online: false } },
+      });
+
+      await expect(
+        ctx.module
+          .get(AuthService)
+          .createTicket({ action: TicketAction.DeleteRepository, repositoryId: repository.id }),
+      ).rejects.toBeInstanceOf(NotFoundException);
+    } finally {
+      await repositoryService.deleteRepository(repository.id);
+      ctx.database.prepare('DELETE FROM backends WHERE id = ?').run(yuccaBackendId);
+    }
   });
 
   it('lists remote-only repositories not in local database', async () => {

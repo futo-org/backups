@@ -220,6 +220,11 @@ export const handleDeleteRepository = async (
 
     window.open(redirectTo, '_blank');
   } catch (error) {
+    if (local && (error as { status?: number }).status === 404) {
+      await sdk.deleteRepository(repositoryId);
+      return;
+    }
+
     handleError(error, gt`Failed to start deletion`);
     throw error;
   }
