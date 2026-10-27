@@ -1,5 +1,29 @@
 # Changelog
 
+## [1.9.0](https://github.com/futo-org/backups/compare/v1.8.1...v1.9.0) (2026-10-27)
+
+
+### Features
+
+* **emails:** mention no storage cap and no billing details in the beta invite ([#76](https://github.com/futo-org/backups/issues/76)) ([98258bc](https://github.com/futo-org/backups/commit/98258bcd4af7010254f9f32854327c3e6af37844))
+* **support-logs:** support mode with restic -vv and opt-in log streaming to FUTO ([#105](https://github.com/futo-org/backups/issues/105)) ([8be2a5b](https://github.com/futo-org/backups/commit/8be2a5b564542c24b58882494301effab518bd37))
+* **yucca sdk:** confirm before cancelling a running job ([#98](https://github.com/futo-org/backups/issues/98)) ([71f55ae](https://github.com/futo-org/backups/commit/71f55aede3a363c4126807d0d8de53f7f561d792))
+* **yucca sdk:** job queue ([#4](https://github.com/futo-org/backups/issues/4)) ([75e9597](https://github.com/futo-org/backups/commit/75e959714c44493091436b1b4ad912dbedb261e0))
+* **yucca sdk:** job status UI ([#9](https://github.com/futo-org/backups/issues/9)) ([73ef210](https://github.com/futo-org/backups/commit/73ef210288ea7b5dbe252fc8e4403f32d3d0e22f))
+* **yucca sdk:** mark interrupted jobs as incomplete ([#6](https://github.com/futo-org/backups/issues/6)) ([143dbc7](https://github.com/futo-org/backups/commit/143dbc7fadd4c7b3b7d6ad7cc8dc3755cd85b0f9))
+* **yucca sdk:** show absolute timestamps in backup history ([#97](https://github.com/futo-org/backups/issues/97)) ([0ae53c0](https://github.com/futo-org/backups/commit/0ae53c021d14f5f809a1251a58c3da6282a098bd))
+* **yucca sdk:** tell backups apart in the restore picker and disable empty ones ([#102](https://github.com/futo-org/backups/issues/102)) ([83f23bf](https://github.com/futo-org/backups/commit/83f23bff0afbf0b323eca72cac7d90a73016a6d0))
+* **yucca sdk:** warn when a schedule runs more than once an hour ([#99](https://github.com/futo-org/backups/issues/99)) ([4c10758](https://github.com/futo-org/backups/commit/4c1075852bf318174654890799edd15e188259cf))
+
+
+### Bug Fixes
+
+* **michael:** book a client disconnect as 499, not a backend failure ([#100](https://github.com/futo-org/backups/issues/100)) ([2681e0e](https://github.com/futo-org/backups/commit/2681e0e09e2e347d4f3343babd2908993e395d2b))
+* **yucca sdk:** keep retention policy when changing other settings ([#2](https://github.com/futo-org/backups/issues/2)) ([df5373a](https://github.com/futo-org/backups/commit/df5373a0f69802a181d4bb8fe64cbdfd5f6902d3))
+* **yucca sdk:** remove deleted repositories from this machine ([#103](https://github.com/futo-org/backups/issues/103)) ([9adc743](https://github.com/futo-org/backups/commit/9adc74331d7bd79be8f81715e8215bb644c9c0cd))
+* **yucca sdk:** restore schema on import ([#1](https://github.com/futo-org/backups/issues/1)) ([b07ec8b](https://github.com/futo-org/backups/commit/b07ec8b65a0267ded5e8bbb1ebd9fc317443783b))
+* **yucca sdk:** skip snapshot prune if warnings are present ([#3](https://github.com/futo-org/backups/issues/3)) ([660f228](https://github.com/futo-org/backups/commit/660f228afd2590c700625ef97635efb02237d285))
+
 ## [1.8.1](https://github.com/futo-org/backups/compare/v1.8.0...v1.8.1) (2026-10-23)
 
 
