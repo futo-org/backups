@@ -54,9 +54,9 @@ const JobOutcomeSchema = z
 export const JobSchema = z
   .object({
     id: z.string(),
-    name: z.enum(JobName).meta({ id: 'JobName' }),
+    name: z.enum(JobName).meta({ id: 'YuccaJobName' }),
     repositoryId: z.string(),
-    status: z.enum(JobStatus).meta({ id: 'JobStatus' }),
+    status: z.enum(JobStatus).meta({ id: 'YuccaJobStatus' }),
     queuedAt: z.string(),
     start: z.string().optional(),
     end: z.string().optional(),

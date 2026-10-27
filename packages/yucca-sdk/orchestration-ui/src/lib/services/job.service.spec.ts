@@ -1,5 +1,5 @@
 import { SocketEvent } from '$lib/events';
-import type { JobDto, JobName, JobStatus } from '$lib/fetch-client';
+import type { JobDto, YuccaJobName, YuccaJobStatus } from '$lib/fetch-client';
 import { useBackupJobMonitor } from '$lib/services/job.service';
 import { toastManager } from '@immich/ui';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -11,12 +11,12 @@ vi.mock('@immich/ui', async (importOriginal) => ({
   toastManager: { show: vi.fn() },
 }));
 
-const createJob = (id: string, name: JobName) =>
+const createJob = (id: string, name: YuccaJobName) =>
   new SocketEvent('JobCreate', {
     job: { id, name, repositoryId: 'repository-1' } as JobDto,
   });
 
-const updateJob = (jobId: string, status: JobStatus) =>
+const updateJob = (jobId: string, status: YuccaJobStatus) =>
   new SocketEvent('JobUpdate', {
     jobId,
     repositoryId: 'repository-1',

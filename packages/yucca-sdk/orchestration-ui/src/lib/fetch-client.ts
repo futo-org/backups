@@ -152,8 +152,8 @@ export type ScheduleDto = {
     lastRun?: string;
     lastFinished?: string;
 };
-export type JobName = "repository-backup" | "repository-prune" | "repository-restore" | "repository-restore-from-point" | "repository-snapshot-forget" | "repository-sync-metrics";
-export type JobStatus = "queued" | "running" | "complete" | "warn" | "failed" | "cancelled" | "incomplete";
+export type YuccaJobName = "repository-backup" | "repository-prune" | "repository-restore" | "repository-restore-from-point" | "repository-snapshot-forget" | "repository-sync-metrics";
+export type YuccaJobStatus = "queued" | "running" | "complete" | "warn" | "failed" | "cancelled" | "incomplete";
 export type JobProgressDto = {
     percentDone: number;
     secondsRemaining?: number;
@@ -193,9 +193,9 @@ export type JobOutcomeDto = {
 };
 export type JobDto = {
     id: string;
-    name: JobName;
+    name: YuccaJobName;
     repositoryId: string;
-    status: JobStatus;
+    status: YuccaJobStatus;
     queuedAt: string;
     start?: string;
     end?: string;
