@@ -1,6 +1,7 @@
-import { Kysely } from 'kysely';
+import { Insertable, Kysely } from 'kysely';
 import { randomUUID } from 'node:crypto';
 import { DB } from 'src/schema/index.js';
+import { SupportLogSessionTable } from 'src/schema/tables/supportLogSession.table.js';
 import { getKyselyConfig } from 'src/utils/database.js';
 
 let db: Kysely<DB>;
@@ -104,6 +105,14 @@ export const testUtils = {
     return db
       .insertInto('repositories')
       .values({ userId, name, worm, connectionId, siteCode: 'local', storageClusterCode: 'local-dev' })
+      .returningAll()
+      .executeTakeFirstOrThrow();
+  },
+
+  createSupportLogSession: (userId: string, session: Partial<Insertable<SupportLogSessionTable>> = {}) => {
+    return getDb()
+      .insertInto('supportLogSessions')
+      .values({ userId, jobId: randomUUID(), jobName: 'repository-backup', includesPaths: false, ...session })
       .returningAll()
       .executeTakeFirstOrThrow();
   },

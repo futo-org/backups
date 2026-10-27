@@ -18,7 +18,9 @@
     Text,
   } from "@immich/ui";
   import { mdiLifebuoy } from "@mdi/js";
+  import { nextRunsDraft, toRunsDraft } from "$lib/utils/supportMode";
   import { plural, t } from "svelte-i18n-lingui";
+  import { untrack } from "svelte";
 
   const supportMode = useSupportMode();
   const mutation = useUpdateSupportMode();
@@ -27,24 +29,36 @@
   let streamToFuto = $state(false);
   let includePaths = $state(false);
   let loaded = false;
+  let syncedRuns: number | undefined;
 
   const load = () => {
     if (!supportMode.data) {
       return;
     }
 
-    runs = supportMode.data.remainingRuns || undefined;
+    runs = syncedRuns = toRunsDraft(supportMode.data.remainingRuns);
     streamToFuto = supportMode.data.streamToFuto;
     includePaths = supportMode.data.includePaths;
   };
 
   $effect(() => {
-    if (loaded || !supportMode.data) {
+    const data = supportMode.data;
+    if (!data) {
       return;
     }
 
-    loaded = true;
-    load();
+    if (!loaded) {
+      loaded = true;
+      untrack(load);
+      return;
+    }
+
+    runs = nextRunsDraft(
+      untrack(() => runs),
+      syncedRuns,
+      data.remainingRuns,
+    );
+    syncedRuns = toRunsDraft(data.remainingRuns);
   });
 
   const streamingAvailable = $derived(

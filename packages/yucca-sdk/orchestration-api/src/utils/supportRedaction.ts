@@ -2,9 +2,10 @@ import { createHmac, randomBytes } from 'node:crypto';
 import { extname } from 'node:path';
 
 const ABSOLUTE_PATH = /^(?:\/|[A-Za-z]:\\)/;
-// An apostrophe is a legal file-name character, so it never ends a path: a single-quoted path is redacted
-// through its closing quote rather than leaving the rest of a name like "Alice's album" behind.
-const EMBEDDED_PATH = /(?<=^|[\s"'(=[])(?:\/|[A-Za-z]:\\)[^"\n]*?(?=: |"|$)/g;
+// Quotes, apostrophes and ": " are all legal in file names, so nothing inside a name reliably ends it. An
+// embedded path is redacted through the last ": " (where Go appends the error reason) or to the end of the
+// message, at the cost of also hiding any text between the path and that point.
+const EMBEDDED_PATH = /(?<=^|[\s"'(=[])(?:\/|[A-Za-z]:\\)(?:.*(?=: )|.*)/g;
 const PATH_FIELDS = new Set(['item', 'current_files', 'path', 'paths', 'name', 'target', 'excludes']);
 const MAX_EXTENSION_LENGTH = 8;
 
@@ -13,7 +14,7 @@ export type Redactor = (line: string) => string;
 export const createPathRedactor = (key: Buffer = randomBytes(32)): Redactor => {
   const placeholder = (path: string) => {
     const digest = createHmac('sha256', key).update(path).digest('hex').slice(0, 12);
-    const extension = extname(path.replace(/[/\\]+$/, ''));
+    const extension = extname(path.replace(/["'/\\]+$/, ''));
     return `<path:${digest}${extension.length <= MAX_EXTENSION_LENGTH ? extension : ''}>`;
   };
 

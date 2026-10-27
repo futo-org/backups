@@ -71,4 +71,21 @@ describe(createPathRedactor.name, () => {
     expect(redacted.item).toMatch(/^<path:[0-9a-f]{12}\.jpg>$/);
     expect(JSON.parse(redact(JSON.stringify({ current_files: ['a/b.mov'] }))).current_files[0]).toMatch(/^<path:/);
   });
+
+  it('leaves no fragment of a name that contains a double quote or colon-space', () => {
+    const quoted = JSON.parse(
+      redact(
+        JSON.stringify({
+          message_type: 'error',
+          error: { message: 'open /photos/private"album/a.jpg: permission denied' },
+          item: '/photos/private"album/a.jpg',
+        }),
+      ),
+    );
+    const colon = redact('lstat /photos/trip: day one/b.jpg: no such file or directory');
+
+    expect(quoted.error.message).toMatch(/^open <path:[0-9a-f]{12}\.jpg>: permission denied$/);
+    expect(colon).toMatch(/^lstat <path:[0-9a-f]{12}\.jpg>: no such file or directory$/);
+    expect(JSON.stringify(quoted) + colon).not.toMatch(/album|day one|a\.jpg|b\.jpg/);
+  });
 });

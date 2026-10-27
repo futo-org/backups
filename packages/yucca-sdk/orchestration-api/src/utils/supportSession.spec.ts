@@ -81,19 +81,44 @@ describe(SupportSession.name, () => {
 
     await runChild(session, `for (let i = 0; i < 5; i++) console.log('line ' + i);`);
 
-    await expect(session.finish()).resolves.toMatchObject({ localDroppedLines: 4 });
+    await expect(session.finish()).resolves.toMatchObject({ localDroppedLines: 5 });
   });
 
   it('drops local lines instead of queueing without bound behind a slow disk', async () => {
     const stuck = new Writable({ write: () => {} });
-    const session = new SupportSession(stuck, undefined, 1024);
+    const session = new SupportSession(stuck, undefined, { maxLocalBufferBytes: 1024, localFinishTimeoutMs: 100 });
 
     await runChild(session, `for (let i = 0; i < 1000; i++) console.log('x'.repeat(100));`);
 
     expect(stuck.writableLength).toBeLessThan(1024 + 300);
-    const finishing = session.finish();
-    stuck.destroy();
-    const { localDroppedLines } = await finishing;
-    expect(localDroppedLines).toBeGreaterThan(900);
+  });
+
+  it('gives up on a stalled local support log at its deadline and counts what it never wrote', async () => {
+    const stuck = new Writable({ write: () => {} });
+    const session = new SupportSession(stuck, undefined, { localFinishTimeoutMs: 100 });
+
+    await runChild(session, `for (let i = 0; i < 10; i++) console.log('line ' + i);`);
+    const started = Date.now();
+    const { localDroppedLines } = await session.finish();
+
+    expect(Date.now() - started).toBeLessThan(2000);
+    expect(localDroppedLines).toBeGreaterThanOrEqual(9);
+  });
+
+  it('counts every queued line that a failing disk discards', async () => {
+    let calls = 0;
+    const failing = new Writable({
+      highWaterMark: 1,
+      write: (_chunk, _encoding, done) => {
+        calls++;
+        setTimeout(() => done(new Error('EIO')), 20);
+      },
+    });
+    const session = new SupportSession(failing);
+
+    await runChild(session, `for (let i = 0; i < 20; i++) console.log('line ' + i);`);
+
+    await expect(session.finish()).resolves.toMatchObject({ localDroppedLines: 20 });
+    expect(calls).toBe(1);
   });
 });

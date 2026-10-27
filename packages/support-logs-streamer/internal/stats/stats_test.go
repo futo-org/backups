@@ -239,3 +239,75 @@ func TestRunSettlesItsReportBeforeReturning(t *testing.T) {
 		t.Fatalf("the canceled report was not resent by the final flush: %+v", got)
 	}
 }
+
+func TestOneFlushDeliversARetriedReportAndTheIncrementsBehindIt(t *testing.T) {
+	api, server := newFakeAPI(http.StatusBadGateway)
+	defer server.Close()
+
+	tracker := NewTracker(server.URL, "secret")
+	tracker.Record("s1", Delta{Lines: 1, Batches: 1})
+	tracker.Flush(context.Background())
+
+	api.mu.Lock()
+	api.status = http.StatusNoContent
+	api.mu.Unlock()
+
+	tracker.Record("s1", Delta{Lines: 2, Batches: 1, Finished: true})
+	tracker.Flush(context.Background())
+
+	got := api.received[s1]
+	if len(got) != 3 {
+		t.Fatalf("expected the failed report, its retry and the newer delta, got %+v", got)
+	}
+	if got[1].ID != got[0].ID {
+		t.Errorf("retry changed the report ID: %s then %s", got[0].ID, got[1].ID)
+	}
+	if got[2].ID == got[1].ID || !got[2].Finished {
+		t.Errorf("newer delta not delivered as its own final report: %+v", got[2])
+	}
+	if applied := api.applied[s1]; applied.Lines != 3 || !applied.Finished {
+		t.Errorf("applied %+v", applied)
+	}
+}
+
+func TestShutdownFlushDeliversACanceledReportAndANewerDelta(t *testing.T) {
+	api, server := newFakeAPI(http.StatusNoContent)
+	defer server.Close()
+
+	started := make(chan struct{})
+	var first sync.Once
+	api.respond = func(w http.ResponseWriter, r *http.Request) bool {
+		hold := false
+		first.Do(func() { hold = true })
+		if hold {
+			close(started)
+			<-r.Context().Done()
+			return true
+		}
+		return false
+	}
+
+	tracker := NewTracker(server.URL, "secret")
+	tracker.Record("s1", Delta{Lines: 9, Batches: 1})
+
+	ctx, cancel := context.WithCancel(context.Background())
+	done := make(chan struct{})
+	go func() {
+		defer close(done)
+		tracker.Run(ctx, 10*time.Millisecond)
+	}()
+
+	<-started
+	tracker.Record("s1", Delta{Lines: 1, Batches: 1, Finished: true})
+	cancel()
+	<-done
+	tracker.Flush(context.Background())
+
+	got := api.received[s1]
+	if len(got) != 3 || got[0].ID != got[1].ID || got[2].ID == got[1].ID {
+		t.Fatalf("expected the canceled report, its resend and the newer delta, got %+v", got)
+	}
+	if applied := api.applied[s1]; applied.Lines != 10 || !applied.Finished {
+		t.Errorf("applied %+v", applied)
+	}
+}

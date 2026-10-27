@@ -1,4 +1,5 @@
 import type { ChildProcess } from 'node:child_process';
+import { once } from 'node:events';
 import { createInterface } from 'node:readline';
 import type { Writable } from 'node:stream';
 import { LoggingRepository } from '../repositories/logging.repository.js';
@@ -8,6 +9,12 @@ import type { Redactor } from './supportRedaction.js';
 export const SUPPORT_MODE_VERBOSITY = 2;
 
 const DEFAULT_MAX_LOCAL_BUFFER_BYTES = 16 * 1024 * 1024;
+const DEFAULT_LOCAL_FINISH_TIMEOUT_MS = 30_000;
+const LOCAL_DESTROY_GRACE_MS = 1000;
+
+const noop = () => {};
+
+export type SupportSessionOptions = { maxLocalBufferBytes: number; localFinishTimeoutMs: number };
 
 export type SupportStream = {
   sessionId: string;
@@ -19,14 +26,23 @@ export class SupportSession {
   readonly verbosity = SUPPORT_MODE_VERBOSITY;
 
   private readonly logger = LoggingRepository.create(SupportSession.name);
+  private readonly options: SupportSessionOptions;
   private localFailed = false;
   private localDroppedLines = 0;
+  private localPendingLines = 0;
+  private localAbandoned = false;
 
   constructor(
     private readonly local: Writable,
     private readonly stream?: SupportStream,
-    private readonly maxLocalBufferBytes = DEFAULT_MAX_LOCAL_BUFFER_BYTES,
+    options: Partial<SupportSessionOptions> = {},
   ) {
+    this.options = {
+      maxLocalBufferBytes: DEFAULT_MAX_LOCAL_BUFFER_BYTES,
+      localFinishTimeoutMs: DEFAULT_LOCAL_FINISH_TIMEOUT_MS,
+      ...options,
+    };
+
     local.on('error', (error) => {
       if (!this.localFailed) {
         this.localFailed = true;
@@ -66,12 +82,22 @@ export class SupportSession {
       return;
     }
 
-    if (this.local.writableLength > this.maxLocalBufferBytes) {
+    if (this.local.writableLength > this.options.maxLocalBufferBytes) {
       this.localDroppedLines++;
       return;
     }
 
-    this.local.write(JSON.stringify(line) + '\n');
+    this.localPendingLines++;
+    this.local.write(JSON.stringify(line) + '\n', (error) => {
+      if (this.localAbandoned) {
+        return;
+      }
+
+      this.localPendingLines--;
+      if (error) {
+        this.localDroppedLines++;
+      }
+    });
   }
 
   async finish() {
@@ -85,11 +111,30 @@ export class SupportSession {
     };
   }
 
-  private endLocal() {
-    if (this.localFailed || this.local.destroyed) {
-      return Promise.resolve();
+  private async endLocal() {
+    const closed = this.local.closed ? Promise.resolve() : once(this.local, 'close').then(noop, noop);
+    if (!this.local.destroyed) {
+      this.local.end();
     }
 
-    return new Promise<void>((done) => this.local.end(() => done()));
+    if ((await this.within(closed, this.options.localFinishTimeoutMs)) === 'timeout') {
+      this.logger.warn('The local support log did not finish writing in time, discarding what is still queued');
+      this.abandonLocal();
+      await this.within(closed, LOCAL_DESTROY_GRACE_MS);
+    }
+  }
+
+  private abandonLocal() {
+    this.localAbandoned = true;
+    this.localDroppedLines += this.localPendingLines;
+    this.localPendingLines = 0;
+    this.local.destroy();
+  }
+
+  private within(promise: Promise<void>, ms: number) {
+    return Promise.race([
+      promise.then(() => 'done' as const),
+      new Promise<'timeout'>((resolve) => setTimeout(() => resolve('timeout'), ms).unref()),
+    ]);
   }
 }

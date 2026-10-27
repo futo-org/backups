@@ -154,25 +154,31 @@ func (t *Tracker) settle(session string, acknowledged, unknown bool) {
 	}
 }
 
-// FlushSession reports one session's increments. A failed report stays
-// in flight under the same ID for the next flush; a 404 means yucca-api has no
-// such session, and retrying would only grow the backlog.
+// FlushSession reports a session until it has nothing left to send: a retried
+// report can be followed by increments recorded while it was outstanding, and
+// shutdown flushes only once. A failed report stays in flight under the same
+// ID for the next flush; a 404 means yucca-api has no such session, and
+// retrying would only grow the backlog.
 func (t *Tracker) FlushSession(ctx context.Context, session string) {
-	r := t.next(session)
-	if r == nil {
-		return
-	}
+	for ctx.Err() == nil {
+		r := t.next(session)
+		if r == nil {
+			return
+		}
 
-	status, err := t.post(ctx, session, *r)
-	switch {
-	case err == nil && status == http.StatusNoContent:
-		t.settle(session, true, false)
-	case err == nil && status == http.StatusNotFound:
-		log.Warn().Str("support_session", session).Msg("yucca-api does not know this support session; dropping its stats")
-		t.settle(session, false, true)
-	default:
-		log.Warn().Err(err).Int("status", status).Str("support_session", session).Msg("failed to report support session stats; will retry")
-		t.settle(session, false, false)
+		status, err := t.post(ctx, session, *r)
+		switch {
+		case err == nil && status == http.StatusNoContent:
+			t.settle(session, true, false)
+		case err == nil && status == http.StatusNotFound:
+			log.Warn().Str("support_session", session).Msg("yucca-api does not know this support session; dropping its stats")
+			t.settle(session, false, true)
+			return
+		default:
+			log.Warn().Err(err).Int("status", status).Str("support_session", session).Msg("failed to report support session stats; will retry")
+			t.settle(session, false, false)
+			return
+		}
 	}
 }
 
