@@ -57,15 +57,15 @@ func NewSink(exporter sdklog.Exporter, res *sdkresource.Resource) *Sink {
 	}
 }
 
-func NewOTLPExporter(ctx context.Context, cfg config.Config) (sdklog.Exporter, error) {
-	opts := []otlploghttp.Option{
-		otlploghttp.WithEndpoint(cfg.OTLPLogsEndpoint),
-		otlploghttp.WithInsecure(),
+func NewOTLPExporter(ctx context.Context, cfg config.Config, extra ...otlploghttp.Option) (sdklog.Exporter, error) {
+	opts := []otlploghttp.Option{otlploghttp.WithEndpoint(cfg.OTLPLogsEndpoint)}
+	if cfg.OTLPLogsInsecure {
+		opts = append(opts, otlploghttp.WithInsecure())
 	}
 	if cfg.OTLPLogsURLPath != "" {
 		opts = append(opts, otlploghttp.WithURLPath(cfg.OTLPLogsURLPath))
 	}
-	return otlploghttp.New(ctx, opts...)
+	return otlploghttp.New(ctx, append(opts, extra...)...)
 }
 
 type Batch struct {

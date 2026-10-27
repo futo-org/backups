@@ -7,10 +7,12 @@ import (
 	"net/http/httptest"
 	"net/url"
 	"testing"
+	"time"
 
 	"support-logs-streamer/internal/config"
 
 	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/exporters/otlp/otlplog/otlploghttp"
 	otellog "go.opentelemetry.io/otel/log"
 	sdklog "go.opentelemetry.io/otel/sdk/log"
 	collogspb "go.opentelemetry.io/proto/otlp/collector/logs/v1"
@@ -37,6 +39,7 @@ func TestBatchExportReachesTheCollector(t *testing.T) {
 	exporter, err := NewOTLPExporter(context.Background(), config.Config{
 		OTLPLogsEndpoint: u.Host,
 		OTLPLogsURLPath:  "/insert/opentelemetry/v1/logs",
+		OTLPLogsInsecure: true,
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -108,3 +111,34 @@ func (e *countingExporter) Export(context.Context, []sdklog.Record) error {
 }
 func (e *countingExporter) Shutdown(context.Context) error   { return nil }
 func (e *countingExporter) ForceFlush(context.Context) error { return nil }
+
+func TestExportOverTLSWhenNotInsecure(t *testing.T) {
+	received := make(chan struct{}, 1)
+	collector := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		received <- struct{}{}
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer collector.Close()
+
+	u, _ := url.Parse(collector.URL)
+	exporter, err := NewOTLPExporter(context.Background(), config.Config{
+		OTLPLogsEndpoint: u.Host,
+		OTLPLogsURLPath:  "/insert/opentelemetry/v1/logs",
+	}, otlploghttp.WithTLSClientConfig(collector.Client().Transport.(*http.Transport).TLSClientConfig))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	var record sdklog.Record
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	if err := exporter.Export(ctx, []sdklog.Record{record}); err != nil {
+		t.Fatalf("export over TLS failed: %v", err)
+	}
+
+	select {
+	case <-received:
+	default:
+		t.Fatal("collector saw no request")
+	}
+}

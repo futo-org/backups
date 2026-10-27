@@ -27,6 +27,7 @@ type Config struct {
 
 	OTLPLogsEndpoint string
 	OTLPLogsURLPath  string
+	OTLPLogsInsecure bool
 
 	OTLPMetricsEndpoint string
 	OTLPMetricsURLPath  string
@@ -95,6 +96,7 @@ func LoadConfig() Config {
 		ShutdownTimeout:     envDurationMS("SHUTDOWN_TIMEOUT_MS", 60*time.Second),
 		OTLPLogsEndpoint:    otlpLogsEndpoint,
 		OTLPLogsURLPath:     os.Getenv("OTLP_LOGS_URL_PATH"),
+		OTLPLogsInsecure:    envBool("OTLP_LOGS_INSECURE", true),
 		OTLPMetricsEndpoint: otlpMetricsEndpoint,
 		OTLPMetricsURLPath:  os.Getenv("OTLP_METRICS_URL_PATH"),
 		OTLPMetricsInterval: envDurationMS("OTLP_METRICS_INTERVAL_MS", 60*time.Second),
@@ -114,6 +116,18 @@ func envIntMin(key string, fallback, minimum int) int {
 		log.Fatal().Msgf("%s must be a number >= %d", key, minimum)
 	}
 	return n
+}
+
+func envBool(key string, fallback bool) bool {
+	v := os.Getenv(key)
+	if v == "" {
+		return fallback
+	}
+	b, err := strconv.ParseBool(v)
+	if err != nil {
+		log.Fatal().Msgf("%s must be true or false", key)
+	}
+	return b
 }
 
 func envDurationMS(key string, fallback time.Duration) time.Duration {
