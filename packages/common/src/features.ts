@@ -16,6 +16,13 @@ export const FeatureFlags = {
     description: 'Use raw restic (create restic connections / self-service tokens)',
     since: '0.22.0',
   },
+  supportLogStreaming: {
+    key: 'support-log-streaming',
+    default: false,
+    stage: 'experimental',
+    description: 'Stream restic support-mode (-vv) logs from the client to FUTO',
+    since: '1.9.0',
+  },
 } as const satisfies Record<string, FeatureFlagDefinition>;
 
 export type FeatureFlagKey = (typeof FeatureFlags)[keyof typeof FeatureFlags]['key'];

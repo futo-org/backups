@@ -16,7 +16,9 @@
   };
 
   const { job }: Props = $props();
-  const { ViewLog, DownloadLog } = $derived(getJobActions(job, $t));
+  const { ViewLog, DownloadLog, DownloadSupportLog } = $derived(
+    getJobActions(job, $t),
+  );
 
   const nouns = {
     restore: {
@@ -111,7 +113,7 @@
   });
 </script>
 
-<StackListItem title={status.title} color={status.color} actions={[ViewLog, DownloadLog]}>
+<StackListItem title={status.title} color={status.color} actions={[ViewLog, DownloadLog, DownloadSupportLog]}>
   {#snippet icon()}
     <Icon icon={status.icon} />
   {/snippet}

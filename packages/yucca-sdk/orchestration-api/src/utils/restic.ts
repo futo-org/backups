@@ -21,7 +21,7 @@ export const createSampledLogWriter = <T extends BackupMessage | RestoreMessage>
   let lastPercent = -1;
 
   return (event: T) => {
-    if (!log) {
+    if (!log || event.message_type === 'verbose_status') {
       return;
     }
 

@@ -22,6 +22,7 @@ const schema = z.object({
   POSTGRES_SSL: z.union([z.enum(['require', 'allow', 'prefer', 'verify-full']), z.boolean()]).default(false),
 
   INTERNAL_SECRET: z.string().default(''),
+  SUPPORT_LOGS_URL: z.url().or(z.literal('')).default(''),
   DISCORD_INVITE_RECYCLING_ENABLED: z
     .enum(['true', 'false'])
     .default('false')

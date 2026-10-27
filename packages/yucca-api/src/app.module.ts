@@ -11,6 +11,8 @@ import { DiscordInternalController } from './controllers/discordInternal.control
 import { MetaController } from './controllers/meta.controller.js';
 import { MetricsController } from './controllers/metrics.controller.js';
 import { RepositoryController } from './controllers/repository.controller.js';
+import { SupportLogController } from './controllers/supportLog.controller.js';
+import { SupportLogInternalController } from './controllers/supportLogInternal.controller.js';
 import { env } from './env.js';
 import { AuthGuard } from './middleware/auth.guard.js';
 import { ConnectionRepository } from './repositories/connection.repository.js';
@@ -24,6 +26,7 @@ import { RepositoryMetricsHistoryRepository } from './repositories/repositoryMet
 import { SessionRepository } from './repositories/session.repository.js';
 import { SettingsRepository } from './repositories/settings.repository.js';
 import { StorageRepository } from './repositories/storage.repository.js';
+import { SupportLogSessionRepository } from './repositories/supportLogSession.repository.js';
 import { TicketRepository } from './repositories/ticket.repository.js';
 import { TopologyRepository } from './repositories/topology.repository.js';
 import { UserRepository } from './repositories/user.repository.js';
@@ -35,6 +38,7 @@ import { DiscordService } from './services/discord.service.js';
 import { MetaService } from './services/meta.service.js';
 import { MetricsService } from './services/metrics.service.js';
 import { RepositoryService } from './services/repository.service.js';
+import { SupportLogService } from './services/supportLog.service.js';
 import { TopologyService } from './services/topology.service.js';
 import { getKyselyConfig } from './utils/database.js';
 
@@ -55,6 +59,8 @@ export const controllers = [
   DiscordInternalController,
   MetricsController,
   RepositoryController,
+  SupportLogController,
+  SupportLogInternalController,
 ];
 
 export const providers: Provider[] = [
@@ -75,6 +81,7 @@ export const providers: Provider[] = [
   RepositoryMetricsRepository,
   RepositoryMetricsHistoryRepository,
   SessionRepository,
+  SupportLogSessionRepository,
   DatabaseService,
   MetaService,
   TopologyService,
@@ -83,6 +90,7 @@ export const providers: Provider[] = [
   AuthService,
   ConnectionService,
   DiscordService,
+  SupportLogService,
   { provide: APP_INTERCEPTOR, useClass: LoggingInterceptor },
   { provide: APP_INTERCEPTOR, useClass: ZodSerializerInterceptor },
   { provide: APP_GUARD, useClass: AuthGuard },

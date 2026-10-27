@@ -29,6 +29,7 @@ import { RepositoryRepository } from './repositories/repository.repository.js';
 import { SessionRepository } from './repositories/session.repository.js';
 import { SettingsRepository } from './repositories/settings.repository.js';
 import { StorageRepository } from './repositories/storage.repository.js';
+import { SupportLogSessionRepository } from './repositories/supportLogSession.repository.js';
 import { TopologyRepository } from './repositories/topology.repository.js';
 import { UserRepository } from './repositories/user.repository.js';
 import { UserAllowlistRepository } from './repositories/userAllowlist.repository.js';
@@ -84,6 +85,7 @@ export const providers: Provider[] = [
   UserRepository,
   UserAllowlistRepository,
   SessionRepository,
+  SupportLogSessionRepository,
   RepositoryRepository,
   SettingsRepository,
   StorageRepository,

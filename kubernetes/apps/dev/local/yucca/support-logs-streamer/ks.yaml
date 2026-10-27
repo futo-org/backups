@@ -1,0 +1,22 @@
+---
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: support-logs-streamer
+  namespace: flux-system
+spec:
+  targetNamespace: yucca
+  commonMetadata:
+    labels:
+      app.kubernetes.io/name: support-logs-streamer
+  path: ./kubernetes/apps/dev/local/yucca/support-logs-streamer/app
+  prune: true
+  wait: true
+  interval: 1h
+  retryInterval: 2m
+  timeout: 5m
+  sourceRef:
+    kind: GitRepository
+    name: yucca
+  dependsOn:
+    - name: yucca-victoria-logs

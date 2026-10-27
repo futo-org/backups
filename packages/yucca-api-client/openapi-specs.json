@@ -854,6 +854,67 @@
           "Repository"
         ]
       }
+    },
+    "/api/support-logs/sessions": {
+      "post": {
+        "operationId": "createSupportLogSession",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SupportLogSessionCreateRequestDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SupportLogSessionTokenDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "support-logs"
+        ]
+      }
+    },
+    "/api/support-logs/sessions/{id}/token": {
+      "post": {
+        "operationId": "refreshSupportLogSessionToken",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SupportLogSessionTokenDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "support-logs"
+        ]
+      }
     }
   },
   "info": {
@@ -1604,6 +1665,65 @@
         },
         "required": [
           "url"
+        ]
+      },
+      "SupportLogSessionCreateRequestDto": {
+        "type": "object",
+        "properties": {
+          "jobId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 64
+          },
+          "jobName": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 64
+          },
+          "includesPaths": {
+            "type": "boolean",
+            "description": "Whether the streamed lines carry file paths or redacted placeholders"
+          },
+          "clientVersion": {
+            "type": "string",
+            "maxLength": 64
+          }
+        },
+        "required": [
+          "jobId",
+          "jobName",
+          "includesPaths"
+        ]
+      },
+      "SupportLogSessionTokenDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          },
+          "token": {
+            "type": "string",
+            "description": "Bearer token for the support-logs streamer, bound to this session"
+          },
+          "url": {
+            "type": "string",
+            "format": "uri",
+            "description": "Where to POST the session’s log batches"
+          },
+          "expiresAt": {
+            "example": "2024-01-01T00:00:00.000Z",
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+          }
+        },
+        "required": [
+          "id",
+          "token",
+          "url",
+          "expiresAt"
         ]
       }
     }

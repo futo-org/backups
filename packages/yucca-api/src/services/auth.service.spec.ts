@@ -89,7 +89,7 @@ describe(AuthService.name, () => {
         sut.authenticate({
           cookie: 'yucca-access-token=my-token',
         }),
-      ).resolves.toEqual({ ...mockUser, features: { 'connection-restic': false } });
+      ).resolves.toEqual({ ...mockUser, features: { 'connection-restic': false, 'support-log-streaming': false } });
       expect(mocks.wideContext.addContext).toHaveBeenCalledWith('customerId', mockUser.id);
     });
 
@@ -102,7 +102,9 @@ describe(AuthService.name, () => {
         sut.authenticate({
           cookie: 'yucca-access-token=my-token',
         }),
-      ).resolves.toEqual(expect.objectContaining({ features: { 'connection-restic': true } }));
+      ).resolves.toEqual(
+        expect.objectContaining({ features: { 'connection-restic': true, 'support-log-streaming': false } }),
+      );
     });
 
     it('should ignore overrides for flags not in the registry', async () => {
@@ -114,7 +116,9 @@ describe(AuthService.name, () => {
         sut.authenticate({
           cookie: 'yucca-access-token=my-token',
         }),
-      ).resolves.toEqual(expect.objectContaining({ features: { 'connection-restic': false } }));
+      ).resolves.toEqual(
+        expect.objectContaining({ features: { 'connection-restic': false, 'support-log-streaming': false } }),
+      );
     });
   });
 

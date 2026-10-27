@@ -76,7 +76,7 @@ CI deploys resource subsets rather than the whole stack (`mise tilt:ci` still do
 `tilt:ci-ceph` (Rook only; builds no images, so it converges while the workspace installs)
 followed by `tilt:ci-e2e` (the apps the e2e suites touch).
 
-Ports: `5173` web · `3020` yucca-api · `3030` yucca-admin-api · `3010` michael ·
+Ports: `5173` web · `3020` yucca-api · `3030` yucca-admin-api · `3010` michael · `3040` support-logs-streamer ·
 `8092` mock-oidc · `8025` mailpit · `8093` mock-resend · `9000` ceph rgw · `8428` victoria-metrics · `9428` victoria-logs.
 
 ## Application architecture
@@ -90,6 +90,7 @@ Zod-validated `env.ts`, JWT auth guards via `@AuthRoute()`, OTel from `@common/s
 | `yucca-api` | NestJS | User-facing API. Owns auth (OIDC code + device flow, ES256 JWTs), repositories, **DB schema + migrations**. |
 | `yucca-admin-api` | NestJS | Admin API (user/session/repository management). Same DB + JWT validation. |
 | `michael` | Go | **Production** restic REST backend — S3 proxy with JWT verification, WORM enforcement, backend pooling. |
+| `support-logs-streamer` | Go | Receives client support-mode restic `-vv` batches (support-logs JWTs minted by yucca-api), exports them over OTLP to VictoriaLogs and reports per-session stats back to yucca-api. |
 | `columbo` | Go | Ticket investigation agent: LLM loop (OpenRouter) over per-user-scoped o11y queries, answers only into staff threads. |
 | `yucca-metrics-worker` | NestJS | 5-min cron: RadosGW usage → meter tables → per-connection rollup (`connectionMetrics`, billing floor), OTel gauges. |
 | `futo-backups-bot` | NestJS | Discord support/invite bot. |
@@ -119,7 +120,7 @@ Generated — regenerate on contract changes, never hand-edit.
 **Database**: PostgreSQL via **Kysely**. Schema in `packages/yucca-api/src/schema/`
 (`tables/`, `migrations/`); yucca-api is the schema owner, other services read the same DB.
 
-**Go services**: `michael`, `columbo` and `restic-proxy`, `internal/<pkg>`, aws-sdk-go-v2, zerolog.
+**Go services**: `michael`, `columbo`, `support-logs-streamer` and `restic-proxy`, `internal/<pkg>`, aws-sdk-go-v2, zerolog.
 
 ### Connections, feature flags, token revocation
 

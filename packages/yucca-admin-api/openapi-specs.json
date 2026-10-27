@@ -531,6 +531,36 @@
         ]
       }
     },
+    "/api/user/{id}/support-log-sessions": {
+      "get": {
+        "operationId": "listUserSupportLogSessions",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SupportLogSessionListResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "User"
+        ]
+      }
+    },
     "/api/session/{id}": {
       "delete": {
         "operationId": "deleteSession",
@@ -1588,6 +1618,97 @@
         },
         "required": [
           "connections"
+        ]
+      },
+      "SupportLogSessionAdminDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "The support code shown to the user; search VictoriaLogs for support_session:<id>"
+          },
+          "userId": {
+            "type": "string"
+          },
+          "connectionId": {
+            "type": "string",
+            "nullable": true
+          },
+          "jobId": {
+            "type": "string"
+          },
+          "jobName": {
+            "type": "string"
+          },
+          "includesPaths": {
+            "type": "boolean"
+          },
+          "clientVersion": {
+            "type": "string",
+            "nullable": true
+          },
+          "lineCount": {
+            "type": "number"
+          },
+          "byteCount": {
+            "type": "number"
+          },
+          "batchCount": {
+            "type": "number"
+          },
+          "droppedLineCount": {
+            "type": "number"
+          },
+          "createdAt": {
+            "example": "2024-01-01T00:00:00.000Z",
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+          },
+          "lastBatchAt": {
+            "example": "2024-01-01T00:00:00.000Z",
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$",
+            "nullable": true
+          },
+          "finishedAt": {
+            "example": "2024-01-01T00:00:00.000Z",
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$",
+            "nullable": true
+          }
+        },
+        "required": [
+          "id",
+          "userId",
+          "connectionId",
+          "jobId",
+          "jobName",
+          "includesPaths",
+          "clientVersion",
+          "lineCount",
+          "byteCount",
+          "batchCount",
+          "droppedLineCount",
+          "createdAt",
+          "lastBatchAt",
+          "finishedAt"
+        ]
+      },
+      "SupportLogSessionListResponseDto": {
+        "type": "object",
+        "properties": {
+          "sessions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SupportLogSessionAdminDto"
+            }
+          }
+        },
+        "required": [
+          "sessions"
         ]
       },
       "RepositoryAdminDto": {

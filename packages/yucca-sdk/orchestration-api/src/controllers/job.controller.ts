@@ -4,6 +4,7 @@ import { type Response } from 'express';
 import { JobDto, JobListRequestDto, JobListResponseDto } from '../dto/job.dto.js';
 import { JobRepository } from '../repositories/job.repository.js';
 import { StorageRepository } from '../repositories/storage.repository.js';
+import { supportLogFilePath } from '../services/supportMode.service.js';
 
 @Controller('/yucca/jobs')
 export class JobController {
@@ -63,13 +64,33 @@ export class JobController {
       throw new NotFoundException('Job not found');
     }
 
+    await this.sendLog(response, logFilePath, `${id}.jsonl`);
+  }
+
+  @Get('/:id/support-log/download')
+  @ApiParam({ name: 'id', type: String })
+  @ApiOkResponse({ content: { 'application/jsonl': { schema: { type: 'string', format: 'binary' } } } })
+  @ApiOperation({
+    summary: 'Download a job support log',
+    description: 'Download the verbose restic output recorded while the job ran in support mode, as JSON lines.',
+  })
+  async downloadJobSupportLog(@Param('id') id: string, @Res() response: Response): Promise<void> {
+    const logFilePath = await this.repository.getLogFilePath(id);
+    if (!logFilePath) {
+      throw new NotFoundException('Job not found');
+    }
+
+    await this.sendLog(response, supportLogFilePath(logFilePath), `${id}.support.jsonl`);
+  }
+
+  private async sendLog(response: Response, path: string, filename: string) {
     try {
-      await this.storage.stat(logFilePath);
+      await this.storage.stat(path);
     } catch {
       throw new NotFoundException('Log file not found');
     }
 
-    response.download(logFilePath, `${id}.jsonl`, {
+    response.download(path, filename, {
       dotfiles: 'allow',
       headers: { 'Content-Type': 'application/jsonl' },
     });
