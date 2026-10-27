@@ -45,6 +45,9 @@
     "@futo-org/backups-api-client": "workspace:^"
   },
   "devDependencies": {
+    "@electric-sql/pglite": "catalog:",
+    "@electric-sql/pglite-prepopulatedfs": "catalog:",
+    "@electric-sql/pglite-socket": "catalog:",
     "@jest/globals": "catalog:",
     "@nestjs/cli": "catalog:",
     "@nestjs/common": "catalog:",
