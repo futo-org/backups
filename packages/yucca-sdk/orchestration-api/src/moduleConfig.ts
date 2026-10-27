@@ -37,6 +37,7 @@ export type ImmichIntegration = {
 export type ModuleConfig = {
   statePath: string;
   cachePath?: string;
+  resticWalkConcurrency?: number;
   wellKnownUrl?: string;
   externalBaseUrl?: string;
   requireWsAuth?: boolean;

@@ -123,6 +123,34 @@ describe(ResticRepository.name, () => {
     expect(attach).not.toHaveBeenCalled();
   }, 30_000);
 
+  const backupCommandLine = async (resticWalkConcurrency?: number) => {
+    const attach = jest.spyOn(SupportSession.prototype, 'attach');
+    const configured = new ResticRepository(
+      { getResticOptions: () => Promise.resolve({ connections: 2, packSizeMib: undefined }) } as never,
+      { get: () => ({ cachePath: join(dir, 'cache'), resticWalkConcurrency }) } as never,
+      supportContext,
+    );
+
+    // Only the command line matters here; the restic on PATH may not know the flag.
+    await recordedLines(() => configured.backup(repository, key, placement, [source]).catch(() => null));
+
+    const child = attach.mock.calls.find(([, command]) => command === 'backup')?.[0];
+    attach.mockRestore();
+
+    expect(child).toBeDefined();
+    return child!.spawnargs;
+  };
+
+  it('passes the configured walk concurrency to restic', async () => {
+    const args = await backupCommandLine(8);
+
+    expect(args[args.indexOf('--walk-concurrency') + 1]).toBe('8');
+  }, 30_000);
+
+  it('leaves the walk concurrency to restic when it is not configured', async () => {
+    await expect(backupCommandLine()).resolves.not.toContain('--walk-concurrency');
+  }, 30_000);
+
   it('finds the parent snapshot after the hostname changes', async () => {
     await backupFromHost('previous-container');
     const previous = await latestSnapshot();

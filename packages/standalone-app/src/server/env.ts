@@ -12,6 +12,7 @@ const schema = z.object({
   YUCCA_WELL_KNOWN_URL: optionalString,
   YUCCA_UI_PATH: optionalString,
   YUCCA_DISABLE_AUTH: z.stringbool().default(false),
+  RESTIC_WALK_CONCURRENCY: z.coerce.number().int().min(1).optional(),
 });
 
 export type Env = {
@@ -22,6 +23,7 @@ export type Env = {
   wellKnownUrl?: string;
   uiPath?: string;
   disableAuth: boolean;
+  resticWalkConcurrency?: number;
 };
 
 export const readEnv = (source: NodeJS.ProcessEnv = process.env): Env => {
@@ -42,5 +44,6 @@ export const readEnv = (source: NodeJS.ProcessEnv = process.env): Env => {
     wellKnownUrl: parsed.YUCCA_WELL_KNOWN_URL,
     uiPath: parsed.YUCCA_UI_PATH ? resolve(parsed.YUCCA_UI_PATH) : undefined,
     disableAuth: parsed.YUCCA_DISABLE_AUTH,
+    resticWalkConcurrency: parsed.RESTIC_WALK_CONCURRENCY,
   };
 };
