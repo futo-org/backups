@@ -77,6 +77,10 @@ msgstr "{name} selected"
 msgid "{num, plural, one {# backup removed} other {# backups removed}}"
 msgstr "{num, plural, one {# backup removed} other {# backups removed}}"
 
+#: src/lib/components/backups/dialogs/SelectRepositoryModal.svelte
+msgid "{num, plural, one {# backup} other {# backups}}"
+msgstr "{num, plural, one {# backup} other {# backups}}"
+
 #: src/lib/components/backups/snapshots-list/RepositorySnapshotsListItem.svelte
 msgid "{num, plural, one {# file} other {# files}}"
 msgstr "{num, plural, one {# file} other {# files}}"
@@ -1119,6 +1123,10 @@ msgstr "I saved my recovery key somewhere safe."
 #: src/lib/components/onboarding/steps/OnboardingStepBetaDisclaimer.svelte
 msgid "I understand my beta backups may be deleted."
 msgstr "I understand my beta backups may be deleted."
+
+#: src/lib/components/backups/dialogs/SelectRepositoryModal.svelte
+msgid "ID {id}"
+msgstr "ID {id}"
 
 #: src/lib/components/integrations/immich/ImmichDatabaseDumpAlert.svelte
 msgid "Ignore"

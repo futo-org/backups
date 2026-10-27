@@ -77,6 +77,10 @@ msgstr ""
 msgid "{num, plural, one {# backup removed} other {# backups removed}}"
 msgstr ""
 
+#: src/lib/components/backups/dialogs/SelectRepositoryModal.svelte
+msgid "{num, plural, one {# backup} other {# backups}}"
+msgstr ""
+
 #: src/lib/components/backups/snapshots-list/RepositorySnapshotsListItem.svelte
 msgid "{num, plural, one {# file} other {# files}}"
 msgstr ""
@@ -1118,6 +1122,10 @@ msgstr ""
 
 #: src/lib/components/onboarding/steps/OnboardingStepBetaDisclaimer.svelte
 msgid "I understand my beta backups may be deleted."
+msgstr ""
+
+#: src/lib/components/backups/dialogs/SelectRepositoryModal.svelte
+msgid "ID {id}"
 msgstr ""
 
 #: src/lib/components/integrations/immich/ImmichDatabaseDumpAlert.svelte
