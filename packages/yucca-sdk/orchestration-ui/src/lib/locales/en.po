@@ -749,8 +749,8 @@ msgstr "Enter a backup name."
 
 #: src/lib/components/schedules/dialogs/ConfigureScheduleModal.svelte
 #: src/lib/components/schedules/dialogs/CreateScheduleModal.svelte
-msgid "Enter a valid cron expression, for example */15 * * * *"
-msgstr "Enter a valid cron expression, for example */15 * * * *"
+msgid "Enter a valid cron expression, for example 0 3 * * *"
+msgstr "Enter a valid cron expression, for example 0 3 * * *"
 
 #: ../../web/src/routes/login/invite/+page.svelte
 msgid "Enter an invite code to continue."
@@ -2177,6 +2177,11 @@ msgstr "This is an early version of FUTO Backups. The service may be reset and y
 #: ../../web/src/routes/link/discord/+page.svelte
 msgid "This link is invalid or has expired. Click the support button in Discord to get a new one."
 msgstr "This link is invalid or has expired. Click the support button in Discord to get a new one."
+
+#: src/lib/components/schedules/dialogs/ConfigureScheduleModal.svelte
+#: src/lib/components/schedules/dialogs/CreateScheduleModal.svelte
+msgid "This schedule runs more than once an hour. A * in the minute field runs a backup every minute."
+msgstr "This schedule runs more than once an hour. A * in the minute field runs a backup every minute."
 
 #: src/lib/services/schedule.service.ts
 msgid "This schedule will be removed."

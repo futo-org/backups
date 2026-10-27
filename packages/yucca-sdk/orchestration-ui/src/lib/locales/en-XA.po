@@ -749,7 +749,7 @@ msgstr ""
 
 #: src/lib/components/schedules/dialogs/ConfigureScheduleModal.svelte
 #: src/lib/components/schedules/dialogs/CreateScheduleModal.svelte
-msgid "Enter a valid cron expression, for example */15 * * * *"
+msgid "Enter a valid cron expression, for example 0 3 * * *"
 msgstr ""
 
 #: ../../web/src/routes/login/invite/+page.svelte
@@ -2176,6 +2176,11 @@ msgstr ""
 
 #: ../../web/src/routes/link/discord/+page.svelte
 msgid "This link is invalid or has expired. Click the support button in Discord to get a new one."
+msgstr ""
+
+#: src/lib/components/schedules/dialogs/ConfigureScheduleModal.svelte
+#: src/lib/components/schedules/dialogs/CreateScheduleModal.svelte
+msgid "This schedule runs more than once an hour. A * in the minute field runs a backup every minute."
 msgstr ""
 
 #: src/lib/services/schedule.service.ts
