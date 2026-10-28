@@ -1,6 +1,6 @@
 ARG ALPINE_IMAGE=alpine:3.24@sha256:294b683cb724975bec92580e1e685676bd4b50bda910ddb8c51d4cabeaec77e6
 ARG NODE_IMAGE=node:26.12.1-alpine3.23@sha256:b1f4228f07d424dbf2f50e605b4981816e240e640a49f27ec85fab72f00c14b1
-ARG MISE_IMAGE=ghcr.io/jdx/mise:2026.9.9@sha256:a88f300ef4365494b88f8eefd271bb92ba467d4a41835739a714426207215730
+ARG RESTIC_IMAGE=ghcr.io/futo-org/restic:sha-a24cc22@sha256:7b5cdba9cc8690ecc528e239e6f8b2cfb9ef3644895cafd0e0fa9003bcded1f6
 ARG GOLANG_IMAGE=golang:1.27.3-alpine3.23@sha256:895e5feab11a4b3774d24ee3c9579028456b82ad37f42a9eb6f82adaf776a201
 
 FROM ${ALPINE_IMAGE} AS manifests
@@ -15,15 +15,7 @@ RUN find . -type d -name node_modules -prune -exec rm -rf {} + && \
     -delete && \
     find . -type d -empty -delete
 
-FROM ${MISE_IMAGE} AS tools
-ARG TARGETPLATFORM
-WORKDIR /app
-COPY .mise/config.toml ./.mise/config.toml
-ENV MISE_TRUSTED_CONFIG_PATHS=/app/.mise/config.toml
-ENV MISE_DATA_DIR=/mise-data
-RUN --mount=type=cache,id=mise-${TARGETPLATFORM},target=/mise-data \
-    mise install restic && \
-    cp "$(mise which restic)" /usr/local/bin/restic
+FROM ${RESTIC_IMAGE} AS restic
 
 FROM ${GOLANG_IMAGE} AS proxy
 WORKDIR /src
@@ -59,7 +51,7 @@ RUN apk add --no-cache libstdc++ libatomic dumb-init su-exec \
     && addgroup -g 1000 node && adduser -u 1000 -G node -s /bin/sh -D node
 
 COPY --from=builder /usr/local/bin/node /usr/local/bin/
-COPY --from=tools /usr/local/bin/restic /usr/local/bin/
+COPY --from=restic /usr/bin/restic /usr/local/bin/
 COPY --from=proxy /restic-proxy /usr/local/bin/
 COPY --from=builder /deploy ./
 COPY --chmod=0755 packages/standalone-app/docker-entrypoint.sh /usr/local/bin/
