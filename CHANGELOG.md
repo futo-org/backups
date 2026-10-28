@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.11.3](https://github.com/futo-org/backups/compare/v1.11.2...v1.11.3) (2026-10-28)
+
+
+### Bug Fixes
+
+* **yucca sdk:** keep several support log batches in flight so fast output isn't dropped ([#119](https://github.com/futo-org/backups/issues/119)) ([a73d543](https://github.com/futo-org/backups/commit/a73d54382904f185e8220ed768dc882ee9bf550a))
+
 ## [1.11.2](https://github.com/futo-org/backups/compare/v1.11.1...v1.11.2) (2026-10-28)
 
 
