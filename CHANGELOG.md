@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.11.2](https://github.com/futo-org/backups/compare/v1.11.1...v1.11.2) (2026-10-28)
+
+
+### Bug Fixes
+
+* **yucca sdk:** give every OpenAPI number a format so hosts can merge the document ([#110](https://github.com/futo-org/backups/issues/110)) ([5624c3b](https://github.com/futo-org/backups/commit/5624c3b793ef0e0add61adf6973536116bc5f544))
+
 ## [1.11.1](https://github.com/futo-org/backups/compare/v1.11.0...v1.11.1) (2026-10-28)
 
 
