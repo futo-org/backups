@@ -181,7 +181,7 @@ describe(ResticRepository.name, () => {
     expect(snapshots).toHaveLength(1);
   }, 30_000);
 
-  it('lists snapshots while a prune holds the exclusive lock', async () => {
+  it('lists snapshots and their files while a prune holds the exclusive lock', async () => {
     await restic.backup(repository, key, placement, [source]);
     const [snapshot] = await restic.snapshots(repository, key, placement);
     const locked = async () => {
@@ -217,6 +217,9 @@ describe(ResticRepository.name, () => {
       await expect(restic.snapshot(repository, key, placement, snapshot.id)).resolves.toMatchObject([
         { id: snapshot.id },
       ]);
+      await expect(restic.ls(repository, key, placement, snapshot.id, source)).resolves.toEqual(
+        expect.arrayContaining([expect.objectContaining({ path: join(source, 'a.txt') })]),
+      );
     } finally {
       prune!.kill('SIGCONT');
       await once(prune!, 'exit');

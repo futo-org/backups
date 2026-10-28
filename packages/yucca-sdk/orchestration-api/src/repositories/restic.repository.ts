@@ -127,6 +127,7 @@ export class ResticRepository {
       .password(Buffer.from(key).toString('hex'))
       .snapshot(snapshotId)
       .directory(path)
+      .noLock()
       .run();
   }
 
