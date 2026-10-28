@@ -39,6 +39,7 @@
     "postgres": "catalog:",
     "reflect-metadata": "catalog:",
     "rxjs": "catalog:",
+    "standardwebhooks": "catalog:",
     "zod": "catalog:"
   },
   "devDependencies": {

@@ -5,6 +5,8 @@ import { JwtModule } from '@nestjs/jwt';
 import { KyselyModule } from 'nestjs-kysely';
 import { ZodSerializerInterceptor, ZodValidationPipe } from 'nestjs-zod';
 import { AuthController } from './controllers/auth.controller.js';
+import { BillingController } from './controllers/billing.controller.js';
+import { BillingInternalController } from './controllers/billingInternal.controller.js';
 import { ConnectionController } from './controllers/connection.controller.js';
 import { DiscordController } from './controllers/discord.controller.js';
 import { DiscordInternalController } from './controllers/discordInternal.controller.js';
@@ -15,10 +17,12 @@ import { SupportLogController } from './controllers/supportLog.controller.js';
 import { SupportLogInternalController } from './controllers/supportLogInternal.controller.js';
 import { env } from './env.js';
 import { AuthGuard } from './middleware/auth.guard.js';
+import { BillingRepository } from './repositories/billing.repository.js';
 import { ConnectionRepository } from './repositories/connection.repository.js';
 import { CryptoRepository } from './repositories/crypto.repository.js';
 import { DatabaseRepository } from './repositories/database.repository.js';
 import { DiscordRepository } from './repositories/discord.repository.js';
+import { FutopayRepository } from './repositories/futopay.repository.js';
 import { OidcRepository } from './repositories/oidc.repository.js';
 import { RepositoryRepository } from './repositories/repository.repository.js';
 import { RepositoryMetricsRepository } from './repositories/repositoryMetrics.repository.js';
@@ -32,6 +36,7 @@ import { TopologyRepository } from './repositories/topology.repository.js';
 import { UserRepository } from './repositories/user.repository.js';
 import { UserAllowlistRepository } from './repositories/userAllowlist.repository.js';
 import { AuthService } from './services/auth.service.js';
+import { BillingService } from './services/billing.service.js';
 import { ConnectionService } from './services/connection.service.js';
 import { DatabaseService } from './services/database.service.js';
 import { DiscordService } from './services/discord.service.js';
@@ -53,6 +58,8 @@ export const imports = [
 
 export const controllers = [
   AuthController,
+  BillingController,
+  BillingInternalController,
   MetaController,
   ConnectionController,
   DiscordController,
@@ -82,6 +89,8 @@ export const providers: Provider[] = [
   RepositoryMetricsHistoryRepository,
   SessionRepository,
   SupportLogSessionRepository,
+  BillingRepository,
+  FutopayRepository,
   DatabaseService,
   MetaService,
   TopologyService,
@@ -91,6 +100,7 @@ export const providers: Provider[] = [
   ConnectionService,
   DiscordService,
   SupportLogService,
+  BillingService,
   { provide: APP_INTERCEPTOR, useClass: LoggingInterceptor },
   { provide: APP_INTERCEPTOR, useClass: ZodSerializerInterceptor },
   { provide: APP_GUARD, useClass: AuthGuard },

@@ -8,6 +8,7 @@ import { AuthService } from './auth.service.js';
 
 const mockAuth: AuthDto = {
   id: 'user',
+  sub: 'oidc-sub',
   email: 'user@example.com',
   name: 'user',
   sessionId: 'session',

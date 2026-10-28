@@ -6,7 +6,7 @@ import { env } from './env.js';
 import { useSwagger } from './utils/openapi.js';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create(AppModule, { rawBody: true });
   app.setGlobalPrefix('/api');
   useSwagger(app, { write: env.NODE_ENV === 'development' });
   await app.listen(env.YUCCA_API_PORT);

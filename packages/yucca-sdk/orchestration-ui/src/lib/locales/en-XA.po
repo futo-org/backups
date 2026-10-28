@@ -13,6 +13,30 @@ msgstr ""
 "Language-Team: \n"
 "Plural-Forms: \n"
 
+#: ../../web/src/routes/dashboard/billing/+page.svelte
+msgid "{0} GB-months beyond your credit so far this period ({1}), plus an estimate for the rest of the period at your current {2} GB."
+msgstr ""
+
+#: ../../web/src/routes/dashboard/billing/+page.svelte
+msgid "{0} GB-months left"
+msgstr ""
+
+#: ../../web/src/routes/dashboard/billing/+page.svelte
+msgid "{0} GB-months on the busiest day"
+msgstr ""
+
+#: ../../web/src/routes/dashboard/billing/+page.svelte
+msgid "{0} GB-months since {1}"
+msgstr ""
+
+#: ../../web/src/routes/dashboard/billing/+page.svelte
+msgid "{0} GB-months this period"
+msgstr ""
+
+#: ../../web/src/routes/dashboard/billing/+page.svelte
+msgid "{0} of {1} GB-months used"
+msgstr ""
+
 #: src/lib/components/backups/snapshots-list/RepositorySnapshotsListItem.svelte
 msgid "{count} changed"
 msgstr ""
@@ -128,6 +152,10 @@ msgstr ""
 #: src/lib/components/backends/dialogs/SelectBackendModal.svelte
 #: src/lib/components/onboarding/steps/OnboardingStepBackupServices.svelte
 msgid "A folder on this computer."
+msgstr ""
+
+#: ../../web/src/routes/dashboard/billing/+page.svelte
+msgid "A GB-month is one gigabyte stored for one month: 10 GB kept for a month uses 10 GB-months, so does 5 GB kept for two months."
 msgstr ""
 
 #: src/lib/components/backups/dialogs/CreateRepositoryModal.svelte
@@ -416,6 +444,8 @@ msgstr ""
 msgid "billed"
 msgstr ""
 
+#: ../../web/src/routes/dashboard/billing/+page.svelte
+#: ../../web/src/routes/dashboard/billing/+page.svelte
 #: src/lib/components/settings/SettingsBilling.svelte
 msgid "Billing"
 msgstr ""
@@ -494,6 +524,10 @@ msgstr ""
 
 #: src/lib/components/backups/run-history/RepositoryRunHistoryItem.svelte
 msgid "Cancelled {noun}"
+msgstr ""
+
+#: ../../web/src/routes/dashboard/billing/+page.svelte
+msgid "Charged"
 msgstr ""
 
 #: src/lib/components/integrations/immich/ImmichBackupsSidebarItem.svelte
@@ -691,6 +725,10 @@ msgstr ""
 msgid "Database backups"
 msgstr ""
 
+#: ../../web/src/routes/dashboard/billing/+page.svelte
+msgid "Date"
+msgstr ""
+
 #: src/lib/services/schedule.service.ts
 #: src/lib/services/schedule.service.ts
 #: src/lib/services/snapshot.service.ts
@@ -752,6 +790,10 @@ msgstr ""
 
 #: src/lib/components/backups/metrics-history/MetricsHistoryModal.svelte
 msgid "Duration: {duration}"
+msgstr ""
+
+#: ../../web/src/routes/dashboard/billing/+page.svelte
+msgid "Each month, what you stored comes out of the credit first. While any credit is left you are not charged, and your monthly statement reads {0}."
 msgstr ""
 
 #: src/lib/components/schedules/dialogs/ConfigureScheduleModal.svelte
@@ -1100,6 +1142,10 @@ msgstr ""
 msgid "Go up"
 msgstr ""
 
+#: ../../web/src/routes/dashboard/billing/+page.svelte
+msgid "Going forward: about {0} per month at {1} GB."
+msgstr ""
+
 #: src/lib/components/onboarding/steps/OnboardingStepChooseStorage.svelte
 msgid "Hosted"
 msgstr ""
@@ -1114,6 +1160,10 @@ msgstr ""
 
 #: src/lib/components/onboarding/steps/OnboardingStepChooseStorage.svelte
 msgid "Hosted cloud backup storage from FUTO."
+msgstr ""
+
+#: ../../web/src/routes/dashboard/billing/+page.svelte
+msgid "How billing works"
 msgstr ""
 
 #: src/lib/components/onboarding/upsell/UpsellHowItWorks.svelte
@@ -1401,6 +1451,10 @@ msgstr ""
 msgid "Manage paths"
 msgstr ""
 
+#: ../../web/src/routes/dashboard/billing/+page.svelte
+msgid "Manage subscription"
+msgstr ""
+
 #: src/lib/components/integrations/immich/settings/ImmichSettingsStorage.svelte
 msgid "Manage the backup name, where it is stored, and how long backups are kept."
 msgstr ""
@@ -1507,6 +1561,10 @@ msgstr ""
 msgid "Next page"
 msgstr ""
 
+#: ../../web/src/routes/dashboard/billing/+page.svelte
+msgid "Next statement"
+msgstr ""
+
 #: src/lib/components/backups/run-history/RepositoryRunHistoryPage.svelte
 msgid "No backups found"
 msgstr ""
@@ -1596,6 +1654,10 @@ msgstr ""
 msgid "No snapshots in this repository."
 msgstr ""
 
+#: ../../web/src/routes/dashboard/billing/+page.svelte
+msgid "No storage reported yet this period."
+msgstr ""
+
 #: src/lib/components/integrations/immich/ImmichBackupsSidebarItem.svelte
 msgid "Not backed up"
 msgstr ""
@@ -1657,8 +1719,20 @@ msgstr ""
 msgid "Oldest first"
 msgstr ""
 
+#: ../../web/src/routes/dashboard/billing/+page.svelte
+msgid "on {0}"
+msgstr ""
+
+#: ../../web/src/routes/dashboard/billing/+page.svelte
+msgid "Once the credit is used up, each monthly statement charges {0} for every GB-month beyond it. There is no other monthly fee, and you can cancel at any time under Manage subscription."
+msgstr ""
+
 #: src/lib/components/integrations/immich/settings/ImmichSettingsStorage.svelte
 msgid "Once written, backups can't be removed."
+msgstr ""
+
+#: ../../web/src/routes/dashboard/billing/+page.svelte
+msgid "Once your credit is used up: about {0} per month at {1} GB."
 msgstr ""
 
 #: src/lib/components/backends/BackendItem.svelte
@@ -1696,6 +1770,14 @@ msgstr ""
 
 #: src/lib/services/schedule.service.ts
 msgid "Paused schedule \"{name}\""
+msgstr ""
+
+#: ../../web/src/routes/dashboard/billing/+page.svelte
+msgid "Payment failed"
+msgstr ""
+
+#: ../../web/src/routes/dashboard/billing/+page.svelte
+msgid "Pending cancellation"
 msgstr ""
 
 #: src/lib/components/integrations/immich/settings/ImmichSettingsBackupContents.svelte
@@ -2174,6 +2256,14 @@ msgstr ""
 msgid "Started backup"
 msgstr ""
 
+#: ../../web/src/routes/dashboard/billing/+page.svelte
+msgid "starter"
+msgstr ""
+
+#: ../../web/src/routes/dashboard/billing/+page.svelte
+msgid "Statements"
+msgstr ""
+
 #: src/lib/components/settings/SettingsBilling.svelte
 msgid "Status"
 msgstr ""
@@ -2194,6 +2284,14 @@ msgstr ""
 msgid "Storage backends"
 msgstr ""
 
+#: ../../web/src/routes/dashboard/billing/+page.svelte
+msgid "Storage beyond the credit so far: {0} GB-months, charged on your monthly statements."
+msgstr ""
+
+#: ../../web/src/routes/dashboard/billing/+page.svelte
+msgid "Storage credit"
+msgstr ""
+
 #: src/lib/components/settings/SettingsNotifications.svelte
 msgid "Storage issues"
 msgstr ""
@@ -2202,8 +2300,20 @@ msgstr ""
 msgid "Storage location"
 msgstr ""
 
+#: ../../web/src/routes/dashboard/billing/+page.svelte
+msgid "Storage that month"
+msgstr ""
+
+#: ../../web/src/routes/dashboard/billing/+page.svelte
+msgid "Storage this period"
+msgstr ""
+
 #: src/lib/components/settings/SettingsBilling.svelte
 msgid "Storage Used"
+msgstr ""
+
+#: ../../web/src/routes/dashboard/billing/+page.svelte
+msgid "Storage used per day this period"
 msgstr ""
 
 #: src/lib/components/onboarding/steps/OnboardingStepChooseStorage.svelte
@@ -2218,8 +2328,21 @@ msgstr ""
 msgid "Stream the detailed logs to FUTO while each run happens, so support can read them. Runs with a lot of files produce a lot of logs."
 msgstr ""
 
+#: ../../web/src/routes/dashboard/billing/+page.svelte
+msgid "Subscribe"
+msgstr ""
+
+#: ../../web/src/routes/dashboard/billing/+page.svelte
 #: src/lib/components/onboarding/steps/OnboardingStepChooseStorage.svelte
 msgid "Subscription"
+msgstr ""
+
+#: ../../web/src/routes/dashboard/billing/+page.svelte
+msgid "Subscription active"
+msgstr ""
+
+#: ../../web/src/routes/dashboard/billing/+page.svelte
+msgid "Subscription ended"
 msgstr ""
 
 #: src/lib/components/backups/BackupItem.svelte
@@ -2283,6 +2406,10 @@ msgstr ""
 
 #: src/lib/components/onboarding/steps/OnboardingStepBetaDisclaimer.svelte
 msgid "The service may be reset and your backup data may be deleted when the beta ends."
+msgstr ""
+
+#: ../../web/src/routes/dashboard/billing/+page.svelte
+msgid "The starter costs {0} once and gives you {1} GB-months of storage credit. After that, storage is {2} per GB-month and there is no monthly fee."
 msgstr ""
 
 #: src/lib/components/ui/PathPickerModal.svelte
@@ -2482,6 +2609,10 @@ msgstr ""
 msgid "Write-only"
 msgstr ""
 
+#: ../../web/src/routes/dashboard/billing/+page.svelte
+msgid "You are not storing anything yet. Your credit is untouched until your first backup."
+msgstr ""
+
 #: src/lib/components/backups/BackupStatus.svelte
 msgid "You can close this window and the prune will continue in the background."
 msgstr ""
@@ -2490,12 +2621,32 @@ msgstr ""
 msgid "You can close this window and the restore will continue in the background."
 msgstr ""
 
+#: ../../web/src/routes/dashboard/billing/+page.svelte
+msgid "You don't have a subscription yet. Subscribe to keep your backups running."
+msgstr ""
+
 #: src/lib/components/util/DeviceFlowCode.svelte
 msgid "You may be asked or shown the following code:"
 msgstr ""
 
 #: src/lib/components/backups/dialogs/ReconfigureRepositoryBackendModal.svelte
 msgid "You may reset and reconfigure your backups by selecting one of the following."
+msgstr ""
+
+#: ../../web/src/routes/dashboard/billing/+page.svelte
+msgid "You paid {0} once for the starter. That bought {1} GB-months of storage credit (worth {2} at {3} per GB-month)."
+msgstr ""
+
+#: ../../web/src/routes/dashboard/billing/+page.svelte
+msgid "You pay once for a starter credit. Storage comes out of that credit first, and you are only billed for storage beyond it."
+msgstr ""
+
+#: ../../web/src/routes/dashboard/billing/+page.svelte
+msgid "You store {0} GB, which uses {1} GB-months every month. At that size your credit lasts about {2}, until around {3}."
+msgstr ""
+
+#: ../../web/src/routes/dashboard/billing/+page.svelte
+msgid "You store {0} GB, which uses {1} GB-months every month. Your credit is used up, so storage is now billed monthly."
 msgstr ""
 
 #: src/lib/components/integrations/immich/settings/ImmichSettingsBackupContents.svelte
@@ -2530,6 +2681,10 @@ msgstr ""
 msgid "Your Backups"
 msgstr ""
 
+#: ../../web/src/routes/dashboard/billing/+page.svelte
+msgid "Your backups are running."
+msgstr ""
+
 #: src/lib/components/backups/BackupStatus.svelte
 msgid "Your backups are untouched — nothing was lost."
 msgstr ""
@@ -2538,12 +2693,24 @@ msgstr ""
 msgid "Your backups stay encrypted and can only be restored with your recovery key."
 msgstr ""
 
+#: ../../web/src/routes/dashboard/billing/+page.svelte
+msgid "Your credit runs out during this period. The estimate covers the storage beyond it at your current {0} GB."
+msgstr ""
+
 #: ../../web/src/routes/login/invite/+page.svelte
 msgid "Your email isn't part of the beta yet."
 msgstr ""
 
 #: src/lib/components/backups/dialogs/RollbackSnapshotModal.svelte
 msgid "Your instance will return to how it was when this snapshot was taken."
+msgstr ""
+
+#: ../../web/src/routes/dashboard/billing/+page.svelte
+msgid "Your last payment did not go through, so your backups are paused. Update your payment method under Manage subscription; they resume as soon as the charge succeeds."
+msgstr ""
+
+#: ../../web/src/routes/dashboard/billing/+page.svelte
+msgid "Your last payment did not go through. Polar retries the charge for a few days and your backups keep running meanwhile. Update your payment method under Manage subscription to be safe."
 msgstr ""
 
 #: src/lib/components/integrations/immich/ImmichManageBackupOverview.svelte
@@ -2592,6 +2759,22 @@ msgstr ""
 
 #: src/lib/components/backups/BackupStatus.svelte
 msgid "Your restore was interrupted"
+msgstr ""
+
+#: ../../web/src/routes/dashboard/billing/+page.svelte
+msgid "Your storage is covered by your credit, so nothing is charged. You will see a {0} statement each month while that lasts."
+msgstr ""
+
+#: ../../web/src/routes/dashboard/billing/+page.svelte
+msgid "Your subscription ends on {0}. Any storage beyond your credit up to then is charged on the final statement."
+msgstr ""
+
+#: ../../web/src/routes/dashboard/billing/+page.svelte
+msgid "Your subscription ends on {0}. Your backups are kept and billed as usual until then. Changed your mind? Choose Keep subscription under Manage subscription."
+msgstr ""
+
+#: ../../web/src/routes/dashboard/billing/+page.svelte
+msgid "Your subscription has ended. Subscribe again to keep your backups running."
 msgstr ""
 
 #: src/lib/components/onboarding/steps/OnboardingStep1FinishSetup.svelte

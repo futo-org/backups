@@ -71,7 +71,8 @@ RUN pnpm i --frozen-lockfile
 RUN NODE_ENV=production mise //packages/web:build
 RUN pnpm --filter web deploy /deploy --prod --legacy
 
-FROM ${ALPINE_IMAGE}
+# The runtime image; named so a compose file can pick it with build.target
+FROM ${ALPINE_IMAGE} AS prod
 
 WORKDIR /usr/src/app
 

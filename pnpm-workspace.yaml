@@ -115,6 +115,7 @@ catalog:
   socket.io: ^4.8.4
   socket.io-client: ^4.8.3
   source-map-support: ^0.5.21
+  standardwebhooks: ^1.0.0
   supertest: ^7.0.0
   svelte: ^5.57.1
   svelte-check: ^4.7.6

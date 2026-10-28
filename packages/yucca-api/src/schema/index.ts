@@ -1,6 +1,8 @@
 import { Database } from '@immich/sql-tools';
 import { audit_action_enum, ticket_action_enum } from './enums.js';
 import { AuditLogTable } from './tables/auditLog.table.js';
+import { BillingStatementTable } from './tables/billingStatement.table.js';
+import { BillingWebhookDeliveryTable } from './tables/billingWebhookDelivery.table.js';
 import { ConnectionTable } from './tables/connection.table.js';
 import { ConnectionMetricsTable } from './tables/connectionMetrics.table.js';
 import { DiscordInviteBatchTable } from './tables/discordInviteBatch.table.js';
@@ -17,6 +19,7 @@ import { SettingsTable } from './tables/settings.table.js';
 import { SupportLogSessionTable } from './tables/supportLogSession.table.js';
 import { SupportLogSessionReportTable } from './tables/supportLogSessionReport.table.js';
 import { TicketTable } from './tables/ticket.table.js';
+import { UsageReportTable } from './tables/usageReport.table.js';
 import { UserTable } from './tables/user.table.js';
 import { UserAllowlistTable } from './tables/userAllowlist.table.js';
 import { UserFeatureFlagOverrideTable } from './tables/userFeatureFlagOverride.table.js';
@@ -44,6 +47,9 @@ export class ImmichDatabase {
     DiscordTicketTable,
     SupportLogSessionTable,
     SupportLogSessionReportTable,
+    BillingStatementTable,
+    BillingWebhookDeliveryTable,
+    UsageReportTable,
   ];
 
   functions = [];
@@ -72,4 +78,7 @@ export interface DB {
   discordTickets: DiscordTicketTable;
   supportLogSessions: SupportLogSessionTable;
   supportLogSessionReports: SupportLogSessionReportTable;
+  billingStatements: BillingStatementTable;
+  billingWebhookDeliveries: BillingWebhookDeliveryTable;
+  usageReports: UsageReportTable;
 }

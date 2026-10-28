@@ -40,6 +40,7 @@
     "@nestjs/cli": "catalog:",
     "@nestjs/schematics": "catalog:",
     "@nestjs/testing": "catalog:",
+    "@types/express": "catalog:",
     "@types/jest": "catalog:",
     "@types/node": "catalog:",
     "globals": "catalog:",

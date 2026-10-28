@@ -16,6 +16,7 @@ export const servers = {
 };
 export type AuthDto = {
     id: string;
+    sub: string;
     name: string;
     email: string;
     sessionId: string;
@@ -64,6 +65,55 @@ export type TicketDto = {
     repositoryName: string;
     metrics: RepositoryMetricsDto;
     meter?: RepositoryMeterDto;
+};
+export type BillingStatus = "new" | "active" | "pending_cancellation" | "past_due" | "ended";
+export type BillingDailyUsage = {
+    date: string;
+    gbMonths: number;
+};
+export type BillingStatusDto = {
+    status: BillingStatus;
+    subscriptionActive: boolean;
+    polarStatus: string | null;
+    subscriptionId: string | null;
+    phase: string | null;
+    reason: string | null;
+    currentPeriodEnd: string | null;
+    endsAt: string | null;
+    creditGbMonths: number;
+    creditUsedGbMonths: number;
+    creditRemainingGbMonths: number;
+    forwardedGbMonths: number;
+    currentPeriodStart: string | null;
+    periodGbMonths: number;
+    periodUsage: BillingDailyUsage[];
+    pendingGbMonths: number;
+    pendingAmountCents: number;
+    currency: string;
+    rateCentsPerGbMonth: number;
+    starterPriceCents: number;
+    starterCreditCents: number;
+    storedGb: number;
+    updatedAt: string | null;
+};
+export type BillingStatementDto = {
+    orderId: string;
+    billingReason: string;
+    periodStart: string | null;
+    periodEnd: string | null;
+    gigabyteMonthsUsed: number;
+    amountCents: number;
+    currency: string;
+    createdAt: string;
+};
+export type BillingStatementListResponseDto = {
+    statements: BillingStatementDto[];
+};
+export type StartSubscriptionResponseDto = {
+    checkoutUrl: string;
+};
+export type SubscriptionPortalResponseDto = {
+    portalUrl: string;
 };
 export type MetaConfigDto = {
     restic_pack_size_mib: number;
@@ -291,6 +341,44 @@ export function getTicket(id: string, opts?: Oazapfts.RequestOpts) {
         data: TicketDto;
     }>(`/api/auth/ticket/${encodeURIComponent(id)}`, {
         ...opts
+    }));
+}
+export function getBillingStatus({ refresh }: {
+    refresh?: boolean;
+} = {}, opts?: Oazapfts.RequestOpts) {
+    return oazapfts.ok(oazapfts.fetchJson<{
+        status: 200;
+        data: BillingStatusDto;
+    }>(`/api/billing${QS.query(QS.explode({
+        refresh
+    }))}`, {
+        ...opts
+    }));
+}
+export function listBillingStatements(opts?: Oazapfts.RequestOpts) {
+    return oazapfts.ok(oazapfts.fetchJson<{
+        status: 200;
+        data: BillingStatementListResponseDto;
+    }>("/api/billing/statements", {
+        ...opts
+    }));
+}
+export function startSubscription(opts?: Oazapfts.RequestOpts) {
+    return oazapfts.ok(oazapfts.fetchJson<{
+        status: 200;
+        data: StartSubscriptionResponseDto;
+    }>("/api/billing/subscribe", {
+        ...opts,
+        method: "POST"
+    }));
+}
+export function openSubscriptionPortal(opts?: Oazapfts.RequestOpts) {
+    return oazapfts.ok(oazapfts.fetchJson<{
+        status: 200;
+        data: SubscriptionPortalResponseDto;
+    }>("/api/billing/portal", {
+        ...opts,
+        method: "POST"
     }));
 }
 export function getMeta(opts?: Oazapfts.RequestOpts) {

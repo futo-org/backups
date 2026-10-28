@@ -5,6 +5,7 @@ import { z } from 'zod';
 const AuthSchema = z
   .object({
     id: z.string(),
+    sub: z.string(),
     name: z.string(),
     email: z.string(),
     sessionId: z.string(),

@@ -63,6 +63,11 @@ const schema = z.object({
   API_ROOT: z.string().default('http://localhost:3020/api'),
   LEGACY_SITE_CODE: z.string(),
   LEGACY_STORAGE_CLUSTER_CODE: z.string(),
+
+  FUTOPAY_URL: z.string().default(''),
+  FUTOPAY_ORG_SLUG: z.string().default(''),
+  FUTOPAY_API_KEY: z.string().default(''),
+  FUTOPAY_WEBHOOK_SECRET: z.string().default(''),
 });
 
 export const env = schema.parse(process.env);

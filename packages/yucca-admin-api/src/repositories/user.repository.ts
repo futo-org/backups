@@ -5,6 +5,8 @@ import { DB } from 'src/schema/index.js';
 import { UserTable } from 'src/schema/tables/user.table.js';
 import { toCursorPage } from 'src/utils/pagination.js';
 
+const userColumns = ['id', 'sub', 'name', 'email', 'disabled', 'createdAt'] as const;
+
 @Injectable()
 export class UserRepository {
   constructor(@InjectKysely() private db: Kysely<DB>) {}
@@ -12,7 +14,7 @@ export class UserRepository {
   async list({ cursor, limit }: { cursor?: string; limit: number }) {
     const rows = await this.db
       .selectFrom('users')
-      .selectAll()
+      .select(userColumns)
       .orderBy('id', 'asc')
       .limit(limit + 1)
       .$if(cursor !== undefined, (qb) => qb.where('id', '>', cursor!))
@@ -22,11 +24,11 @@ export class UserRepository {
   }
 
   get(id: string) {
-    return this.db.selectFrom('users').selectAll().where('id', '=', id).executeTakeFirstOrThrow();
+    return this.db.selectFrom('users').select(userColumns).where('id', '=', id).executeTakeFirstOrThrow();
   }
 
   getBySub(sub: string) {
-    return this.db.selectFrom('users').selectAll().where('sub', '=', sub).executeTakeFirst();
+    return this.db.selectFrom('users').select(userColumns).where('sub', '=', sub).executeTakeFirst();
   }
 
   create(user: Insertable<UserTable>) {

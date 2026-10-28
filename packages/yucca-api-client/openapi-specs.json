@@ -243,6 +243,99 @@
         ]
       }
     },
+    "/api/billing": {
+      "get": {
+        "operationId": "getBillingStatus",
+        "parameters": [
+          {
+            "name": "refresh",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BillingStatusDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Billing"
+        ]
+      }
+    },
+    "/api/billing/statements": {
+      "get": {
+        "operationId": "listBillingStatements",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BillingStatementListResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Billing"
+        ]
+      }
+    },
+    "/api/billing/subscribe": {
+      "post": {
+        "operationId": "startSubscription",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StartSubscriptionResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Billing"
+        ]
+      }
+    },
+    "/api/billing/portal": {
+      "post": {
+        "operationId": "openSubscriptionPortal",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SubscriptionPortalResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Billing"
+        ]
+      }
+    },
     "/api/meta": {
       "get": {
         "operationId": "getMeta",
@@ -937,6 +1030,9 @@
           "id": {
             "type": "string"
           },
+          "sub": {
+            "type": "string"
+          },
           "name": {
             "type": "string"
           },
@@ -959,6 +1055,7 @@
         },
         "required": [
           "id",
+          "sub",
           "name",
           "email",
           "sessionId",
@@ -1143,6 +1240,239 @@
           "repositoryId",
           "repositoryName",
           "metrics"
+        ]
+      },
+      "BillingStatus": {
+        "type": "string",
+        "enum": [
+          "new",
+          "active",
+          "pending_cancellation",
+          "past_due",
+          "ended"
+        ]
+      },
+      "BillingDailyUsage": {
+        "type": "object",
+        "properties": {
+          "date": {
+            "type": "string"
+          },
+          "gbMonths": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "date",
+          "gbMonths"
+        ]
+      },
+      "BillingStatusDto": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "$ref": "#/components/schemas/BillingStatus"
+          },
+          "subscriptionActive": {
+            "type": "boolean"
+          },
+          "polarStatus": {
+            "type": "string",
+            "nullable": true
+          },
+          "subscriptionId": {
+            "type": "string",
+            "nullable": true
+          },
+          "phase": {
+            "type": "string",
+            "nullable": true
+          },
+          "reason": {
+            "type": "string",
+            "nullable": true
+          },
+          "currentPeriodEnd": {
+            "example": "2024-01-01T00:00:00.000Z",
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$",
+            "nullable": true
+          },
+          "endsAt": {
+            "example": "2024-01-01T00:00:00.000Z",
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$",
+            "nullable": true
+          },
+          "creditGbMonths": {
+            "type": "number"
+          },
+          "creditUsedGbMonths": {
+            "type": "number"
+          },
+          "creditRemainingGbMonths": {
+            "type": "number"
+          },
+          "forwardedGbMonths": {
+            "type": "number"
+          },
+          "currentPeriodStart": {
+            "example": "2024-01-01T00:00:00.000Z",
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$",
+            "nullable": true
+          },
+          "periodGbMonths": {
+            "type": "number"
+          },
+          "periodUsage": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/BillingDailyUsage"
+            }
+          },
+          "pendingGbMonths": {
+            "type": "number"
+          },
+          "pendingAmountCents": {
+            "type": "number"
+          },
+          "currency": {
+            "type": "string"
+          },
+          "rateCentsPerGbMonth": {
+            "type": "number"
+          },
+          "starterPriceCents": {
+            "type": "number"
+          },
+          "starterCreditCents": {
+            "type": "number"
+          },
+          "storedGb": {
+            "type": "number"
+          },
+          "updatedAt": {
+            "example": "2024-01-01T00:00:00.000Z",
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$",
+            "nullable": true
+          }
+        },
+        "required": [
+          "status",
+          "subscriptionActive",
+          "polarStatus",
+          "subscriptionId",
+          "phase",
+          "reason",
+          "currentPeriodEnd",
+          "endsAt",
+          "creditGbMonths",
+          "creditUsedGbMonths",
+          "creditRemainingGbMonths",
+          "forwardedGbMonths",
+          "currentPeriodStart",
+          "periodGbMonths",
+          "periodUsage",
+          "pendingGbMonths",
+          "pendingAmountCents",
+          "currency",
+          "rateCentsPerGbMonth",
+          "starterPriceCents",
+          "starterCreditCents",
+          "storedGb",
+          "updatedAt"
+        ]
+      },
+      "BillingStatementDto": {
+        "type": "object",
+        "properties": {
+          "orderId": {
+            "type": "string"
+          },
+          "billingReason": {
+            "type": "string"
+          },
+          "periodStart": {
+            "example": "2024-01-01T00:00:00.000Z",
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$",
+            "nullable": true
+          },
+          "periodEnd": {
+            "example": "2024-01-01T00:00:00.000Z",
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$",
+            "nullable": true
+          },
+          "gigabyteMonthsUsed": {
+            "type": "number"
+          },
+          "amountCents": {
+            "type": "number"
+          },
+          "currency": {
+            "type": "string"
+          },
+          "createdAt": {
+            "example": "2024-01-01T00:00:00.000Z",
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+          }
+        },
+        "required": [
+          "orderId",
+          "billingReason",
+          "periodStart",
+          "periodEnd",
+          "gigabyteMonthsUsed",
+          "amountCents",
+          "currency",
+          "createdAt"
+        ]
+      },
+      "BillingStatementListResponseDto": {
+        "type": "object",
+        "properties": {
+          "statements": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/BillingStatementDto"
+            }
+          }
+        },
+        "required": [
+          "statements"
+        ]
+      },
+      "StartSubscriptionResponseDto": {
+        "type": "object",
+        "properties": {
+          "checkoutUrl": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "checkoutUrl"
+        ]
+      },
+      "SubscriptionPortalResponseDto": {
+        "type": "object",
+        "properties": {
+          "portalUrl": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "portalUrl"
         ]
       },
       "MetaConfigDto": {

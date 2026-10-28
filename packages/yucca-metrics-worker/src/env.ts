@@ -16,6 +16,14 @@ const schema = z.object({
   LEGACY_SITE_CODE: z.string(),
   LEGACY_STORAGE_CLUSTER_CODE: z.string(),
 
+  INTERNAL_SECRET: z.string().default(''),
+
+  FUTOPAY_URL: z.string().default(''),
+  FUTOPAY_ORG_SLUG: z.string().default(''),
+  FUTOPAY_API_KEY: z.string().default(''),
+  FUTOPAY_USAGE_PERIOD: z.enum(['hour', 'day', 'month']).default('day'),
+  FUTOPAY_USAGE_LOOKBACK_PERIODS: z.coerce.number().int().min(1).optional(),
+
   RADOS_ACCESS_KEY_ID: z.string().optional(),
   RADOS_SECRET_ACCESS_KEY: z.string().optional(),
 

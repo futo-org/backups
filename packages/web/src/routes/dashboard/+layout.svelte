@@ -15,6 +15,7 @@
   import {
     mdiBackupRestore,
     mdiConnection,
+    mdiCreditCardOutline,
     mdiMenu,
     mdiViewDashboard,
   } from "@mdi/js";
@@ -88,6 +89,12 @@
         href="/dashboard/connections"
         icon={mdiConnection}
         active={page.url.pathname === "/dashboard/connections"}
+      />
+      <NavbarItem
+        title="Billing"
+        href="/dashboard/billing"
+        icon={mdiCreditCardOutline}
+        active={page.url.pathname === "/dashboard/billing"}
       />
     </nav>
   </AppShellSidebar>

@@ -1,0 +1,25 @@
+{
+  "name": "mock-rgw-admin",
+  "version": "0.55.1",
+  "description": "In-repo RadosGW admin API mock for dev and e2e tests, serving bucket stats from a control API",
+  "private": true,
+  "license": "UNLICENSED",
+  "type": "module",
+  "main": "dist/index.js",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "start:dev": "tsx watch src/index.ts"
+  },
+  "dependencies": {
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "tsx": "catalog:",
+    "typescript": "catalog:"
+  }
+}
