@@ -1,6 +1,7 @@
 import { jest } from '@jest/globals';
 import { createServer, type IncomingMessage, type Server } from 'node:http';
 import type { AddressInfo } from 'node:net';
+import { setTimeout as sleep } from 'node:timers/promises';
 import { gunzipSync } from 'node:zlib';
 import { SupportLogShipper, type SupportLogLine } from './supportLogShipper.js';
 
@@ -15,6 +16,11 @@ const line = (message: string): SupportLogLine => ({
 
 const hourFromNow = () => new Date(Date.now() + 60 * 60 * 1000);
 
+const messagesBySeq = (received: Received[]) =>
+  received
+    .toSorted((a, b) => Number(a.headers['x-batch-seq']) - Number(b.headers['x-batch-seq']))
+    .flatMap(({ lines }) => lines.map(({ message }) => message));
+
 const until = async (condition: () => boolean) => {
   while (!condition()) {
     await new Promise((resolve) => setTimeout(resolve, 10));
@@ -25,27 +31,35 @@ describe(SupportLogShipper.name, () => {
   let server: Server;
   let url: string;
   let received: Received[];
-  let respond: (request: IncomingMessage) => number;
+  let respond: (request: IncomingMessage) => number | Promise<number>;
+  let open: number;
+  let maxOpen: number;
 
   beforeEach(async () => {
     received = [];
     respond = () => 204;
+    open = 0;
+    maxOpen = 0;
     server = createServer((request, response) => {
+      open++;
+      maxOpen = Math.max(maxOpen, open);
       const chunks: Buffer[] = [];
       request.on('data', (chunk: Buffer) => chunks.push(chunk));
       request.on('end', () => {
-        const status = respond(request);
-        if (status === 204) {
-          const body = gunzipSync(Buffer.concat(chunks)).toString('utf8');
-          received.push({
-            headers: request.headers,
-            lines: body
-              .split('\n')
-              .filter(Boolean)
-              .map((json) => JSON.parse(json) as SupportLogLine),
-          });
-        }
-        response.writeHead(status).end();
+        void Promise.resolve(respond(request)).then((status) => {
+          if (status === 204) {
+            const body = gunzipSync(Buffer.concat(chunks)).toString('utf8');
+            received.push({
+              headers: request.headers,
+              lines: body
+                .split('\n')
+                .filter(Boolean)
+                .map((json) => JSON.parse(json) as SupportLogLine),
+            });
+          }
+          open--;
+          response.writeHead(status).end();
+        });
       });
     });
     await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
@@ -67,10 +81,10 @@ describe(SupportLogShipper.name, () => {
     }
     await shipper.finish();
 
-    expect(received.flatMap(({ lines }) => lines.map(({ message }) => message))).toEqual(
-      Array.from({ length: 10 }, (_, index) => `line ${index}`),
+    expect(messagesBySeq(received)).toEqual(Array.from({ length: 10 }, (_, index) => `line ${index}`));
+    expect(received.map(({ headers }) => Number(headers['x-batch-seq'])).toSorted((a, b) => a - b)).toEqual(
+      received.map((_, index) => index),
     );
-    expect(received.map(({ headers }) => Number(headers['x-batch-seq']))).toEqual(received.map((_, index) => index));
     expect(received.at(-1)?.headers['x-batch-final']).toBe('true');
     expect(received.slice(0, -1).every(({ headers }) => headers['x-batch-final'] === undefined)).toBe(true);
     expect(received[0].headers).toMatchObject({
@@ -95,6 +109,51 @@ describe(SupportLogShipper.name, () => {
 
     expect(received.every(({ headers }) => headers['x-batch-final'] === undefined)).toBe(true);
     await shipper.finish();
+  });
+
+  it('keeps several batches in flight while the streamer is slow', async () => {
+    respond = async () => {
+      await sleep(50);
+      return 204;
+    };
+    const shipper = new SupportLogShipper(
+      { url, credentials: { token: 'token', expiresAt: hourFromNow() }, refresh: jest.fn<() => Promise<never>>() },
+      { batchBytes: 50, maxInFlight: 3, flushIntervalMs: 60_000 },
+    );
+
+    for (let index = 0; index < 12; index++) {
+      shipper.push(line(`line ${index}`));
+    }
+    await shipper.finish();
+
+    expect(maxOpen).toBe(3);
+    expect(messagesBySeq(received)).toEqual(Array.from({ length: 12 }, (_, index) => `line ${index}`));
+    expect(shipper.droppedLines).toBe(0);
+  });
+
+  it('sends the final batch only once every other batch is delivered', async () => {
+    let deliveredBeforeFinal: number | undefined;
+    respond = async (request) => {
+      if (request.headers['x-batch-final'] === 'true') {
+        deliveredBeforeFinal = received.length;
+        return 204;
+      }
+      await sleep(50);
+      return 204;
+    };
+    const shipper = new SupportLogShipper(
+      { url, credentials: { token: 'token', expiresAt: hourFromNow() }, refresh: jest.fn<() => Promise<never>>() },
+      { batchBytes: 50, maxInFlight: 4, flushIntervalMs: 60_000 },
+    );
+
+    for (let index = 0; index < 10; index++) {
+      shipper.push(line(`line ${index}`));
+    }
+    await shipper.finish();
+
+    expect(received.filter(({ headers }) => headers['x-batch-final'] === 'true')).toHaveLength(1);
+    expect(deliveredBeforeFinal).toBe(received.length - 1);
+    expect(messagesBySeq(received)).toEqual(Array.from({ length: 10 }, (_, index) => `line ${index}`));
   });
 
   it('marks exactly one batch final when the remainder is still queued at finish', async () => {
@@ -142,6 +201,26 @@ describe(SupportLogShipper.name, () => {
 
     expect(refresh).toHaveBeenCalledTimes(1);
     expect(received.flatMap(({ lines }) => lines.map(({ message }) => message))).toEqual(['hello']);
+  });
+
+  it('refreshes an expiring token once for all the batches in flight', async () => {
+    const refresh = jest.fn(async () => {
+      await sleep(50);
+      return { token: 'fresh', expiresAt: hourFromNow() };
+    });
+    const shipper = new SupportLogShipper(
+      { url, credentials: { token: 'expiring', expiresAt: new Date(Date.now() + 60_000) }, refresh },
+      { batchBytes: 50, maxInFlight: 4, flushIntervalMs: 60_000 },
+    );
+
+    for (let index = 0; index < 4; index++) {
+      shipper.push(line(`line ${index}`));
+    }
+    await shipper.finish();
+
+    expect(refresh).toHaveBeenCalledTimes(1);
+    expect(received.every(({ headers }) => headers.authorization === 'Bearer fresh')).toBe(true);
+    expect(messagesBySeq(received)).toEqual(Array.from({ length: 4 }, (_, index) => `line ${index}`));
   });
 
   it('stops streaming once the session can no longer be refreshed', async () => {

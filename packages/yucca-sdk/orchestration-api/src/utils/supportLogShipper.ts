@@ -23,6 +23,7 @@ export type SupportLogEndpoint = {
 export type SupportLogShipperOptions = {
   maxBufferBytes: number;
   batchBytes: number;
+  maxInFlight: number;
   flushIntervalMs: number;
   maxAttempts: number;
   finishTimeoutMs: number;
@@ -31,6 +32,7 @@ export type SupportLogShipperOptions = {
 const DEFAULT_OPTIONS: SupportLogShipperOptions = {
   maxBufferBytes: 64 * 1024 * 1024,
   batchBytes: 4 * 1024 * 1024,
+  maxInFlight: 4,
   flushIntervalMs: 2000,
   maxAttempts: 8,
   finishTimeoutMs: 30_000,
@@ -56,9 +58,10 @@ export class SupportLogShipper {
   private bufferedBytes = 0;
   private droppedSinceLastBatch = 0;
   private seq = 0;
-  private draining?: Promise<void>;
-  private inFlight?: InFlight;
+  private readonly inFlight = new Map<InFlight, Promise<boolean>>();
+  private refreshing?: Promise<SupportLogCredentials>;
   private timer?: NodeJS.Timeout;
+  private finishing = false;
   private stopped = false;
   private readonly abort = new AbortController();
 
@@ -92,24 +95,27 @@ export class SupportLogShipper {
 
   async finish() {
     clearInterval(this.timer);
+    this.finishing = true;
     this.seal();
 
-    const drained = this.drain(true).then(() => true);
+    const drained = this.drain().then(() => true);
     const finished = await Promise.race([drained, sleep(this.options.finishTimeoutMs, false, { ref: false })]);
 
     this.stopped = true;
     if (!finished) {
       this.abort.abort();
       await Promise.race([drained, sleep(ABORT_GRACE_MS, false, { ref: false })]);
-      this.settle(this.inFlight, false);
+      for (const inFlight of this.inFlight.keys()) {
+        this.settle(inFlight, false);
+      }
     }
 
     this.drop(this.sealed.reduce((total, batch) => total + batch.lines.length, 0));
     this.sealed = [];
   }
 
-  private settle(inFlight: InFlight | undefined, delivered: boolean) {
-    if (!inFlight || inFlight.settled) {
+  private settle(inFlight: InFlight, delivered: boolean) {
+    if (inFlight.settled) {
       return;
     }
 
@@ -130,52 +136,48 @@ export class SupportLogShipper {
       this.current = { lines: [], bytes: 0 };
     }
 
-    if (!this.draining && this.sealed.length > 0) {
-      void this.drain(false);
+    this.dispatchSealed();
+  }
+
+  private dispatchSealed() {
+    const heldForFinal = this.finishing ? 1 : 0;
+    while (!this.stopped && this.inFlight.size < this.options.maxInFlight && this.sealed.length > heldForFinal) {
+      void this.dispatch(this.sealed.shift()!, false);
     }
   }
 
-  private drain(final: boolean): Promise<void> {
-    const previous = this.draining ?? Promise.resolve();
-    const tracked: Promise<void> = previous
-      .then(() => this.sendSealed(final))
-      .finally(() => {
-        if (this.draining !== tracked) {
-          return;
-        }
-
-        this.draining = undefined;
-        if (this.sealed.length > 0 && !this.stopped) {
-          void this.drain(false);
-        }
-      });
-    this.draining = tracked;
-    return tracked;
+  private dispatch(batch: Batch, final: boolean): Promise<boolean> {
+    this.bufferedBytes -= batch.bytes;
+    const inFlight: InFlight = { lines: batch.lines.length, settled: false };
+    const sent = this.send(batch, inFlight, final).finally(() => {
+      this.inFlight.delete(inFlight);
+      this.dispatchSealed();
+    });
+    this.inFlight.set(inFlight, sent);
+    return sent;
   }
 
-  private async sendSealed(final: boolean) {
-    let finalSent = false;
-    while (this.sealed.length > 0 && !this.stopped) {
-      const batch = this.sealed.shift()!;
-      this.bufferedBytes -= batch.bytes;
-      const isLast = final && this.sealed.length === 0;
-      finalSent = (await this.send(batch, isLast)) && isLast;
+  private async drain() {
+    while (this.inFlight.size > 0) {
+      await Promise.race(this.inFlight.values());
     }
 
-    if (final && !this.stopped) {
-      if (!finalSent) {
-        await this.send({ lines: [], bytes: 0 }, true);
-      }
-      this.stopped = true;
+    if (this.stopped) {
+      return;
     }
+
+    const last = this.sealed.shift();
+    const finalSent = last !== undefined && (await this.dispatch(last, true));
+    if (!finalSent && !this.stopped) {
+      await this.dispatch({ lines: [], bytes: 0 }, true);
+    }
+    this.stopped = true;
   }
 
-  private async send(batch: Batch, final: boolean): Promise<boolean> {
+  private async send(batch: Batch, inFlight: InFlight, final: boolean): Promise<boolean> {
     const dropped = this.droppedSinceLastBatch;
     this.droppedSinceLastBatch = 0;
     const seq = this.seq++;
-    const inFlight: InFlight = { lines: batch.lines.length, settled: false };
-    this.inFlight = inFlight;
     const body = await gzipAsync(batch.lines.length > 0 ? batch.lines.join('\n') + '\n' : '');
 
     for (let attempt = 1; attempt <= this.options.maxAttempts; attempt++) {
@@ -226,7 +228,9 @@ export class SupportLogShipper {
     }
 
     if (response.status === 401) {
-      this.endpoint.credentials = { ...this.endpoint.credentials, expiresAt: new Date(0) };
+      if (this.endpoint.credentials.token === token) {
+        this.endpoint.credentials = { ...this.endpoint.credentials, expiresAt: new Date(0) };
+      }
       throw new Error('Support log token was rejected');
     }
 
@@ -242,8 +246,11 @@ export class SupportLogShipper {
       return this.endpoint.credentials;
     }
 
+    this.refreshing ??= this.endpoint.refresh().finally(() => {
+      this.refreshing = undefined;
+    });
     try {
-      this.endpoint.credentials = await this.endpoint.refresh();
+      this.endpoint.credentials = await this.refreshing;
     } catch (error) {
       this.stopped = true;
       throw new PermanentError('Support log session can no longer be refreshed', { cause: error });
