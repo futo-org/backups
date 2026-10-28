@@ -1,6 +1,6 @@
 {
   "name": "yucca-monorepo",
-  "version": "1.11.2",
+  "version": "1.11.3",
   "description": "Monorepo for yucca",
   "private": true,
   "devDependencies": {
