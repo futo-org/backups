@@ -203,6 +203,18 @@ export class ConfigRepository {
     return this.set(ConfigurationKey.IgnoredImmichDatabaseDumpWarning, '1');
   }
 
+  async hasRestoreAwaitingContinue() {
+    return this.has(ConfigurationKey.RestoreAwaitingContinue);
+  }
+
+  async setRestoreAwaitingContinue() {
+    return this.set(ConfigurationKey.RestoreAwaitingContinue, '1');
+  }
+
+  async clearRestoreAwaitingContinue() {
+    await this.db.deleteFrom('config').where('config.key', '=', ConfigurationKey.RestoreAwaitingContinue).execute();
+  }
+
   async hasSessionSecret() {
     return this.has(ConfigurationKey.SessionSecret);
   }

@@ -1,14 +1,26 @@
 <script lang="ts">
   import OnEvents from "$lib/components/util/OnEvents.svelte";
   import {
+    getJobProgress,
     getRemainingText,
     isJobFinished,
+    isJobSucceeded,
     useJob,
     useJobEventHandler,
     type JobUpdateEvent,
   } from "$lib/services/job.service";
   import { now } from "$lib/utils/now";
-  import { Alert, Modal, ModalBody, ProgressBar, Stack, Text } from "@immich/ui";
+  import {
+    Alert,
+    Button,
+    HStack,
+    Modal,
+    ModalBody,
+    ModalFooter,
+    ProgressBar,
+    Stack,
+    Text,
+  } from "@immich/ui";
   import { t } from "svelte-i18n-lingui";
 
   type Props = {
@@ -22,7 +34,8 @@
   // svelte-ignore state_referenced_locally
   const jobQuery = useJob(jobId);
   const job = $derived(jobQuery.data);
-  const progress = $derived(job?.progress?.percentDone ?? 0);
+  const succeeded = $derived(isJobSucceeded(job?.status));
+  const progress = $derived(getJobProgress(job));
   const errors = $derived(job?.outcome?.errors ?? []);
   const currentFiles = $derived(jobQuery.data?.progress?.currentFiles ?? []);
   const jobEventHandler = useJobEventHandler();
@@ -42,7 +55,9 @@
     ? $t`Restore cancelled`
     : errors.length > 0 || job?.status === "failed"
       ? $t`Restore failed`
-      : $t`Restoring`}
+      : succeeded
+        ? $t`Restore complete`
+        : $t`Restoring`}
   size="small"
   onClose={isJobFinished(job?.status) ? onFinish : undefined}
 >
@@ -77,4 +92,11 @@
       {/if}
     </Stack>
   </ModalBody>
+  {#if succeeded}
+    <ModalFooter>
+      <HStack>
+        <Button onclick={onFinish}>{$t`Continue`}</Button>
+      </HStack>
+    </ModalFooter>
+  {/if}
 </Modal>

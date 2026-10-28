@@ -8,10 +8,10 @@
   type Props = {
     onCancel: () => void;
     onImportKey: () => void;
-    onFinish: () => void;
+    onRestore: (jobId: string) => void;
   };
 
-  const { onCancel, onImportKey, onFinish }: Props = $props();
+  const { onCancel, onImportKey, onRestore }: Props = $props();
 
   const query = useInspectRepositories();
 
@@ -26,7 +26,7 @@
   <RestorePointFlow2SelectSnapshot
     onBack={() => (selectedRepository = undefined)}
     {repository}
-    {onFinish}
+    {onRestore}
   />
 {:else}
   <SelectRepositoryModal

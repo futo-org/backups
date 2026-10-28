@@ -30,6 +30,21 @@ const toJobDto = ({ data: _data, logFilePath: _logFilePath, outcome, ...job }: J
 });
 
 const finishedStatuses = new Set([JobStatus.Complete, JobStatus.Warn, JobStatus.Failed, JobStatus.Cancelled]);
+const activeStatuses = [JobStatus.Queued, JobStatus.Running];
+
+const toQueuedJob = ({ name, data }: JobItem, queuedAt: string) => {
+  const id = randomUUID();
+
+  return {
+    id,
+    name,
+    repositoryId: data.repositoryId,
+    data: JSON.stringify(data),
+    status: JobStatus.Queued,
+    logFilePath: join('logs', 'jobs', `${id}.jsonl`),
+    queuedAt,
+  };
+};
 
 @Injectable()
 export class JobRepository implements OnModuleInit, BeforeApplicationShutdown {
@@ -37,8 +52,7 @@ export class JobRepository implements OnModuleInit, BeforeApplicationShutdown {
 
   private dispatching?: Promise<void>;
   private running?: {
-    id: string;
-    repositoryId: string;
+    job: Job;
     controller: AbortController;
     ctx?: JobContext;
     lastProgressTick?: JobProgressDto;
@@ -100,7 +114,8 @@ export class JobRepository implements OnModuleInit, BeforeApplicationShutdown {
     return this.db
       .updateTable('jobs')
       .set({ status: JobStatus.Incomplete, end: new Date().toISOString() })
-      .where('status', 'in', [JobStatus.Queued, JobStatus.Running])
+      .where('status', 'in', activeStatuses)
+      .$if(this.running !== undefined, (qb) => qb.where('id', '!=', this.running!.job.id))
       .returningAll()
       .execute();
   }
@@ -151,44 +166,123 @@ export class JobRepository implements OnModuleInit, BeforeApplicationShutdown {
     const queuedAt = new Date().toISOString();
     const jobs = await this.db
       .insertInto('jobs')
-      .values(
-        items.map(({ name, data }) => {
-          const id = randomUUID();
-
-          return {
-            id,
-            name,
-            repositoryId: data.repositoryId,
-            data: JSON.stringify(data),
-            status: JobStatus.Queued,
-            logFilePath: join('logs', 'jobs', `${id}.jsonl`),
-            queuedAt,
-          };
-        }),
-      )
+      .values(items.map((item) => toQueuedJob(item, queuedAt)))
       .returningAll()
       .execute();
 
+    this.onQueued(jobs);
+
+    return jobs.map((job) => job.id);
+  }
+
+  async queueUnlessActive(item: JobItem) {
+    if (this.running?.job.name === item.name) {
+      return;
+    }
+
+    const queued = toQueuedJob(item, new Date().toISOString());
+    const job = await this.db
+      .insertInto('jobs')
+      .columns(['id', 'name', 'repositoryId', 'data', 'status', 'logFilePath', 'queuedAt'])
+      .expression(
+        this.db
+          .selectNoFrom((eb) => [
+            eb.val(queued.id).as('id'),
+            eb.val(queued.name).as('name'),
+            eb.val(queued.repositoryId).as('repositoryId'),
+            eb.val(queued.data).as('data'),
+            eb.val(queued.status).as('status'),
+            eb.val(queued.logFilePath).as('logFilePath'),
+            eb.val(queued.queuedAt).as('queuedAt'),
+          ])
+          .where((eb) =>
+            eb.not(
+              eb.exists(
+                eb.selectFrom('jobs').select('id').where('name', '=', item.name).where('status', 'in', activeStatuses),
+              ),
+            ),
+          ),
+      )
+      .returningAll()
+      .executeTakeFirst();
+
+    if (!job) {
+      return;
+    }
+
+    this.onQueued([job]);
+
+    return job.id;
+  }
+
+  private onQueued(jobs: Job[]) {
     for (const job of jobs) {
       this.events.publish({ type: 'JobCreate', job: toJobDto(job) });
     }
 
     void this.dispatch();
-
-    return jobs.map((job) => job.id);
   }
 
   async get(id: string) {
-    const job = await this.find(id);
+    const job = await this.findIncludingRunning(id);
     if (!job) {
       return;
     }
 
-    return { ...toJobDto(job), progress: this.running?.id === id ? this.running.ctx?.progress : undefined };
+    return { ...toJobDto(job), progress: this.running?.job.id === id ? this.running.ctx?.progress : undefined };
+  }
+
+  async persistRunning() {
+    if (!this.running) {
+      return;
+    }
+
+    await this.db
+      .insertInto('jobs')
+      .values(this.running.job)
+      .onConflict((oc) => oc.column('id').doNothing())
+      .execute();
+  }
+
+  async getLatestByName(name: JobName) {
+    const job = await this.db
+      .selectFrom('jobs')
+      .selectAll()
+      .where('name', '=', name)
+      .orderBy('queuedAt', 'desc')
+      .orderBy(sql`rowid`, 'desc')
+      .limit(1)
+      .executeTakeFirst();
+
+    return job && toJobDto(job);
+  }
+
+  async getActive(name: JobName) {
+    if (this.running?.job.name === name) {
+      return toJobDto(this.running.job);
+    }
+
+    const job = await this.db
+      .selectFrom('jobs')
+      .selectAll()
+      .where('name', '=', name)
+      .where('status', 'in', activeStatuses)
+      .orderBy(sql`rowid`)
+      .limit(1)
+      .executeTakeFirst();
+
+    return job && toJobDto(job);
   }
 
   private find(id: string) {
     return this.db.selectFrom('jobs').selectAll().where('id', '=', id).executeTakeFirst();
+  }
+
+  private async findIncludingRunning(id: string) {
+    const running = this.running?.job.id === id ? this.running.job : undefined;
+
+    // a restore from point swaps in the restored state database while it runs, which drops its own row until it finishes
+    return (await this.find(id)) ?? running;
   }
 
   async getAll(repositoryId: string) {
@@ -289,8 +383,8 @@ export class JobRepository implements OnModuleInit, BeforeApplicationShutdown {
       }
     }
 
-    if (this.running?.repositoryId === repositoryId) {
-      await this.wait(this.running.id).catch(() => {});
+    if (this.running?.job.repositoryId === repositoryId) {
+      await this.wait(this.running.job.id).catch(() => {});
     }
   }
 
@@ -318,7 +412,7 @@ export class JobRepository implements OnModuleInit, BeforeApplicationShutdown {
   }
 
   private abort(id: string) {
-    if (this.running?.id !== id) {
+    if (this.running?.job.id !== id) {
       return false;
     }
 
@@ -334,7 +428,7 @@ export class JobRepository implements OnModuleInit, BeforeApplicationShutdown {
       this.activeJobs.set(id, waiter);
     }
 
-    const job = await this.find(id);
+    const job = await this.findIncludingRunning(id);
     if (!job) {
       throw new NotFoundException('Job not found');
     }
@@ -419,7 +513,7 @@ export class JobRepository implements OnModuleInit, BeforeApplicationShutdown {
     this.logger.log(`Running job ${job.name} id=${job.id}`);
 
     const { handler } = this.handlers.get(job.name)!;
-    this.running = { id: job.id, repositoryId: job.repositoryId, controller: new AbortController() };
+    this.running = { job, controller: new AbortController() };
 
     const ctx = await this.createCtx(job, this.running.controller.signal);
     this.running.ctx = ctx;
@@ -438,27 +532,27 @@ export class JobRepository implements OnModuleInit, BeforeApplicationShutdown {
       if (support) {
         ctx.outcome.support = await support.finish();
       }
+
+      await new Promise<void>((done) => ctx.logWriter.end(done));
+
+      const updateSet = {
+        status: getJobStatus(error),
+        outcome: JSON.stringify(ctx.outcome),
+        end: new Date().toISOString(),
+      };
+
+      job = await this.db
+        .insertInto('jobs')
+        .values({
+          ...job,
+          ...updateSet,
+        })
+        .onConflict((oc) => oc.column('id').doUpdateSet(updateSet))
+        .returningAll()
+        .executeTakeFirstOrThrow();
     } finally {
       this.running = undefined;
     }
-
-    await new Promise<void>((done) => ctx.logWriter.end(done));
-
-    const updateSet = {
-      status: getJobStatus(error),
-      outcome: JSON.stringify(ctx.outcome),
-      end: new Date().toISOString(),
-    };
-
-    job = await this.db
-      .insertInto('jobs')
-      .values({
-        ...job,
-        ...updateSet,
-      })
-      .onConflict((oc) => oc.column('id').doUpdateSet(updateSet))
-      .returningAll()
-      .executeTakeFirstOrThrow();
 
     this.events.publish({
       type: 'JobUpdate',
@@ -478,6 +572,11 @@ export class JobRepository implements OnModuleInit, BeforeApplicationShutdown {
     }
 
     this.running.lastProgressTick = progress;
-    this.events.publish({ type: 'JobTick', jobId: this.running.id, repositoryId: this.running.repositoryId, progress });
+    this.events.publish({
+      type: 'JobTick',
+      jobId: this.running.job.id,
+      repositoryId: this.running.job.repositoryId,
+      progress,
+    });
   }
 }

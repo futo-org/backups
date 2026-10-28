@@ -36,6 +36,14 @@ export const handleCurrentRecoveryKey = async () => {
   }
 };
 
+export const handleContinueAfterRestore = async () => {
+  try {
+    await sdk.futoBackupsContinueAfterRestore();
+  } catch (error) {
+    handleError(error, gt`Failed to finish restore`);
+  }
+};
+
 export const handleConfirmRecoveryKey = async () => {
   try {
     await sdk.futoBackupsConfirmRecoveryKey();

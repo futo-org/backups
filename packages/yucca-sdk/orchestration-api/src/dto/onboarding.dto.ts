@@ -14,6 +14,7 @@ const OnboardingStatusResponseSchema = z
     hasBackup: z.boolean(),
     hasSchedule: z.boolean(),
     hasSkippedExtraConfig: z.boolean(),
+    restoreJobId: z.string().optional(),
   })
   .meta({ id: 'OnboardingStatusResponseDto' });
 

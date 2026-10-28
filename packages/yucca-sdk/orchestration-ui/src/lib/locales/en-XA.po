@@ -621,6 +621,7 @@ msgid "Connections are the sources of data that back up to us. Right now, that's
 msgstr ""
 
 #: ../../web/src/routes/login/invite/+page.svelte
+#: src/lib/components/onboarding/restore-point-flow/RestorePointFlow4Restore.svelte
 #: src/lib/components/onboarding/steps/OnboardingStep1FinishSetup.svelte
 #: src/lib/components/onboarding/steps/OnboardingStep3SaveRecoveryKey.svelte
 #: src/lib/components/onboarding/steps/OnboardingStepTelemetry.svelte
@@ -860,6 +861,10 @@ msgstr ""
 msgid "Failed to delete snapshot"
 msgstr ""
 
+#: src/lib/services/onboarding.service.ts
+msgid "Failed to finish restore"
+msgstr ""
+
 #: src/lib/services/immich.integration.service.ts
 msgid "Failed to ignore Immich database dump warning"
 msgstr ""
@@ -950,6 +955,7 @@ msgstr ""
 msgid "Failed to start disable write-only process"
 msgstr ""
 
+#: src/lib/services/snapshot.service.ts
 #: src/lib/services/snapshot.service.ts
 msgid "Failed to start restore"
 msgstr ""
@@ -1902,6 +1908,10 @@ msgstr ""
 
 #: src/lib/components/onboarding/restore-point-flow/RestorePointFlow4Restore.svelte
 msgid "Restore cancelled"
+msgstr ""
+
+#: src/lib/components/onboarding/restore-point-flow/RestorePointFlow4Restore.svelte
+msgid "Restore complete"
 msgstr ""
 
 #: src/lib/components/onboarding/restore-point-flow/RestorePointFlow3ConfirmRestore.svelte
