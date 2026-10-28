@@ -6,33 +6,33 @@ const JobSummarySchema = z
   .discriminatedUnion('type', [
     z.object({
       type: z.literal('backup'),
-      filesNew: z.number(),
-      filesChanged: z.number(),
-      totalFilesProcessed: z.number(),
-      totalBytesProcessed: z.number(),
+      filesNew: z.int(),
+      filesChanged: z.int(),
+      totalFilesProcessed: z.int(),
+      totalBytesProcessed: z.int(),
       snapshotId: z.string().optional(),
     }),
     z.object({
       type: z.literal('restore'),
-      filesRestored: z.number(),
-      filesSkipped: z.number(),
-      bytesRestored: z.number(),
+      filesRestored: z.int(),
+      filesSkipped: z.int(),
+      bytesRestored: z.int(),
     }),
     z.object({
       type: z.literal('prune'),
-      kept: z.number(),
-      removed: z.number(),
+      kept: z.int(),
+      removed: z.int(),
     }),
   ])
   .meta({ id: 'JobSummaryDto' });
 
 const JobProgressSchema = z
   .object({
-    percentDone: z.number(),
+    percentDone: z.number().meta({ format: 'double' }),
     scanning: z.boolean(),
     estimatedEndAt: z.string().optional(),
-    bytesDone: z.number().optional(),
-    totalBytes: z.number().optional(),
+    bytesDone: z.int().optional(),
+    totalBytes: z.int().optional(),
     currentFiles: z.array(z.string()),
   })
   .meta({ id: 'JobProgressDto' });
@@ -44,8 +44,8 @@ const JobOutcomeSchema = z
     support: z
       .object({
         sessionId: z.string().optional().describe('Support code to share with FUTO when the logs were streamed'),
-        droppedLines: z.number().describe('Log lines that could not be streamed in time'),
-        localDroppedLines: z.number().describe('Log lines that could not be written to the local support log'),
+        droppedLines: z.int().describe('Log lines that could not be streamed in time'),
+        localDroppedLines: z.int().describe('Log lines that could not be written to the local support log'),
       })
       .optional()
       .meta({ id: 'JobSupportDto' }),

@@ -2134,7 +2134,8 @@
         "type": "object",
         "properties": {
           "percentDone": {
-            "type": "number"
+            "type": "number",
+            "format": "double"
           },
           "scanning": {
             "type": "boolean"
@@ -2143,10 +2144,14 @@
             "type": "string"
           },
           "bytesDone": {
-            "type": "number"
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
           },
           "totalBytes": {
-            "type": "number"
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
           },
           "currentFiles": {
             "type": "array",
@@ -2193,16 +2198,24 @@
                 ]
               },
               "filesNew": {
-                "type": "number"
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
               },
               "filesChanged": {
-                "type": "number"
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
               },
               "totalFilesProcessed": {
-                "type": "number"
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
               },
               "totalBytesProcessed": {
-                "type": "number"
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
               },
               "snapshotId": {
                 "type": "string"
@@ -2226,13 +2239,19 @@
                 ]
               },
               "filesRestored": {
-                "type": "number"
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
               },
               "filesSkipped": {
-                "type": "number"
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
               },
               "bytesRestored": {
-                "type": "number"
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
               }
             },
             "required": [
@@ -2252,10 +2271,14 @@
                 ]
               },
               "kept": {
-                "type": "number"
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
               },
               "removed": {
-                "type": "number"
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
               }
             },
             "required": [
@@ -2274,11 +2297,15 @@
             "type": "string"
           },
           "droppedLines": {
-            "type": "number",
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
             "description": "Log lines that could not be streamed in time"
           },
           "localDroppedLines": {
-            "type": "number",
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
             "description": "Log lines that could not be written to the local support log"
           }
         },
