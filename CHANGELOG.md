@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.11.1](https://github.com/futo-org/backups/compare/v1.11.0...v1.11.1) (2026-10-28)
+
+
+### Bug Fixes
+
+* **yucca sdk:** browse a snapshot's files while the post-backup prune holds the lock ([#115](https://github.com/futo-org/backups/issues/115)) ([f020938](https://github.com/futo-org/backups/commit/f0209384141f4c83d628df64a7e272077e593208))
+
 ## [1.11.0](https://github.com/futo-org/backups/compare/v1.10.0...v1.11.0) (2026-10-28)
 
 
