@@ -81,6 +81,7 @@ export class ResticRepository {
       .tag(...tags)
       .groupBy('paths')
       .parent(parent)
+      .walkConcurrency(this.moduleConfig.get().resticWalkConcurrency)
       .addFile(...paths)
       .excludeCaches()
       .signal(signal)

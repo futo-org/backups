@@ -27,6 +27,7 @@ async function bootstrap() {
         cachePath: env.cachePath,
         wellKnownUrl: env.wellKnownUrl,
         requireSession: !env.disableAuth,
+        resticWalkConcurrency: env.resticWalkConcurrency,
       }),
     }),
     { forceCloseConnections: true },
