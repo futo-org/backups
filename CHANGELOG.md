@@ -1,5 +1,18 @@
 # Changelog
 
+## [1.11.0](https://github.com/futo-org/backups/compare/v1.10.0...v1.11.0) (2026-10-28)
+
+
+### Features
+
+* **standalone-app:** pass RESTIC_WALK_CONCURRENCY through to restic ([#114](https://github.com/futo-org/backups/issues/114)) ([128e4f3](https://github.com/futo-org/backups/commit/128e4f3986561370f00f674edb0e47b6467c4cd5))
+* **standalone-app:** ship restic from futo-org/restic ([#111](https://github.com/futo-org/backups/issues/111)) ([7f13feb](https://github.com/futo-org/backups/commit/7f13febcccc99c2f54b7224bff4d272487d43cf5))
+
+
+### Bug Fixes
+
+* **yucca sdk:** list snapshots without waiting on the post-backup prune lock ([#112](https://github.com/futo-org/backups/issues/112)) ([e54e1b7](https://github.com/futo-org/backups/commit/e54e1b712a7cbf0423114dfb362bf0411e932ef6))
+
 ## [1.10.0](https://github.com/futo-org/backups/compare/v1.9.0...v1.10.0) (2026-10-27)
 
 
