@@ -31,8 +31,8 @@ catalogs:
       specifier: 1.7.0
       version: 1.7.0
     '@immich/sql-tools':
-      specifier: ^0.3.2
-      version: 0.3.2
+      specifier: ^0.6.6
+      version: 0.6.6
     '@immich/svelte-markdown-preprocess':
       specifier: ^0.7.0
       version: 0.7.0
@@ -891,7 +891,7 @@ importers:
         version: link:../common
       '@immich/sql-tools':
         specifier: 'catalog:'
-        version: 0.3.2
+        version: 0.6.6
       '@nestjs/common':
         specifier: 'catalog:'
         version: 12.1.2(class-transformer@0.5.1)(class-validator@0.14.3)(reflect-metadata@0.2.2)(rxjs@7.8.2)
@@ -1018,7 +1018,7 @@ importers:
         version: link:../common
       '@immich/sql-tools':
         specifier: 'catalog:'
-        version: 0.3.2
+        version: 0.6.6
       '@nestjs/common':
         specifier: 'catalog:'
         version: 12.1.2(class-transformer@0.5.1)(class-validator@0.14.3)(reflect-metadata@0.2.2)(rxjs@7.8.2)
@@ -1158,7 +1158,7 @@ importers:
         version: link:../common
       '@immich/sql-tools':
         specifier: 'catalog:'
-        version: 0.3.2
+        version: 0.6.6
       '@nestjs/common':
         specifier: 'catalog:'
         version: 12.1.2(class-transformer@0.5.1)(class-validator@0.14.3)(reflect-metadata@0.2.2)(rxjs@7.8.2)
@@ -1255,7 +1255,7 @@ importers:
         version: 1.7.0
       '@immich/sql-tools':
         specifier: 'catalog:'
-        version: 0.3.2
+        version: 0.6.6
       '@nestjs/event-emitter':
         specifier: 'catalog:'
         version: 12.0.1(@nestjs/common@12.1.2(class-transformer@0.5.1)(class-validator@0.14.3)(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@12.1.2)
@@ -2200,8 +2200,8 @@ packages:
     resolution: {integrity: sha512-bV0Tgo9K4hfPCek+aMAn81RppFKv2ySDQeMoSZuvTASywNTnVJCArCZE2FWqpvIatKu7VMRLWlR1EazvVhDyhQ==}
     engines: {node: '>=18.18'}
 
-  '@immich/sql-tools@0.3.2':
-    resolution: {integrity: sha512-UWhy/+Lf8C1dJip5wPfFytI3Vq/9UyDKQE1ROjXwVhT6E/CPgBkRLwHPetjYGPJ4o1JVVpRLnEEJCXdvzqVpGw==}
+  '@immich/sql-tools@0.6.6':
+    resolution: {integrity: sha512-NXxDO0jIzXmNvJAR+somSmN81zOP+11DboGaXRMxxpcZVRBIrWpwGPLZ3dG7SZfpyccKlgZGRBWqQGRm9U5A4w==}
     hasBin: true
 
   '@immich/svelte-markdown-preprocess@0.7.0':
@@ -5434,6 +5434,9 @@ packages:
   graceful-fs@4.2.11:
     resolution: {integrity: sha512-RbJ5/jmFcNNCcDV5o9eTnBLJ/HszWV0P73bc+Ff4nS/rJj+YaS6IGyiOL0VoBYX+l1Wrl3k63h/KrH+nhJ0XvQ==}
 
+  graph-data-structure@4.5.0:
+    resolution: {integrity: sha512-OCeIzpK9JnV5js4gtDJgwebRbcOsZpoN9CNIwEooHkV/FNol+OykWPOugSTXBH/QICEW2N6U+6L2d9DcK4YBcw==}
+
   handlebars@4.7.9:
     resolution: {integrity: sha512-4E71E0rpOaQuJR2A3xDZ+GM1HyWYv1clR58tC8emQNeQe3RH7MAzSbat+V0wG78LQBo6m6bzSG/L4pBuCsgnUQ==}
     engines: {node: '>=0.4.7'}
@@ -5899,9 +5902,15 @@ packages:
       postgres:
         optional: true
 
-  kysely@0.28.17:
-    resolution: {integrity: sha512-nbD8lB9EB3wNdMhOCdx5Li8DxnLbvKByylRLcJ1h+4SkrowVeECAyZlyiKMThF7xFdRz0jSQ2MoJr+wXux2y0Q==}
-    engines: {node: '>=20.0.0'}
+  kysely-postgres-js@5.0.1:
+    resolution: {integrity: sha512-3qY2qzXJszS35CMuknpon79CE5G7MfcTMoIQHuFmGsaQQ2rau3rwx7eNaRJkO9nhli8yQedQroBZ/VehzNJy4w==}
+    engines: {bun: '>=1.2', node: '>=22'}
+    peerDependencies:
+      kysely: '>= 0.29.0 < 1'
+      postgres: ^3.4.0
+    peerDependenciesMeta:
+      postgres:
+        optional: true
 
   kysely@0.29.5:
     resolution: {integrity: sha512-ooa+eSbBNPTo3MycPEuW5jdrxQdQwdtB3LC3h43FiXQbIry5tR0C5lDG7eealK0E4D7XjrnOP5DIUg/LyjRMYQ==}
@@ -8497,11 +8506,12 @@ snapshots:
 
   '@humanwhocodes/retry@0.4.3': {}
 
-  '@immich/sql-tools@0.3.2':
+  '@immich/sql-tools@0.6.6':
     dependencies:
-      commander: 14.0.3
-      kysely: 0.28.17
-      kysely-postgres-js: 3.0.0(kysely@0.28.17)(postgres@3.4.8)
+      commander: 15.0.0
+      graph-data-structure: 4.5.0
+      kysely: 0.29.5
+      kysely-postgres-js: 5.0.1(kysely@0.29.5)(postgres@3.4.8)
       pg-connection-string: 2.11.0
       postgres: 3.4.8
 
@@ -12061,6 +12071,8 @@ snapshots:
 
   graceful-fs@4.2.11: {}
 
+  graph-data-structure@4.5.0: {}
+
   handlebars@4.7.9:
     dependencies:
       minimist: 1.2.8
@@ -12728,19 +12740,17 @@ snapshots:
       '@electric-sql/pglite': 0.5.12
       kysely: 0.29.5
 
-  kysely-postgres-js@3.0.0(kysely@0.28.17)(postgres@3.4.8):
-    dependencies:
-      kysely: 0.28.17
-    optionalDependencies:
-      postgres: 3.4.8
-
   kysely-postgres-js@3.0.0(kysely@0.29.5)(postgres@3.4.8):
     dependencies:
       kysely: 0.29.5
     optionalDependencies:
       postgres: 3.4.8
 
-  kysely@0.28.17: {}
+  kysely-postgres-js@5.0.1(kysely@0.29.5)(postgres@3.4.8):
+    dependencies:
+      kysely: 0.29.5
+    optionalDependencies:
+      postgres: 3.4.8
 
   kysely@0.29.5: {}
 
