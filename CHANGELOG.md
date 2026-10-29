@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.11.5](https://github.com/futo-org/backups/compare/v1.11.4...v1.11.5) (2026-10-29)
+
+
+### Code Refactoring
+
+* **yucca sdk:** prefix all operation IDs with `futoBackups` ([#132](https://github.com/futo-org/backups/issues/132)) ([8cb37ab](https://github.com/futo-org/backups/commit/8cb37abbf29c8773db27603d7c77851802c78109))
+
 ## [1.11.4](https://github.com/futo-org/backups/compare/v1.11.3...v1.11.4) (2026-10-29)
 
 
