@@ -1,7 +1,9 @@
 <script lang="ts">
   import type { Snippet } from "svelte";
   import UpsellPage from "../../onboarding/upsell/UpsellPage.svelte";
-  import ImmichManageBackupPage from "./ImmichManageBackupPage.svelte";
+  import ImmichManageBackupPage, {
+    type BackupsPageLayout,
+  } from "./ImmichManageBackupPage.svelte";
   import ImmichOnboardingSetupFlow from "./ImmichOnboardingSetupFlow.svelte";
 
   type Question = {
@@ -11,6 +13,7 @@
 
   type Props = {
     questions: Question[];
+    layout: BackupsPageLayout;
     onConfigure: () => void;
     onViewAttempts: () => void;
     onViewSnapshots: () => void;
@@ -18,6 +21,7 @@
 
   const {
     questions,
+    layout,
     onConfigure,
     onViewAttempts,
     onViewSnapshots,
@@ -26,8 +30,17 @@
 
 <ImmichOnboardingSetupFlow>
   {#snippet fallback(onStart)}
-    <UpsellPage {questions} onGetStarted={onStart} />
+    {#snippet upsell()}
+      <UpsellPage {questions} onGetStarted={onStart} />
+    {/snippet}
+
+    {@render layout({ actions: [], children: upsell })}
   {/snippet}
 
-  <ImmichManageBackupPage {onConfigure} {onViewAttempts} {onViewSnapshots} />
+  <ImmichManageBackupPage
+    {layout}
+    {onConfigure}
+    {onViewAttempts}
+    {onViewSnapshots}
+  />
 </ImmichOnboardingSetupFlow>

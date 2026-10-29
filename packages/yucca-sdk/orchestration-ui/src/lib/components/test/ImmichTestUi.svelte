@@ -304,7 +304,13 @@
         onConfigure={() => (route = "backup-settings")}
         onViewAttempts={() => (route = "backup-attempts")}
         onViewSnapshots={() => (route = "backup-snapshots")}
-      />
+      >
+        {#snippet layout({ actions, children })}
+          <PageLayout title="Backups" {actions}>
+            {@render children()}
+          </PageLayout>
+        {/snippet}
+      </ImmichBackupsPage>
     {:else if route === "backup-settings"}
       <PageLayout title="Backup settings" onBack={backToBackups}>
         <ImmichBackupSettingsPage onUnconfigured={backToBackups} />

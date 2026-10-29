@@ -1,9 +1,17 @@
+<script lang="ts" module>
+  import type { ActionItem } from "@immich/ui";
+  import type { Snippet } from "svelte";
+
+  export type BackupsPageLayout = Snippet<
+    [{ actions: ActionItem[]; children: Snippet }]
+  >;
+</script>
+
 <script lang="ts">
   import BackendsList from "$lib/components/backends/BackendsList.svelte";
   import BackupTaskMonitor from "$lib/components/backups/BackupTaskMonitor.svelte";
   import RepositoryRunHistory from "$lib/components/backups/run-history/RepositoryRunHistory.svelte";
   import RepositorySnapshotsList from "$lib/components/backups/snapshots-list/RepositorySnapshotsList.svelte";
-  import PageLayout from "$lib/components/ui/PageLayout.svelte";
   import OnEvents from "$lib/components/util/OnEvents.svelte";
   import {
     getBackupPageActions,
@@ -16,12 +24,14 @@
   import { t } from "svelte-i18n-lingui";
 
   type Props = {
+    layout: BackupsPageLayout;
     onConfigure: () => void;
     onViewAttempts: () => void;
     onViewSnapshots: () => void;
   };
 
-  const { onConfigure, onViewAttempts, onViewSnapshots }: Props = $props();
+  const { layout, onConfigure, onViewAttempts, onViewSnapshots }: Props =
+    $props();
 
   const backup = useImmichBackupStatus();
 
@@ -35,7 +45,7 @@
 <OnEvents {...useImmichBackupStatusEventHandler()} />
 <BackupTaskMonitor />
 
-<PageLayout title={$t`Backups`} actions={[ViewRecoveryKey, Configure]}>
+{#snippet content()}
   <Container size="medium" center>
     {#if repository && schedule}
       <Stack class="mt-4" gap={6}>
@@ -79,4 +89,6 @@
       </Stack>
     {/if}
   </Container>
-</PageLayout>
+{/snippet}
+
+{@render layout({ actions: [ViewRecoveryKey, Configure], children: content })}
