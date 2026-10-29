@@ -95,11 +95,13 @@ fi
 
 echo "==> launch orchestration-api as a separate local process (:22676)"
 # Discovery runs the real chain: meta pod well-known -> /api/meta -> api_root.
-# setsid gives it a process group cleanup can reap whole.
+# setsid gives it a process group cleanup can reap whole, led by $! itself. Reading
+# the group back with ps races the setsid() call and can return this script's own
+# group, which cleanup would then SIGTERM.
 FUTO_BACKUPS_WELL_KNOWN_URL="http://localhost:8080/.well-known/yucca.json" \
 NODE_OPTIONS="--loader $HERE/hostmap.mjs" \
   setsid mise run //packages/yucca-sdk/orchestration-api:dev >/tmp/yucca-e2e-orch.log 2>&1 &
-ORCH_PGID="$(ps -o pgid= -p $! 2>/dev/null | tr -d ' ')"
+ORCH_PGID=$!
 
 wait_for_http() {
   local name="$1" url="$2" want="$3"
