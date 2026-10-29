@@ -2,4 +2,4 @@
 // by release-please (extra-files in release-please-config.json).
 package version
 
-const Version = "1.11.4" // x-release-please-version
+const Version = "1.11.5" // x-release-please-version
