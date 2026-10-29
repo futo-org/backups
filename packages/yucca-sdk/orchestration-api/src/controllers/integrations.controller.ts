@@ -20,6 +20,7 @@ export class IntegrationsController {
   @Get()
   @ApiOkResponse({ type: IntegrationsResponseDto })
   @ApiOperation({
+    operationId: 'futoBackupsGetIntegrations',
     summary: 'Get backup integrations',
     description: 'Retrieve the configuration and state of each integration.',
   })
@@ -30,6 +31,7 @@ export class IntegrationsController {
   @Get('immich/status')
   @ApiOkResponse({ type: ImmichBackupStatusDto })
   @ApiOperation({
+    operationId: 'futoBackupsGetImmichBackupStatus',
     summary: 'Get Immich backup status',
     description: 'Retrieve the backup status of the Immich integration.',
   })
@@ -40,6 +42,7 @@ export class IntegrationsController {
   @Post('immich')
   @ApiCreatedResponse({ type: ConfigureImmichIntegrationResponseDto })
   @ApiOperation({
+    operationId: 'futoBackupsConfigureImmichIntegration',
     summary: 'Configure the Immich backup integration',
     description: 'Set up backups for the Immich backup integration.',
   })
@@ -51,6 +54,7 @@ export class IntegrationsController {
 
   @Post('immich/database-dump/ignore-warning')
   @ApiOperation({
+    operationId: 'futoBackupsIgnoreImmichDatabaseDumpWarning',
     summary: 'Ignore the Immich database dump warning',
     description: 'Stop warning that Immich database dumps are not configured.',
   })
@@ -61,6 +65,7 @@ export class IntegrationsController {
 
   @Post('immich/database-dump')
   @ApiOperation({
+    operationId: 'futoBackupsConfigureImmichDatabaseDump',
     summary: 'Configure Immich database dumps',
     description: 'Configure the Immich database dumps included in backups.',
   })
@@ -71,6 +76,7 @@ export class IntegrationsController {
 
   @Post('immich/rollback')
   @ApiOperation({
+    operationId: 'futoBackupsStartImmichRollback',
     summary: 'Roll Immich back to a snapshot',
     description: 'Put Immich into maintenance mode and restore it from a snapshot.',
   })

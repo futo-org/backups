@@ -11,6 +11,7 @@ export class FilesystemController {
   @ApiQuery({ name: 'path', type: String, required: false })
   @ApiOkResponse({ type: FilesystemListingResponseDto })
   @ApiOperation({
+    operationId: 'futoBackupsGetFileListing',
     summary: 'List files',
     description: 'List the files and folders at a path on this server.',
   })

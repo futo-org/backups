@@ -10,6 +10,7 @@ export class BackendController {
   @Get()
   @ApiOkResponse({ type: BackendsResponseDto })
   @ApiOperation({
+    operationId: 'futoBackupsGetBackends',
     summary: 'List backends',
     description: 'List the storage backends configured on this server.',
   })
@@ -20,6 +21,7 @@ export class BackendController {
   @Post('local')
   @ApiCreatedResponse({ type: BackendResponseDto })
   @ApiOperation({
+    operationId: 'futoBackupsCreateLocalBackend',
     summary: 'Create a local backend',
     description: 'Add a storage backend that writes to a local path on this server.',
   })

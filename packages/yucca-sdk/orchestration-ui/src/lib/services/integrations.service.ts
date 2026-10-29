@@ -1,7 +1,7 @@
 import { SocketEvent } from '$lib/events';
 import {
-  configureImmichIntegration,
-  getIntegrations,
+  futoBackupsConfigureImmichIntegration,
+  futoBackupsGetIntegrations,
   type ConfigureImmichIntegrationRequestDto,
   type IntegrationsResponseDto,
 } from '$lib/fetch-client';
@@ -20,7 +20,7 @@ export const useIntegrations = () =>
   createQuery(
     () => ({
       queryKey: integrationsKeys.all,
-      queryFn: () => getIntegrations(),
+      queryFn: () => futoBackupsGetIntegrations(),
     }),
     () => queryClient,
   );
@@ -37,7 +37,7 @@ export const useConfigureImmichIntegration = () =>
   createMutation(
     () => ({
       mutationFn: (dto: ConfigureImmichIntegrationRequestDto) =>
-        configureImmichIntegration(dto),
+        futoBackupsConfigureImmichIntegration(dto),
       onError: (error) =>
         handleError(error, gt`Failed to save backup settings`),
     }),
@@ -48,12 +48,12 @@ export const useConfigureAndStartImmichIntegration = () =>
   createMutation(
     () => ({
       mutationFn: async () => {
-        const { immichState } = await getIntegrations();
+        const { immichState } = await futoBackupsGetIntegrations();
         if (!immichState) {
           throw new Error(gt`No Immich instance detected.`);
         }
 
-        const { repositoryId } = await configureImmichIntegration({
+        const { repositoryId } = await futoBackupsConfigureImmichIntegration({
           name: 'Immich',
           worm: false,
           cron: IMMICH_DEFAULT_CRON,

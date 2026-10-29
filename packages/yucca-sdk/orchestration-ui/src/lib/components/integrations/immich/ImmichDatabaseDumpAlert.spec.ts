@@ -1,6 +1,6 @@
 import ImmichDatabaseDumpAlert from '$lib/components/integrations/immich/ImmichDatabaseDumpAlert.svelte';
 import {
-  ignoreImmichDatabaseDumpWarning,
+  futoBackupsIgnoreImmichDatabaseDumpWarning,
   type ImmichBackupStatusDto,
 } from '$lib/fetch-client';
 import { queryClient } from '$lib/query-client';
@@ -83,7 +83,7 @@ describe('ImmichDatabaseDumpAlert', () => {
         )?.databaseDumpWarningIgnored,
       ).toBe(true),
     );
-    expect(ignoreImmichDatabaseDumpWarning).toHaveBeenCalledOnce();
+    expect(futoBackupsIgnoreImmichDatabaseDumpWarning).toHaveBeenCalledOnce();
 
     expect(isRendered()).toBe(false);
   });

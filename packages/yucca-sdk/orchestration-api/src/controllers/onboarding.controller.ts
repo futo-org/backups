@@ -16,6 +16,7 @@ export class OnboardingController {
   @PublicRoute()
   @ApiOkResponse({ type: OnboardingStatusResponseDto })
   @ApiOperation({
+    operationId: 'futoBackupsOnboardingStatus',
     summary: 'Get backup onboarding status',
     description: 'Retrieve which onboarding steps this server has completed.',
   })
@@ -26,6 +27,7 @@ export class OnboardingController {
   @Get('/recovery-key')
   @ApiOkResponse({ type: CurrentRecoveryKeyResponse })
   @ApiOperation({
+    operationId: 'futoBackupsCurrentRecoveryKey',
     summary: 'Get the backup recovery key',
     description: 'Retrieve the recovery key that encrypts the backups of this server.',
   })
@@ -36,6 +38,7 @@ export class OnboardingController {
   @Put('/recovery-key')
   @ApiBody({ type: ImportRecoveryKeyRequest })
   @ApiOperation({
+    operationId: 'futoBackupsImportRecoveryKey',
     summary: 'Import a backup recovery key',
     description: 'Replace the recovery key with one from an earlier installation.',
   })
@@ -46,6 +49,7 @@ export class OnboardingController {
 
   @Post('/recovery-key')
   @ApiOperation({
+    operationId: 'futoBackupsConfirmRecoveryKey',
     summary: 'Confirm the backup recovery key',
     description: 'Record that the user has saved the recovery key.',
   })
@@ -56,6 +60,7 @@ export class OnboardingController {
 
   @Post('/skip')
   @ApiOperation({
+    operationId: 'futoBackupsSkipOnboardingExtraConfig',
     summary: 'Skip optional backup onboarding',
     description: 'Skip the optional configuration steps of onboarding.',
   })
@@ -66,6 +71,7 @@ export class OnboardingController {
 
   @Post('/telemetry')
   @ApiOperation({
+    operationId: 'futoBackupsEnableTelemetry',
     summary: 'Enable FUTO Backups telemetry',
     description: 'Record that the user consents to sending telemetry.',
   })
@@ -76,6 +82,7 @@ export class OnboardingController {
 
   @Post('/report-error')
   @ApiOperation({
+    operationId: 'futoBackupsReportError',
     summary: 'Report a startup error',
     description: 'Send the current startup error to telemetry.',
   })

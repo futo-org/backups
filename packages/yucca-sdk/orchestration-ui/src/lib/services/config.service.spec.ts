@@ -1,4 +1,7 @@
-import { updateConfig, type ConfigResponseDto } from '$lib/fetch-client';
+import {
+  futoBackupsUpdateConfig,
+  type ConfigResponseDto,
+} from '$lib/fetch-client';
 import { queryClient } from '$lib/query-client';
 import {
   configKeys,
@@ -94,7 +97,7 @@ describe('useUpdateConfig', () => {
     const saved: ConfigResponseDto = {
       bandwidth: { bytesPerSec: 1_000_000, quietHours: '22:00-06:00' },
     };
-    vi.mocked(updateConfig).mockResolvedValue(saved);
+    vi.mocked(futoBackupsUpdateConfig).mockResolvedValue(saved);
 
     useUpdateConfig().mutate({
       bandwidth: toBandwidthDto({
@@ -108,12 +111,12 @@ describe('useUpdateConfig', () => {
     await vi.waitFor(() =>
       expect(queryClient.getQueryData(configKeys.all)).toEqual(saved),
     );
-    expect(updateConfig).toHaveBeenCalledWith(saved);
+    expect(futoBackupsUpdateConfig).toHaveBeenCalledWith(saved);
   });
 
   it('sends a zero limit without quiet hours to disable throttling', async () => {
     const saved: ConfigResponseDto = { bandwidth: { bytesPerSec: 0 } };
-    vi.mocked(updateConfig).mockResolvedValue(saved);
+    vi.mocked(futoBackupsUpdateConfig).mockResolvedValue(saved);
 
     useUpdateConfig().mutate({
       bandwidth: toBandwidthDto({
@@ -127,7 +130,7 @@ describe('useUpdateConfig', () => {
     await vi.waitFor(() =>
       expect(queryClient.getQueryData(configKeys.all)).toEqual(saved),
     );
-    expect(updateConfig).toHaveBeenCalledWith({
+    expect(futoBackupsUpdateConfig).toHaveBeenCalledWith({
       bandwidth: { bytesPerSec: 0, quietHours: undefined },
     });
   });

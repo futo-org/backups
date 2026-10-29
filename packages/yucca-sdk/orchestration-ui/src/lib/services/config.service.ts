@@ -1,6 +1,6 @@
 import {
-  getConfig,
-  updateConfig,
+  futoBackupsGetConfig,
+  futoBackupsUpdateConfig,
   type BandwidthDto,
   type ConfigUpdateRequestDto,
 } from '$lib/fetch-client';
@@ -60,7 +60,7 @@ export const useConfig = () =>
   createQuery(
     () => ({
       queryKey: configKeys.all,
-      queryFn: () => getConfig(),
+      queryFn: () => futoBackupsGetConfig(),
     }),
     () => queryClient,
   );
@@ -68,7 +68,7 @@ export const useConfig = () =>
 export const useUpdateConfig = () =>
   createMutation(
     () => ({
-      mutationFn: (dto: ConfigUpdateRequestDto) => updateConfig(dto),
+      mutationFn: (dto: ConfigUpdateRequestDto) => futoBackupsUpdateConfig(dto),
       onSuccess: (config) => queryClient.setQueryData(configKeys.all, config),
       onError: (error) => handleError(error, gt`Failed to save settings`),
     }),

@@ -3,8 +3,8 @@ import OAuthDeviceFlow from '$lib/components/backends/dialogs/OAuthDeviceFlowMod
 import ReconfigureRepositoryBackendModal from '$lib/components/backups/dialogs/ReconfigureRepositoryBackendModal.svelte';
 import { SocketEvent } from '$lib/events';
 import {
-  createLocalBackend,
-  getBackends,
+  futoBackupsCreateLocalBackend,
+  futoBackupsGetBackends,
   type BackendDto,
   type CreateLocalBackendRequestDto,
   type LocalRepositoryDto,
@@ -25,7 +25,7 @@ export const useBackends = () =>
   createQuery(
     () => ({
       queryKey: backendKeys.all,
-      queryFn: () => getBackends().then(({ backends }) => backends),
+      queryFn: () => futoBackupsGetBackends().then(({ backends }) => backends),
     }),
     () => queryClient,
   );
@@ -66,7 +66,7 @@ export const useCreateLocalBackend = () =>
   createMutation(
     () => ({
       mutationFn: (dto: CreateLocalBackendRequestDto) =>
-        createLocalBackend(dto),
+        futoBackupsCreateLocalBackend(dto),
       onError: (error) =>
         handleError(error, gt`Failed to create local backend`),
     }),

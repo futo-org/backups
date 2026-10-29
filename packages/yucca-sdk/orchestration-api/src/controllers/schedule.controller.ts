@@ -16,6 +16,7 @@ export class ScheduleController {
   @Post()
   @ApiCreatedResponse({ type: ScheduleCreateResponseDto })
   @ApiOperation({
+    operationId: 'futoBackupsCreateSchedule',
     summary: 'Create a schedule',
     description: 'Create a backup schedule for one or more repositories.',
   })
@@ -26,6 +27,7 @@ export class ScheduleController {
   @Get()
   @ApiOkResponse({ type: ScheduleListResponseDto })
   @ApiOperation({
+    operationId: 'futoBackupsGetSchedules',
     summary: 'List schedules',
     description: 'List the backup schedules.',
   })
@@ -37,6 +39,7 @@ export class ScheduleController {
   @ApiParam({ name: 'id', type: String })
   @ApiOkResponse({ type: ScheduleUpdateResponseDto })
   @ApiOperation({
+    operationId: 'futoBackupsUpdateSchedule',
     summary: 'Update a schedule',
     description: 'Update a backup schedule.',
   })
@@ -47,6 +50,7 @@ export class ScheduleController {
   @Delete('/:id')
   @ApiParam({ name: 'id', type: String })
   @ApiOperation({
+    operationId: 'futoBackupsRemoveSchedule',
     summary: 'Delete a schedule',
     description: 'Delete a backup schedule.',
   })

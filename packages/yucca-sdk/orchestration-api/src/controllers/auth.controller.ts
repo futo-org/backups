@@ -19,6 +19,7 @@ export class AuthController {
   @Sse('/oidc/device')
   @ApiOkResponse({ type: DeviceFlowEventDto })
   @ApiOperation({
+    operationId: 'futoBackupsConnectDeviceFlow',
     summary: 'Connect a FUTO Backups account',
     description: 'Connect an existing FUTO Backups account to this server.',
   })
@@ -30,6 +31,7 @@ export class AuthController {
   @PublicRoute()
   @ApiOkResponse({ type: DeviceFlowEventDto })
   @ApiOperation({
+    operationId: 'futoBackupsSessionDeviceFlow',
     summary: 'Sign in with FUTO Backups account',
     description: 'Log into standalone backups app using the associated cloud account.',
   })
@@ -41,6 +43,7 @@ export class AuthController {
   @PublicRoute()
   @ApiBody({ type: CreateSessionRequestDto })
   @ApiOperation({
+    operationId: 'futoBackupsCreateSession',
     summary: 'Create session',
     description: 'Use existing session token to create a session on your device.',
   })
@@ -64,6 +67,7 @@ export class AuthController {
   @Post('/ticket')
   @ApiCreatedResponse({ type: TicketCreateResponseDto })
   @ApiOperation({
+    operationId: 'futoBackupsCreateTicket',
     summary: 'Create a ticket',
     description: 'Create a ticket to perform a protected repository action.',
   })

@@ -8,9 +8,9 @@ import RunHistoryModal from '$lib/components/backups/run-history/RunHistoryModal
 import SnapshotsListModal from '$lib/components/backups/snapshots-list/SnapshotsListModal.svelte';
 import { SocketEvent } from '$lib/events';
 import {
-  inspectRepositories,
-  reconfigureRepositoryPrimaryBackend,
-  updateRepository,
+  futoBackupsInspectRepositories,
+  futoBackupsReconfigureRepositoryPrimaryBackend,
+  futoBackupsUpdateRepository,
   type InspectedLocalRepositoryDto,
   type LocalRepositoryDto,
   type RepositoryCreateRequestDto,
@@ -63,7 +63,7 @@ export const useInspectRepositories = (
     () => ({
       queryKey: repositoryKeys.inspect(backendId),
       queryFn: () =>
-        inspectRepositories({ backend: backendId }).then(
+        futoBackupsInspectRepositories({ backend: backendId }).then(
           ({ repositories }) => repositories,
         ),
       initialData,
@@ -121,7 +121,7 @@ export const useCheckImportRepository = (id: string, backendId: string) =>
   createQuery(
     () => ({
       queryKey: repositoryKeys.checkImport(id, backendId),
-      queryFn: () => sdk.checkImportRepository(id, backendId),
+      queryFn: () => sdk.futoBackupsCheckImportRepository(id, backendId),
     }),
     () => queryClient,
   );
@@ -130,7 +130,7 @@ export const useCreateRepository = () =>
   createMutation(
     () => ({
       mutationFn: (dto: RepositoryCreateRequestDto) =>
-        sdk.createRepository(dto),
+        sdk.futoBackupsCreateRepository(dto),
       onError: (error) => handleError(error, gt`Failed to create repository`),
     }),
     () => queryClient,
@@ -140,7 +140,7 @@ export const useImportRepository = () =>
   createMutation(
     () => ({
       mutationFn: ({ id, backendId }: { id: string; backendId: string }) =>
-        sdk.importRepository(id, backendId),
+        sdk.futoBackupsImportRepository(id, backendId),
       onError: (error) => handleError(error, gt`Failed to import repository`),
     }),
     () => queryClient,
@@ -157,7 +157,10 @@ export const useUpdateRepository = () =>
         id: string;
         dto: RepositoryUpdateRequestDto;
         local?: boolean;
-      }) => (local ? sdk.updateRepository(id, dto) : updateRepository(id, dto)),
+      }) =>
+        local
+          ? sdk.futoBackupsUpdateRepository(id, dto)
+          : futoBackupsUpdateRepository(id, dto),
       onError: (error) => handleError(error, gt`Failed to update repository`),
     }),
     () => queryClient,
@@ -167,7 +170,7 @@ export const useReconfigureRepositoryPrimaryBackend = () =>
   createMutation(
     () => ({
       mutationFn: ({ id, backendId }: { id: string; backendId: string }) =>
-        reconfigureRepositoryPrimaryBackend(id, { backendId }),
+        futoBackupsReconfigureRepositoryPrimaryBackend(id, { backendId }),
       onSuccess: (_, { id }) =>
         queryClient.invalidateQueries({
           queryKey: snapshotKeys.byRepository(id),
@@ -180,7 +183,7 @@ export const useReconfigureRepositoryPrimaryBackend = () =>
 export const handleCreateBackup = async (id: string) => {
   try {
     toastManager.info(gt`Started backup`);
-    const response = await sdk.createBackup(id);
+    const response = await sdk.futoBackupsCreateBackup(id);
     void modalManager.open(ViewStatusModal, {
       jobId: response.jobId,
       onRetry: () => void handleCreateBackup(id),
@@ -195,7 +198,7 @@ export const handleCreateBackup = async (id: string) => {
 export const handlePruneRepository = async (id: string) => {
   try {
     toastManager.info(gt`Cleaning up old backups`);
-    const response = await sdk.pruneRepository(id);
+    const response = await sdk.futoBackupsPruneRepository(id);
     void modalManager.open(ViewStatusModal, {
       jobId: response.jobId,
       onRetry: () => void handlePruneRepository(id),
@@ -220,7 +223,7 @@ const syncRemoteDeletion = (repositoryId: string) => {
 
   const onFocus = () =>
     void sdk
-      .syncRepositoryDeletion(repositoryId)
+      .futoBackupsSyncRepositoryDeletion(repositoryId)
       .then(({ deleted }) => deleted && stop())
       .catch(stop);
 
@@ -235,7 +238,7 @@ const handleRemoveDeletedRepository = async (repositoryId: string) => {
   }
 
   try {
-    await sdk.deleteRepository(repositoryId);
+    await sdk.futoBackupsDeleteRepository(repositoryId);
   } catch (error) {
     handleError(error, gt`Failed to remove repository`);
     throw error;
@@ -247,7 +250,7 @@ export const handleDeleteRepository = async (
   local?: boolean,
 ) => {
   try {
-    const action = local ? sdk.createTicket : createTicket;
+    const action = local ? sdk.futoBackupsCreateTicket : createTicket;
 
     const { redirectTo } = await action({
       action: 'repository.delete',
@@ -275,7 +278,7 @@ export const handleDisableWormRepository = async (
   local?: boolean,
 ) => {
   try {
-    const action = local ? sdk.createTicket : createTicket;
+    const action = local ? sdk.futoBackupsCreateTicket : createTicket;
 
     const { redirectTo } = await action({
       action: 'repository.disable-worm',

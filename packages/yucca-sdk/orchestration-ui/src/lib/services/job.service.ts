@@ -3,9 +3,9 @@ import CancelJobModal from '$lib/components/backups/dialogs/CancelJobModal.svelt
 import ViewStatusModal from '$lib/components/backups/dialogs/ViewStatusModal.svelte';
 import { SocketEvent } from '$lib/events';
 import {
-  cancelJob,
-  getJob,
-  getJobs,
+  futoBackupsCancelJob,
+  futoBackupsGetJob,
+  futoBackupsGetJobs,
   type JobDto,
   type YuccaJobName,
   type JobProgressDto,
@@ -103,7 +103,8 @@ export const useJobs = (
   createQuery(
     () => ({
       queryKey: jobKeys.byRepository(repositoryId() ?? ''),
-      queryFn: () => getJobs(repositoryId()!).then(({ jobs }) => jobs),
+      queryFn: () =>
+        futoBackupsGetJobs(repositoryId()!).then(({ jobs }) => jobs),
       select: (jobs: JobDto[]) =>
         name ? jobs.filter((job) => job.name === name) : jobs,
       enabled: repositoryId() !== undefined,
@@ -115,7 +116,7 @@ export const useJob = (jobId: string) =>
   createQuery(
     () => ({
       queryKey: jobKeys.byId(jobId),
-      queryFn: () => getJob(jobId),
+      queryFn: () => futoBackupsGetJob(jobId),
     }),
     () => queryClient,
   );
@@ -226,7 +227,7 @@ export const handleCancelJob = async (
   }
 
   try {
-    await cancelJob(jobId);
+    await futoBackupsCancelJob(jobId);
   } catch (error) {
     handleError(error, gt`Failed to cancel task`);
     throw error;

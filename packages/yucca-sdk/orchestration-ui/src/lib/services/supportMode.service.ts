@@ -1,6 +1,6 @@
 import {
-  getSupportMode,
-  updateSupportMode,
+  futoBackupsGetSupportMode,
+  futoBackupsUpdateSupportMode,
   type SupportModeUpdateRequestDto,
 } from '$lib/fetch-client';
 import { queryClient } from '$lib/query-client';
@@ -18,7 +18,7 @@ export const useSupportMode = () =>
   createQuery(
     () => ({
       queryKey: supportModeKeys.all,
-      queryFn: () => getSupportMode(),
+      queryFn: () => futoBackupsGetSupportMode(),
     }),
     () => queryClient,
   );
@@ -29,7 +29,8 @@ export const refreshSupportMode = () =>
 export const useUpdateSupportMode = () =>
   createMutation(
     () => ({
-      mutationFn: (dto: SupportModeUpdateRequestDto) => updateSupportMode(dto),
+      mutationFn: (dto: SupportModeUpdateRequestDto) =>
+        futoBackupsUpdateSupportMode(dto),
       onSuccess: (supportMode) =>
         queryClient.setQueryData(supportModeKeys.all, supportMode),
       onError: (error) => handleError(error, gt`Failed to save support mode`),

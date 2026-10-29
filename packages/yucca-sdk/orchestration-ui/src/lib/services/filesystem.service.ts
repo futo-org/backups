@@ -4,7 +4,7 @@ import { gt } from 'svelte-i18n-lingui';
 
 export const handleGetFileListing = async (path?: string) => {
   try {
-    return await sdk.getFileListing({ path });
+    return await sdk.futoBackupsGetFileListing({ path });
   } catch (error) {
     handleError(error, gt`Failed to load directory listing`);
     throw error;

@@ -10,6 +10,7 @@ export class ConfigController {
   @Get()
   @ApiOkResponse({ type: ConfigResponseDto })
   @ApiOperation({
+    operationId: 'futoBackupsGetConfig',
     summary: 'Get backups orchestrator configuration',
     description: 'Retrieve the current backups orchestrator configuration.',
   })
@@ -20,6 +21,7 @@ export class ConfigController {
   @Put()
   @ApiOkResponse({ type: ConfigResponseDto })
   @ApiOperation({
+    operationId: 'futoBackupsUpdateConfig',
     summary: 'Update backups orchestrator configuration',
     description: 'Update the backups orchestrator configuration.',
   })

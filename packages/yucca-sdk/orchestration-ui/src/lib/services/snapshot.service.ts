@@ -2,7 +2,7 @@ import { sdk } from '$lib';
 import RestoreSnapshotModal from '$lib/components/backups/dialogs/RestoreSnapshotModal.svelte';
 import RollbackSnapshotModal from '$lib/components/backups/dialogs/RollbackSnapshotModal.svelte';
 import {
-  getSnapshots,
+  futoBackupsGetSnapshots,
   type ImmichRollbackRequestDto,
   type RepositorySnapshotRestoreFromPointRequestDto,
   type RepositorySnapshotRestoreRequestDto,
@@ -25,7 +25,7 @@ export const useSnapshots = (repositoryId: string) =>
     () => ({
       queryKey: snapshotKeys.byRepository(repositoryId),
       queryFn: () =>
-        getSnapshots(repositoryId).then(({ snapshots }) =>
+        futoBackupsGetSnapshots(repositoryId).then(({ snapshots }) =>
           snapshots.toSorted((a, b) => b.time.localeCompare(a.time)),
         ),
     }),
@@ -57,7 +57,7 @@ export const useRemoveSnapshot = (repositoryId: string) => {
 
 export const handleGetSnapshots = async (repositoryId: string) => {
   try {
-    return await sdk.getSnapshots(repositoryId);
+    return await sdk.futoBackupsGetSnapshots(repositoryId);
   } catch (error) {
     handleError(error, gt`Failed to load snapshots`);
     throw error;
@@ -75,7 +75,7 @@ export const useRestoreSnapshot = () =>
         repositoryId: string;
         snapshotId: string;
         options: RepositorySnapshotRestoreRequestDto;
-      }) => sdk.restoreSnapshot(repositoryId, snapshotId, options),
+      }) => sdk.futoBackupsRestoreSnapshot(repositoryId, snapshotId, options),
       onError: (error) => handleError(error, gt`Failed to start restore`),
     }),
     () => queryClient,
@@ -87,7 +87,7 @@ export const handleRestoreFromPoint = async (
   backendId: string,
   options: RepositorySnapshotRestoreFromPointRequestDto,
 ) => {
-  return await sdk.restoreFromPoint(
+  return await sdk.futoBackupsRestoreFromPoint(
     repositoryId,
     snapshotId,
     backendId,
@@ -106,7 +106,7 @@ export const handleForgetSnapshot = async (
   });
 
   try {
-    await sdk.forgetSnapshot(repositoryId, snapshotId);
+    await sdk.futoBackupsForgetSnapshot(repositoryId, snapshotId);
     toastManager.success(gt`Deleted snapshot`);
   } catch (error) {
     handleError(error, gt`Failed to delete snapshot`);
@@ -122,7 +122,7 @@ export const useRollbackSnapshot = () =>
   createMutation(
     () => ({
       mutationFn: (dto: ImmichRollbackRequestDto) =>
-        sdk.startImmichRollback(dto),
+        sdk.futoBackupsStartImmichRollback(dto),
       onError: (error) => handleError(error, gt`Failed to start rollback`),
     }),
     () => queryClient,
@@ -134,7 +134,7 @@ export const handleGetSnapshotListing = async (
   path?: string,
 ) => {
   try {
-    return await sdk.getSnapshotListing(id, snapshotId, { path });
+    return await sdk.futoBackupsGetSnapshotListing(id, snapshotId, { path });
   } catch (error) {
     handleError(error, gt`Failed to load directory listing`);
     throw error;

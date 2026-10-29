@@ -26,6 +26,7 @@ export class RepositoryController {
   @ApiQuery({ name: 'backend', type: String, required: false })
   @ApiCreatedResponse({ type: RepositoryCreateResponseDto })
   @ApiOperation({
+    operationId: 'futoBackupsCreateRepository',
     summary: 'Create a new backup',
     description: 'Create a backup repository on a backend.',
   })
@@ -39,6 +40,7 @@ export class RepositoryController {
   @Get()
   @ApiOkResponse({ type: RepositoryListResponseDto })
   @ApiOperation({
+    operationId: 'futoBackupsGetRepositories',
     summary: 'List backups',
     description: 'List the backup repositories known to this server.',
   })
@@ -50,6 +52,7 @@ export class RepositoryController {
   @ApiQuery({ name: 'backend', type: String, required: false })
   @ApiOkResponse({ type: RepositoryInspectResponseDto })
   @ApiOperation({
+    operationId: 'futoBackupsInspectRepositories',
     summary: 'List remote backups',
     description: 'List repositories on a backend that are not configured on this server.',
   })
@@ -61,6 +64,7 @@ export class RepositoryController {
   @ApiQuery({ name: 'backend', type: String, required: false })
   @ApiOkResponse({ type: RepositoryUpdateResponseDto })
   @ApiOperation({
+    operationId: 'futoBackupsUpdateRepository',
     summary: 'Update a backup',
     description: 'Update the settings of a repository.',
   })
@@ -74,6 +78,7 @@ export class RepositoryController {
 
   @Delete('/:id')
   @ApiOperation({
+    operationId: 'futoBackupsDeleteRepository',
     summary: 'Remove a backup',
     description: 'Remove a repository from this server.',
   })
@@ -85,6 +90,7 @@ export class RepositoryController {
   @Post('/:id/sync-deletion')
   @ApiCreatedResponse({ type: RepositorySyncDeletionResponseDto })
   @ApiOperation({
+    operationId: 'futoBackupsSyncRepositoryDeletion',
     summary: 'Sync a remote deletion',
     description: 'Remove a repository from this server once it has been deleted from its backend.',
   })
@@ -96,6 +102,7 @@ export class RepositoryController {
   @ApiParam({ name: 'id', type: String })
   @ApiCreatedResponse({ type: JobResponseDto })
   @ApiOperation({
+    operationId: 'futoBackupsCreateBackup',
     summary: 'Start a backup',
     description: 'Queue a backup to a repository and return the ID of its job.',
   })
@@ -107,6 +114,7 @@ export class RepositoryController {
   @ApiQuery({ name: 'backend', type: String })
   @ApiOkResponse({ type: RepositoryCheckImportResponseDto })
   @ApiOperation({
+    operationId: 'futoBackupsCheckImportRepository',
     summary: 'Check a repository import',
     description: 'Check that an existing repository on a backend can be opened with the recovery key.',
   })
@@ -118,6 +126,7 @@ export class RepositoryController {
   @ApiQuery({ name: 'backend', type: String })
   @ApiCreatedResponse({ type: RepositoryCreateResponseDto })
   @ApiOperation({
+    operationId: 'futoBackupsImportRepository',
     summary: 'Import a repository',
     description: 'Add an existing repository on a backend to this server.',
   })
@@ -128,6 +137,7 @@ export class RepositoryController {
   @Put('/:id/backend')
   @ApiOkResponse({ type: RepositoryCreateResponseDto })
   @ApiOperation({
+    operationId: 'futoBackupsReconfigureRepositoryPrimaryBackend',
     summary: 'Change the primary backend',
     description:
       'Create a new empty repository on the selected backend and redirect future backups to it. Existing snapshots are not migrated.',
@@ -143,6 +153,7 @@ export class RepositoryController {
   @ApiParam({ name: 'id', type: String })
   @ApiOkResponse({ type: ListSnapshotsResponseDto })
   @ApiOperation({
+    operationId: 'futoBackupsGetSnapshots',
     summary: 'List snapshots',
     description: 'List the snapshots in a repository.',
   })
@@ -154,6 +165,7 @@ export class RepositoryController {
   @ApiParam({ name: 'id', type: String })
   @ApiCreatedResponse({ type: JobResponseDto })
   @ApiOperation({
+    operationId: 'futoBackupsPruneRepository',
     summary: 'Prune a repository',
     description: 'Queue the removal of snapshots outside the retention policy and return the ID of its job.',
   })
@@ -166,6 +178,7 @@ export class RepositoryController {
   @ApiParam({ name: 'snapshot', type: String })
   @ApiCreatedResponse({ type: JobResponseDto })
   @ApiOperation({
+    operationId: 'futoBackupsRestoreSnapshot',
     summary: 'Restore a snapshot',
     description: 'Queue a restore of files from a snapshot and return the ID of its job.',
   })
@@ -183,6 +196,7 @@ export class RepositoryController {
   @ApiQuery({ name: 'backend', type: String })
   @ApiCreatedResponse({ type: JobResponseDto })
   @ApiOperation({
+    operationId: 'futoBackupsRestoreFromPoint',
     summary: 'Restore from snapshot',
     description: 'Restore the orchestrator to a previous state, wiping the current state.',
   })
@@ -200,6 +214,7 @@ export class RepositoryController {
   @ApiParam({ name: 'snapshot', type: String })
   @ApiOkResponse({ type: ListSnapshotsResponseDto })
   @ApiOperation({
+    operationId: 'futoBackupsForgetSnapshot',
     summary: 'Delete a snapshot',
     description: 'Remove a snapshot from a repository.',
   })
@@ -213,6 +228,7 @@ export class RepositoryController {
   @ApiQuery({ name: 'path', type: String, required: false })
   @ApiOkResponse({ type: FilesystemListingResponseDto })
   @ApiOperation({
+    operationId: 'futoBackupsGetSnapshotListing',
     summary: 'List snapshot files',
     description: 'List the files and folders at a path in a snapshot.',
   })
