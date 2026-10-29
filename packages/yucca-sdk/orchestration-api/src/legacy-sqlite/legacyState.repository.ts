@@ -43,6 +43,13 @@ export class LegacyStateRepository {
       return;
     }
 
+    const existingConfig = await this.db.selectFrom('futo_backups_config').select('key').executeTakeFirst();
+    if (existingConfig) {
+      this.logger.warn(`Not importing ${path} again: the state has already been imported`);
+      await rename(path, `${path}.imported`);
+      return;
+    }
+
     const legacy = await openLegacyStateDatabase(path);
 
     try {

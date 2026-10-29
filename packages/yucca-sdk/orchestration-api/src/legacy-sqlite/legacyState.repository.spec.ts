@@ -3,7 +3,7 @@ import { Kysely, SqliteDialect } from 'kysely';
 import { PGliteDialect } from 'kysely-pglite-dialect';
 import { FileMigrationProvider, Migrator } from 'kysely/migration';
 import { existsSync } from 'node:fs';
-import { mkdtemp, readdir, rm } from 'node:fs/promises';
+import { mkdtemp, readdir, rename, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { createPGlite } from '../bin/pglite.js';
@@ -407,5 +407,38 @@ describe(LegacyStateRepository.name, () => {
     expect(backends).toEqual([]);
     expect(existsSync(join(directory, 'state.sqlite3'))).toBe(true);
     expect(existsSync(join(directory, 'state.sqlite3.imported'))).toBe(false);
+  });
+
+  it('retries a failed import on the next run', async () => {
+    await createLegacyState([
+      `INSERT INTO config (key, value) VALUES ('encryption-key', 'abc123')`,
+      `INSERT INTO schedules (id, name, paused, cron, ordering) VALUES ('invalid-uuid', 'Daily', 0, '0 0 * * *', '[]')`,
+    ]);
+    await expect(legacyState.importFrom(directory)).rejects.toThrow('invalid input syntax for type uuid');
+
+    const legacy = new Database(join(directory, 'state.sqlite3'));
+    legacy.exec(`UPDATE schedules SET id = '${scheduleId}'`);
+    legacy.close();
+    await legacyState.importFrom(directory);
+
+    const config = await db.selectFrom('futo_backups_config').selectAll().execute();
+    expect(config).toEqual([{ key: ConfigurationKey.EncryptionKey, value: { key: 'abc123' } }]);
+    expect(existsSync(join(directory, 'state.sqlite3.imported'))).toBe(true);
+  });
+
+  it('does not import again when the legacy database could not be renamed after an import', async () => {
+    await createLegacyState([
+      `INSERT INTO config (key, value) VALUES ('encryption-key', 'abc123')`,
+      `INSERT INTO backends (id, configuration) VALUES ('${backendId}', '{"type":"local","path":"/backups"}')`,
+    ]);
+    await legacyState.importFrom(directory);
+    await rename(join(directory, 'state.sqlite3.imported'), join(directory, 'state.sqlite3'));
+
+    await legacyState.importFrom(directory);
+
+    const backends = await db.selectFrom('futo_backups_backends').selectAll().execute();
+    expect(backends).toHaveLength(1);
+    expect(existsSync(join(directory, 'state.sqlite3'))).toBe(false);
+    expect(existsSync(join(directory, 'state.sqlite3.imported'))).toBe(true);
   });
 });

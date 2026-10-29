@@ -32,10 +32,8 @@ export class BootstrapService implements OnApplicationBootstrap {
         await discardStateCacheDirectory(this.moduleConfig.get());
       }
 
-      const { ranInitialMigration } = await this.database.runMigrations();
-      if (ranInitialMigration) {
-        await this.legacyState.importFrom(this.moduleConfig.get().statePath);
-      }
+      await this.database.runMigrations();
+      await this.legacyState.importFrom(this.moduleConfig.get().statePath);
 
       await this.config.bootstrap();
       await this.configService.bootstrap();

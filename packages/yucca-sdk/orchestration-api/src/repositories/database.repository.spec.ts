@@ -87,11 +87,4 @@ describe(DatabaseRepository.name, () => {
     await repository.runMigrations();
     expect(await tableNames()).toEqual(migratedTables);
   });
-
-  it('reports the initial migration only on the run that applies it', async () => {
-    await repository.resetMigrations();
-
-    await expect(repository.runMigrations()).resolves.toEqual({ ranInitialMigration: true });
-    await expect(repository.runMigrations()).resolves.toEqual({ ranInitialMigration: false });
-  });
 });
