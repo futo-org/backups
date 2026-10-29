@@ -1,7 +1,9 @@
+import { PGlite } from '@electric-sql/pglite';
 import { LoggingRepository, OrchestrationApiModule } from '@futo-org/backups-orchestrator-api';
 import { NestFactory } from '@nestjs/core';
 import type { NestExpressApplication } from '@nestjs/platform-express';
 import express from 'express';
+import { PGliteDialect } from 'kysely-pglite-dialect';
 import { ZodValidationPipe } from 'nestjs-zod';
 import { mkdir, stat } from 'node:fs/promises';
 import { resolve } from 'node:path';
@@ -20,9 +22,12 @@ async function bootstrap() {
     await mkdir(env.cachePath, { recursive: true });
   }
 
+  const database = await PGlite.create({ dataDir: resolve(env.statePath, 'state-pglite') });
+
   const app = await NestFactory.create<NestExpressApplication>(
     OrchestrationApiModule.forRootAsync({
       useFactory: () => ({
+        dialect: new PGliteDialect(database),
         statePath: env.statePath,
         cachePath: env.cachePath,
         wellKnownUrl: env.wellKnownUrl,
