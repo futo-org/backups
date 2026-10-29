@@ -22,7 +22,7 @@ type contextKey struct{}
 
 func reverseProxy(grants *hashmap.Map[string, client.Grant]) *httputil.ReverseProxy {
 	return &httputil.ReverseProxy{
-		Transport:  newTransport(),
+		Transport:  retryTransport{next: newTransport()},
 		BufferPool: newBufferPool(),
 		Rewrite: func(request *httputil.ProxyRequest) {
 			route := request.In.Context().Value(contextKey{}).(routed)

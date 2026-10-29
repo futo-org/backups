@@ -28,6 +28,9 @@ const (
 
 func TestMain(m *testing.M) {
 	zerolog.SetGlobalLevel(zerolog.InfoLevel)
+	retryBudget = 300 * time.Millisecond
+	retryBaseDelay = 10 * time.Millisecond
+	retryMaxDelay = 50 * time.Millisecond
 	os.Exit(m.Run())
 }
 
