@@ -3,10 +3,7 @@ import { APP_GUARD, APP_INTERCEPTOR, DiscoveryModule } from '@nestjs/core';
 import { EventEmitterModule } from '@nestjs/event-emitter';
 import { JwtModule } from '@nestjs/jwt';
 import { ScheduleModule } from '@nestjs/schedule';
-import Database from 'better-sqlite3';
-import { type SqliteDatabase, SqliteDialect } from 'kysely';
 import { KyselyModule } from 'nestjs-kysely';
-import { existsSync, mkdirSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { resolve } from 'node:path';
 import { AuthController } from './controllers/auth.controller.js';
@@ -124,27 +121,6 @@ export const jobs = [
   RepositorySyncMetricsJob,
 ];
 
-export function openStateDatabase(
-  config: Pick<ModuleConfig, 'statePath'>,
-  logger = LoggingRepository.create('State'),
-): SqliteDatabase {
-  mkdirSync(config.statePath, { recursive: true });
-
-  const databasePath = resolve(config.statePath, 'state.sqlite3');
-
-  if (existsSync(databasePath)) {
-    logger.log(`Opened existing state database at ${databasePath}`);
-  } else {
-    logger.warn(`No state database at ${databasePath}, creating a new one`);
-  }
-
-  const database = new Database(databasePath);
-  database.pragma('journal_mode = WAL');
-  database.pragma('wal_autocheckpoint = 1');
-
-  return database;
-}
-
 export interface OrchestrationApiModuleAsyncOptions extends Pick<ModuleMetadata, 'imports'> {
   inject?: FactoryProvider['inject'];
   useFactory: (...args: any[]) => Promise<Partial<ModuleConfig>> | Partial<ModuleConfig>;
@@ -187,7 +163,7 @@ export class OrchestrationApiModule {
           imports: [configModule],
           inject: [ModuleConfigProvider],
           useFactory: (config: ModuleConfig) => ({
-            dialect: new SqliteDialect({ database: openStateDatabase(config) }),
+            dialect: config.dialect,
           }),
         }),
         EventEmitterModule.forRoot(),

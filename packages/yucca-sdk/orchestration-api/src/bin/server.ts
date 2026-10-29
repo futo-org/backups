@@ -1,13 +1,19 @@
 import { NestFactory } from '@nestjs/core';
+import { PGliteDialect } from 'kysely-pglite-dialect';
 import { ZodValidationPipe } from 'nestjs-zod';
+import { homedir } from 'node:os';
+import { resolve } from 'node:path';
 import { LoggingRepository, ORCHESTRATION_PORT, OrchestrationApiModule } from '../index.js';
+import { createPGlite } from './pglite.js';
 
 async function bootstrap() {
   const databaseDumpConfig = { enabled: true, keepLastAmount: 14 };
+  const database = await createPGlite(resolve(homedir(), '.yucca-pglite'));
 
   const app = await NestFactory.create(
     OrchestrationApiModule.forRootAsync({
       useFactory: () => ({
+        dialect: new PGliteDialect(database),
         wellKnownUrl: process.env.FUTO_BACKUPS_WELL_KNOWN_URL,
         developmentMode: true,
         immichIntegration: {

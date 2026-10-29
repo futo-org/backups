@@ -1,14 +1,19 @@
 import { NestApplication, NestFactory } from '@nestjs/core';
 import { DocumentBuilder, SwaggerCustomOptions, SwaggerDocumentOptions, SwaggerModule } from '@nestjs/swagger';
+import { PGliteDialect } from 'kysely-pglite-dialect';
 import { cleanupOpenApiDoc } from 'nestjs-zod';
 import { writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { OrchestrationApiModule } from '../index.js';
+import { createPGlite } from './pglite.js';
 
 async function main() {
+  const database = await createPGlite();
   const app = await NestFactory.create<NestApplication>(
     OrchestrationApiModule.forRootAsync({
-      useFactory: () => ({}),
+      useFactory: () => ({
+        dialect: new PGliteDialect(database),
+      }),
     }),
   );
 
@@ -39,6 +44,7 @@ async function main() {
   writeFileSync(outputPath, JSON.stringify(specification, null, 2), { encoding: 'utf8' });
 
   await app.close();
+  await database.close();
 }
 
 void main();
