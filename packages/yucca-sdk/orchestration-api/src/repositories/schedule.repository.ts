@@ -13,7 +13,11 @@ export class ScheduleRepository {
   }
 
   async get(id: string) {
-    const row = await this.db.selectFrom('futo_backups_schedule').selectAll('futo_backups_schedule').where('id', '=', id).executeTakeFirst();
+    const row = await this.db
+      .selectFrom('futo_backups_schedule')
+      .selectAll('futo_backups_schedule')
+      .where('id', '=', id)
+      .executeTakeFirst();
 
     if (row) {
       const { ordering, paused, ...schedule } = row;
@@ -21,15 +25,15 @@ export class ScheduleRepository {
       const repositorySchedules = await this.db
         .selectFrom('futo_backups_repository_schedule')
         .selectAll('futo_backups_repository_schedule')
-        .where('schedule', '=', id)
+        .where('scheduleId', '=', id)
         .execute();
 
       return {
         ...schedule,
         paused: !!paused,
         repositories: repositorySchedules
-          .filter(({ schedule: scheduleId }) => scheduleId === schedule.id)
-          .map(({ repository }) => repository)
+          .filter(({ scheduleId }) => scheduleId === schedule.id)
+          .map(({ repositoryId }) => repositoryId)
           .toSorted((a, b) => ordering.indexOf(a) - ordering.indexOf(b)),
       };
     }
@@ -46,8 +50,8 @@ export class ScheduleRepository {
       ...schedule,
       paused: !!paused,
       repositories: repositorySchedules
-        .filter(({ schedule: scheduleId }) => scheduleId === schedule.id)
-        .map(({ repository }) => repository)
+        .filter(({ scheduleId }) => scheduleId === schedule.id)
+        .map(({ repositoryId }) => repositoryId)
         .toSorted((a, b) => ordering.indexOf(a) - ordering.indexOf(b)),
     }));
   }
@@ -56,35 +60,40 @@ export class ScheduleRepository {
     const repositorySchedules = await this.db
       .selectFrom('futo_backups_repository_schedule')
       .selectAll('futo_backups_repository_schedule')
-      .where('schedule', '=', id)
+      .where('scheduleId', '=', id)
       .execute();
 
-    return repositorySchedules.map(({ repository }) => repository);
+    return repositorySchedules.map(({ repositoryId }) => repositoryId);
   }
 
   updateSchedule(id: string, schedule: Updateable<ScheduleTable>) {
-    return this.db.updateTable('futo_backups_schedule').where('id', '=', id).set(schedule).returningAll().executeTakeFirst();
+    return this.db
+      .updateTable('futo_backups_schedule')
+      .where('id', '=', id)
+      .set(schedule)
+      .returningAll()
+      .executeTakeFirst();
   }
 
   removeSchedule(id: string) {
     return this.db.deleteFrom('futo_backups_schedule').where('id', '=', id).execute();
   }
 
-  addRepositoryToSchedule(schedule: string, repository: string) {
+  addRepositoryToSchedule(scheduleId: string, repositoryId: string) {
     return this.db
       .insertInto('futo_backups_repository_schedule')
       .values({
-        repository,
-        schedule,
+        repositoryId,
+        scheduleId,
       })
       .execute();
   }
 
-  removeRepositoryFromSchedule(schedule: string, repository: string) {
+  removeRepositoryFromSchedule(scheduleId: string, repositoryId: string) {
     return this.db
       .deleteFrom('futo_backups_repository_schedule')
-      .where('schedule', '=', schedule)
-      .where('repository', '=', repository)
+      .where('scheduleId', '=', scheduleId)
+      .where('repositoryId', '=', repositoryId)
       .execute();
   }
 }

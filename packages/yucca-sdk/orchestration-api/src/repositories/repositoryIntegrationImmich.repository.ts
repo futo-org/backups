@@ -9,7 +9,10 @@ export class RepositoryIntegrationImmichRepository {
   constructor(@InjectKysely('orchestrator') private db: Kysely<DB>) {}
 
   async get() {
-    const integration = await this.db.selectFrom('futo_backups_integrations_immich_config').selectAll().executeTakeFirst();
+    const integration = await this.db
+      .selectFrom('futo_backups_integrations_immich_config')
+      .selectAll()
+      .executeTakeFirst();
     if (!integration) {
       return;
     }
@@ -19,7 +22,7 @@ export class RepositoryIntegrationImmichRepository {
     };
 
     return {
-      id: integration.id,
+      id: integration.repositoryId,
       scheduleId: integration.scheduleId,
       configuration: {
         ...configuration,
@@ -28,18 +31,23 @@ export class RepositoryIntegrationImmichRepository {
     };
   }
 
-  async upsert(id: string, scheduleId: string, configuration: ImmichRepositoryConfig) {
+  async upsert(repositoryId: string, scheduleId: string, configuration: ImmichRepositoryConfig) {
     await this.db.transaction().execute(async (tx) => {
-      await tx.deleteFrom('futo_backups_integrations_immich_config').where('id', '!=', id).execute();
+      await tx
+        .deleteFrom('futo_backups_integrations_immich_config')
+        .where('repositoryId', '!=', repositoryId)
+        .execute();
 
       await tx
         .insertInto('futo_backups_integrations_immich_config')
         .values({
-          id,
+          repositoryId,
           scheduleId,
           configuration: JSON.stringify(configuration),
         })
-        .onConflict((oc) => oc.column('id').doUpdateSet({ configuration: JSON.stringify(configuration), scheduleId }))
+        .onConflict((oc) =>
+          oc.column('repositoryId').doUpdateSet({ configuration: JSON.stringify(configuration), scheduleId }),
+        )
         .returningAll()
         .executeTakeFirstOrThrow();
     });

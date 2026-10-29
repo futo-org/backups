@@ -77,9 +77,9 @@ export class RepositoryRepository {
   }
 
   async delete(id: string) {
-    await this.db.deleteFrom('futo_backups_local_metrics').where('id', '=', id).execute();
-    await this.db.deleteFrom('futo_backups_repository_path').where('id', '=', id).execute();
-    await this.db.deleteFrom('futo_backups_repository_schedule').where('repository', '=', id).execute();
+    await this.db.deleteFrom('futo_backups_local_metrics').where('repositoryId', '=', id).execute();
+    await this.db.deleteFrom('futo_backups_repository_path').where('repositoryId', '=', id).execute();
+    await this.db.deleteFrom('futo_backups_repository_schedule').where('repositoryId', '=', id).execute();
     await this.db.deleteFrom('futo_backups_jobs').where('repositoryId', '=', id).execute();
     await this.db.deleteFrom('futo_backups_repositories').where('id', '=', id).execute();
   }

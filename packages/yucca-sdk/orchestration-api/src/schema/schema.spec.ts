@@ -3,6 +3,8 @@ import { Kysely, sql } from 'kysely';
 import { PGliteDialect } from 'kysely-pglite-dialect';
 import { createPGlite } from '../bin/pglite.js';
 import { BackendType, ConfigurationKey, JobName, JobStatus } from '../enum.js';
+import { RepositoryPathRepository } from '../repositories/repositoryPath.repository.js';
+import { ScheduleRepository } from '../repositories/schedule.repository.js';
 import './index.js';
 import type { DB } from './index.js';
 
@@ -115,20 +117,22 @@ describe('Postgres orchestration schema', () => {
       .executeTakeFirstOrThrow();
     expect(schedule.ordering).toEqual([]);
 
-    await db
-      .insertInto('futo_backups_repository_path')
-      .values([
-        { repositoryId: repository.id, path: '/one' },
-        { repositoryId: repository.id, path: '/two' },
-      ])
-      .execute();
-    await expect(
-      db.insertInto('futo_backups_repository_path').values({ repositoryId: repository.id, path: '/one' }).execute(),
-    ).rejects.toThrow();
+    const paths = new RepositoryPathRepository(db);
+    await paths.create({ repositoryId: repository.id, path: '/one' });
+    await paths.create({ repositoryId: repository.id, path: '/two' });
+    expect(await paths.get(repository.id)).toEqual(expect.arrayContaining(['/one', '/two']));
+    expect(await paths.getAll()).toContainEqual({ repositoryId: repository.id, path: '/one' });
+    await expect(paths.create({ repositoryId: repository.id, path: '/one' })).rejects.toThrow();
+    await paths.delete(repository.id, '/two');
+    expect(await paths.get(repository.id)).toEqual(['/one']);
 
-    const link = { repositoryId: repository.id, scheduleId: schedule.id };
-    await db.insertInto('futo_backups_repository_schedule').values(link).execute();
-    await expect(db.insertInto('futo_backups_repository_schedule').values(link).execute()).rejects.toThrow();
+    const schedules = new ScheduleRepository(db);
+    await schedules.addRepositoryToSchedule(schedule.id, repository.id);
+    expect(await schedules.getRepositoryIds(schedule.id)).toEqual([repository.id]);
+    await expect(schedules.addRepositoryToSchedule(schedule.id, repository.id)).rejects.toThrow();
+    await schedules.removeRepositoryFromSchedule(schedule.id, repository.id);
+    expect(await schedules.getRepositoryIds(schedule.id)).toEqual([]);
+    await schedules.addRepositoryToSchedule(schedule.id, repository.id);
     await db.insertInto('futo_backups_local_metrics').values({ repositoryId: repository.id }).execute();
     await db
       .insertInto('futo_backups_integrations_immich_config')

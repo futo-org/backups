@@ -12,8 +12,12 @@ export class RepositoryPathRepository {
     return this.db.insertInto('futo_backups_repository_path').values(entry).returningAll().executeTakeFirstOrThrow();
   }
 
-  async get(id: string) {
-    const result = await this.db.selectFrom('futo_backups_repository_path').select('path').where('id', '=', id).execute();
+  async get(repositoryId: string) {
+    const result = await this.db
+      .selectFrom('futo_backups_repository_path')
+      .select('path')
+      .where('repositoryId', '=', repositoryId)
+      .execute();
     return result.map(({ path }) => path);
   }
 
@@ -21,10 +25,10 @@ export class RepositoryPathRepository {
     return this.db.selectFrom('futo_backups_repository_path').selectAll().execute();
   }
 
-  delete(id: string, path: string) {
+  delete(repositoryId: string, path: string) {
     return this.db
       .deleteFrom('futo_backups_repository_path')
-      .where('id', '=', id)
+      .where('repositoryId', '=', repositoryId)
       .where('path', '=', path)
       .executeTakeFirstOrThrow();
   }

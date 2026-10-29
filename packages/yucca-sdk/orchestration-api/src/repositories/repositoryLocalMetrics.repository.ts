@@ -9,11 +9,11 @@ import { RepositoryLocalMetricsTable } from '../schema/tables/repositoryLocalMet
 export class RepositoryLocalMetricsRepository {
   constructor(@InjectKysely('orchestrator') private db: Kysely<DB>) {}
 
-  async save(id: string, metrics: Updateable<RepositoryLocalMetricsTable>) {
+  async save(repositoryId: string, metrics: Updateable<RepositoryLocalMetricsTable>) {
     return await this.db
       .insertInto('futo_backups_local_metrics')
       .values({
-        id,
+        repositoryId,
         sizeBytes: 0,
         ...metrics,
       })
@@ -22,12 +22,12 @@ export class RepositoryLocalMetricsRepository {
       .executeTakeFirstOrThrow();
   }
 
-  async get(id: string): Promise<RepositoryMetricsDto> {
+  async get(repositoryId: string): Promise<RepositoryMetricsDto> {
     return (
       (await this.db
         .selectFrom('futo_backups_local_metrics')
         .selectAll('futo_backups_local_metrics')
-        .where('id', '=', id)
+        .where('repositoryId', '=', repositoryId)
         .executeTakeFirst()) ?? {
         sizeBytes: 0,
       }
