@@ -1,5 +1,20 @@
 # Changelog
 
+## [1.11.4](https://github.com/futo-org/backups/compare/v1.11.3...v1.11.4) (2026-10-29)
+
+
+### Code Refactoring
+
+* **yucca sdk:** let consumers provide their own layout ([#126](https://github.com/futo-org/backups/issues/126)) ([92c0e1a](https://github.com/futo-org/backups/commit/92c0e1a07793483463f23e24411e0c8c67a626d1))
+* **yucca sdk:** move routes under `/api/futo-backups` ([#125](https://github.com/futo-org/backups/issues/125)) ([7a40dd9](https://github.com/futo-org/backups/commit/7a40dd99619d633f3f45850a7fa7f7c7c4efac68))
+* **yucca sdk:** wrap lingui for consumers ([#127](https://github.com/futo-org/backups/issues/127)) ([87888ac](https://github.com/futo-org/backups/commit/87888ac969ea40db36718ad64cba830a8b6cd446))
+
+
+### Miscellaneous Chores
+
+* include refactors in releases ([#129](https://github.com/futo-org/backups/issues/129)) ([133cc09](https://github.com/futo-org/backups/commit/133cc09cf43b9dac57d7ea187f11488e5a2a93ef))
+* release all types ([#131](https://github.com/futo-org/backups/issues/131)) ([1025341](https://github.com/futo-org/backups/commit/1025341e268e1df6b10bbd26001fdd232968dfda))
+
 ## [1.11.3](https://github.com/futo-org/backups/compare/v1.11.2...v1.11.3) (2026-10-28)
 
 
