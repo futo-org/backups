@@ -39,6 +39,11 @@ export class RepositoryLocalMetricsRepository {
       .select(['repositoryId', 'sizeBytes', 'lastBackup', 'lastBackupStatus', 'lastBackupDuration'])
       .execute();
 
-    return rows.map((row) => ({ ...row, lastBackup: row.lastBackup?.toISOString() }));
+    return new Map(
+      rows.map(({ repositoryId, lastBackup, ...metrics }) => [
+        repositoryId,
+        { ...metrics, lastBackup: lastBackup?.toISOString() },
+      ]),
+    );
   }
 }

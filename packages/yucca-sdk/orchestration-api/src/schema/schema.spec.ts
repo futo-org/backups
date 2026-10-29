@@ -100,12 +100,12 @@ describe('Postgres orchestration schema', () => {
     });
     await localMetrics.save(repository.id, { lastBackupDuration: 84 });
     expect(await localMetrics.get(repository.id)).toMatchObject({ sizeBytes: 5_000_000_000, lastBackupDuration: 84 });
-    expect(await localMetrics.getAll()).toContainEqual({
-      repositoryId: repository.id,
+    const allMetrics = await localMetrics.getAll();
+    expect(allMetrics.get(repository.id)).toStrictEqual({
       sizeBytes: 5_000_000_000,
       lastBackup: lastRun.toISOString(),
-      lastBackupDuration: 84,
       lastBackupStatus: null,
+      lastBackupDuration: 84,
     });
   });
 

@@ -179,7 +179,7 @@ export class RepositoryService {
         retentionPolicy,
       };
 
-      const metrics = localMetrics.find((entry) => entry.repositoryId === id);
+      const metrics = localMetrics.get(id);
 
       if (remoteRepository) {
         if (remoteRepository.siteCode !== siteCode || remoteRepository.storageClusterCode !== storageClusterCode) {
