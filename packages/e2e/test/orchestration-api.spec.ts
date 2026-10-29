@@ -13,7 +13,7 @@ sdk.defaults.baseUrl = baseUrl;
 let socket: Socket;
 
 const startDeviceFlow = async (path = 'oidc/device') => {
-  const events = createEventSource(`${baseUrl}/api/yucca/auth/${path}`);
+  const events = createEventSource(`${baseUrl}/api/futo-backups/auth/${path}`);
 
   for await (const { data } of events) {
     const message = JSON.parse(data);
@@ -102,7 +102,7 @@ beforeAll(async () => {
   await sdk.resetOrchestrator();
 
   socket = io(baseUrl, {
-    path: '/api/yucca/socket.io',
+    path: '/api/futo-backups/socket.io',
     transports: ['websocket'],
   });
 
@@ -160,7 +160,7 @@ describe('Auth', () => {
   });
 
   it('fails the session device flow before a backend is connected', async () => {
-    const events = createEventSource(`${baseUrl}/api/yucca/auth/session/device`);
+    const events = createEventSource(`${baseUrl}/api/futo-backups/auth/session/device`);
 
     await expect(nextDeviceFlowEvent(events)).resolves.toEqual({ type: 'FAILURE', reason: 'NOT_CONNECTED' });
 
@@ -512,7 +512,7 @@ describe('Repository', () => {
     const { jobs } = await sdk.getJobs(repository.id);
     const { id } = jobs.find((job) => job.name === 'repository-backup')!;
 
-    const response = await fetch(`${baseUrl}/api/yucca/jobs/${id}/download`);
+    const response = await fetch(`${baseUrl}/api/futo-backups/jobs/${id}/download`);
 
     expect(response.status).toBe(200);
     expect(response.headers.get('content-type')).toMatch(/^application\/jsonl/);
@@ -1027,7 +1027,7 @@ describe('Immich integration', () => {
   it('starts an immich rollback and sets the maintenance token cookie', async () => {
     const { immichIntegration } = await sdk.getIntegrations();
 
-    const response = await fetch(`${baseUrl}/api/yucca/integrations/immich/rollback`, {
+    const response = await fetch(`${baseUrl}/api/futo-backups/integrations/immich/rollback`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({

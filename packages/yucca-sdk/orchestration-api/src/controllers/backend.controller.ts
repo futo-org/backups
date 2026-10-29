@@ -3,7 +3,7 @@ import { ApiCreatedResponse, ApiOkResponse, ApiOperation } from '@nestjs/swagger
 import { BackendResponseDto, BackendsResponseDto, CreateLocalBackendRequestDto } from '../dto/backend.dto.js';
 import { BackendService } from '../services/backend.service.js';
 
-@Controller('/yucca/backend')
+@Controller('/futo-backups/backend')
 export class BackendController {
   constructor(private readonly service: BackendService) {}
 

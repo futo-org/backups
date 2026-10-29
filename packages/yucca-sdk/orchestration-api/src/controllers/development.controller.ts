@@ -2,7 +2,7 @@ import { Controller, Post } from '@nestjs/common';
 import { ApiCreatedResponse, ApiOperation } from '@nestjs/swagger';
 import { DevelopmentService } from '../services/development.service.js';
 
-@Controller('/yucca/debug')
+@Controller('/futo-backups/debug')
 export class DevelopmentController {
   constructor(private readonly service: DevelopmentService) {}
 

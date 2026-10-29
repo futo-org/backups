@@ -6,7 +6,7 @@ import { JobRepository } from '../repositories/job.repository.js';
 import { StorageRepository } from '../repositories/storage.repository.js';
 import { supportLogFilePath } from '../services/supportMode.service.js';
 
-@Controller('/yucca/jobs')
+@Controller('/futo-backups/jobs')
 export class JobController {
   constructor(
     private readonly repository: JobRepository,

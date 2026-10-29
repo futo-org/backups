@@ -13,7 +13,7 @@ import { type Response } from 'express';
 import { ImmichCookie } from '../enum.js';
 import { IntegrationsService } from '../services/integrations.service.js';
 
-@Controller('/yucca/integrations')
+@Controller('/futo-backups/integrations')
 export class IntegrationsController {
   constructor(private readonly service: IntegrationsService) {}
 

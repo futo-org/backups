@@ -12,7 +12,7 @@ const failRequest = async (controller: object) => {
   const interceptor = new TelemetryErrorInterceptor(telemetry as never);
   const context = {
     getClass: () => controller,
-    switchToHttp: () => ({ getRequest: () => ({ method: 'GET', url: '/api/yucca/jobs' }) }),
+    switchToHttp: () => ({ getRequest: () => ({ method: 'GET', url: '/api/futo-backups/jobs' }) }),
   } as unknown as ExecutionContext;
   const next = { handle: () => throwError(() => new Error('boom')) };
 
@@ -27,7 +27,7 @@ describe(TelemetryErrorInterceptor.name, () => {
 
     expect(submitStructuredLog).toHaveBeenCalledWith(
       'Unhandled request error',
-      expect.objectContaining({ method: 'GET', path: '/api/yucca/jobs' }),
+      expect.objectContaining({ method: 'GET', path: '/api/futo-backups/jobs' }),
     );
   });
 

@@ -114,7 +114,7 @@ wait_for_http() {
 wait_for_http yucca-api http://localhost:3020/api/meta 200
 # Onboarding status, not just any response: it is the first thing the suites
 # call, and only answers once discovery has reached a live yucca-api.
-wait_for_http orchestration-api http://localhost:22676/api/yucca/onboarding 200
+wait_for_http orchestration-api http://localhost:22676/api/futo-backups/onboarding 200
 
 echo "==> jest e2e (it-works, restic, yucca-api, orchestration-api)"
 # shellcheck disable=SC1091

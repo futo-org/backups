@@ -66,7 +66,7 @@ export type GatewayEvent =
 
 @WebSocketGateway({
   cors: false,
-  path: '/api/yucca/socket.io',
+  path: '/api/futo-backups/socket.io',
   transports: ['websocket'],
 })
 export class EventsGateway implements OnGatewayConnection {

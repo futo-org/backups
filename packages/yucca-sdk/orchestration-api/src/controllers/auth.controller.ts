@@ -9,7 +9,7 @@ import { PublicRoute } from '../middleware/session.guard.js';
 import { AuthService } from '../services/auth.service.js';
 import { SessionService } from '../services/session.service.js';
 
-@Controller('/yucca/auth')
+@Controller('/futo-backups/auth')
 export class AuthController {
   constructor(
     readonly auth: AuthService,
