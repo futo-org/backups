@@ -1,7 +1,7 @@
 import { BeforeApplicationShutdown, Injectable, NotFoundException, OnModuleInit } from '@nestjs/common';
 import { DiscoveryService, Reflector } from '@nestjs/core';
 import { Interval } from '@nestjs/schedule';
-import { Kysely, Selectable, sql, UpdateQueryBuilder, UpdateResult } from 'kysely';
+import { Kysely, Selectable, UpdateQueryBuilder, UpdateResult } from 'kysely';
 import { InjectKysely } from 'nestjs-kysely';
 import { randomUUID } from 'node:crypto';
 import { dirname, join, resolve } from 'node:path';
@@ -25,9 +25,21 @@ import { SupportContextRepository } from './supportContext.repository.js';
 
 export type Job = Selectable<JobTable>;
 
-const toJobDto = ({ data: _data, logFilePath: _logFilePath, outcome, ...job }: Job): JobDto => ({
+const toJobDto = ({
+  data: _data,
+  logFilePath: _logFilePath,
+  sequence: _sequence,
+  queuedAt,
+  start,
+  end,
+  outcome,
+  ...job
+}: Job): JobDto => ({
   ...job,
-  outcome: outcome ? JSON.parse(outcome) : undefined,
+  queuedAt: queuedAt.toISOString(),
+  start: start?.toISOString(),
+  end: end?.toISOString(),
+  outcome: outcome ?? undefined,
 });
 
 const finishedStatuses = new Set([JobStatus.Complete, JobStatus.Warn, JobStatus.Failed, JobStatus.Cancelled]);
@@ -100,7 +112,7 @@ export class JobRepository implements OnModuleInit, BeforeApplicationShutdown {
 
     return this.db
       .updateTable('futo_backups_jobs')
-      .set({ status: JobStatus.Incomplete, end: new Date().toISOString() })
+      .set({ status: JobStatus.Incomplete, end: new Date() })
       .where('status', 'in', [JobStatus.Queued, JobStatus.Running])
       .returningAll()
       .execute();
@@ -149,7 +161,6 @@ export class JobRepository implements OnModuleInit, BeforeApplicationShutdown {
       return [];
     }
 
-    const queuedAt = new Date().toISOString();
     const jobs = await this.db
       .insertInto('futo_backups_jobs')
       .values(
@@ -160,10 +171,9 @@ export class JobRepository implements OnModuleInit, BeforeApplicationShutdown {
             id,
             name,
             repositoryId: data.repositoryId,
-            data: JSON.stringify(data),
+            data,
             status: JobStatus.Queued,
             logFilePath: join('logs', 'jobs', `${id}.jsonl`),
-            queuedAt,
           };
         }),
       )
@@ -198,7 +208,7 @@ export class JobRepository implements OnModuleInit, BeforeApplicationShutdown {
       .selectAll()
       .where('repositoryId', '=', repositoryId)
       .orderBy('queuedAt', 'desc')
-      .orderBy(sql`rowid`, 'desc')
+      .orderBy('sequence', 'desc')
       .execute();
 
     return jobs.map((job) => toJobDto(job));
@@ -211,7 +221,7 @@ export class JobRepository implements OnModuleInit, BeforeApplicationShutdown {
       .where('repositoryId', '=', repositoryId)
       .where('name', '=', name)
       .orderBy('queuedAt', 'desc')
-      .orderBy(sql`rowid`, 'desc')
+      .orderBy('sequence', 'desc')
       .limit(1)
       .executeTakeFirst();
 
@@ -295,10 +305,12 @@ export class JobRepository implements OnModuleInit, BeforeApplicationShutdown {
     }
   }
 
-  private async cancelQueued(where: Parameters<UpdateQueryBuilder<DB, 'futo_backups_jobs', 'futo_backups_jobs', UpdateResult>['where']>[0]) {
+  private async cancelQueued(
+    where: Parameters<UpdateQueryBuilder<DB, 'futo_backups_jobs', 'futo_backups_jobs', UpdateResult>['where']>[0],
+  ) {
     const cancelled = await this.db
       .updateTable('futo_backups_jobs')
-      .set({ status: JobStatus.Cancelled, end: new Date().toISOString() })
+      .set({ status: JobStatus.Cancelled, end: new Date() })
       .where('status', '=', JobStatus.Queued)
       .where(where)
       .returningAll()
@@ -309,7 +321,7 @@ export class JobRepository implements OnModuleInit, BeforeApplicationShutdown {
         type: 'JobUpdate',
         jobId: job.id,
         repositoryId: job.repositoryId,
-        job: { status: job.status, end: job.end },
+        job: { status: job.status, end: job.end?.toISOString() },
       });
 
       this.settle(job, new TaskCancelledError());
@@ -392,13 +404,13 @@ export class JobRepository implements OnModuleInit, BeforeApplicationShutdown {
   private async claim() {
     const job = await this.db
       .updateTable('futo_backups_jobs')
-      .set({ status: JobStatus.Running, start: new Date().toISOString() })
+      .set({ status: JobStatus.Running, start: new Date() })
       .where('id', '=', (eb) =>
         eb
           .selectFrom('futo_backups_jobs')
           .select('id')
           .where('status', '=', JobStatus.Queued)
-          .orderBy(sql`rowid`)
+          .orderBy('sequence')
           .limit(1),
       )
       .returningAll()
@@ -409,7 +421,7 @@ export class JobRepository implements OnModuleInit, BeforeApplicationShutdown {
         type: 'JobUpdate',
         jobId: job.id,
         repositoryId: job.repositoryId,
-        job: { status: job.status, start: job.start },
+        job: { status: job.status, start: job.start?.toISOString() },
       });
     }
 
@@ -430,7 +442,7 @@ export class JobRepository implements OnModuleInit, BeforeApplicationShutdown {
     let error: unknown;
     try {
       try {
-        await this.supportContext.run(support, () => handler.run(JSON.parse(job.data), ctx));
+        await this.supportContext.run(support, () => handler.run(job.data, ctx));
       } catch (error_) {
         error = error_;
         writeError((event) => ctx.log(event), error);
@@ -448,14 +460,16 @@ export class JobRepository implements OnModuleInit, BeforeApplicationShutdown {
 
     const updateSet = {
       status: getJobStatus(error),
-      outcome: JSON.stringify(ctx.outcome),
-      end: new Date().toISOString(),
+      outcome: ctx.outcome,
+      end: new Date(),
     };
+
+    const { sequence: _sequence, ...row } = job;
 
     job = await this.db
       .insertInto('futo_backups_jobs')
       .values({
-        ...job,
+        ...row,
         ...updateSet,
       })
       .onConflict((oc) => oc.column('id').doUpdateSet(updateSet))
@@ -466,7 +480,7 @@ export class JobRepository implements OnModuleInit, BeforeApplicationShutdown {
       type: 'JobUpdate',
       jobId: job.id,
       repositoryId: job.repositoryId,
-      job: { status: job.status, outcome: ctx.outcome, end: job.end },
+      job: { status: job.status, outcome: ctx.outcome, end: job.end?.toISOString() },
     });
 
     this.settle(job, error);

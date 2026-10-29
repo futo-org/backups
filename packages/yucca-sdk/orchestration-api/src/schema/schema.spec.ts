@@ -1,17 +1,24 @@
 import { schemaDiff, schemaFromCode } from '@immich/sql-tools';
+import { Reflector } from '@nestjs/core';
 import { Kysely, sql } from 'kysely';
 import { PGliteDialect } from 'kysely-pglite-dialect';
 import { randomUUID } from 'node:crypto';
+import { mkdtemp, rm } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { createPGlite } from '../bin/pglite.js';
+import { Job } from '../decorators.js';
 import { BackendType, ConfigurationKey, JobName, JobStatus } from '../enum.js';
 import { BackendRepository } from '../repositories/backend.repository.js';
 import { ConfigRepository } from '../repositories/config.repository.js';
+import { JobRepository } from '../repositories/job.repository.js';
 import { LoggingRepository } from '../repositories/logging.repository.js';
 import { RepositoryRepository } from '../repositories/repository.repository.js';
 import { RepositoryIntegrationImmichRepository } from '../repositories/repositoryIntegrationImmich.repository.js';
 import { RepositoryLocalMetricsRepository } from '../repositories/repositoryLocalMetrics.repository.js';
 import { RepositoryPathRepository } from '../repositories/repositoryPath.repository.js';
 import { ScheduleRepository } from '../repositories/schedule.repository.js';
+import { StorageRepository } from '../repositories/storage.repository.js';
 import './index.js';
 import type { DB } from './index.js';
 
@@ -266,6 +273,48 @@ describe('Postgres orchestration schema', () => {
     );
   });
 
+  it('runs queued jobs to completion and lists them newest first', async () => {
+    const statePath = await mkdtemp(join(tmpdir(), 'yucca-jobs-'));
+    const handlers = Object.values(JobName).map((name) => {
+      @Job({ name })
+      class Handler {
+        async run() {}
+      }
+
+      return Handler;
+    });
+    const jobs = new JobRepository(
+      db,
+      { getProviders: () => handlers.map((metatype) => ({ metatype, instance: new metatype() })) } as never,
+      new Reflector(),
+      { hasLock: () => true, get: () => ({ statePath }) } as never,
+      new StorageRepository(),
+      { publish: () => {} } as never,
+      LoggingRepository.create(),
+      {} as never,
+    );
+    jobs.onModuleInit();
+
+    const repositoryId = 'remote-repository-for-jobs';
+    const [first, second] = await jobs.queueAll([
+      { name: JobName.RepositorySyncMetrics, data: { repositoryId } },
+      { name: JobName.RepositoryPrune, data: { repositoryId } },
+    ]);
+    await expect(jobs.wait(second)).resolves.toMatchObject({ id: second, status: JobStatus.Complete });
+
+    const listed = await jobs.getAll(repositoryId);
+    expect(listed.map(({ id }) => id)).toEqual([second, first]);
+    expect(listed[0]).toMatchObject({
+      status: JobStatus.Complete,
+      queuedAt: expect.any(String),
+      start: expect.any(String),
+      end: expect.any(String),
+      outcome: { errors: [] },
+    });
+
+    await rm(statePath, { recursive: true });
+  });
+
   it('records jobs for remote repositories and gives tied timestamps a stable insertion order', async () => {
     const queuedAt = new Date('2026-10-27T13:00:00.000Z');
     const job = {
@@ -288,7 +337,12 @@ describe('Postgres orchestration schema', () => {
     expect(first.start).toBeNull();
     expect(first.end).toBeNull();
     expect(first.queuedAt).toEqual(queuedAt);
-    const jobs = await db.selectFrom('futo_backups_jobs').select('id').orderBy('sequence').execute();
+    const jobs = await db
+      .selectFrom('futo_backups_jobs')
+      .select('id')
+      .where('repositoryId', '=', job.repositoryId)
+      .orderBy('sequence')
+      .execute();
     expect(jobs.map(({ id }) => id)).toEqual([first.id, second.id]);
   });
 });
