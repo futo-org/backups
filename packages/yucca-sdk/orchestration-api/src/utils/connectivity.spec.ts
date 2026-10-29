@@ -17,6 +17,8 @@ describe(isConnectivityError.name, () => {
     'restic exited with code 1: Fatal: wrong password or no key found',
     '/photos/a.jpg: open /photos/a.jpg: permission denied',
     'Fatal: unable to save snapshot: unexpected HTTP response (403): 403 Forbidden',
+    '/photos/Bad Gateway.jpg: open /photos/Bad Gateway.jpg: permission denied',
+    '/photos/502 Bad Gateway.jpg: open /photos/502 Bad Gateway.jpg: permission denied',
   ])('ignores %s', (error) => {
     expect(isConnectivityError([error])).toBe(false);
   });
@@ -69,9 +71,9 @@ describe(probeInternet.name, () => {
     await expect(probeInternet()).resolves.toBe(false);
   });
 
-  it('reports an error status as unreachable', async () => {
+  it('reports an error status as reachable', async () => {
     jest.spyOn(globalThis, 'fetch').mockResolvedValue(new Response('', { status: 503 }));
 
-    await expect(probeInternet()).resolves.toBe(false);
+    await expect(probeInternet()).resolves.toBe(true);
   });
 });
