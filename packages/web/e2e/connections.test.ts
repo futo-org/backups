@@ -16,7 +16,9 @@ const login = async (page: import('@playwright/test').Page) => {
   await expect(page.getByRole('heading', { name: 'Authorize' })).toBeVisible();
   await page.getByRole('button', { name: 'Continue' }).click();
 
-  await expect(page.getByText('Backup Health')).toBeVisible();
+  await expect(
+    page.getByRole('heading', { name: 'About your backups' }),
+  ).toBeVisible();
 };
 
 test('connections page lists the default connection and hides restic without the flag', async ({

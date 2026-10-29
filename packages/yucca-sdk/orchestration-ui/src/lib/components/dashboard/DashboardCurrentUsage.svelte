@@ -9,7 +9,7 @@
   <CardBody>
     <VisualisationGauge
       title={$t`Current Usage`}
-      content="$-/mo"
+      content={$t`Free in beta`}
       icon={mdiChartBar}
     />
   </CardBody>

@@ -8,7 +8,9 @@ order: 5
 
 ## Dashboard
 
-**Your Backups** summarises how your backups are doing, with a bar splitting them into successful, with warnings, failed and never run. **Recent backups** lists the last few runs.
+Until your first backup finishes, **Get started** at the top lists the four setup steps: switch Immich to the beta build, turn on backups in Immich, connect your FUTO account, and start your first backup. Steps tick off on their own as your server connects and backs up, and the list goes away once your first backup has finished.
+
+**Your Backups** summarises how your backups are doing, with a bar splitting them into successful, with warnings, failed and never run. **Recent backups** lists the last few runs with their size.
 
 The four figures across the middle are:
 
@@ -17,9 +19,11 @@ The four figures across the middle are:
 | Avg. Backup Time | The average duration of the most recent run of each backup |
 | Daily Backup Time | Those same durations added together |
 | Total Stored | How much storage your backups are using, measured on our side |
-| Current Usage | A placeholder. It is not showing you a real number yet |
+| Current Usage | Free in beta. Nothing is charged during the closed beta |
 
 Where a backup has not been measured on our side yet, its size is shown as **Estimated**, taken from what your machine reported. The measured figure updates every few minutes.
+
+**About your backups** at the bottom repeats the essentials: where your data is stored, that it is end-to-end encrypted with your recovery key, and what the closed beta means for your data.
 
 ## Backups
 

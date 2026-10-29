@@ -23,6 +23,7 @@ export { default as StackListItem } from './components/ui/StackListItem.svelte';
 export { default as VisualisationGauge } from './components/ui/VisualisationGauge.svelte';
 export { default as VisualisationSegmentedBar } from './components/ui/VisualisationSegmentedBar.svelte';
 export { default as OnEvents } from './components/util/OnEvents.svelte';
+export { default as RelativeTime } from './components/util/RelativeTime.svelte';
 export { default as YuccaContext } from './components/util/YuccaContext.svelte';
 export * from './providers';
 

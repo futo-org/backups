@@ -1,6 +1,11 @@
 <script lang="ts">
   import type { LocalRepositoryDto } from "$lib/fetch-client";
-  import { Icon, modalManager, type ActionItem } from "@immich/ui";
+  import {
+    FormatBytes,
+    Icon,
+    modalManager,
+    type ActionItem,
+  } from "@immich/ui";
   import {
     mdiCloudCheckOutline,
     mdiCloudOffOutline,
@@ -53,7 +58,7 @@
 
   {#if recentAttempts.length === 0}
     <StackListPlaceholder>
-      {$t`Completed backups will appear here once your first backup runs.`}
+      {$t`Completed backups will appear here after your first backup finishes.`}
     </StackListPlaceholder>
   {/if}
 
@@ -75,7 +80,12 @@
         : outcome === "warn"
           ? $t`Backed up with warnings`
           : $t`Backed up`}
-      <RelativeTime time={repository.metrics.lastBackup!} />
+      <RelativeTime time={repository.metrics.lastBackup!} /> &middot;
+      {#if repository.meter}
+        <FormatBytes bytes={repository.meter.sizeBytes} />
+      {:else}
+        {$t`Estimated`} <FormatBytes bytes={repository.metrics.sizeBytes} />
+      {/if}
     </StackListItem>
   {/each}
 </StackList>

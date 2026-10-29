@@ -22,6 +22,7 @@
     footer?: Snippet;
     footerColor?: TileColor;
     actions?: ActionItem[];
+    stackOnMobile?: boolean;
   };
 
   const {
@@ -34,19 +35,27 @@
     footer,
     footerColor = "primary",
     actions = [],
+    stackOnMobile = false,
   }: Props = $props();
 </script>
 
 <div>
-  <HStack gap={4} class={`${className} items-center px-5 py-4`}>
+  <HStack
+    gap={4}
+    class={`${className} px-5 py-4 ${stackOnMobile ? "items-start sm:items-center" : "items-center"}`}
+  >
     {#if icon}
       <IconTile {color}>{@render icon()}</IconTile>
     {/if}
 
     {#if title}
       <Stack gap={0} class="flex-1 min-w-0">
-        <Text class="truncate">{title}</Text>
+        <Text class={stackOnMobile ? "sm:truncate" : "truncate"}>{title}</Text>
         <Text size="small" color="muted">{@render children()}</Text>
+
+        {#if stackOnMobile && trailing}
+          <div class="mt-3 flex sm:hidden">{@render trailing()}</div>
+        {/if}
       </Stack>
     {:else}
       <HStack gap={1} class="flex-1 items-baseline">
@@ -54,7 +63,11 @@
       </HStack>
     {/if}
 
-    {@render trailing?.()}
+    {#if stackOnMobile && trailing}
+      <div class="hidden sm:block">{@render trailing()}</div>
+    {:else}
+      {@render trailing?.()}
+    {/if}
 
     {#if hasActions(actions)}
       <ContextMenuButton

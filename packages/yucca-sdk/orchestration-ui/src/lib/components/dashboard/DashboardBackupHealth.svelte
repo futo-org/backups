@@ -77,7 +77,7 @@
         <Icon icon={mdiProgressCheck} />
       {/snippet}
 
-      {$t`Status across all of your backups`}
+      {$t`Latest status across all of your backups.`}
 
       {#snippet trailing()}
         <Badge size="small" color="success">

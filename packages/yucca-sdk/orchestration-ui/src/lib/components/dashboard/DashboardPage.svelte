@@ -25,13 +25,25 @@
   import DashboardRecentBackups from "./DashboardRecentBackups.svelte";
   import DashboardTotalStored from "./DashboardTotalStored.svelte";
   import Section from "../ui/Section.svelte";
+  import type { Snippet } from "svelte";
 
   type Props = {
     initialData?: RepositoryListResponseDto;
     onViewBackups?: () => void;
+    showSetupLink?: boolean;
+    hideEmptySummary?: boolean;
+    intro?: Snippet;
+    outro?: Snippet;
   };
 
-  const { initialData, onViewBackups }: Props = $props();
+  const {
+    initialData,
+    onViewBackups,
+    showSetupLink = true,
+    hideEmptySummary = false,
+    intro,
+    outro,
+  }: Props = $props();
 
   const local = getProvider().api === "orchestrator";
 
@@ -48,7 +60,7 @@
   <HStack class="items-center justify-between" wrap>
     <Heading tag="h1" size="medium">{$t`Overview`}</Heading>
 
-    {#if !local}
+    {#if !local && showSetupLink}
       <Button
         href="https://my.immich.app/link?target=backups"
         variant="outline"
@@ -65,21 +77,27 @@
   {:else if query.isError}
     <Alert color="danger">{getReadableErrorMessage(query.error)}</Alert>
   {:else if query.isSuccess}
-    <DashboardBackupHealth repositories={query.data} {onViewBackups} />
+    {@render intro?.()}
 
-    <Section>
-      {#snippet title()}
-        {$t`Storage & Usage`}
-      {/snippet}
+    {#if !hideEmptySummary || query.data.length > 0}
+      <DashboardBackupHealth repositories={query.data} {onViewBackups} />
 
-      <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <DashboardTotalStored repositories={query.data} />
-        <DashboardCurrentUsage />
-        <DashboardAvgBackupTime repositories={query.data} />
-        <DashboardDailyBackupTime repositories={query.data} />
-      </div>
-    </Section>
+      <Section>
+        {#snippet title()}
+          {$t`Storage & Usage`}
+        {/snippet}
 
-    <DashboardRecentBackups repositories={query.data} />
+        <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          <DashboardTotalStored repositories={query.data} />
+          <DashboardCurrentUsage />
+          <DashboardAvgBackupTime repositories={query.data} />
+          <DashboardDailyBackupTime repositories={query.data} />
+        </div>
+      </Section>
+
+      <DashboardRecentBackups repositories={query.data} />
+    {/if}
+
+    {@render outro?.()}
   {/if}
 </Stack>
