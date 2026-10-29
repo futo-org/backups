@@ -23,19 +23,20 @@
     "@nestjs/platform-socket.io": "^12.0.0",
     "@nestjs/schedule": "^12.0.0",
     "@nestjs/swagger": "^12.0.0",
-    "@nestjs/websockets": "^12.0.0"
+    "@nestjs/websockets": "^12.0.0",
+    "kysely": "^0.29.5"
   },
   "dependencies": {
     "@futo-org/restic-wrapper": "catalog:",
     "@nestjs/event-emitter": "catalog:",
     "@nestjs/jwt": "catalog:",
+    "@immich/sql-tools": "catalog:",
     "better-sqlite3": "catalog:",
     "cookie": "catalog:",
     "cron": "catalog:",
     "event-iterator": "catalog:",
     "eventsource-client": "catalog:",
     "express": "catalog:",
-    "kysely": "catalog:",
     "nestjs-kysely": "catalog:",
     "nestjs-zod": "catalog:",
     "openid-client": "catalog:",
@@ -45,6 +46,9 @@
     "@futo-org/backups-api-client": "workspace:^"
   },
   "devDependencies": {
+    "@electric-sql/pglite": "catalog:",
+    "@electric-sql/pglite-prepopulatedfs": "catalog:",
+    "@electric-sql/pglite-socket": "catalog:",
     "@jest/globals": "catalog:",
     "@nestjs/cli": "catalog:",
     "@nestjs/common": "catalog:",
@@ -60,6 +64,8 @@
     "@types/jest": "catalog:",
     "@types/node": "catalog:",
     "jest": "catalog:",
+    "kysely": "catalog:",
+    "kysely-pglite-dialect": "catalog:",
     "ts-jest": "catalog:",
     "ts-loader": "catalog:"
   },

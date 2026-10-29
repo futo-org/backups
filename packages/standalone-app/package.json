@@ -21,6 +21,8 @@
     "prepare": "svelte-kit sync || echo ''"
   },
   "dependencies": {
+    "@electric-sql/pglite": "catalog:",
+    "@electric-sql/pglite-prepopulatedfs": "catalog:",
     "@futo-org/backups-orchestrator-api": "workspace:^",
     "@nestjs/common": "catalog:",
     "@nestjs/core": "catalog:",
@@ -30,6 +32,8 @@
     "@nestjs/swagger": "catalog:",
     "@nestjs/websockets": "catalog:",
     "express": "catalog:",
+    "kysely": "catalog:",
+    "kysely-pglite-dialect": "catalog:",
     "nestjs-zod": "catalog:",
     "zod": "catalog:"
   },

@@ -151,7 +151,7 @@ export class RepositoryBackupJob implements JobHandler<RepositoryBackupData> {
 
       await this.repositoryService.updateLocalMetrics(repositoryId, {
         additionalMetrics: {
-          lastBackup: new Date().toISOString(),
+          lastBackup: new Date(),
           lastBackupStatus,
           lastBackupDuration,
         },

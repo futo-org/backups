@@ -26,8 +26,7 @@ export enum ConfigurationKey {
   ResticOptionRestConnections = 'restic-o-rest-connections',
   SessionSecret = 'session-secret',
   StatePath = 'state-path',
-  ThrottleBytesPerSec = 'throttle-bytes-per-sec',
-  ThrottleQuietHours = 'throttle-quiet-hours',
+  Throttle = 'throttle',
   SupportMode = 'support-mode',
 }
 

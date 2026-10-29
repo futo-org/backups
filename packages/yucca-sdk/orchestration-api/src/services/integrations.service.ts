@@ -213,7 +213,7 @@ export class IntegrationsService {
     }
 
     for (const path of toAdd) {
-      await this.repositoryPath.create({ id: repositoryId, path });
+      await this.repositoryPath.create({ repositoryId, path });
     }
   }
 

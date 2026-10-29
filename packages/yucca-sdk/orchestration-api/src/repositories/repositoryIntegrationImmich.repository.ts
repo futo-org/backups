@@ -9,43 +9,42 @@ export class RepositoryIntegrationImmichRepository {
   constructor(@InjectKysely('orchestrator') private db: Kysely<DB>) {}
 
   async get() {
-    const integration = await this.db.selectFrom('repositoryIntegrationImmich').selectAll().executeTakeFirst();
+    const integration = await this.db
+      .selectFrom('futo_backups_integrations_immich_config')
+      .selectAll()
+      .executeTakeFirst();
     if (!integration) {
       return;
     }
 
-    const configuration = JSON.parse(integration.configuration) as Omit<ImmichRepositoryConfig, 'libraries'> & {
-      libraries: 'all' | string[];
-    };
-
     return {
-      id: integration.id,
+      id: integration.repositoryId,
       scheduleId: integration.scheduleId,
-      configuration: {
-        ...configuration,
-        libraries: configuration.libraries === 'all' ? ['all'] : configuration.libraries,
-      } satisfies ImmichRepositoryConfig,
+      configuration: integration.configuration,
     };
   }
 
-  async upsert(id: string, scheduleId: string, configuration: ImmichRepositoryConfig) {
+  async upsert(repositoryId: string, scheduleId: string, configuration: ImmichRepositoryConfig) {
     await this.db.transaction().execute(async (tx) => {
-      await tx.deleteFrom('repositoryIntegrationImmich').where('id', '!=', id).execute();
+      await tx
+        .deleteFrom('futo_backups_integrations_immich_config')
+        .where('repositoryId', '!=', repositoryId)
+        .execute();
 
       await tx
-        .insertInto('repositoryIntegrationImmich')
+        .insertInto('futo_backups_integrations_immich_config')
         .values({
-          id,
+          repositoryId,
           scheduleId,
-          configuration: JSON.stringify(configuration),
+          configuration,
         })
-        .onConflict((oc) => oc.column('id').doUpdateSet({ configuration: JSON.stringify(configuration), scheduleId }))
+        .onConflict((oc) => oc.column('repositoryId').doUpdateSet({ configuration, scheduleId }))
         .returningAll()
         .executeTakeFirstOrThrow();
     });
   }
 
   async delete() {
-    await this.db.deleteFrom('repositoryIntegrationImmich').execute();
+    await this.db.deleteFrom('futo_backups_integrations_immich_config').execute();
   }
 }

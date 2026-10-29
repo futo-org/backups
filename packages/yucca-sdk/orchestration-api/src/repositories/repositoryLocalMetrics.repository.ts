@@ -9,32 +9,41 @@ import { RepositoryLocalMetricsTable } from '../schema/tables/repositoryLocalMet
 export class RepositoryLocalMetricsRepository {
   constructor(@InjectKysely('orchestrator') private db: Kysely<DB>) {}
 
-  async save(id: string, metrics: Updateable<RepositoryLocalMetricsTable>) {
-    return await this.db
-      .insertInto('repositoryLocalMetrics')
+  async save(repositoryId: string, metrics: Updateable<RepositoryLocalMetricsTable>) {
+    const row = await this.db
+      .insertInto('futo_backups_local_metrics')
       .values({
-        id,
-        sizeBytes: 0,
+        repositoryId,
         ...metrics,
       })
-      .onConflict((oc) => oc.doUpdateSet(metrics))
-      .returningAll()
+      .onConflict((oc) => oc.column('repositoryId').doUpdateSet(metrics))
+      .returning(['sizeBytes', 'lastBackup', 'lastBackupStatus', 'lastBackupDuration'])
       .executeTakeFirstOrThrow();
+
+    return { ...row, lastBackup: row.lastBackup?.toISOString() };
   }
 
-  async get(id: string): Promise<RepositoryMetricsDto> {
-    return (
-      (await this.db
-        .selectFrom('repositoryLocalMetrics')
-        .selectAll('repositoryLocalMetrics')
-        .where('id', '=', id)
-        .executeTakeFirst()) ?? {
-        sizeBytes: 0,
-      }
+  async get(repositoryId: string): Promise<RepositoryMetricsDto> {
+    const row = await this.db
+      .selectFrom('futo_backups_local_metrics')
+      .select(['sizeBytes', 'lastBackup', 'lastBackupStatus', 'lastBackupDuration'])
+      .where('repositoryId', '=', repositoryId)
+      .executeTakeFirst();
+
+    return row ? { ...row, lastBackup: row.lastBackup?.toISOString() } : { sizeBytes: 0 };
+  }
+
+  async getAll() {
+    const rows = await this.db
+      .selectFrom('futo_backups_local_metrics')
+      .select(['repositoryId', 'sizeBytes', 'lastBackup', 'lastBackupStatus', 'lastBackupDuration'])
+      .execute();
+
+    return new Map(
+      rows.map(({ repositoryId, lastBackup, ...metrics }) => [
+        repositoryId,
+        { ...metrics, lastBackup: lastBackup?.toISOString() },
+      ]),
     );
-  }
-
-  getAll() {
-    return this.db.selectFrom('repositoryLocalMetrics').selectAll('repositoryLocalMetrics').execute();
   }
 }

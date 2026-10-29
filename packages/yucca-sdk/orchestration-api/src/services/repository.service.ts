@@ -114,7 +114,7 @@ export class RepositoryService {
 
     const paths = dto.paths ?? [];
     for (const path of paths) {
-      await this.repositoryPath.create({ id, path });
+      await this.repositoryPath.create({ repositoryId: id, path });
     }
 
     const repository: LocalRepositoryDto = {
@@ -175,11 +175,11 @@ export class RepositoryService {
       const remoteRepository = remoteRepositories[backendId][remoteId];
 
       const configuration: RepositoryConfigurationDto = {
-        paths: localPaths.filter((entry) => entry.id === id).map(({ path }) => path),
+        paths: localPaths.filter((entry) => entry.repositoryId === id).map(({ path }) => path),
         retentionPolicy,
       };
 
-      const metrics = localMetrics.find((entry) => entry.id === id);
+      const metrics = localMetrics.get(id);
 
       if (remoteRepository) {
         if (remoteRepository.siteCode !== siteCode || remoteRepository.storageClusterCode !== storageClusterCode) {
@@ -329,7 +329,7 @@ export class RepositoryService {
 
       for (const path of newPaths) {
         await this.repositoryPath.create({
-          id,
+          repositoryId: id,
           path,
         });
       }

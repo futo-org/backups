@@ -1,54 +1,14 @@
-import { Test } from '@nestjs/testing';
-import Database from 'better-sqlite3';
-import { SqliteDialect } from 'kysely';
-import { KyselyModule } from 'nestjs-kysely';
 import { mkdtemp } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { ModuleConfigProvider } from '../src/moduleConfig.js';
-import { ConfigRepository } from '../src/repositories/config.repository.js';
-import { DatabaseRepository } from '../src/repositories/database.repository.js';
-import { LoggingRepository } from '../src/repositories/logging.repository.js';
-import { StorageRepository } from '../src/repositories/storage.repository.js';
-
-type Boot = {
-  config: ConfigRepository;
-  close: () => Promise<void>;
-};
-
-async function boot(statePath: string): Promise<Boot> {
-  const database = new Database(join(statePath, 'state.sqlite3'));
-
-  const moduleFixture = await Test.createTestingModule({
-    imports: [KyselyModule.forRoot([{ namespace: 'orchestrator', dialect: new SqliteDialect({ database }) }])],
-    providers: [
-      { provide: ModuleConfigProvider, useValue: { statePath } },
-      LoggingRepository,
-      StorageRepository,
-      DatabaseRepository,
-      ConfigRepository,
-    ],
-  }).compile();
-
-  await moduleFixture.get(DatabaseRepository).runMigrations();
-
-  return {
-    config: moduleFixture.get(ConfigRepository),
-    close: async () => {
-      await moduleFixture.close();
-      if (database.open) {
-        database.close();
-      }
-    },
-  };
-}
+import { bootConfig, BootedConfig } from './testUtils.js';
 
 let statePath: string;
-let booted: Boot;
+let booted: BootedConfig;
 
 beforeEach(async () => {
   statePath = await mkdtemp(join(tmpdir(), 'yucca-throttle-'));
-  booted = await boot(statePath);
+  booted = await bootConfig(statePath);
 });
 
 afterEach(async () => {
@@ -105,7 +65,7 @@ describe('Throttle configuration', () => {
     await booted.config.setThrottle({ bytesPerSec: 750_000, quietHours: '23:30-05:45' });
     await booted.close();
 
-    booted = await boot(statePath);
+    booted = await bootConfig(statePath);
 
     await expect(booted.config.getThrottle()).resolves.toEqual({
       bytesPerSec: 750_000,

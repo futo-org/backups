@@ -4,10 +4,11 @@ import { InjectKysely } from 'nestjs-kysely';
 import { randomBytes } from 'node:crypto';
 import { availableParallelism } from 'node:os';
 import { resolve } from 'node:path';
-import { ConfigurationKey } from '../enum.js';
+import { ConfigurationKey, TelemetryLevel } from '../enum.js';
 import { type ModuleConfig, ModuleConfigProvider } from '../moduleConfig.js';
 import type { ResticProxyThrottle } from '../proxy/resticProxy.js';
 import { DB } from '../schema/index.js';
+import { ConfigurationValues } from '../schema/tables/config.table.js';
 import { yuccaWellKnown } from '../wellKnown.js';
 import { LoggingRepository } from './logging.repository.js';
 
@@ -17,8 +18,8 @@ export type SupportModeSettings = { remainingRuns: number; streamToFuto: boolean
 
 const SUPPORT_MODE_OFF: SupportModeSettings = { remainingRuns: 0, streamToFuto: false, includePaths: false };
 
-const parseSupportMode = (value: string | undefined): SupportModeSettings =>
-  value ? { ...SUPPORT_MODE_OFF, ...(JSON.parse(value) as Partial<SupportModeSettings>) } : SUPPORT_MODE_OFF;
+const parseSupportMode = (value: Partial<SupportModeSettings> | undefined): SupportModeSettings =>
+  value ? { ...SUPPORT_MODE_OFF, ...value } : SUPPORT_MODE_OFF;
 
 @Injectable()
 export class ConfigRepository {
@@ -41,7 +42,7 @@ export class ConfigRepository {
         `Generating a new master encryption key for the state in ${statePath}. Backups written with a previous key cannot be decrypted with this one.`,
       );
 
-      await this.set(ConfigurationKey.EncryptionKey, randomBytes(32).toString('hex'));
+      await this.set(ConfigurationKey.EncryptionKey, { key: randomBytes(32).toString('hex') });
     }
 
     await this.recordStatePath(statePath);
@@ -49,24 +50,24 @@ export class ConfigRepository {
     const hasSecret = await this.hasSessionSecret();
 
     if (!hasSecret) {
-      await this.set(ConfigurationKey.SessionSecret, randomBytes(32).toString('hex'));
+      await this.set(ConfigurationKey.SessionSecret, { secret: randomBytes(32).toString('hex') });
     }
   }
 
   async getStateSummary() {
     const [{ backends }] = await this.db
-      .selectFrom('backends')
+      .selectFrom('futo_backups_backends')
       .select((eb) => eb.fn.countAll<number>().as('backends'))
       .execute();
 
     const [{ repositories }] = await this.db
-      .selectFrom('repositories')
+      .selectFrom('futo_backups_repositories')
       .select((eb) => eb.fn.countAll<number>().as('repositories'))
       .execute();
 
     const [{ activeSchedules }] = await this.db
-      .selectFrom('schedules')
-      .where('paused', '!=', 1)
+      .selectFrom('futo_backups_schedule')
+      .where('paused', '=', false)
       .select((eb) => eb.fn.countAll<number>().as('activeSchedules'))
       .execute();
 
@@ -86,7 +87,8 @@ export class ConfigRepository {
   }
 
   private async recordStatePath(statePath: string) {
-    const previous = await this.getOptional(ConfigurationKey.StatePath);
+    const recorded = await this.getOptional(ConfigurationKey.StatePath);
+    const previous = recorded?.path;
 
     if (previous === statePath) {
       return;
@@ -98,45 +100,41 @@ export class ConfigRepository {
       );
     }
 
-    await this.set(ConfigurationKey.StatePath, statePath);
+    await this.set(ConfigurationKey.StatePath, { path: statePath });
   }
 
-  private async set(key: ConfigurationKey, value: string) {
-    await this.setAll({ [key]: value });
-  }
-
-  private async setAll(values: Partial<Record<ConfigurationKey, string>>) {
+  private async set<Key extends ConfigurationKey>(key: Key, value: ConfigurationValues[Key]) {
     await this.db
-      .insertInto('config')
-      .values(Object.entries(values).map(([key, value]) => ({ key, value })))
-      .onConflict((oc) => oc.column('key').doUpdateSet((eb) => ({ value: eb.ref('excluded.value') })))
+      .insertInto('futo_backups_config')
+      .values({ key, value })
+      .onConflict((oc) => oc.column('key').doUpdateSet({ value }))
       .execute();
   }
 
-  private async get(key: ConfigurationKey) {
+  private async get<Key extends ConfigurationKey>(key: Key) {
     const { value } = await this.db
-      .selectFrom('config')
-      .where('config.key', '=', key)
-      .select('config.value')
+      .selectFrom('futo_backups_config')
+      .where('key', '=', key)
+      .select('value')
       .executeTakeFirstOrThrow();
 
-    return value;
+    return value as ConfigurationValues[Key];
   }
 
-  private async getOptional(key: ConfigurationKey) {
+  private async getOptional<Key extends ConfigurationKey>(key: Key) {
     const row = await this.db
-      .selectFrom('config')
-      .where('config.key', '=', key)
-      .select('config.value')
+      .selectFrom('futo_backups_config')
+      .where('key', '=', key)
+      .select('value')
       .executeTakeFirst();
 
-    return row?.value;
+    return row?.value as ConfigurationValues[Key] | undefined;
   }
 
   private async has(key: ConfigurationKey) {
-    const results = await this.db.selectFrom('config').where('config.key', '=', key).selectAll().execute();
+    const row = await this.db.selectFrom('futo_backups_config').where('key', '=', key).select('key').executeTakeFirst();
 
-    return results.length > 0;
+    return !!row;
   }
 
   async hasEncryptionKey() {
@@ -144,11 +142,12 @@ export class ConfigRepository {
   }
 
   async getMasterEncryptionKey(): Promise<string> {
-    return await this.get(ConfigurationKey.EncryptionKey);
+    const { key } = await this.get(ConfigurationKey.EncryptionKey);
+    return key;
   }
 
   async deriveEncryptionKey(info: `repository-${string}`): Promise<Uint8Array> {
-    const encryptionKey = await this.get(ConfigurationKey.EncryptionKey);
+    const encryptionKey = await this.getMasterEncryptionKey();
     const masterKey = Buffer.from(encryptionKey, 'hex');
 
     const key = new Uint8Array(
@@ -168,7 +167,7 @@ export class ConfigRepository {
   }
 
   async importEncryptionKey(key: string): Promise<void> {
-    await this.set(ConfigurationKey.EncryptionKey, key);
+    await this.set(ConfigurationKey.EncryptionKey, { key });
   }
 
   async hasOnboardedKey() {
@@ -176,7 +175,7 @@ export class ConfigRepository {
   }
 
   async confirmKeyOnboarded() {
-    return this.set(ConfigurationKey.OnboardedKey, '1');
+    return this.set(ConfigurationKey.OnboardedKey, { isOnboarded: true });
   }
 
   async hasTelemetry() {
@@ -184,7 +183,7 @@ export class ConfigRepository {
   }
 
   async enableTelemetry() {
-    return this.set(ConfigurationKey.Telemetry, 'full');
+    return this.set(ConfigurationKey.Telemetry, { level: TelemetryLevel.Full });
   }
 
   async hasSkippedExtraConfig() {
@@ -192,7 +191,7 @@ export class ConfigRepository {
   }
 
   async skipExtraConfig() {
-    return this.set(ConfigurationKey.SkippedOnboardingExtraConfig, '1');
+    return this.set(ConfigurationKey.SkippedOnboardingExtraConfig, { isSkipped: true });
   }
 
   async hasIgnoredImmichDatabaseDumpWarning() {
@@ -200,7 +199,7 @@ export class ConfigRepository {
   }
 
   async ignoreImmichDatabaseDumpWarning() {
-    return this.set(ConfigurationKey.IgnoredImmichDatabaseDumpWarning, '1');
+    return this.set(ConfigurationKey.IgnoredImmichDatabaseDumpWarning, { isIgnored: true });
   }
 
   async hasSessionSecret() {
@@ -208,25 +207,16 @@ export class ConfigRepository {
   }
 
   async getSessionSecret(): Promise<Buffer> {
-    return Buffer.from(await this.get(ConfigurationKey.SessionSecret), 'hex');
+    const { secret } = await this.get(ConfigurationKey.SessionSecret);
+    return Buffer.from(secret, 'hex');
   }
 
-  async getThrottle(): Promise<ResticProxyThrottle | undefined> {
-    const bytesPerSec = await this.getOptional(ConfigurationKey.ThrottleBytesPerSec);
-    if (bytesPerSec === undefined) {
-      return;
-    }
-
-    const quietHours = await this.getOptional(ConfigurationKey.ThrottleQuietHours);
-
-    return { bytesPerSec: Number.parseInt(bytesPerSec), quietHours: quietHours || undefined };
+  getThrottle(): Promise<ResticProxyThrottle | undefined> {
+    return this.getOptional(ConfigurationKey.Throttle);
   }
 
-  async setThrottle({ bytesPerSec, quietHours }: ResticProxyThrottle) {
-    await this.setAll({
-      [ConfigurationKey.ThrottleBytesPerSec]: String(bytesPerSec),
-      [ConfigurationKey.ThrottleQuietHours]: quietHours ?? '',
-    });
+  async setThrottle(throttle: ResticProxyThrottle) {
+    await this.set(ConfigurationKey.Throttle, throttle);
   }
 
   async getSupportMode(): Promise<SupportModeSettings> {
@@ -234,26 +224,27 @@ export class ConfigRepository {
   }
 
   async setSupportMode(settings: SupportModeSettings) {
-    await this.set(ConfigurationKey.SupportMode, JSON.stringify(settings));
+    await this.set(ConfigurationKey.SupportMode, settings);
   }
 
   async consumeSupportModeRun(): Promise<SupportModeSettings | undefined> {
     return this.db.transaction().execute(async (trx) => {
       const row = await trx
-        .selectFrom('config')
-        .where('config.key', '=', ConfigurationKey.SupportMode)
-        .select('config.value')
+        .selectFrom('futo_backups_config')
+        .where('key', '=', ConfigurationKey.SupportMode)
+        .select('value')
+        .forUpdate()
         .executeTakeFirst();
 
-      const settings = parseSupportMode(row?.value);
+      const settings = parseSupportMode(row?.value as SupportModeSettings | undefined);
       if (settings.remainingRuns <= 0) {
         return;
       }
 
       await trx
-        .updateTable('config')
-        .set({ value: JSON.stringify({ ...settings, remainingRuns: settings.remainingRuns - 1 }) })
-        .where('config.key', '=', ConfigurationKey.SupportMode)
+        .updateTable('futo_backups_config')
+        .set({ value: { ...settings, remainingRuns: settings.remainingRuns - 1 } })
+        .where('key', '=', ConfigurationKey.SupportMode)
         .execute();
 
       return settings;
@@ -268,9 +259,11 @@ export class ConfigRepository {
     const cores = availableParallelism();
 
     const override = await this.getOptional(ConfigurationKey.ResticOptionRestConnections);
-    const connections = override
-      ? Number.parseInt(override)
-      : ((await yuccaWellKnown.getConnections(cores, siteCode, clusterCode)) ?? cores);
+    let connections = override?.connections;
+    if (!connections) {
+      const wellKnownConnections = await yuccaWellKnown.getConnections(cores, siteCode, clusterCode);
+      connections = wellKnownConnections ?? cores;
+    }
 
     return { connections, packSizeMib: await yuccaWellKnown.getPackSizeMib(siteCode, clusterCode) };
   }

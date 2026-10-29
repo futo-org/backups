@@ -1,3 +1,4 @@
+import type { Dialect } from 'kysely';
 import type { Socket } from 'socket.io';
 import { GatewayEvent } from './events/events.gateway.js';
 import type { ResticProxyThrottle } from './proxy/resticProxy.js';
@@ -35,6 +36,8 @@ export type ImmichIntegration = {
 };
 
 export type ModuleConfig = {
+  dialect: Dialect;
+
   statePath: string;
   cachePath?: string;
   resticWalkConcurrency?: number;

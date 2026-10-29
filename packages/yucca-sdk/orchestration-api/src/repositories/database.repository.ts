@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
-import { FileMigrationProvider, Kysely, Migrator, sql } from 'kysely';
+import { Kysely, sql } from 'kysely';
+import { FileMigrationProvider, Migrator, NO_MIGRATIONS } from 'kysely/migration';
 import { InjectKysely } from 'nestjs-kysely';
 import { join } from 'node:path';
 import { DB } from '../schema/index.js';
@@ -17,8 +18,14 @@ export class DatabaseRepository {
   }
 
   async runMigrations(): Promise<void> {
-    const migrator = this.createMigrator();
-    const { error, results } = await migrator.migrateToLatest();
+    const {
+      rows: [{ value }],
+    } = await sql<{ value: unknown }>`SELECT 1::int8 AS value`.execute(this.db);
+    if (typeof value !== 'number') {
+      throw new TypeError('Misconfigured dialect: enable convertBigIntToNumber');
+    }
+
+    const { error, results } = await this.createMigrator().migrateToLatest();
 
     for (const result of results ?? []) {
       if (result.status === 'Success') {
@@ -36,6 +43,15 @@ export class DatabaseRepository {
     }
 
     this.logger.log('Finished running migrations');
+  }
+
+  async resetMigrations(): Promise<void> {
+    const { error } = await this.createMigrator().migrateTo(NO_MIGRATIONS);
+
+    if (error) {
+      this.logger.error(`Migration rollback failed: ${error}`);
+      throw new Error('Migration rollback failed.');
+    }
   }
 
   async restoreFrom(path: string): Promise<void> {
@@ -88,8 +104,8 @@ export class DatabaseRepository {
   private createMigrator(): Migrator {
     return new Migrator({
       db: this.db,
-      migrationLockTableName: 'kysely_migrations_lock',
-      migrationTableName: 'kysely_migrations',
+      migrationLockTableName: 'futo_backups_kysely_migrations_lock',
+      migrationTableName: 'futo_backups_kysely_migrations',
       provider: new FileMigrationProvider({
         fs: {
           readdir: this.storage.readdir,
