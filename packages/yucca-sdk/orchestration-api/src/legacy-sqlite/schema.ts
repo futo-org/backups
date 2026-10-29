@@ -31,7 +31,7 @@ export type LegacyDB = {
   };
   repositoryIntegrationImmich: {
     id: string;
-    scheduleId: string;
+    scheduleId: string | null;
     configuration: string;
   };
   repositoryPaths: {

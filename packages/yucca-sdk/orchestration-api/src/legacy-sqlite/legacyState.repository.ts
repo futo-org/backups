@@ -6,12 +6,17 @@ import { existsSync } from 'node:fs';
 import { rename } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { z } from 'zod';
-import { ConfigurationKey, TelemetryLevel } from '../enum.js';
+import { ConfigurationKey, JobName, JobStatus, TaskStatus, TelemetryLevel } from '../enum.js';
 import { LoggingRepository } from '../repositories/logging.repository.js';
 import { DB } from '../schema/index.js';
 import { ConfigurationValues } from '../schema/tables/config.table.js';
 import { ImmichRepositoryConfig } from '../schema/tables/repositoryIntegrationImmich.table.js';
+import type { JobItem } from '../utils/types.js';
 import { openLegacyStateDatabase } from './legacySqlite.js';
+
+const chunkSize = 500;
+
+const toId = (id: string) => (z.uuid().safeParse(id).success ? id : randomUUID());
 
 const importedConfigValues: { [Key in ConfigurationKey]?: (value: string) => ConfigurationValues[Key] } = {
   [ConfigurationKey.EncryptionKey]: (value) => ({ key: value }),
@@ -48,12 +53,12 @@ export class LegacyStateRepository {
       const schedules = await legacy.selectFrom('schedules').selectAll().execute();
       const links = await legacy.selectFrom('repositorySchedules').selectAll().execute();
       const integrations = await legacy.selectFrom('repositoryIntegrationImmich').selectAll().execute();
+      const metrics = await legacy.selectFrom('repositoryLocalMetrics').selectAll().execute();
+      const jobs = await legacy.selectFrom('jobs').selectAll().execute();
 
       const backendIds = new Set(backends.map(({ id }) => id));
       const importedRepositories = repositories.filter(({ backendId }) => backendIds.has(backendId));
-      const repositoryIds = new Map(
-        importedRepositories.map(({ id }) => [id, z.uuid().safeParse(id).success ? id : randomUUID()]),
-      );
+      const repositoryIds = new Map(importedRepositories.map(({ id }) => [id, toId(id)]));
       const scheduleIds = new Set(schedules.map(({ id }) => id));
 
       const importedConfig = config.flatMap(({ key, value }) => {
@@ -73,8 +78,51 @@ export class LegacyStateRepository {
       const importedLinks = links.filter(
         ({ repository, schedule }) => repositoryIds.has(repository) && scheduleIds.has(schedule),
       );
-      const importedIntegrations = integrations.filter(
-        ({ id, scheduleId }) => repositoryIds.has(id) && scheduleIds.has(scheduleId),
+      const immichSchedules: typeof schedules = [];
+      const importedIntegrations = integrations
+        .filter(({ id }) => repositoryIds.has(id))
+        .map(({ scheduleId, ...integration }) => {
+          if (scheduleId !== null && scheduleIds.has(scheduleId)) {
+            return { ...integration, scheduleId };
+          }
+
+          const linked = importedLinks.find(({ repository }) => repository === integration.id);
+          if (linked) {
+            return { ...integration, scheduleId: linked.schedule };
+          }
+
+          const schedule = {
+            id: randomUUID(),
+            name: 'Immich Backup',
+            paused: 1,
+            cron: '0 2 * * *',
+            ordering: JSON.stringify([integration.id]),
+            lastRun: null,
+            lastFinished: null,
+          };
+          immichSchedules.push(schedule);
+          importedLinks.push({ repository: integration.id, schedule: schedule.id });
+          return { ...integration, scheduleId: schedule.id };
+        });
+      const importedSchedules = [...schedules, ...immichSchedules];
+      const importedMetrics = metrics.filter(({ id }) => repositoryIds.has(id));
+      const importedJobs = jobs.map(
+        ({ id, repositoryId, data, outcome, queuedAt, start, end, name, status, logFilePath }) => {
+          const jobData = JSON.parse(data) as { repositoryId?: string };
+          const jobRepositoryId = repositoryIds.get(repositoryId) ?? repositoryId;
+          return {
+            id: toId(id),
+            name: name as JobName,
+            status: status as JobStatus,
+            repositoryId: jobRepositoryId,
+            data: { ...jobData, ...(jobData.repositoryId && { repositoryId: jobRepositoryId }) } as JobItem['data'],
+            outcome: outcome === null ? null : JSON.parse(outcome),
+            logFilePath,
+            queuedAt: queuedAt || start || end || new Date(0),
+            start: start || null,
+            end: end || null,
+          };
+        },
       );
 
       await this.db.transaction().execute(async (tx) => {
@@ -102,11 +150,11 @@ export class LegacyStateRepository {
             .execute();
         }
 
-        if (schedules.length > 0) {
+        if (importedSchedules.length > 0) {
           await tx
             .insertInto('futo_backups_schedule')
             .values(
-              schedules.map(({ id, name, cron, paused, ordering }) => ({
+              importedSchedules.map(({ id, name, cron, paused, ordering, lastRun, lastFinished }) => ({
                 id,
                 name,
                 cron,
@@ -114,6 +162,8 @@ export class LegacyStateRepository {
                 ordering: (JSON.parse(ordering) as string[]).flatMap(
                   (repositoryId) => repositoryIds.get(repositoryId) ?? [],
                 ),
+                lastRun,
+                lastFinished,
               })),
             )
             .execute();
@@ -155,6 +205,26 @@ export class LegacyStateRepository {
                 };
               }),
             )
+            .execute();
+        }
+
+        if (importedMetrics.length > 0) {
+          await tx
+            .insertInto('futo_backups_local_metrics')
+            .values(
+              importedMetrics.map(({ id, lastBackupStatus, ...metric }) => ({
+                ...metric,
+                repositoryId: repositoryIds.get(id)!,
+                lastBackupStatus: lastBackupStatus as TaskStatus | null,
+              })),
+            )
+            .execute();
+        }
+
+        for (let index = 0; index < importedJobs.length; index += chunkSize) {
+          await tx
+            .insertInto('futo_backups_jobs')
+            .values(importedJobs.slice(index, index + chunkSize))
             .execute();
         }
       });

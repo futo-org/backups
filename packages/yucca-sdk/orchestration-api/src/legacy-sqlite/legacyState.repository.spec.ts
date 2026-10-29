@@ -65,7 +65,7 @@ afterEach(async () => {
 });
 
 describe(LegacyStateRepository.name, () => {
-  it('imports the key configuration and leaves history and secrets behind', async () => {
+  it('imports the state and history and leaves secrets behind', async () => {
     await createLegacyState([
       `INSERT INTO config (key, value) VALUES
         ('encryption-key', 'abc123'),
@@ -82,12 +82,16 @@ describe(LegacyStateRepository.name, () => {
         ('${repositoryId}', 'remote-uuid', '${backendId}', '{"keepLast":3,"keepWithin":"1m"}', 'test-site', 'test-cluster'),
         ('my-bucket', 'my-bucket', '${backendId}', NULL, NULL, NULL)`,
       `INSERT INTO repositoryPaths (id, path) VALUES ('${repositoryId}', '/photos'), ('my-bucket', '/documents')`,
-      `INSERT INTO schedules (id, name, paused, cron, ordering) VALUES
-        ('${scheduleId}', 'Daily', 1, '0 0 * * *', '["my-bucket","${repositoryId}"]')`,
+      `INSERT INTO schedules (id, name, paused, cron, ordering, lastRun, lastFinished) VALUES
+        ('${scheduleId}', 'Daily', 1, '0 0 * * *', '["my-bucket","${repositoryId}"]', '2026-03-01T00:00:00.000Z', '2026-03-01T01:00:00.000Z')`,
       `INSERT INTO repositorySchedules (schedule, repository) VALUES ('${scheduleId}', '${repositoryId}'), ('${scheduleId}', 'my-bucket')`,
       `INSERT INTO repositoryIntegrationImmich (id, scheduleId, configuration) VALUES
         ('${repositoryId}', '${scheduleId}', '{"dataFolders":["upload"],"backupConfiguration":true,"libraries":"all"}')`,
-      `INSERT INTO repositoryLocalMetrics (id, sizeBytes) VALUES ('${repositoryId}', 42)`,
+      `INSERT INTO repositoryLocalMetrics (id, sizeBytes, lastBackup, lastBackupStatus, lastBackupDuration) VALUES
+        ('${repositoryId}', 42, '2026-03-01T01:00:00.000Z', 'warn', 3600)`,
+      `INSERT INTO jobs (id, name, repositoryId, data, status, outcome, logFilePath, queuedAt, start, "end") VALUES
+        ('legacy-job', 'repository-backup', 'my-bucket', '{"repositoryId":"my-bucket"}', 'complete', '{"type":"backup","filesNew":1}', 'logs/jobs/legacy-job.jsonl', '2026-03-01T00:00:00.000Z', '2026-03-01T00:00:01.000Z', '2026-03-01T01:00:00.000Z'),
+        ('${scheduleId}', 'repository-prune', '${repositoryId}', '{"repositoryId":"${repositoryId}"}', 'running', NULL, 'logs/jobs/prune.jsonl', '2026-03-02T00:00:00.000Z', NULL, NULL)`,
     ]);
 
     await legacyState.importFrom(directory);
@@ -143,8 +147,8 @@ describe(LegacyStateRepository.name, () => {
       paused: true,
       cron: '0 0 * * *',
       ordering: [bucket?.id, repositoryId],
-      lastRun: null,
-      lastFinished: null,
+      lastRun: new Date('2026-03-01T00:00:00.000Z'),
+      lastFinished: new Date('2026-03-01T01:00:00.000Z'),
     });
     const links = await db.selectFrom('futo_backups_repository_schedule').selectAll().execute();
     expect(links).toEqual(
@@ -163,7 +167,45 @@ describe(LegacyStateRepository.name, () => {
     });
 
     const metrics = await db.selectFrom('futo_backups_local_metrics').selectAll().execute();
-    expect(metrics).toEqual([]);
+    expect(metrics).toEqual([
+      {
+        repositoryId,
+        sizeBytes: 42,
+        lastBackup: new Date('2026-03-01T01:00:00.000Z'),
+        lastBackupStatus: 'warn',
+        lastBackupDuration: 3600,
+      },
+    ]);
+
+    const jobs = await db.selectFrom('futo_backups_jobs').selectAll().orderBy('queuedAt').execute();
+    expect(jobs).toEqual([
+      {
+        id: expect.stringMatching(/^[\da-f-]{36}$/),
+        sequence: expect.anything(),
+        name: 'repository-backup',
+        repositoryId: bucket?.id,
+        data: { repositoryId: bucket?.id },
+        status: 'complete',
+        outcome: { type: 'backup', filesNew: 1 },
+        logFilePath: 'logs/jobs/legacy-job.jsonl',
+        queuedAt: new Date('2026-03-01T00:00:00.000Z'),
+        start: new Date('2026-03-01T00:00:01.000Z'),
+        end: new Date('2026-03-01T01:00:00.000Z'),
+      },
+      {
+        id: scheduleId,
+        sequence: expect.anything(),
+        name: 'repository-prune',
+        repositoryId,
+        data: { repositoryId },
+        status: 'running',
+        outcome: null,
+        logFilePath: 'logs/jobs/prune.jsonl',
+        queuedAt: new Date('2026-03-02T00:00:00.000Z'),
+        start: null,
+        end: null,
+      },
+    ]);
     expect(existsSync(join(directory, 'state.sqlite3'))).toBe(false);
     expect(existsSync(join(directory, 'state.sqlite3.imported'))).toBe(true);
   });
@@ -261,9 +303,68 @@ describe(LegacyStateRepository.name, () => {
     });
 
     const metrics = await db.selectFrom('futo_backups_local_metrics').selectAll().execute();
+    expect(metrics).toMatchObject([
+      { repositoryId: repository.id, sizeBytes: 42, lastBackup: new Date('2026-03-01T01:00:00.000Z') },
+    ]);
+
     const jobs = await db.selectFrom('futo_backups_jobs').selectAll().execute();
-    expect(metrics).toEqual([]);
-    expect(jobs).toEqual([]);
+    expect(jobs).toMatchObject([
+      {
+        name: 'repository-backup',
+        repositoryId: repository.id,
+        data: { repositoryId: repository.id },
+        status: 'complete',
+        logFilePath: 'logs/my-bucket/run.log',
+        queuedAt: new Date('2026-03-01T00:00:00.000Z'),
+        end: new Date('2026-03-01T01:00:00.000Z'),
+      },
+    ]);
+  });
+
+  it('schedules an Immich integration from before schedule ids on its linked schedule', async () => {
+    await createLegacyState(
+      [
+        `INSERT INTO backends (id, configuration) VALUES ('${backendId}', '{"type":"local","path":"/backups"}')`,
+        `INSERT INTO repositories (id, backendId) VALUES ('${repositoryId}', '${backendId}')`,
+        `INSERT INTO schedules (id, name, paused, cron, ordering) VALUES ('${scheduleId}', 'Nightly', 0, '0 3 * * *', '["${repositoryId}"]')`,
+        `INSERT INTO repositorySchedules (repository, schedule) VALUES ('${repositoryId}', '${scheduleId}')`,
+        `INSERT INTO repositoryIntegrationImmich (id, configuration)
+          VALUES ('${repositoryId}', '{"dataFolders":["upload"],"backupConfiguration":true,"libraries":"all"}')`,
+      ],
+      '20260330120000-RepositoryIntegrationImmichTable',
+    );
+
+    await legacyState.importFrom(directory);
+
+    const integrations = await db.selectFrom('futo_backups_integrations_immich_config').selectAll().execute();
+    expect(integrations).toEqual([
+      {
+        repositoryId,
+        scheduleId,
+        configuration: { dataFolders: ['upload'], backupConfiguration: true, libraries: ['all'] },
+      },
+    ]);
+  });
+
+  it('gives an unscheduled Immich integration from before schedule ids a paused schedule', async () => {
+    await createLegacyState(
+      [
+        `INSERT INTO backends (id, configuration) VALUES ('${backendId}', '{"type":"local","path":"/backups"}')`,
+        `INSERT INTO repositories (id, backendId) VALUES ('${repositoryId}', '${backendId}')`,
+        `INSERT INTO repositoryIntegrationImmich (id, configuration)
+          VALUES ('${repositoryId}', '{"dataFolders":["upload"],"backupConfiguration":true,"libraries":"all"}')`,
+      ],
+      '20260330120000-RepositoryIntegrationImmichTable',
+    );
+
+    await legacyState.importFrom(directory);
+
+    const [schedule] = await db.selectFrom('futo_backups_schedule').selectAll().execute();
+    expect(schedule).toMatchObject({ name: 'Immich Backup', paused: true, ordering: [repositoryId] });
+    const links = await db.selectFrom('futo_backups_repository_schedule').selectAll().execute();
+    expect(links).toEqual([{ repositoryId, scheduleId: schedule.id }]);
+    const integrations = await db.selectFrom('futo_backups_integrations_immich_config').selectAll().execute();
+    expect(integrations).toMatchObject([{ repositoryId, scheduleId: schedule.id }]);
   });
 
   it('does nothing when there is no legacy state database', async () => {
