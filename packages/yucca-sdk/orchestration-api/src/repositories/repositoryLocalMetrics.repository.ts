@@ -11,7 +11,7 @@ export class RepositoryLocalMetricsRepository {
 
   async save(id: string, metrics: Updateable<RepositoryLocalMetricsTable>) {
     return await this.db
-      .insertInto('repositoryLocalMetrics')
+      .insertInto('futo_backups_local_metrics')
       .values({
         id,
         sizeBytes: 0,
@@ -25,8 +25,8 @@ export class RepositoryLocalMetricsRepository {
   async get(id: string): Promise<RepositoryMetricsDto> {
     return (
       (await this.db
-        .selectFrom('repositoryLocalMetrics')
-        .selectAll('repositoryLocalMetrics')
+        .selectFrom('futo_backups_local_metrics')
+        .selectAll('futo_backups_local_metrics')
         .where('id', '=', id)
         .executeTakeFirst()) ?? {
         sizeBytes: 0,
@@ -35,6 +35,6 @@ export class RepositoryLocalMetricsRepository {
   }
 
   getAll() {
-    return this.db.selectFrom('repositoryLocalMetrics').selectAll('repositoryLocalMetrics').execute();
+    return this.db.selectFrom('futo_backups_local_metrics').selectAll('futo_backups_local_metrics').execute();
   }
 }

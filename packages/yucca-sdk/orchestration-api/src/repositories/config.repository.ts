@@ -55,17 +55,17 @@ export class ConfigRepository {
 
   async getStateSummary() {
     const [{ backends }] = await this.db
-      .selectFrom('backends')
+      .selectFrom('futo_backups_backends')
       .select((eb) => eb.fn.countAll<number>().as('backends'))
       .execute();
 
     const [{ repositories }] = await this.db
-      .selectFrom('repositories')
+      .selectFrom('futo_backups_repositories')
       .select((eb) => eb.fn.countAll<number>().as('repositories'))
       .execute();
 
     const [{ activeSchedules }] = await this.db
-      .selectFrom('schedules')
+      .selectFrom('futo_backups_schedule')
       .where('paused', '!=', 1)
       .select((eb) => eb.fn.countAll<number>().as('activeSchedules'))
       .execute();
@@ -107,7 +107,7 @@ export class ConfigRepository {
 
   private async setAll(values: Partial<Record<ConfigurationKey, string>>) {
     await this.db
-      .insertInto('config')
+      .insertInto('futo_backups_config')
       .values(Object.entries(values).map(([key, value]) => ({ key, value })))
       .onConflict((oc) => oc.column('key').doUpdateSet((eb) => ({ value: eb.ref('excluded.value') })))
       .execute();
@@ -115,9 +115,9 @@ export class ConfigRepository {
 
   private async get(key: ConfigurationKey) {
     const { value } = await this.db
-      .selectFrom('config')
-      .where('config.key', '=', key)
-      .select('config.value')
+      .selectFrom('futo_backups_config')
+      .where('futo_backups_config.key', '=', key)
+      .select('futo_backups_config.value')
       .executeTakeFirstOrThrow();
 
     return value;
@@ -125,16 +125,16 @@ export class ConfigRepository {
 
   private async getOptional(key: ConfigurationKey) {
     const row = await this.db
-      .selectFrom('config')
-      .where('config.key', '=', key)
-      .select('config.value')
+      .selectFrom('futo_backups_config')
+      .where('futo_backups_config.key', '=', key)
+      .select('futo_backups_config.value')
       .executeTakeFirst();
 
     return row?.value;
   }
 
   private async has(key: ConfigurationKey) {
-    const results = await this.db.selectFrom('config').where('config.key', '=', key).selectAll().execute();
+    const results = await this.db.selectFrom('futo_backups_config').where('futo_backups_config.key', '=', key).selectAll().execute();
 
     return results.length > 0;
   }

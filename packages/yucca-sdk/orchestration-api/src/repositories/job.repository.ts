@@ -99,7 +99,7 @@ export class JobRepository implements OnModuleInit, BeforeApplicationShutdown {
     }
 
     return this.db
-      .updateTable('jobs')
+      .updateTable('futo_backups_jobs')
       .set({ status: JobStatus.Incomplete, end: new Date().toISOString() })
       .where('status', 'in', [JobStatus.Queued, JobStatus.Running])
       .returningAll()
@@ -151,7 +151,7 @@ export class JobRepository implements OnModuleInit, BeforeApplicationShutdown {
 
     const queuedAt = new Date().toISOString();
     const jobs = await this.db
-      .insertInto('jobs')
+      .insertInto('futo_backups_jobs')
       .values(
         items.map(({ name, data }) => {
           const id = randomUUID();
@@ -189,12 +189,12 @@ export class JobRepository implements OnModuleInit, BeforeApplicationShutdown {
   }
 
   private find(id: string) {
-    return this.db.selectFrom('jobs').selectAll().where('id', '=', id).executeTakeFirst();
+    return this.db.selectFrom('futo_backups_jobs').selectAll().where('id', '=', id).executeTakeFirst();
   }
 
   async getAll(repositoryId: string) {
     const jobs = await this.db
-      .selectFrom('jobs')
+      .selectFrom('futo_backups_jobs')
       .selectAll()
       .where('repositoryId', '=', repositoryId)
       .orderBy('queuedAt', 'desc')
@@ -206,7 +206,7 @@ export class JobRepository implements OnModuleInit, BeforeApplicationShutdown {
 
   async getLatest(repositoryId: string, name: JobName) {
     const job = await this.db
-      .selectFrom('jobs')
+      .selectFrom('futo_backups_jobs')
       .selectAll()
       .where('repositoryId', '=', repositoryId)
       .where('name', '=', name)
@@ -278,7 +278,7 @@ export class JobRepository implements OnModuleInit, BeforeApplicationShutdown {
     await this.cancelQueued((eb) => eb('repositoryId', '=', repositoryId));
 
     const running = await this.db
-      .selectFrom('jobs')
+      .selectFrom('futo_backups_jobs')
       .select('id')
       .where('repositoryId', '=', repositoryId)
       .where('status', '=', JobStatus.Running)
@@ -295,9 +295,9 @@ export class JobRepository implements OnModuleInit, BeforeApplicationShutdown {
     }
   }
 
-  private async cancelQueued(where: Parameters<UpdateQueryBuilder<DB, 'jobs', 'jobs', UpdateResult>['where']>[0]) {
+  private async cancelQueued(where: Parameters<UpdateQueryBuilder<DB, 'futo_backups_jobs', 'futo_backups_jobs', UpdateResult>['where']>[0]) {
     const cancelled = await this.db
-      .updateTable('jobs')
+      .updateTable('futo_backups_jobs')
       .set({ status: JobStatus.Cancelled, end: new Date().toISOString() })
       .where('status', '=', JobStatus.Queued)
       .where(where)
@@ -391,11 +391,11 @@ export class JobRepository implements OnModuleInit, BeforeApplicationShutdown {
 
   private async claim() {
     const job = await this.db
-      .updateTable('jobs')
+      .updateTable('futo_backups_jobs')
       .set({ status: JobStatus.Running, start: new Date().toISOString() })
       .where('id', '=', (eb) =>
         eb
-          .selectFrom('jobs')
+          .selectFrom('futo_backups_jobs')
           .select('id')
           .where('status', '=', JobStatus.Queued)
           .orderBy(sql`rowid`)
@@ -453,7 +453,7 @@ export class JobRepository implements OnModuleInit, BeforeApplicationShutdown {
     };
 
     job = await this.db
-      .insertInto('jobs')
+      .insertInto('futo_backups_jobs')
       .values({
         ...job,
         ...updateSet,

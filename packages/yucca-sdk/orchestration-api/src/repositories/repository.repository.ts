@@ -20,7 +20,7 @@ export class RepositoryRepository {
 
   async create(repository: RepositoryRow) {
     await this.db
-      .insertInto('repositories')
+      .insertInto('futo_backups_repositories')
       .values({
         id: repository.id,
         remoteId: repository.remoteId,
@@ -42,13 +42,13 @@ export class RepositoryRepository {
       set.retentionPolicy = retentionPolicy === null ? null : JSON.stringify(retentionPolicy);
     }
 
-    await this.db.updateTable('repositories').set(set).where('id', '=', id).execute();
+    await this.db.updateTable('futo_backups_repositories').set(set).where('id', '=', id).execute();
   }
 
   async get(id: string): Promise<RepositoryRow | undefined> {
     const row = await this.db
-      .selectFrom('repositories')
-      .selectAll('repositories')
+      .selectFrom('futo_backups_repositories')
+      .selectAll('futo_backups_repositories')
       .where('id', '=', id)
       .executeTakeFirst();
 
@@ -65,7 +65,7 @@ export class RepositoryRepository {
   }
 
   async getAll(): Promise<RepositoryRow[]> {
-    const rows = await this.db.selectFrom('repositories').selectAll('repositories').execute();
+    const rows = await this.db.selectFrom('futo_backups_repositories').selectAll('futo_backups_repositories').execute();
     return rows.map((row) => ({
       id: row.id,
       remoteId: row.remoteId,
@@ -77,10 +77,10 @@ export class RepositoryRepository {
   }
 
   async delete(id: string) {
-    await this.db.deleteFrom('repositoryLocalMetrics').where('id', '=', id).execute();
-    await this.db.deleteFrom('repositoryPaths').where('id', '=', id).execute();
-    await this.db.deleteFrom('repositorySchedules').where('repository', '=', id).execute();
-    await this.db.deleteFrom('jobs').where('repositoryId', '=', id).execute();
-    await this.db.deleteFrom('repositories').where('id', '=', id).execute();
+    await this.db.deleteFrom('futo_backups_local_metrics').where('id', '=', id).execute();
+    await this.db.deleteFrom('futo_backups_repository_path').where('id', '=', id).execute();
+    await this.db.deleteFrom('futo_backups_repository_schedule').where('repository', '=', id).execute();
+    await this.db.deleteFrom('futo_backups_jobs').where('repositoryId', '=', id).execute();
+    await this.db.deleteFrom('futo_backups_repositories').where('id', '=', id).execute();
   }
 }

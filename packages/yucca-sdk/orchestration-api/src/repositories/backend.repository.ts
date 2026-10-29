@@ -11,7 +11,7 @@ export class BackendRepository {
 
   async updateBackend(id: string, configuration: BackendConfiguration) {
     return await this.db
-      .insertInto('backends')
+      .insertInto('futo_backups_backends')
       .values({
         id,
         configuration: JSON.stringify(configuration),
@@ -22,7 +22,7 @@ export class BackendRepository {
   }
 
   async getBackends() {
-    const backends = await this.db.selectFrom('backends').selectAll('backends').execute();
+    const backends = await this.db.selectFrom('futo_backups_backends').selectAll('futo_backups_backends').execute();
     return backends
       .map(({ id, configuration }) => ({
         id,
@@ -32,7 +32,7 @@ export class BackendRepository {
   }
 
   async getBackend(id: string) {
-    const backend = await this.db.selectFrom('backends').selectAll('backends').where('id', '=', id).executeTakeFirst();
+    const backend = await this.db.selectFrom('futo_backups_backends').selectAll('futo_backups_backends').where('id', '=', id).executeTakeFirst();
 
     if (backend) {
       const configuration = JSON.parse(backend.configuration) as BackendConfiguration;

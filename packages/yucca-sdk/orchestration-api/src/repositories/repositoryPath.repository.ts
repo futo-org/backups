@@ -9,21 +9,21 @@ export class RepositoryPathRepository {
   constructor(@InjectKysely('orchestrator') private db: Kysely<DB>) {}
 
   create(entry: Insertable<RepositoryPathTable>) {
-    return this.db.insertInto('repositoryPaths').values(entry).returningAll().executeTakeFirstOrThrow();
+    return this.db.insertInto('futo_backups_repository_path').values(entry).returningAll().executeTakeFirstOrThrow();
   }
 
   async get(id: string) {
-    const result = await this.db.selectFrom('repositoryPaths').select('path').where('id', '=', id).execute();
+    const result = await this.db.selectFrom('futo_backups_repository_path').select('path').where('id', '=', id).execute();
     return result.map(({ path }) => path);
   }
 
   getAll() {
-    return this.db.selectFrom('repositoryPaths').selectAll().execute();
+    return this.db.selectFrom('futo_backups_repository_path').selectAll().execute();
   }
 
   delete(id: string, path: string) {
     return this.db
-      .deleteFrom('repositoryPaths')
+      .deleteFrom('futo_backups_repository_path')
       .where('id', '=', id)
       .where('path', '=', path)
       .executeTakeFirstOrThrow();

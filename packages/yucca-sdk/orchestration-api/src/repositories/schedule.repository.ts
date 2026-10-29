@@ -9,18 +9,18 @@ export class ScheduleRepository {
   constructor(@InjectKysely('orchestrator') private db: Kysely<DB>) {}
 
   create(schedule: Insertable<ScheduleTable>) {
-    return this.db.insertInto('schedules').values(schedule).returningAll().executeTakeFirstOrThrow();
+    return this.db.insertInto('futo_backups_schedule').values(schedule).returningAll().executeTakeFirstOrThrow();
   }
 
   async get(id: string) {
-    const row = await this.db.selectFrom('schedules').selectAll('schedules').where('id', '=', id).executeTakeFirst();
+    const row = await this.db.selectFrom('futo_backups_schedule').selectAll('futo_backups_schedule').where('id', '=', id).executeTakeFirst();
 
     if (row) {
       const { ordering, paused, ...schedule } = row;
 
       const repositorySchedules = await this.db
-        .selectFrom('repositorySchedules')
-        .selectAll('repositorySchedules')
+        .selectFrom('futo_backups_repository_schedule')
+        .selectAll('futo_backups_repository_schedule')
         .where('schedule', '=', id)
         .execute();
 
@@ -36,10 +36,10 @@ export class ScheduleRepository {
   }
 
   async getAll() {
-    const schedules = await this.db.selectFrom('schedules').selectAll('schedules').execute();
+    const schedules = await this.db.selectFrom('futo_backups_schedule').selectAll('futo_backups_schedule').execute();
     const repositorySchedules = await this.db
-      .selectFrom('repositorySchedules')
-      .selectAll('repositorySchedules')
+      .selectFrom('futo_backups_repository_schedule')
+      .selectAll('futo_backups_repository_schedule')
       .execute();
 
     return schedules.map(({ ordering, paused, ...schedule }) => ({
@@ -54,8 +54,8 @@ export class ScheduleRepository {
 
   async getRepositoryIds(id: string) {
     const repositorySchedules = await this.db
-      .selectFrom('repositorySchedules')
-      .selectAll('repositorySchedules')
+      .selectFrom('futo_backups_repository_schedule')
+      .selectAll('futo_backups_repository_schedule')
       .where('schedule', '=', id)
       .execute();
 
@@ -63,16 +63,16 @@ export class ScheduleRepository {
   }
 
   updateSchedule(id: string, schedule: Updateable<ScheduleTable>) {
-    return this.db.updateTable('schedules').where('id', '=', id).set(schedule).returningAll().executeTakeFirst();
+    return this.db.updateTable('futo_backups_schedule').where('id', '=', id).set(schedule).returningAll().executeTakeFirst();
   }
 
   removeSchedule(id: string) {
-    return this.db.deleteFrom('schedules').where('id', '=', id).execute();
+    return this.db.deleteFrom('futo_backups_schedule').where('id', '=', id).execute();
   }
 
   addRepositoryToSchedule(schedule: string, repository: string) {
     return this.db
-      .insertInto('repositorySchedules')
+      .insertInto('futo_backups_repository_schedule')
       .values({
         repository,
         schedule,
@@ -82,7 +82,7 @@ export class ScheduleRepository {
 
   removeRepositoryFromSchedule(schedule: string, repository: string) {
     return this.db
-      .deleteFrom('repositorySchedules')
+      .deleteFrom('futo_backups_repository_schedule')
       .where('schedule', '=', schedule)
       .where('repository', '=', repository)
       .execute();

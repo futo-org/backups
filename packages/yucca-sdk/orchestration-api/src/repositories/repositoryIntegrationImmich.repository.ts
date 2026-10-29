@@ -9,7 +9,7 @@ export class RepositoryIntegrationImmichRepository {
   constructor(@InjectKysely('orchestrator') private db: Kysely<DB>) {}
 
   async get() {
-    const integration = await this.db.selectFrom('repositoryIntegrationImmich').selectAll().executeTakeFirst();
+    const integration = await this.db.selectFrom('futo_backups_integrations_immich_config').selectAll().executeTakeFirst();
     if (!integration) {
       return;
     }
@@ -30,10 +30,10 @@ export class RepositoryIntegrationImmichRepository {
 
   async upsert(id: string, scheduleId: string, configuration: ImmichRepositoryConfig) {
     await this.db.transaction().execute(async (tx) => {
-      await tx.deleteFrom('repositoryIntegrationImmich').where('id', '!=', id).execute();
+      await tx.deleteFrom('futo_backups_integrations_immich_config').where('id', '!=', id).execute();
 
       await tx
-        .insertInto('repositoryIntegrationImmich')
+        .insertInto('futo_backups_integrations_immich_config')
         .values({
           id,
           scheduleId,
@@ -46,6 +46,6 @@ export class RepositoryIntegrationImmichRepository {
   }
 
   async delete() {
-    await this.db.deleteFrom('repositoryIntegrationImmich').execute();
+    await this.db.deleteFrom('futo_backups_integrations_immich_config').execute();
   }
 }
