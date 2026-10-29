@@ -1,3 +1,5 @@
+import { PGlite, types } from '@electric-sql/pglite';
+import { dataDir } from '@electric-sql/pglite-prepopulatedfs';
 import { PGLiteSocketServer } from '@electric-sql/pglite-socket';
 import { schemaDiff, schemaFromCode, schemaFromDatabase } from '@immich/sql-tools';
 import { Kysely, sql } from 'kysely';
@@ -35,6 +37,23 @@ describe(DatabaseRepository.name, () => {
   afterAll(async () => {
     await db?.destroy();
     await server?.stop();
+  });
+
+  it('refuses to migrate a database whose dialect returns bigint values as strings', async () => {
+    const stringBigInts = new Kysely<DB>({
+      dialect: new PGliteDialect(
+        await PGlite.create({ loadDataDir: await dataDir(), parsers: { [types.INT8]: String } }),
+      ),
+    });
+
+    try {
+      await expect(
+        new DatabaseRepository(stringBigInts, new StorageRepository(), LoggingRepository.create()).runMigrations(),
+      ).rejects.toThrow('Misconfigured dialect: enable convertBigIntToNumber');
+      expect(await stringBigInts.introspection.getTables()).toEqual([]);
+    } finally {
+      await stringBigInts.destroy();
+    }
   });
 
   it('migrates to the schema in code using only prefixed tables and types', async () => {

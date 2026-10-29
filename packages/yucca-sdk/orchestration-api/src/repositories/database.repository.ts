@@ -18,6 +18,13 @@ export class DatabaseRepository {
   }
 
   async runMigrations(): Promise<{ ranInitialMigration: boolean }> {
+    const {
+      rows: [{ value }],
+    } = await sql<{ value: unknown }>`SELECT 1::int8 AS value`.execute(this.db);
+    if (typeof value !== 'number') {
+      throw new TypeError('Misconfigured dialect: enable convertBigIntToNumber');
+    }
+
     const migrator = this.createMigrator();
     const [initialMigration] = await migrator.getMigrations();
     const { error, results } = await migrator.migrateToLatest();
