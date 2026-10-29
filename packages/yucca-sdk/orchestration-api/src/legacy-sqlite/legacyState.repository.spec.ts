@@ -71,12 +71,15 @@ describe(LegacyStateRepository.name, () => {
         ('encryption-key', 'abc123'),
         ('onboarded-key', '1'),
         ('telemetry', 'full'),
+        ('skipped-onboarding-extra-config', '1'),
+        ('ignored-immich-database-dump-warning', '1'),
+        ('restic-o-rest-connections', '12'),
         ('session-secret', 'secret'),
         ('state-path', '/old/state')`,
       `INSERT INTO backends (id, configuration) VALUES ('${backendId}', '{"type":"local","path":"/backups"}')`,
-      `INSERT INTO repositories (id, remoteId, backendId, retentionPolicy) VALUES
-        ('${repositoryId}', 'remote-uuid', '${backendId}', '{"keepLast":3}'),
-        ('my-bucket', 'my-bucket', '${backendId}', NULL)`,
+      `INSERT INTO repositories (id, remoteId, backendId, retentionPolicy, siteCode, storageClusterCode) VALUES
+        ('${repositoryId}', 'remote-uuid', '${backendId}', '{"keepLast":3,"keepWithin":"1m"}', 'test-site', 'test-cluster'),
+        ('my-bucket', 'my-bucket', '${backendId}', NULL, NULL, NULL)`,
       `INSERT INTO repositoryPaths (id, path) VALUES ('${repositoryId}', '/photos'), ('my-bucket', '/documents')`,
       `INSERT INTO schedules (id, name, paused, cron, ordering) VALUES
         ('${scheduleId}', 'Daily', 1, '0 0 * * *', '["my-bucket","${repositoryId}"]')`,
@@ -93,15 +96,34 @@ describe(LegacyStateRepository.name, () => {
       [ConfigurationKey.EncryptionKey]: { key: 'abc123' },
       [ConfigurationKey.OnboardedKey]: { isOnboarded: true },
       [ConfigurationKey.Telemetry]: { level: 'full' },
+      [ConfigurationKey.SkippedOnboardingExtraConfig]: { isSkipped: true },
+      [ConfigurationKey.IgnoredImmichDatabaseDumpWarning]: { isIgnored: true },
+      [ConfigurationKey.ResticOptionRestConnections]: { connections: 12 },
     });
+
+    const backends = await db.selectFrom('futo_backups_backends').selectAll().execute();
+    expect(backends).toEqual([{ id: backendId, configuration: { type: 'local', path: '/backups' } }]);
 
     const repositories = await db.selectFrom('futo_backups_repositories').selectAll().execute();
     const bucket = repositories.find(({ remoteId }) => remoteId === 'my-bucket');
     expect(repositories).toHaveLength(2);
-    expect(repositories).toContainEqual(
-      expect.objectContaining({ id: repositoryId, retentionPolicy: { keepLast: 3 } }),
-    );
+    expect(repositories).toContainEqual({
+      id: repositoryId,
+      remoteId: 'remote-uuid',
+      backendId,
+      retentionPolicy: { keepLast: 3, keepWithin: '1m' },
+      siteCode: 'test-site',
+      storageClusterCode: 'test-cluster',
+    });
     expect(bucket?.id).toMatch(/^[\da-f-]{36}$/);
+    expect(bucket).toEqual({
+      id: bucket?.id,
+      remoteId: 'my-bucket',
+      backendId,
+      retentionPolicy: null,
+      siteCode: null,
+      storageClusterCode: null,
+    });
 
     const paths = await db.selectFrom('futo_backups_repository_path').selectAll().execute();
     expect(paths).toEqual(
@@ -110,10 +132,25 @@ describe(LegacyStateRepository.name, () => {
         { repositoryId: bucket?.id, path: '/documents' },
       ]),
     );
+    expect(paths).toHaveLength(2);
 
     const [schedule] = await db.selectFrom('futo_backups_schedule').selectAll().execute();
-    expect(schedule).toMatchObject({ id: scheduleId, paused: true, ordering: [bucket?.id, repositoryId] });
+    expect(schedule).toEqual({
+      id: scheduleId,
+      name: 'Daily',
+      paused: true,
+      cron: '0 0 * * *',
+      ordering: [bucket?.id, repositoryId],
+      lastRun: null,
+      lastFinished: null,
+    });
     const links = await db.selectFrom('futo_backups_repository_schedule').selectAll().execute();
+    expect(links).toEqual(
+      expect.arrayContaining([
+        { repositoryId, scheduleId },
+        { repositoryId: bucket?.id, scheduleId },
+      ]),
+    );
     expect(links).toHaveLength(2);
 
     const [integration] = await db.selectFrom('futo_backups_integrations_immich_config').selectAll().execute();
@@ -129,6 +166,36 @@ describe(LegacyStateRepository.name, () => {
     expect(existsSync(join(directory, 'state.sqlite3.imported'))).toBe(true);
   });
 
+  it.each([
+    { rate: '1234567', quietHours: '01:00-02:00', expected: { bytesPerSec: 1_234_567, quietHours: '01:00-02:00' } },
+    { rate: '1234567', quietHours: undefined, expected: { bytesPerSec: 1_234_567 } },
+    { rate: '0', quietHours: '', expected: { bytesPerSec: 0 } },
+    { rate: undefined, quietHours: '01:00-02:00', expected: undefined },
+    { rate: undefined, quietHours: undefined, expected: undefined },
+  ])(
+    'preserves throttle behaviour for $rate bytes/s and quiet hours $quietHours',
+    async ({ rate, quietHours, expected }) => {
+      const statements: string[] = [];
+      if (rate !== undefined) {
+        statements.push(`INSERT INTO config (key, value) VALUES ('throttle-bytes-per-sec', '${rate}')`);
+      }
+
+      if (quietHours !== undefined) {
+        statements.push(`INSERT INTO config (key, value) VALUES ('throttle-quiet-hours', '${quietHours}')`);
+      }
+
+      await createLegacyState(statements);
+      await legacyState.importFrom(directory);
+
+      const throttle = await db
+        .selectFrom('futo_backups_config')
+        .select('value')
+        .where('key', '=', ConfigurationKey.Throttle)
+        .executeTakeFirst();
+      expect(throttle?.value).toEqual(expected);
+    },
+  );
+
   it('upgrades a state database from before remote ids and imports it', async () => {
     await createLegacyState(
       [
@@ -142,7 +209,7 @@ describe(LegacyStateRepository.name, () => {
         `INSERT INTO schedules (id, name, paused, cron, ordering) VALUES ('${scheduleId}', 'Nightly', 0, '0 3 * * *', '["my-bucket"]')`,
         `INSERT INTO repositorySchedules (repository, schedule) VALUES ('my-bucket', '${scheduleId}')`,
         `INSERT INTO repositoryIntegrationImmich (id, scheduleId, configuration)
-          VALUES ('my-bucket', '${scheduleId}', '{"dataFolders":["upload"],"backupConfiguration":false,"libraries":"all"}')`,
+          VALUES ('my-bucket', '${scheduleId}', '{"dataFolders":["upload"],"backupConfiguration":false,"libraries":["library-one","library-two"]}')`,
       ],
       '20260330130000-AddScheduleIdToImmichIntegration',
     );
@@ -173,10 +240,23 @@ describe(LegacyStateRepository.name, () => {
     expect(links).toEqual([{ scheduleId, repositoryId: repository.id }]);
 
     const [integration] = await db.selectFrom('futo_backups_integrations_immich_config').selectAll().execute();
-    expect(integration).toMatchObject({ repositoryId: repository.id, configuration: { libraries: ['all'] } });
+    expect(integration).toEqual({
+      repositoryId: repository.id,
+      scheduleId,
+      configuration: { dataFolders: ['upload'], backupConfiguration: false, libraries: ['library-one', 'library-two'] },
+    });
 
     const [backend] = await db.selectFrom('futo_backups_backends').selectAll().execute();
-    expect(backend.configuration).toMatchObject({ type: 's3', endpoint: 'https://s3.test' });
+    expect(backend).toEqual({
+      id: backendId,
+      configuration: {
+        type: 's3',
+        endpoint: 'https://s3.test',
+        region: 'eu',
+        accessKeyId: 'id',
+        secretAccessKey: 'secret',
+      },
+    });
 
     const metrics = await db.selectFrom('futo_backups_local_metrics').selectAll().execute();
     const jobs = await db.selectFrom('futo_backups_jobs').selectAll().execute();
@@ -189,5 +269,40 @@ describe(LegacyStateRepository.name, () => {
 
     const config = await db.selectFrom('futo_backups_config').selectAll().execute();
     expect(config).toEqual([]);
+  });
+
+  it('preserves cloud backend credentials and does not import the same database twice', async () => {
+    const configuration = {
+      type: 'yucca',
+      url: 'https://backups.test',
+      accessToken: 'test-token',
+      userId: 'test-user',
+    };
+    await createLegacyState([
+      `INSERT INTO backends (id, configuration) VALUES ('${backendId}', '${JSON.stringify(configuration)}')`,
+    ]);
+
+    await legacyState.importFrom(directory);
+    await legacyState.importFrom(directory);
+
+    const backends = await db.selectFrom('futo_backups_backends').selectAll().execute();
+    expect(backends).toEqual([{ id: backendId, configuration }]);
+  });
+
+  it('rolls back imported data and keeps the legacy database when an import fails', async () => {
+    await createLegacyState([
+      `INSERT INTO config (key, value) VALUES ('encryption-key', 'abc123')`,
+      `INSERT INTO backends (id, configuration) VALUES ('${backendId}', '{"type":"local","path":"/backups"}')`,
+      `INSERT INTO schedules (id, name, paused, cron, ordering) VALUES ('invalid-uuid', 'Daily', 0, '0 0 * * *', '[]')`,
+    ]);
+
+    await expect(legacyState.importFrom(directory)).rejects.toThrow('invalid input syntax for type uuid');
+
+    const config = await db.selectFrom('futo_backups_config').selectAll().execute();
+    const backends = await db.selectFrom('futo_backups_backends').selectAll().execute();
+    expect(config).toEqual([]);
+    expect(backends).toEqual([]);
+    expect(existsSync(join(directory, 'state.sqlite3'))).toBe(true);
+    expect(existsSync(join(directory, 'state.sqlite3.imported'))).toBe(false);
   });
 });

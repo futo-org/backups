@@ -19,6 +19,7 @@ const importedConfigValues: { [Key in ConfigurationKey]?: (value: string) => Con
   [ConfigurationKey.Telemetry]: (value) => ({ level: value as TelemetryLevel }),
   [ConfigurationKey.SkippedOnboardingExtraConfig]: () => ({ isSkipped: true }),
   [ConfigurationKey.IgnoredImmichDatabaseDumpWarning]: () => ({ isIgnored: true }),
+  [ConfigurationKey.ResticOptionRestConnections]: (value) => ({ connections: Number.parseInt(value) }),
 };
 
 @Injectable()
@@ -58,6 +59,15 @@ export class LegacyStateRepository {
         const toValue = importedConfigValues[key as ConfigurationKey];
         return toValue ? [{ key: key as ConfigurationKey, value: toValue(value) }] : [];
       });
+      const bytesPerSec = config.find(({ key }) => key === 'throttle-bytes-per-sec')?.value;
+      if (bytesPerSec !== undefined) {
+        const quietHours = config.find(({ key }) => key === 'throttle-quiet-hours')?.value;
+        importedConfig.push({
+          key: ConfigurationKey.Throttle,
+          value: { bytesPerSec: Number.parseInt(bytesPerSec), quietHours: quietHours || undefined },
+        });
+      }
+
       const importedPaths = paths.filter(({ id }) => repositoryIds.has(id));
       const importedLinks = links.filter(
         ({ repository, schedule }) => repositoryIds.has(repository) && scheduleIds.has(schedule),
