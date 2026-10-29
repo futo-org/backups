@@ -15,6 +15,7 @@ import { DB } from '../schema/index.js';
 import { JobTable } from '../schema/tables/job.table.js';
 import { SupportModeService } from '../services/supportMode.service.js';
 import { TelemetryService } from '../services/telemetry.service.js';
+import { explainConnectivityFailure } from '../utils/connectivity.js';
 import { getJobStatus, TaskCancelledError, writeError } from '../utils/errors.js';
 import type { JobHandler, JobItem } from '../utils/types.js';
 import { LoggingRepository } from './logging.repository.js';
@@ -433,6 +434,7 @@ export class JobRepository implements OnModuleInit, BeforeApplicationShutdown {
       } catch (error_) {
         error = error_;
         writeError((event) => ctx.log(event), error);
+        await this.explainConnectivity(ctx, error);
       }
 
       if (support) {
@@ -468,6 +470,17 @@ export class JobRepository implements OnModuleInit, BeforeApplicationShutdown {
     });
 
     this.settle(job, error);
+  }
+
+  private async explainConnectivity(ctx: JobContext, error: unknown) {
+    if (error instanceof TaskCancelledError) {
+      return;
+    }
+
+    const explanation = await explainConnectivityFailure(ctx.outcome.errors);
+    if (explanation) {
+      ctx.log({ message_type: 'error', error: { message: explanation } });
+    }
   }
 
   @Interval(1000)
