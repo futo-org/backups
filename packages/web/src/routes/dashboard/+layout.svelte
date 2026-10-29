@@ -27,7 +27,7 @@
 
   const { data, children } = $props();
 
-  configureYucca({ api: "customer" });
+  configureYucca({ api: "customer", language: "en" });
 
   beforeNavigate(() => sidebarStore.reset());
 </script>

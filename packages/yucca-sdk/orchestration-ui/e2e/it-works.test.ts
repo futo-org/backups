@@ -4,7 +4,7 @@ import * as sdk from '../src/lib/fetch-client';
 import { configureYucca } from '../src/lib/providers';
 
 test.beforeAll(async () => {
-  configureYucca({ api: 'orchestrator', baseUrl: 'http://localhost:22676' });
+  configureYucca({ api: 'orchestrator', baseUrl: 'http://localhost:22676', language: 'en' });
   await sdk.resetOrchestrator();
   await sdk.importRecoveryKey({
     recoveryKey: '0'.repeat(64),

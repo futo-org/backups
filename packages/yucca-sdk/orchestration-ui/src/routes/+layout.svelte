@@ -6,7 +6,11 @@
 
   const { children } = $props();
 
-  configureYucca({ api: "orchestrator", baseUrl: "http://localhost:22676" });
+  configureYucca({
+    api: "orchestrator",
+    baseUrl: "http://localhost:22676",
+    language: "en",
+  });
 
   themeManager.setPreference(ThemePreference.Light);
 
