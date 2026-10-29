@@ -10,31 +10,35 @@ export class RepositoryLocalMetricsRepository {
   constructor(@InjectKysely('orchestrator') private db: Kysely<DB>) {}
 
   async save(repositoryId: string, metrics: Updateable<RepositoryLocalMetricsTable>) {
-    return await this.db
+    const row = await this.db
       .insertInto('futo_backups_local_metrics')
       .values({
         repositoryId,
-        sizeBytes: 0,
         ...metrics,
       })
-      .onConflict((oc) => oc.doUpdateSet(metrics))
-      .returningAll()
+      .onConflict((oc) => oc.column('repositoryId').doUpdateSet(metrics))
+      .returning(['sizeBytes', 'lastBackup', 'lastBackupStatus', 'lastBackupDuration'])
       .executeTakeFirstOrThrow();
+
+    return { ...row, lastBackup: row.lastBackup?.toISOString() };
   }
 
   async get(repositoryId: string): Promise<RepositoryMetricsDto> {
-    return (
-      (await this.db
-        .selectFrom('futo_backups_local_metrics')
-        .selectAll('futo_backups_local_metrics')
-        .where('repositoryId', '=', repositoryId)
-        .executeTakeFirst()) ?? {
-        sizeBytes: 0,
-      }
-    );
+    const row = await this.db
+      .selectFrom('futo_backups_local_metrics')
+      .select(['sizeBytes', 'lastBackup', 'lastBackupStatus', 'lastBackupDuration'])
+      .where('repositoryId', '=', repositoryId)
+      .executeTakeFirst();
+
+    return row ? { ...row, lastBackup: row.lastBackup?.toISOString() } : { sizeBytes: 0 };
   }
 
-  getAll() {
-    return this.db.selectFrom('futo_backups_local_metrics').selectAll('futo_backups_local_metrics').execute();
+  async getAll() {
+    const rows = await this.db
+      .selectFrom('futo_backups_local_metrics')
+      .select(['repositoryId', 'sizeBytes', 'lastBackup', 'lastBackupStatus', 'lastBackupDuration'])
+      .execute();
+
+    return rows.map((row) => ({ ...row, lastBackup: row.lastBackup?.toISOString() }));
   }
 }

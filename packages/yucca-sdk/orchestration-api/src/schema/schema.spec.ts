@@ -9,6 +9,7 @@ import { ConfigRepository } from '../repositories/config.repository.js';
 import { LoggingRepository } from '../repositories/logging.repository.js';
 import { RepositoryRepository } from '../repositories/repository.repository.js';
 import { RepositoryIntegrationImmichRepository } from '../repositories/repositoryIntegrationImmich.repository.js';
+import { RepositoryLocalMetricsRepository } from '../repositories/repositoryLocalMetrics.repository.js';
 import { RepositoryPathRepository } from '../repositories/repositoryPath.repository.js';
 import { ScheduleRepository } from '../repositories/schedule.repository.js';
 import './index.js';
@@ -82,6 +83,23 @@ describe('Postgres orchestration schema', () => {
     expect(Number(metrics.sizeBytes)).toBe(5_000_000_000);
     expect(metrics.lastBackup).toEqual(lastRun);
     expect(metrics.lastBackupDuration).toBe(42);
+
+    const localMetrics = new RepositoryLocalMetricsRepository(db);
+    expect(await localMetrics.get(repository.id)).toStrictEqual({
+      sizeBytes: 5_000_000_000,
+      lastBackup: lastRun.toISOString(),
+      lastBackupStatus: null,
+      lastBackupDuration: 42,
+    });
+    await localMetrics.save(repository.id, { lastBackupDuration: 84 });
+    expect(await localMetrics.get(repository.id)).toMatchObject({ sizeBytes: 5_000_000_000, lastBackupDuration: 84 });
+    expect(await localMetrics.getAll()).toContainEqual({
+      repositoryId: repository.id,
+      sizeBytes: 5_000_000_000,
+      lastBackup: lastRun.toISOString(),
+      lastBackupDuration: 84,
+      lastBackupStatus: null,
+    });
   });
 
   it('reads backend configuration and retention policies back as objects', async () => {
@@ -164,7 +182,14 @@ describe('Postgres orchestration schema', () => {
     await schedules.removeRepositoryFromSchedule(schedule.id, repository.id);
     expect(await schedules.getRepositoryIds(schedule.id)).toEqual([]);
     await schedules.addRepositoryToSchedule(schedule.id, repository.id);
-    await db.insertInto('futo_backups_local_metrics').values({ repositoryId: repository.id }).execute();
+    const localMetrics = new RepositoryLocalMetricsRepository(db);
+    expect(await localMetrics.get(repository.id)).toEqual({ sizeBytes: 0 });
+    expect(await localMetrics.save(repository.id, { sizeBytes: 0 })).toStrictEqual({
+      sizeBytes: 0,
+      lastBackup: undefined,
+      lastBackupStatus: null,
+      lastBackupDuration: null,
+    });
     const integration = new RepositoryIntegrationImmichRepository(db);
     const configuration = { dataFolders: ['upload'], backupConfiguration: true, libraries: ['all'] };
     await integration.upsert(repository.id, schedule.id, configuration);
