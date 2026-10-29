@@ -3,6 +3,8 @@ import { Kysely, sql } from 'kysely';
 import { PGliteDialect } from 'kysely-pglite-dialect';
 import { createPGlite } from '../bin/pglite.js';
 import { BackendType, ConfigurationKey, JobName, JobStatus } from '../enum.js';
+import { ConfigRepository } from '../repositories/config.repository.js';
+import { LoggingRepository } from '../repositories/logging.repository.js';
 import { RepositoryPathRepository } from '../repositories/repositoryPath.repository.js';
 import { ScheduleRepository } from '../repositories/schedule.repository.js';
 import './index.js';
@@ -78,24 +80,26 @@ describe('Postgres orchestration schema', () => {
     expect(metrics.lastBackupDuration).toBe(42);
   });
 
-  it('stores configuration as JSON strings, booleans and numbers', async () => {
-    await db
-      .insertInto('futo_backups_config')
-      .values([
-        { key: ConfigurationKey.EncryptionKey, value: sql<string>`${JSON.stringify('test-key')}::jsonb` },
-        { key: ConfigurationKey.OnboardedKey, value: true },
-        { key: ConfigurationKey.ThrottleBytesPerSec, value: 1024 },
-      ])
-      .execute();
+  it('stores each configuration value as a JSON object', async () => {
+    const config = new ConfigRepository(db, { statePath: '/state' } as never, LoggingRepository.create());
+    await config.importEncryptionKey('test-key');
+    await config.confirmKeyOnboarded();
+    await config.setThrottle({ bytesPerSec: 1024, quietHours: '22:00-06:00' });
 
     const values = await db.selectFrom('futo_backups_config').selectAll().execute();
     expect(Object.fromEntries(values.map(({ key, value }) => [key, value]))).toEqual({
-      [ConfigurationKey.EncryptionKey]: 'test-key',
-      [ConfigurationKey.OnboardedKey]: true,
-      [ConfigurationKey.ThrottleBytesPerSec]: 1024,
+      [ConfigurationKey.EncryptionKey]: { key: 'test-key' },
+      [ConfigurationKey.OnboardedKey]: { isOnboarded: true },
+      [ConfigurationKey.Throttle]: { bytesPerSec: 1024, quietHours: '22:00-06:00' },
     });
+    expect(await config.getMasterEncryptionKey()).toBe('test-key');
+    expect(await config.hasOnboardedKey()).toBe(true);
+    expect(await config.getThrottle()).toEqual({ bytesPerSec: 1024, quietHours: '22:00-06:00' });
     await expect(
-      db.insertInto('futo_backups_config').values({ key: ConfigurationKey.OnboardedKey, value: false }).execute(),
+      db
+        .insertInto('futo_backups_config')
+        .values({ key: ConfigurationKey.OnboardedKey, value: { isOnboarded: false } })
+        .execute(),
     ).rejects.toThrow();
   });
 

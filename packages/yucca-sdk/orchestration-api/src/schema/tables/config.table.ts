@@ -1,18 +1,20 @@
 import { Column, PrimaryColumn, Table } from '@immich/sql-tools';
 import { ConfigurationKey, TelemetryLevel } from '../../enum.js';
+import type { ResticProxyThrottle } from '../../proxy/resticProxy.js';
+import type { SupportModeSettings } from '../../repositories/config.repository.js';
 import { configuration_key_enum } from '../enums.js';
 
 export type ConfigurationValues = {
-  [ConfigurationKey.EncryptionKey]: string;
-  [ConfigurationKey.OnboardedKey]: boolean;
-  [ConfigurationKey.Telemetry]: TelemetryLevel;
-  [ConfigurationKey.SkippedOnboardingExtraConfig]: boolean;
-  [ConfigurationKey.IgnoredImmichDatabaseDumpWarning]: boolean;
-  [ConfigurationKey.ResticOptionRestConnections]: number;
-  [ConfigurationKey.SessionSecret]: string;
-  [ConfigurationKey.StatePath]: string;
-  [ConfigurationKey.ThrottleBytesPerSec]: number;
-  [ConfigurationKey.ThrottleQuietHours]: string;
+  [ConfigurationKey.EncryptionKey]: { key: string };
+  [ConfigurationKey.OnboardedKey]: { isOnboarded: boolean };
+  [ConfigurationKey.Telemetry]: { level: TelemetryLevel };
+  [ConfigurationKey.SkippedOnboardingExtraConfig]: { isSkipped: boolean };
+  [ConfigurationKey.IgnoredImmichDatabaseDumpWarning]: { isIgnored: boolean };
+  [ConfigurationKey.ResticOptionRestConnections]: { connections: number };
+  [ConfigurationKey.SessionSecret]: { secret: string };
+  [ConfigurationKey.StatePath]: { path: string };
+  [ConfigurationKey.Throttle]: ResticProxyThrottle;
+  [ConfigurationKey.SupportMode]: SupportModeSettings;
 };
 
 @Table({ name: 'futo_backups_config' })
