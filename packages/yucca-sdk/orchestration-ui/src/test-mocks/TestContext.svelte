@@ -4,7 +4,7 @@
 
   const { children } = $props();
 
-  configureYucca({ api: "orchestrator" });
+  configureYucca({ api: "orchestrator", language: "en" });
 </script>
 
 <TooltipProvider>

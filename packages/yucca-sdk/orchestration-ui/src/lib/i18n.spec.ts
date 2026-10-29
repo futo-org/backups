@@ -1,23 +1,21 @@
-import { defaultMessages, loadMessages } from '$lib/i18n';
+import { setYuccaLanguage } from '$lib/i18n';
+import { get } from 'svelte/store';
 import { gt, locale } from 'svelte-i18n-lingui';
 import { describe, expect, it } from 'vitest';
 
-describe('loadMessages', () => {
+const configureName = () =>
+  gt({ message: 'Configure {name}', values: { name: 'Photos' } });
+
+describe('setYuccaLanguage', () => {
   it('falls back to English for a language without a catalogue', async () => {
-    const messages = await loadMessages('xx');
-    expect(messages).toBe(defaultMessages);
+    await setYuccaLanguage('xx');
+    expect(get(locale)).toBe('en');
+    expect(configureName()).toBe('Configure Photos');
   });
 
   it('loads the catalogue for a supported language', async () => {
-    const messages = await loadMessages('en-XA');
-    expect(messages).not.toBe(defaultMessages);
-    expect(Object.keys(messages)).toEqual(Object.keys(defaultMessages));
-  });
-
-  it('substitutes named placeholders in a translated message', async () => {
-    locale.set('en-XA', await loadMessages('en-XA'));
-    expect(
-      gt({ message: 'Configure {name}', values: { name: 'Photos' } }),
-    ).toBe('Test String Photos');
+    await setYuccaLanguage('en-XA');
+    expect(get(locale)).toBe('en-XA');
+    expect(configureName()).toBe('Test String Photos');
   });
 });

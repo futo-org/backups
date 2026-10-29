@@ -2,13 +2,12 @@
   import "./layout.css";
   import favicon from "$lib/assets/favicon.svg";
 
-  import { locale } from "svelte-i18n-lingui";
   import {
-    defaultMessages,
+    setYuccaLanguage,
     YuccaContext,
   } from "@futo-org/backups-orchestrator-ui";
 
-  locale.set("en", defaultMessages);
+  void setYuccaLanguage("en");
 
   const { children } = $props();
 </script>
