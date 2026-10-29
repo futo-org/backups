@@ -1,4 +1,4 @@
-const PROBE_URL = 'https://icanhazip.com/';
+const PROBE_URL = 'https://docs.futo.cloud/';
 const PROBE_TIMEOUT = 5000;
 
 const CONNECTIVITY_ERROR =
@@ -24,6 +24,6 @@ export const explainConnectivityFailure = async (errors: string[], probe: Intern
   }
 
   return (await probe())
-    ? 'Could not reach FUTO Backups; your internet connection works (icanhazip.com reachable), so this is likely on our side'
-    : 'Could not reach FUTO Backups; your internet connection also appears to be down (icanhazip.com unreachable)';
+    ? 'Could not reach FUTO Backups; your internet connection works (docs.futo.cloud reachable), so this is likely on our side'
+    : 'Could not reach FUTO Backups; your internet connection also appears to be down (docs.futo.cloud unreachable)';
 };

@@ -27,7 +27,7 @@ describe(explainConnectivityFailure.name, () => {
     const probe = jest.fn(() => Promise.resolve(true));
 
     await expect(explainConnectivityFailure(['TypeError: fetch failed'], probe)).resolves.toBe(
-      'Could not reach FUTO Backups; your internet connection works (icanhazip.com reachable), so this is likely on our side',
+      'Could not reach FUTO Backups; your internet connection works (docs.futo.cloud reachable), so this is likely on our side',
     );
     expect(probe).toHaveBeenCalledTimes(1);
   });
@@ -36,7 +36,7 @@ describe(explainConnectivityFailure.name, () => {
     const probe = jest.fn(() => Promise.resolve(false));
 
     await expect(explainConnectivityFailure(['unexpected HTTP response (503)'], probe)).resolves.toBe(
-      'Could not reach FUTO Backups; your internet connection also appears to be down (icanhazip.com unreachable)',
+      'Could not reach FUTO Backups; your internet connection also appears to be down (docs.futo.cloud unreachable)',
     );
   });
 
@@ -58,7 +58,7 @@ describe(probeInternet.name, () => {
 
     await expect(probeInternet()).resolves.toBe(true);
     expect(fetch).toHaveBeenCalledWith(
-      'https://icanhazip.com/',
+      'https://docs.futo.cloud/',
       expect.objectContaining({ signal: expect.any(AbortSignal) }),
     );
   });
