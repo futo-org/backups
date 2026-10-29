@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import { BackendRepository } from '../src/repositories/backend.repository.js';
 import { BackendService } from '../src/services/backend.service.js';
 import { createTestingModule, TestContext } from './testUtils.js';
@@ -31,8 +32,9 @@ describe('Backend', () => {
   it('lists multiple backends', async () => {
     const backendService = ctx.module.get(BackendService);
     const backendRepository = ctx.module.get(BackendRepository);
+    const secondBackendId = randomUUID();
 
-    await backendRepository.updateBackend('second-backend', {
+    await backendRepository.updateBackend(secondBackendId, {
       type: 'local' as any,
       path: ctx.backendPath,
     });
@@ -41,6 +43,6 @@ describe('Backend', () => {
 
     expect(backends.length).toBeGreaterThanOrEqual(2);
     expect(backends.find((backend) => backend.id === ctx.backendId)).toBeDefined();
-    expect(backends.find((backend) => backend.id === 'second-backend')).toBeDefined();
+    expect(backends.find((backend) => backend.id === secondBackendId)).toBeDefined();
   });
 });

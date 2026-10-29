@@ -539,7 +539,7 @@ describe('Repository', () => {
     } finally {
       jest.restoreAllMocks();
       await repositoryService.deleteRepository(repository.id);
-      ctx.database.prepare('DELETE FROM backends WHERE id = ?').run(yuccaBackendId);
+      await ctx.db.deleteFrom('futo_backups_backends').where('id', '=', yuccaBackendId).execute();
     }
   });
 

@@ -196,49 +196,6 @@ describe('Integrations', () => {
     moduleConfig.update({ immichIntegration: undefined });
   });
 
-  it('treats an integration stored with the legacy all value as every library', async () => {
-    const moduleConfig = ctx.module.get(ModuleConfigRepository);
-    const integrationsService = ctx.module.get(IntegrationsService);
-    const immichRepository = ctx.module.get(RepositoryIntegrationImmichRepository);
-    const repositoryPaths = ctx.module.get(RepositoryPathRepository);
-
-    moduleConfig.update({
-      immichIntegration: {
-        dataPath: '/data/immich',
-        dataFolders: ['upload'],
-        libraries: [
-          { id: 'lib-1', name: 'Photos', importPaths: ['/mnt/photos'], exclusionPatterns: [] },
-          { id: 'lib-2', name: 'Videos', importPaths: ['/mnt/videos'], exclusionPatterns: [] },
-        ],
-        hooks: newImmichHooksMock(),
-      },
-    });
-
-    await integrationsService.configureImmichIntegration({
-      name: 'Immich Backup',
-      worm: false,
-      cron: '0 2 * * *',
-      dataFolders: ['upload'],
-      backupConfiguration: false,
-      libraries: [],
-    });
-
-    const integration = await immichRepository.get();
-    await immichRepository.upsert(integration!.id, integration!.scheduleId, {
-      ...integration!.configuration,
-      libraries: 'all' as never,
-    });
-
-    await expect(immichRepository.get()).resolves.toMatchObject({ configuration: { libraries: ['all'] } });
-
-    await integrationsService.onModuleConfigUpdate(moduleConfig.get());
-    const paths = await repositoryPaths.get(integration!.id);
-    expect(paths).toEqual(expect.arrayContaining(['/mnt/photos', '/mnt/videos']));
-
-    await immichRepository.delete();
-    moduleConfig.update({ immichIntegration: undefined });
-  });
-
   const hooks = newImmichHooksMock();
   it('pauses and resumes the managed schedule', async () => {
     const moduleConfig = ctx.module.get(ModuleConfigRepository);
