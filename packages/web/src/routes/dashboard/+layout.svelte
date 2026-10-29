@@ -5,6 +5,7 @@
     AppShellHeader,
     AppShellSidebar,
     Avatar,
+    Badge,
     Button,
     Heading,
     HStack,
@@ -50,6 +51,9 @@
           onclick={() => sidebarStore.toggle()}
         />
         <Heading size="tiny" tag="h2"><FutoBackupsLogo /></Heading>
+        <Badge size="small" color="warning" class="hidden sm:inline-flex"
+          >{$t`Beta`}</Badge
+        >
       </HStack>
       <HStack>
         <ThemeSwitcher

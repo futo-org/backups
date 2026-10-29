@@ -41,6 +41,10 @@ msgstr ""
 msgid "{count} skipped"
 msgstr ""
 
+#: ../../web/src/lib/components/onboarding/GetStartedChecklist.svelte
+msgid "{done} of {total} done"
+msgstr ""
+
 #: src/lib/components/backups/run-history/RepositoryRunHistoryItem.svelte
 msgid "{done} with warnings"
 msgstr ""
@@ -67,6 +71,10 @@ msgstr ""
 
 #: src/lib/components/backups/dialogs/ViewStatusModal.svelte
 msgid "{name} interrupted"
+msgstr ""
+
+#: ../../web/src/lib/components/onboarding/GetStartedChecklist.svelte
+msgid "{name} is connected"
 msgstr ""
 
 #: src/lib/components/ui/PathPickerModal.svelte
@@ -138,6 +146,10 @@ msgstr ""
 msgid "About {duration} remaining"
 msgstr ""
 
+#: ../../web/src/lib/components/onboarding/AboutYourBackups.svelte
+msgid "About your backups"
+msgstr ""
+
 #: src/lib/components/onboarding/steps/OnboardingStepBetaDisclaimer.svelte
 msgid "Access to the service will end when the beta concludes and will be available again at launch."
 msgstr ""
@@ -198,6 +210,10 @@ msgstr ""
 
 #: src/lib/utils/handle-error.ts
 msgid "An unknown error occurred"
+msgstr ""
+
+#: ../../web/src/lib/components/onboarding/GetStartedChecklist.svelte
+msgid "Approve the connection from Immich and save your recovery key. FUTO cannot recover a lost key."
 msgstr ""
 
 #: src/lib/components/backups/run-history/RepositoryRunHistoryItem.svelte
@@ -261,6 +277,10 @@ msgstr ""
 
 #: src/lib/components/backups/dialogs/ViewStatusModal.svelte
 msgid "Backing up your library"
+msgstr ""
+
+#: ../../web/src/lib/components/onboarding/GetStartedChecklist.svelte
+msgid "Backing up, started"
 msgstr ""
 
 #: src/lib/components/backups/run-history/RepositoryRunHistoryItem.svelte
@@ -383,7 +403,6 @@ msgstr ""
 
 #: ../../web/src/routes/dashboard/backups/+page.svelte
 #: src/lib/components/integrations/immich/ImmichBackupsAdminNavButton.svelte
-#: src/lib/components/integrations/immich/ImmichManageBackupPage.svelte
 msgid "Backups"
 msgstr ""
 
@@ -410,6 +429,11 @@ msgstr ""
 
 #: src/lib/components/onboarding/steps/OnboardingStepBetaDisclaimer.svelte
 msgid "Before continuing, please be aware of the following:"
+msgstr ""
+
+#: ../../web/src/lib/components/onboarding/AboutYourBackups.svelte
+#: ../../web/src/routes/dashboard/+layout.svelte
+msgid "Beta"
 msgstr ""
 
 #: ../../web/src/routes/dashboard/connections/+page.svelte
@@ -443,6 +467,10 @@ msgstr ""
 
 #: src/lib/components/backups/dialogs/SelectRepositoryModal.svelte
 msgid "Can't access, is your recovery key correct?"
+msgstr ""
+
+#: ../../web/src/lib/components/onboarding/GetStartedChecklist.svelte
+msgid "Can't change your Immich image, or not using Immich?"
 msgstr ""
 
 #: src/lib/components/backups/dialogs/ImportRepositoryModal.svelte
@@ -546,13 +574,21 @@ msgstr ""
 msgid "Close"
 msgstr ""
 
+#: ../../web/src/lib/components/onboarding/AboutYourBackups.svelte
+msgid "Closed beta"
+msgstr ""
+
 #: src/lib/components/onboarding/steps/OnboardingStepChooseStorage.svelte
 msgid "Coming soon"
 msgstr ""
 
 #: src/lib/components/dashboard/DashboardRecentBackups.svelte
-msgid "Completed backups will appear here once your first backup runs."
+msgid "Completed backups will appear here after your first backup finishes."
 msgstr ""
+
+#: src/lib/components/dashboard/DashboardRecentBackups.svelte
+#~ msgid "Completed backups will appear here once your first backup runs."
+#~ msgstr ""
 
 #: src/lib/components/backups/BackupStatus.svelte
 msgid "Completed in {duration}"
@@ -594,6 +630,7 @@ msgstr ""
 msgid "Connect FUTO account"
 msgstr ""
 
+#: ../../web/src/lib/components/onboarding/GetStartedChecklist.svelte
 #: src/lib/components/integrations/immich/ImmichOnboardingSetupFlow.svelte
 #: src/lib/components/onboarding/SampleOnboarding.svelte
 msgid "Connect your FUTO account"
@@ -601,6 +638,10 @@ msgstr ""
 
 #: src/lib/components/onboarding/steps/OnboardingStep2ConnectAccount.svelte
 msgid "Connect your FUTO account to use FUTO Cloud for backup storage."
+msgstr ""
+
+#: ../../web/src/lib/components/onboarding/GetStartedChecklist.svelte
+msgid "Connected"
 msgstr ""
 
 #: src/lib/components/backups/BackupStatus.svelte
@@ -734,6 +775,15 @@ msgstr ""
 msgid "Discord account linked. You can head back to Discord."
 msgstr ""
 
+#: ../../web/src/lib/components/onboarding/AboutYourBackups.svelte
+msgid "Docs"
+msgstr ""
+
+#: ../../web/src/lib/components/onboarding/GetStartedChecklist.svelte
+#: ../../web/src/lib/components/onboarding/GetStartedChecklist.svelte
+msgid "Done"
+msgstr ""
+
 #: src/lib/services/job.service.ts
 msgid "Download Full Log"
 msgstr ""
@@ -775,6 +825,14 @@ msgstr ""
 msgid "Encrypted by design"
 msgstr ""
 
+#: ../../web/src/lib/components/onboarding/AboutYourBackups.svelte
+msgid "Encrypted on your machine before upload. FUTO can't read your backups, and can't recover your recovery key if you lose it."
+msgstr ""
+
+#: ../../web/src/lib/components/onboarding/AboutYourBackups.svelte
+msgid "End-to-end encrypted"
+msgstr ""
+
 #: src/lib/components/integrations/immich/settings/ImmichSettingsStorage.svelte
 msgid "Enter a backup name."
 msgstr ""
@@ -793,6 +851,7 @@ msgid "Enter your recovery key to confirm you saved it correctly."
 msgstr ""
 
 #: src/lib/components/backups/BackupItem.svelte
+#: src/lib/components/dashboard/DashboardRecentBackups.svelte
 #: src/lib/components/integrations/immich/ImmichManageBackupOverview.svelte
 msgid "Estimated"
 msgstr ""
@@ -1007,8 +1066,16 @@ msgstr ""
 msgid "Found a bug? Let us know through Discord or the public GitHub issue tracker."
 msgstr ""
 
+#: ../../web/src/lib/components/onboarding/AboutYourBackups.svelte
+msgid "Free during beta. Backup data may be deleted when the beta ends, so keep another copy of anything important."
+msgstr ""
+
 #: src/lib/components/onboarding/steps/OnboardingStepBetaDisclaimer.svelte
 msgid "Free during closed beta"
+msgstr ""
+
+#: src/lib/components/dashboard/DashboardCurrentUsage.svelte
+msgid "Free in beta"
 msgstr ""
 
 #: src/lib/components/integrations/immich/settings/ImmichSettingsSchedule.svelte
@@ -1077,6 +1144,10 @@ msgstr ""
 
 #: src/lib/components/integrations/immich/settings/ImmichSettingsBackupContents.svelte
 msgid "Generated video previews, can be recreated later."
+msgstr ""
+
+#: ../../web/src/lib/components/onboarding/GetStartedChecklist.svelte
+msgid "Get started"
 msgstr ""
 
 #: src/lib/components/onboarding/upsell/UpsellExplainFutoBackups.svelte
@@ -1185,8 +1256,16 @@ msgstr ""
 msgid "Import recovery key"
 msgstr ""
 
+#: ../../web/src/lib/components/onboarding/GetStartedChecklist.svelte
+msgid "In progress"
+msgstr ""
+
 #: src/lib/components/backups/run-history/RepositoryRunHistoryPage.svelte
 msgid "In progress only"
+msgstr ""
+
+#: ../../web/src/lib/components/onboarding/GetStartedChecklist.svelte
+msgid "in your Immich .env, then pull and restart. You need to be an Immich admin."
 msgstr ""
 
 #: src/lib/components/backups/dialogs/RestoreSnapshotModal.svelte
@@ -1231,6 +1310,10 @@ msgstr ""
 msgid "It is highly recommended you back this up!"
 msgstr ""
 
+#: ../../web/src/lib/components/onboarding/GetStartedChecklist.svelte
+msgid "It shows up here as soon as it starts."
+msgstr ""
+
 #: ../../web/src/routes/login/invite/+page.svelte
 msgid "Join the beta"
 msgstr ""
@@ -1259,6 +1342,10 @@ msgstr ""
 msgid "Keep your Immich library protected with backups stored locally, remotely, or in the cloud."
 msgstr ""
 
+#: ../../web/src/lib/components/onboarding/GetStartedChecklist.svelte
+msgid "Large libraries can take a while."
+msgstr ""
+
 #: src/lib/components/integrations/immich/ImmichBackupsSidebarItem.svelte
 msgid "Last backup"
 msgstr ""
@@ -1285,6 +1372,14 @@ msgstr ""
 
 #: src/lib/components/backups/dialogs/SelectRepositoryModal.svelte
 msgid "Last backup: {date}"
+msgstr ""
+
+#: src/lib/components/dashboard/DashboardBackupHealth.svelte
+msgid "Latest status across all of your backups."
+msgstr ""
+
+#: ../../web/src/lib/components/onboarding/AboutYourBackups.svelte
+msgid "Learn more"
 msgstr ""
 
 #: src/lib/components/onboarding/upsell/UpsellProtectYourImmichLibrary.svelte
@@ -1468,6 +1563,10 @@ msgstr ""
 msgid "Nearly done."
 msgstr ""
 
+#: ../../web/src/lib/components/onboarding/AboutYourBackups.svelte
+msgid "Need help?"
+msgstr ""
+
 #: src/lib/components/integrations/immich/ImmichBackupsSidebarItem.svelte
 msgid "Needs attention"
 msgstr ""
@@ -1604,6 +1703,11 @@ msgstr ""
 msgid "Not included"
 msgstr ""
 
+#: ../../web/src/lib/components/onboarding/GetStartedChecklist.svelte
+#: ../../web/src/lib/components/onboarding/GetStartedChecklist.svelte
+msgid "Not needed outside Immich"
+msgstr ""
+
 #: src/lib/components/onboarding/restore-point-flow/RestorePointFlow3ConfirmRestore.svelte
 msgid "Not restoring backup configuration"
 msgstr ""
@@ -1657,6 +1761,14 @@ msgstr ""
 msgid "Oldest first"
 msgstr ""
 
+#: ../../web/src/lib/components/onboarding/AboutYourBackups.svelte
+msgid "on hardware FUTO runs itself."
+msgstr ""
+
+#: ../../web/src/lib/components/onboarding/AboutYourBackups.svelte
+msgid "On hardware FUTO runs itself."
+msgstr ""
+
 #: src/lib/components/integrations/immich/settings/ImmichSettingsStorage.svelte
 msgid "Once written, backups can't be removed."
 msgstr ""
@@ -1667,6 +1779,14 @@ msgstr ""
 
 #: src/lib/components/ui/PageLayout.svelte
 msgid "Open"
+msgstr ""
+
+#: ../../web/src/lib/components/onboarding/GetStartedChecklist.svelte
+msgid "Open in Immich"
+msgstr ""
+
+#: ../../web/src/lib/components/onboarding/GetStartedChecklist.svelte
+msgid "Open the Backups page on your Immich server to enable FUTO Backups."
 msgstr ""
 
 #: src/lib/components/backups/dialogs/RestoreSnapshotModal.svelte
@@ -1801,6 +1921,10 @@ msgstr ""
 
 #: src/lib/components/schedules/ScheduleItem.svelte
 msgid "Ran"
+msgstr ""
+
+#: ../../web/src/lib/components/onboarding/AboutYourBackups.svelte
+msgid "Read the docs or ask for help in the FUTO Backups channels on the Immich Discord."
 msgstr ""
 
 #: src/lib/components/backups/run-history/RepositoryRunHistory.svelte
@@ -2092,6 +2216,10 @@ msgstr ""
 msgid "Send logs to FUTO"
 msgstr ""
 
+#: ../../web/src/lib/components/onboarding/GetStartedChecklist.svelte
+msgid "Set"
+msgstr ""
+
 #: src/lib/components/integrations/immich/ImmichBackupsSidebarItem.svelte
 msgid "Set up"
 msgstr ""
@@ -2102,6 +2230,10 @@ msgstr ""
 
 #: src/lib/components/onboarding/steps/OnboardingStep2ConnectAccount.svelte
 msgid "Set up FUTO Cloud as your backup storage"
+msgstr ""
+
+#: ../../web/src/lib/components/onboarding/GetStartedChecklist.svelte
+msgid "Setup guide"
 msgstr ""
 
 #: src/lib/components/dashboard/DashboardPage.svelte
@@ -2152,10 +2284,19 @@ msgstr ""
 msgid "Start backup"
 msgstr ""
 
+#: ../../web/src/lib/components/onboarding/GetStartedChecklist.svelte
+msgid "Start it from the app you connected. It shows up here as soon as it starts."
+msgstr ""
+
+#: ../../web/src/lib/components/onboarding/GetStartedChecklist.svelte
+msgid "Start it from the Backups page in Immich. It shows up here as soon as it starts."
+msgstr ""
+
 #: src/lib/components/integrations/immich/settings/ImmichSettingsSchedule.svelte
 msgid "Start time"
 msgstr ""
 
+#: ../../web/src/lib/components/onboarding/GetStartedChecklist.svelte
 #: src/lib/components/integrations/immich/ImmichOnboardingSetupFlow.svelte
 #: src/lib/components/onboarding/steps/OnboardingStep1FinishSetup.svelte
 msgid "Start your first backup"
@@ -2179,8 +2320,8 @@ msgid "Status"
 msgstr ""
 
 #: src/lib/components/dashboard/DashboardBackupHealth.svelte
-msgid "Status across all of your backups"
-msgstr ""
+#~ msgid "Status across all of your backups"
+#~ msgstr ""
 
 #: src/lib/components/integrations/immich/settings/ImmichSettingsStorage.svelte
 msgid "Storage"
@@ -2214,6 +2355,10 @@ msgstr ""
 msgid "Store backups on storage you manage."
 msgstr ""
 
+#: ../../web/src/lib/components/onboarding/AboutYourBackups.svelte
+msgid "Stored in the EU"
+msgstr ""
+
 #: src/lib/components/settings/SettingsSupportMode.svelte
 msgid "Stream the detailed logs to FUTO while each run happens, so support can read them. Runs with a lot of files produce a lot of logs."
 msgstr ""
@@ -2245,6 +2390,10 @@ msgstr ""
 
 #: src/lib/components/settings/SettingsSupportMode.svelte
 msgid "Support mode is off."
+msgstr ""
+
+#: ../../web/src/lib/components/onboarding/GetStartedChecklist.svelte
+msgid "Switch Immich to the beta build"
 msgstr ""
 
 #: src/lib/components/backups/dialogs/RestoreSnapshotModal.svelte
@@ -2301,6 +2450,10 @@ msgstr ""
 msgid "This invite link has expired. Go back to Discord and claim it again to get a fresh one."
 msgstr ""
 
+#: ../../web/src/lib/components/onboarding/GetStartedChecklist.svelte
+msgid "This is a development build of Immich. Back up your Immich data first and don't use a server you can't afford to break."
+msgstr ""
+
 #: src/lib/components/integrations/immich/ImmichManageBackupPage.svelte
 msgid "This is an early version of FUTO Backups. The service may be reset and your backup data may be deleted when the beta ends. Please don't rely on it as your only backup."
 msgstr ""
@@ -2353,6 +2506,10 @@ msgstr ""
 msgid "Try again"
 msgstr ""
 
+#: ../../web/src/lib/components/onboarding/GetStartedChecklist.svelte
+msgid "Turn on backups in Immich"
+msgstr ""
+
 #: src/lib/utils/clipboard.ts
 msgid "Unable to copy to clipboard"
 msgstr ""
@@ -2379,6 +2536,10 @@ msgstr ""
 
 #: src/lib/components/onboarding/upsell/UpsellHowItWorks.svelte
 msgid "Use recommended settings or customise later."
+msgstr ""
+
+#: ../../web/src/lib/components/onboarding/GetStartedChecklist.svelte
+msgid "Use the standalone container instead"
 msgstr ""
 
 #: src/lib/components/ui/PathPickerModal.svelte
@@ -2541,6 +2702,14 @@ msgstr ""
 #: ../../web/src/routes/login/invite/+page.svelte
 msgid "Your email isn't part of the beta yet."
 msgstr ""
+
+#: ../../web/src/lib/components/onboarding/GetStartedChecklist.svelte
+msgid "Your first backup"
+msgstr ""
+
+#: ../../web/src/lib/components/onboarding/GetStartedChecklist.svelte
+#~ msgid "Your first backup didn't finish. Open the Backups page in Immich to see why and try again."
+#~ msgstr ""
 
 #: src/lib/components/backups/dialogs/RollbackSnapshotModal.svelte
 msgid "Your instance will return to how it was when this snapshot was taken."
