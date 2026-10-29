@@ -25,8 +25,8 @@ const clients = {
 };
 
 const repositoryListers = {
-  orchestrator: orchestrationApiClient.futoBackupsGetRepositories,
-  customer: yuccaApiClient.getRepositories,
+  orchestrator: () => orchestrationApiClient.futoBackupsGetRepositories(),
+  customer: () => yuccaApiClient.getRepositories(),
 };
 
 const KEY = '__yucca_provider__';

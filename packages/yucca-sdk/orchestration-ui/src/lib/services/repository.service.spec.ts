@@ -7,9 +7,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('$lib', () => ({
   sdk: {
-    createTicket: vi.fn(),
-    deleteRepository: vi.fn(),
-    syncRepositoryDeletion: vi.fn(),
+    futoBackupsCreateTicket: vi.fn(),
+    futoBackupsDeleteRepository: vi.fn(),
+    futoBackupsSyncRepositoryDeletion: vi.fn(),
   },
 }));
 
