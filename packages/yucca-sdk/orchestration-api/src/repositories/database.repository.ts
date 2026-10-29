@@ -98,8 +98,8 @@ export class DatabaseRepository {
   private createMigrator(): Migrator {
     return new Migrator({
       db: this.db,
-      migrationLockTableName: 'kysely_migrations_lock',
-      migrationTableName: 'kysely_migrations',
+      migrationLockTableName: 'futo_backups_kysely_migrations_lock',
+      migrationTableName: 'futo_backups_kysely_migrations',
       provider: new FileMigrationProvider({
         fs: {
           readdir: this.storage.readdir,
