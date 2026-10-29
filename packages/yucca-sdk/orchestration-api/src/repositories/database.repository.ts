@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { Kysely, sql } from 'kysely';
-import { FileMigrationProvider, Migrator } from 'kysely/migration';
+import { FileMigrationProvider, Migrator, NO_MIGRATIONS } from 'kysely/migration';
 import { InjectKysely } from 'nestjs-kysely';
 import { join } from 'node:path';
 import { DB } from '../schema/index.js';
@@ -37,6 +37,15 @@ export class DatabaseRepository {
     }
 
     this.logger.log('Finished running migrations');
+  }
+
+  async resetMigrations(): Promise<void> {
+    const { error } = await this.createMigrator().migrateTo(NO_MIGRATIONS);
+
+    if (error) {
+      this.logger.error(`Migration rollback failed: ${error}`);
+      throw new Error('Migration rollback failed.');
+    }
   }
 
   async restoreFrom(path: string): Promise<void> {

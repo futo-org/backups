@@ -1,14 +1,12 @@
 import { BadRequestException, Injectable, Post } from '@nestjs/common';
-import { Kysely, sql } from 'kysely';
-import { InjectKysely } from 'nestjs-kysely';
+import { DatabaseRepository } from '../repositories/database.repository.js';
 import { ModuleConfigRepository } from '../repositories/moduleConfig.repository.js';
-import { DB } from '../schema/index.js';
 import { BootstrapService } from './bootstrap.service.js';
 
 @Injectable()
 export class DevelopmentService {
   constructor(
-    @InjectKysely('orchestrator') private readonly db: Kysely<DB>,
+    private readonly database: DatabaseRepository,
     private readonly moduleConfig: ModuleConfigRepository,
     private readonly bootstrap: BootstrapService,
   ) {}
@@ -19,17 +17,7 @@ export class DevelopmentService {
       throw new BadRequestException('Not in development mode');
     }
 
-    await sql`PRAGMA foreign_keys = OFF`.execute(this.db);
-
-    const tables = await sql<{ name: string }>`
-      SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%'
-    `.execute(this.db);
-
-    for (const { name } of tables.rows) {
-      await sql`DROP TABLE IF EXISTS ${sql.ref(name)}`.execute(this.db);
-    }
-
-    await sql`PRAGMA foreign_keys = ON`.execute(this.db);
+    await this.database.resetMigrations();
 
     await this.bootstrap.onApplicationBootstrap();
   }
