@@ -1,5 +1,6 @@
 import * as yuccaApiClient from '@futo-org/backups-api-client';
 import * as orchestrationApiClient from './fetch-client';
+import { setYuccaLanguage } from './i18n';
 
 export type YuccaApi = 'orchestrator' | 'customer';
 
@@ -39,6 +40,7 @@ export const configureYucca = ({
     getRepositories: client.getRepositories as GetRepositories,
   };
   (globalThis as any)[KEY] = provider;
+  void setYuccaLanguage('en');
   return provider;
 };
 

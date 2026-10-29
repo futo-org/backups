@@ -43,14 +43,11 @@
   },
   "peerDependencies": {
     "@immich/ui": "^0.90.0",
-    "@lingui/core": "^5.8.0",
-    "svelte": "^5.0.0",
-    "svelte-i18n-lingui": "^0.2.2"
+    "svelte": "^5.0.0"
   },
   "devDependencies": {
     "@immich/ui": "catalog:",
     "@lingui/cli": "catalog:",
-    "@lingui/core": "catalog:",
     "@playwright/test": "catalog:",
     "@sveltejs/adapter-auto": "catalog:",
     "@sveltejs/kit": "catalog:",
@@ -67,7 +64,6 @@
     "publint": "catalog:",
     "svelte": "catalog:",
     "svelte-check": "catalog:",
-    "svelte-i18n-lingui": "catalog:",
     "tailwindcss": "catalog:",
     "typescript": "catalog:",
     "vite": "catalog:",
@@ -78,6 +74,7 @@
     "svelte"
   ],
   "dependencies": {
+    "@lingui/core": "catalog:",
     "@material-symbols/svg-400": "catalog:",
     "@mdi/js": "catalog:",
     "@oazapfts/runtime": "catalog:",
@@ -87,6 +84,7 @@
     "lodash.debounce": "catalog:",
     "luxon": "catalog:",
     "socket.io-client": "catalog:",
+    "svelte-i18n-lingui": "catalog:",
     "@futo-org/backups-api-client": "workspace:^"
   }
 }

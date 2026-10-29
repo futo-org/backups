@@ -40,4 +40,4 @@ export * from './services/snapshot.service';
 
 export { events, SocketEvent } from './events';
 export { queryClient } from './query-client';
-export { defaultMessages, loadMessages } from './i18n';
+export { setYuccaLanguage } from './i18n';
