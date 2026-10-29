@@ -6,6 +6,7 @@ import (
 	"net/http/httputil"
 	"restic-proxy/internal/client"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/cornelk/hashmap"
@@ -20,9 +21,9 @@ type routed struct {
 
 type contextKey struct{}
 
-func reverseProxy(grants *hashmap.Map[string, client.Grant]) *httputil.ReverseProxy {
+func reverseProxy(grants *hashmap.Map[string, client.Grant], current *atomic.Pointer[throttle]) *httputil.ReverseProxy {
 	return &httputil.ReverseProxy{
-		Transport:  retryTransport{next: newTransport()},
+		Transport:  retryTransport{next: newTransport(), throttle: current},
 		BufferPool: newBufferPool(),
 		Rewrite: func(request *httputil.ProxyRequest) {
 			route := request.In.Context().Value(contextKey{}).(routed)

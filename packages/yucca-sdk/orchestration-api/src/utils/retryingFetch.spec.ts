@@ -80,4 +80,18 @@ describe(createRetryingFetch.name, () => {
     );
     expect(fetch).toHaveBeenCalledTimes(1);
   });
+
+  it('stops backing off once a Request signal aborts', async () => {
+    const controller = new AbortController();
+    const fetch = jest.fn<typeof globalThis.fetch>().mockRejectedValue(connectTimeout());
+    const retryingFetch = createRetryingFetch({ fetch, maxAttempts: 4, baseDelayMs: 60_000 });
+    const request = new Request('https://backups.test/api/auth', { signal: controller.signal });
+
+    const pending = retryingFetch(request);
+    await new Promise((resolve) => setImmediate(resolve));
+    controller.abort();
+
+    await expect(pending).rejects.toMatchObject({ name: 'AbortError' });
+    expect(fetch).toHaveBeenCalledTimes(1);
+  });
 });
