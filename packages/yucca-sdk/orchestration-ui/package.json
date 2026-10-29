@@ -2,7 +2,7 @@
   "name": "@futo-org/backups-orchestrator-ui",
   "repository": "https://github.com/futo-org/backups",
   "description": "Backups orchestrator (UI library)",
-  "version": "1.11.3",
+  "version": "1.11.4",
   "license": "Source First License 1.1",
   "scripts": {
     "dev": "vite dev --port 5174",
