@@ -731,6 +731,9 @@ importers:
       '@electric-sql/pglite':
         specifier: 'catalog:'
         version: 0.5.12
+      '@electric-sql/pglite-prepopulatedfs':
+        specifier: 'catalog:'
+        version: 0.5.12(@electric-sql/pglite@0.5.12)
       '@futo-org/backups-orchestrator-api':
         specifier: workspace:^
         version: link:../yucca-sdk/orchestration-api

@@ -22,6 +22,7 @@
   },
   "dependencies": {
     "@electric-sql/pglite": "catalog:",
+    "@electric-sql/pglite-prepopulatedfs": "catalog:",
     "@futo-org/backups-orchestrator-api": "workspace:^",
     "@nestjs/common": "catalog:",
     "@nestjs/core": "catalog:",
