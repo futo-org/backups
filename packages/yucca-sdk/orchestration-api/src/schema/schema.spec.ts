@@ -228,6 +228,44 @@ describe('Postgres orchestration schema', () => {
     ).toEqual([]);
   });
 
+  it('returns schedule repositories in their saved order with ISO timestamps', async () => {
+    const backend = await db
+      .insertInto('futo_backups_backends')
+      .values({ configuration: { type: BackendType.Local, path: '/test-ordering' } })
+      .returningAll()
+      .executeTakeFirstOrThrow();
+    const [first, second] = await db
+      .insertInto('futo_backups_repositories')
+      .values([
+        { backendId: backend.id, remoteId: 'ordering-first' },
+        { backendId: backend.id, remoteId: 'ordering-second' },
+      ])
+      .returning('id')
+      .execute();
+
+    const schedules = new ScheduleRepository(db);
+    const lastRun = new Date('2026-10-28T09:00:00.000Z');
+    const { id } = await schedules.create({ name: 'Ordered', cron: '0 0 * * *', paused: true, lastRun });
+    await schedules.addRepositoryToSchedule(id, first.id);
+    await schedules.addRepositoryToSchedule(id, second.id);
+
+    await schedules.updateSchedule(id, { ordering: [second.id, first.id] });
+    expect(await schedules.get(id)).toEqual({
+      id,
+      name: 'Ordered',
+      cron: '0 0 * * *',
+      paused: true,
+      lastRun: lastRun.toISOString(),
+      lastFinished: undefined,
+      repositories: [second.id, first.id],
+    });
+
+    await schedules.updateSchedule(id, { ordering: [first.id, second.id] });
+    expect(await schedules.getAll()).toContainEqual(
+      expect.objectContaining({ id, repositories: [first.id, second.id] }),
+    );
+  });
+
   it('records jobs for remote repositories and gives tied timestamps a stable insertion order', async () => {
     const queuedAt = new Date('2026-10-27T13:00:00.000Z');
     const job = {

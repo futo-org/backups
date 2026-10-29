@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { Insertable, Kysely, Updateable } from 'kysely';
+import { Insertable, Kysely, sql, Updateable } from 'kysely';
 import { InjectKysely } from 'nestjs-kysely';
 import { DB } from '../schema/index.js';
 import { ScheduleTable } from '../schema/tables/schedule.table.js';
@@ -13,47 +13,42 @@ export class ScheduleRepository {
   }
 
   async get(id: string) {
-    const row = await this.db
-      .selectFrom('futo_backups_schedule')
-      .selectAll('futo_backups_schedule')
-      .where('id', '=', id)
-      .executeTakeFirst();
+    const schedule = await this.selectSchedules().where('id', '=', id).executeTakeFirst();
 
-    if (row) {
-      const { ordering, paused, ...schedule } = row;
-
-      const repositorySchedules = await this.db
-        .selectFrom('futo_backups_repository_schedule')
-        .selectAll('futo_backups_repository_schedule')
-        .where('scheduleId', '=', id)
-        .execute();
-
-      return {
+    return (
+      schedule && {
         ...schedule,
-        paused: !!paused,
-        repositories: repositorySchedules
-          .filter(({ scheduleId }) => scheduleId === schedule.id)
-          .map(({ repositoryId }) => repositoryId)
-          .toSorted((a, b) => ordering.indexOf(a) - ordering.indexOf(b)),
-      };
-    }
+        lastRun: schedule.lastRun?.toISOString(),
+        lastFinished: schedule.lastFinished?.toISOString(),
+      }
+    );
   }
 
   async getAll() {
-    const schedules = await this.db.selectFrom('futo_backups_schedule').selectAll('futo_backups_schedule').execute();
-    const repositorySchedules = await this.db
-      .selectFrom('futo_backups_repository_schedule')
-      .selectAll('futo_backups_repository_schedule')
-      .execute();
+    const schedules = await this.selectSchedules().execute();
 
-    return schedules.map(({ ordering, paused, ...schedule }) => ({
+    return schedules.map((schedule) => ({
       ...schedule,
-      paused: !!paused,
-      repositories: repositorySchedules
-        .filter(({ scheduleId }) => scheduleId === schedule.id)
-        .map(({ repositoryId }) => repositoryId)
-        .toSorted((a, b) => ordering.indexOf(a) - ordering.indexOf(b)),
+      lastRun: schedule.lastRun?.toISOString(),
+      lastFinished: schedule.lastFinished?.toISOString(),
     }));
+  }
+
+  private selectSchedules() {
+    return this.db
+      .selectFrom('futo_backups_schedule')
+      .select(['id', 'name', 'paused', 'cron', 'lastRun', 'lastFinished'])
+      .select((eb) =>
+        eb
+          .fn<string[]>('array', [
+            eb
+              .selectFrom('futo_backups_repository_schedule')
+              .select('repositoryId')
+              .whereRef('scheduleId', '=', 'futo_backups_schedule.id')
+              .orderBy(sql`array_position(futo_backups_schedule.ordering, "repositoryId")`),
+          ])
+          .as('repositories'),
+      );
   }
 
   async getRepositoryIds(id: string) {

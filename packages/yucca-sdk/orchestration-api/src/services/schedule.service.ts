@@ -86,7 +86,7 @@ export class ScheduleService {
 
     const { repositories } = schedule;
 
-    const lastRun = new Date().toISOString();
+    const lastRun = new Date();
 
     this.telemetry.submitStructuredLog(`Running schedule for ${repositories.length} repositories`, {
       scheduleId: id,
@@ -99,7 +99,7 @@ export class ScheduleService {
     this.events.publish({
       type: 'ScheduleUpdate',
       scheduleId: id,
-      schedule: { lastRun },
+      schedule: { lastRun: lastRun.toISOString() },
     });
 
     if (repositories.length === 0) {
@@ -111,7 +111,7 @@ export class ScheduleService {
     );
     await Promise.allSettled(jobIds.map((jobId) => this.jobs.wait(jobId)));
 
-    const lastFinished = new Date().toISOString();
+    const lastFinished = new Date();
 
     await this.schedule.updateSchedule(id, { lastFinished });
 
@@ -123,17 +123,17 @@ export class ScheduleService {
     this.events.publish({
       type: 'ScheduleUpdate',
       scheduleId: id,
-      schedule: { lastFinished },
+      schedule: { lastFinished: lastFinished.toISOString() },
     });
   }
 
   async createSchedule({ repositories, paused, ...dto }: ScheduleCreateRequestDto): Promise<ScheduleCreateResponseDto> {
     const id = randomUUID();
 
-    const { ordering: _, ...model } = await this.schedule.create({
+    await this.schedule.create({
       id,
-      paused: paused ? 1 : 0,
-      ordering: JSON.stringify([]),
+      paused,
+      ordering: repositories,
       ...dto,
     });
 
@@ -141,11 +141,10 @@ export class ScheduleService {
       await this.schedule.addRepositoryToSchedule(id, repository);
     }
 
-    const schedule = {
-      ...model,
-      paused,
-      repositories,
-    };
+    const schedule = await this.schedule.get(id);
+    if (!schedule) {
+      throw new NotFoundException('Schedule not found');
+    }
 
     this.telemetry.submitStructuredLog(`Created schedule for ${repositories.length} repositories`, {
       scheduleId: id,
@@ -191,7 +190,7 @@ export class ScheduleService {
     };
 
     if (typeof paused === 'boolean') {
-      set.paused = paused ? 1 : 0;
+      set.paused = paused;
     }
 
     if (Array.isArray(repositories)) {
@@ -207,7 +206,7 @@ export class ScheduleService {
         await this.schedule.removeRepositoryFromSchedule(scheduleId, id);
       }
 
-      set.ordering = JSON.stringify(repositories);
+      set.ordering = repositories;
     }
 
     await this.schedule.updateSchedule(scheduleId, set);
