@@ -1,7 +1,7 @@
 {
   "openapi": "3.0.0",
   "paths": {
-    "/api/yucca/auth/oidc/device": {
+    "/api/futo-backups/auth/oidc/device": {
       "get": {
         "description": "Connect an existing FUTO Backups account to this server.",
         "operationId": "connectDeviceFlow",
@@ -24,7 +24,7 @@
         ]
       }
     },
-    "/api/yucca/auth/session/device": {
+    "/api/futo-backups/auth/session/device": {
       "get": {
         "description": "Log into standalone backups app using the associated cloud account.",
         "operationId": "sessionDeviceFlow",
@@ -47,7 +47,7 @@
         ]
       }
     },
-    "/api/yucca/auth/session": {
+    "/api/futo-backups/auth/session": {
       "post": {
         "description": "Use existing session token to create a session on your device.",
         "operationId": "createSession",
@@ -73,7 +73,7 @@
         ]
       }
     },
-    "/api/yucca/auth/ticket": {
+    "/api/futo-backups/auth/ticket": {
       "post": {
         "description": "Create a ticket to perform a protected repository action.",
         "operationId": "createTicket",
@@ -106,7 +106,7 @@
         ]
       }
     },
-    "/api/yucca/backend": {
+    "/api/futo-backups/backend": {
       "get": {
         "description": "List the storage backends configured on this server.",
         "operationId": "getBackends",
@@ -129,7 +129,7 @@
         ]
       }
     },
-    "/api/yucca/backend/local": {
+    "/api/futo-backups/backend/local": {
       "post": {
         "description": "Add a storage backend that writes to a local path on this server.",
         "operationId": "createLocalBackend",
@@ -162,7 +162,7 @@
         ]
       }
     },
-    "/api/yucca/config": {
+    "/api/futo-backups/config": {
       "get": {
         "description": "Retrieve the current backups orchestrator configuration.",
         "operationId": "getConfig",
@@ -216,7 +216,7 @@
         ]
       }
     },
-    "/api/yucca/debug/reset": {
+    "/api/futo-backups/debug/reset": {
       "post": {
         "description": "Delete all orchestrator state. Only available in development mode.",
         "operationId": "resetOrchestrator",
@@ -232,7 +232,7 @@
         ]
       }
     },
-    "/api/yucca/fs": {
+    "/api/futo-backups/fs": {
       "get": {
         "description": "List the files and folders at a path on this server.",
         "operationId": "getFileListing",
@@ -264,7 +264,7 @@
         ]
       }
     },
-    "/api/yucca/integrations": {
+    "/api/futo-backups/integrations": {
       "get": {
         "description": "Retrieve the configuration and state of each integration.",
         "operationId": "getIntegrations",
@@ -287,7 +287,7 @@
         ]
       }
     },
-    "/api/yucca/integrations/immich/status": {
+    "/api/futo-backups/integrations/immich/status": {
       "get": {
         "description": "Retrieve the backup status of the Immich integration.",
         "operationId": "getImmichBackupStatus",
@@ -310,7 +310,7 @@
         ]
       }
     },
-    "/api/yucca/integrations/immich": {
+    "/api/futo-backups/integrations/immich": {
       "post": {
         "description": "Set up backups for the Immich backup integration.",
         "operationId": "configureImmichIntegration",
@@ -343,7 +343,7 @@
         ]
       }
     },
-    "/api/yucca/integrations/immich/database-dump/ignore-warning": {
+    "/api/futo-backups/integrations/immich/database-dump/ignore-warning": {
       "post": {
         "description": "Stop warning that Immich database dumps are not configured.",
         "operationId": "ignoreImmichDatabaseDumpWarning",
@@ -359,7 +359,7 @@
         ]
       }
     },
-    "/api/yucca/integrations/immich/database-dump": {
+    "/api/futo-backups/integrations/immich/database-dump": {
       "post": {
         "description": "Configure the Immich database dumps included in backups.",
         "operationId": "configureImmichDatabaseDump",
@@ -385,7 +385,7 @@
         ]
       }
     },
-    "/api/yucca/integrations/immich/rollback": {
+    "/api/futo-backups/integrations/immich/rollback": {
       "post": {
         "description": "Put Immich into maintenance mode and restore it from a snapshot.",
         "operationId": "startImmichRollback",
@@ -411,7 +411,7 @@
         ]
       }
     },
-    "/api/yucca/jobs": {
+    "/api/futo-backups/jobs": {
       "get": {
         "description": "List the jobs for a repository, newest first.",
         "operationId": "getJobs",
@@ -443,7 +443,7 @@
         ]
       }
     },
-    "/api/yucca/jobs/{id}": {
+    "/api/futo-backups/jobs/{id}": {
       "get": {
         "description": "Get the status of a job.",
         "operationId": "getJob",
@@ -498,7 +498,7 @@
         ]
       }
     },
-    "/api/yucca/jobs/{id}/download": {
+    "/api/futo-backups/jobs/{id}/download": {
       "get": {
         "description": "Download the full log of a job as JSON lines.",
         "operationId": "downloadJobLog",
@@ -531,7 +531,7 @@
         ]
       }
     },
-    "/api/yucca/jobs/{id}/support-log/download": {
+    "/api/futo-backups/jobs/{id}/support-log/download": {
       "get": {
         "description": "Download the verbose restic output recorded while the job ran in support mode, as JSON lines.",
         "operationId": "downloadJobSupportLog",
@@ -564,7 +564,7 @@
         ]
       }
     },
-    "/api/yucca/onboarding": {
+    "/api/futo-backups/onboarding": {
       "get": {
         "description": "Retrieve which onboarding steps this server has completed.",
         "operationId": "onboardingStatus",
@@ -587,7 +587,7 @@
         ]
       }
     },
-    "/api/yucca/onboarding/recovery-key": {
+    "/api/futo-backups/onboarding/recovery-key": {
       "get": {
         "description": "Retrieve the recovery key that encrypts the backups of this server.",
         "operationId": "currentRecoveryKey",
@@ -648,7 +648,7 @@
         ]
       }
     },
-    "/api/yucca/onboarding/skip": {
+    "/api/futo-backups/onboarding/skip": {
       "post": {
         "description": "Skip the optional configuration steps of onboarding.",
         "operationId": "skipOnboardingExtraConfig",
@@ -664,7 +664,7 @@
         ]
       }
     },
-    "/api/yucca/onboarding/telemetry": {
+    "/api/futo-backups/onboarding/telemetry": {
       "post": {
         "description": "Record that the user consents to sending telemetry.",
         "operationId": "enableTelemetry",
@@ -680,7 +680,7 @@
         ]
       }
     },
-    "/api/yucca/onboarding/report-error": {
+    "/api/futo-backups/onboarding/report-error": {
       "post": {
         "description": "Send the current startup error to telemetry.",
         "operationId": "reportError",
@@ -696,7 +696,7 @@
         ]
       }
     },
-    "/api/yucca/repository": {
+    "/api/futo-backups/repository": {
       "post": {
         "description": "Create a backup repository on a backend.",
         "operationId": "createRepository",
@@ -759,7 +759,7 @@
         ]
       }
     },
-    "/api/yucca/repository/inspect": {
+    "/api/futo-backups/repository/inspect": {
       "get": {
         "description": "List repositories on a backend that are not configured on this server.",
         "operationId": "inspectRepositories",
@@ -791,7 +791,7 @@
         ]
       }
     },
-    "/api/yucca/repository/{id}": {
+    "/api/futo-backups/repository/{id}": {
       "patch": {
         "description": "Update the settings of a repository.",
         "operationId": "updateRepository",
@@ -894,7 +894,7 @@
         ]
       }
     },
-    "/api/yucca/repository/{id}/sync-deletion": {
+    "/api/futo-backups/repository/{id}/sync-deletion": {
       "post": {
         "description": "Remove a repository from this server once it has been deleted from its backend.",
         "operationId": "syncRepositoryDeletion",
@@ -926,7 +926,7 @@
         ]
       }
     },
-    "/api/yucca/repository/{id}/import": {
+    "/api/futo-backups/repository/{id}/import": {
       "get": {
         "description": "Check that an existing repository on a backend can be opened with the recovery key.",
         "operationId": "checkImportRepository",
@@ -1004,7 +1004,7 @@
         ]
       }
     },
-    "/api/yucca/repository/{id}/backend": {
+    "/api/futo-backups/repository/{id}/backend": {
       "put": {
         "description": "Create a new empty repository on the selected backend and redirect future backups to it. Existing snapshots are not migrated.",
         "operationId": "reconfigureRepositoryPrimaryBackend",
@@ -1046,7 +1046,7 @@
         ]
       }
     },
-    "/api/yucca/repository/{id}/snapshots": {
+    "/api/futo-backups/repository/{id}/snapshots": {
       "get": {
         "description": "List the snapshots in a repository.",
         "operationId": "getSnapshots",
@@ -1078,7 +1078,7 @@
         ]
       }
     },
-    "/api/yucca/repository/{id}/snapshots/prune": {
+    "/api/futo-backups/repository/{id}/snapshots/prune": {
       "post": {
         "description": "Queue the removal of snapshots outside the retention policy and return the ID of its job.",
         "operationId": "pruneRepository",
@@ -1110,7 +1110,7 @@
         ]
       }
     },
-    "/api/yucca/repository/{id}/snapshots/{snapshot}": {
+    "/api/futo-backups/repository/{id}/snapshots/{snapshot}": {
       "post": {
         "description": "Queue a restore of files from a snapshot and return the ID of its job.",
         "operationId": "restoreSnapshot",
@@ -1198,7 +1198,7 @@
         ]
       }
     },
-    "/api/yucca/repository/{id}/snapshots/{snapshot}/restore-from-point": {
+    "/api/futo-backups/repository/{id}/snapshots/{snapshot}/restore-from-point": {
       "post": {
         "description": "Restore the orchestrator to a previous state, wiping the current state.",
         "operationId": "restoreFromPoint",
@@ -1256,7 +1256,7 @@
         ]
       }
     },
-    "/api/yucca/repository/{id}/snapshots/{snapshot}/listing": {
+    "/api/futo-backups/repository/{id}/snapshots/{snapshot}/listing": {
       "get": {
         "description": "List the files and folders at a path in a snapshot.",
         "operationId": "getSnapshotListing",
@@ -1304,7 +1304,7 @@
         ]
       }
     },
-    "/api/yucca/schedule": {
+    "/api/futo-backups/schedule": {
       "post": {
         "description": "Create a backup schedule for one or more repositories.",
         "operationId": "createSchedule",
@@ -1358,7 +1358,7 @@
         ]
       }
     },
-    "/api/yucca/schedule/{id}": {
+    "/api/futo-backups/schedule/{id}": {
       "patch": {
         "description": "Update a backup schedule.",
         "operationId": "updateSchedule",
@@ -1423,7 +1423,7 @@
         ]
       }
     },
-    "/api/yucca/support-mode": {
+    "/api/futo-backups/support-mode": {
       "get": {
         "description": "Retrieve how many upcoming runs use verbose restic logging, and whether they stream to FUTO.",
         "operationId": "getSupportMode",
@@ -1479,8 +1479,8 @@
     }
   },
   "info": {
-    "title": "yucca",
-    "description": "yucca SDK",
+    "title": "FUTO Backups",
+    "description": "FUTO Backups SDK",
     "version": "1.0.0",
     "contact": {}
   },

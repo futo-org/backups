@@ -16,7 +16,7 @@ export class SocketEvent<T> extends Event {
 
 function createSocket() {
   socket = io(getProvider().baseUrl || undefined, {
-    path: '/api/yucca/socket.io',
+    path: '/api/futo-backups/socket.io',
     transports: ['websocket'],
     autoConnect: false,
   });

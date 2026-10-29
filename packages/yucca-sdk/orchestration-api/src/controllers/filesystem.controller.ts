@@ -3,7 +3,7 @@ import { ApiOkResponse, ApiOperation, ApiQuery } from '@nestjs/swagger';
 import { FilesystemListingRequestDto, FilesystemListingResponseDto } from '../dto/filesystem.dto.js';
 import { FilesystemService } from '../services/filesystem.service.js';
 
-@Controller('/yucca/fs')
+@Controller('/futo-backups/fs')
 export class FilesystemController {
   constructor(private readonly service: FilesystemService) {}
 

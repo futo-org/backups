@@ -5,7 +5,7 @@ actually does on their machine, and optionally stream it to FUTO.
 
 ## Client (orchestration-api)
 
-- **Support mode** is a client setting (`PUT /yucca/support-mode`): a number of remaining
+- **Support mode** is a client setting (`PUT /futo-backups/support-mode`): a number of remaining
   runs, plus `streamToFuto` and `includePaths`. Backup, prune, restore and snapshot-forget
   jobs each spend one run; metrics syncs never do. At zero it is off.
 - A job in support mode runs every restic command with `--verbose=2` and records every raw

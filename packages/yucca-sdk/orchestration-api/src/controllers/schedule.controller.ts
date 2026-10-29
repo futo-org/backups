@@ -9,7 +9,7 @@ import {
 } from '../dto/schedule.dto.js';
 import { ScheduleService } from '../services/schedule.service.js';
 
-@Controller('/yucca/schedule')
+@Controller('/futo-backups/schedule')
 export class ScheduleController {
   constructor(private readonly service: ScheduleService) {}
 

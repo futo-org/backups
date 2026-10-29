@@ -42,7 +42,7 @@ In **Immich**, open the backups page and select **View recovery key**.
 In the **standalone app** there is no button for this yet. If you are signed in to the app, you can still read it from the API in your browser:
 
 ```
-http://localhost:22676/api/yucca/onboarding/recovery-key
+http://localhost:22676/api/futo-backups/onboarding/recovery-key
 ```
 
 If neither is available to you any more, and you did not save the key, treat the existing backups as lost and start fresh with a new one.

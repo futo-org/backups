@@ -8,7 +8,7 @@ import {
 import { PublicRoute, type SessionRequest } from '../middleware/session.guard.js';
 import { OnboardingService } from '../services/onboarding.service.js';
 
-@Controller('/yucca/onboarding')
+@Controller('/futo-backups/onboarding')
 export class OnboardingController {
   constructor(readonly service: OnboardingService) {}
 

@@ -244,7 +244,7 @@ export const getJobActions = (job: JobDto, t: typeof gt) => {
     title: t(msg`Download Full Log`),
     onAction: () =>
       window.open(
-        `${getProvider().baseUrl}/api/yucca/jobs/${job.id}/download`,
+        `${getProvider().baseUrl}/api/futo-backups/jobs/${job.id}/download`,
         '_blank',
       ),
   };
@@ -253,7 +253,7 @@ export const getJobActions = (job: JobDto, t: typeof gt) => {
     title: t(msg`Download Support Log`),
     onAction: () =>
       window.open(
-        `${getProvider().baseUrl}/api/yucca/jobs/${job.id}/support-log/download`,
+        `${getProvider().baseUrl}/api/futo-backups/jobs/${job.id}/support-log/download`,
         '_blank',
       ),
     $if: () => Boolean(job.outcome?.support),

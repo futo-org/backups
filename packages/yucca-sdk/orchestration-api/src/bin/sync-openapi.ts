@@ -14,7 +14,7 @@ async function main() {
 
   app.setGlobalPrefix('api');
 
-  const builder = new DocumentBuilder().setTitle('yucca').setDescription('yucca SDK');
+  const builder = new DocumentBuilder().setTitle('FUTO Backups').setDescription('FUTO Backups SDK');
 
   const config = builder.build();
 
@@ -30,7 +30,7 @@ async function main() {
     },
     jsonDocumentUrl: '/api/spec.json',
     yamlDocumentUrl: '/api/spec.yaml',
-    customSiteTitle: 'yucca SDK Documentation',
+    customSiteTitle: 'FUTO Backups SDK Documentation',
   };
 
   SwaggerModule.setup('doc', app, specification, customOptions);

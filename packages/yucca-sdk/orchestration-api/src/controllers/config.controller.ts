@@ -3,7 +3,7 @@ import { ApiOkResponse, ApiOperation } from '@nestjs/swagger';
 import { ConfigResponseDto, ConfigUpdateRequestDto } from '../dto/config.dto.js';
 import { ConfigService } from '../services/config.service.js';
 
-@Controller('/yucca/config')
+@Controller('/futo-backups/config')
 export class ConfigController {
   constructor(private readonly service: ConfigService) {}
 

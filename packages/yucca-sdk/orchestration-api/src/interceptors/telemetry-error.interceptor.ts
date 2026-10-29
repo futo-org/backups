@@ -1,7 +1,7 @@
-import { CallHandler, ExecutionContext, HttpException, Injectable, NestInterceptor } from '@nestjs/common';
-import { PATH_METADATA } from '@nestjs/common/constants.js';
+import { CallHandler, ExecutionContext, HttpException, Injectable, NestInterceptor, Type } from '@nestjs/common';
 import { Request } from 'express';
 import { Observable, catchError, throwError } from 'rxjs';
+import { controllers } from '../orchestrationApi.module.js';
 import { TelemetryService } from '../services/telemetry.service.js';
 
 @Injectable()
@@ -9,10 +9,10 @@ export class TelemetryErrorInterceptor implements NestInterceptor {
   constructor(private readonly telemetry: TelemetryService) {}
 
   intercept(context: ExecutionContext, next: CallHandler): Observable<unknown> {
-    const controllerPath = Reflect.getMetadata(PATH_METADATA, context.getClass());
-    const isYuccaRoute = typeof controllerPath === 'string' && controllerPath.replace(/^\/+/, '').startsWith('yucca');
+    const futoBackupsControllers: Type[] = controllers;
+    const isFutoBackupsRoute = futoBackupsControllers.includes(context.getClass());
 
-    if (!isYuccaRoute) {
+    if (!isFutoBackupsRoute) {
       return next.handle();
     }
 

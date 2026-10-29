@@ -3,7 +3,7 @@ import { ApiOkResponse, ApiOperation } from '@nestjs/swagger';
 import { SupportModeResponseDto, SupportModeUpdateRequestDto } from '../dto/supportMode.dto.js';
 import { SupportModeService } from '../services/supportMode.service.js';
 
-@Controller('/yucca/support-mode')
+@Controller('/futo-backups/support-mode')
 export class SupportModeController {
   constructor(private readonly service: SupportModeService) {}
 

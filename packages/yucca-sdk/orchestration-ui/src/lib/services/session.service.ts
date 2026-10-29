@@ -12,7 +12,7 @@ export const startDeviceFlow = (
   onEvent: (event: DeviceFlowEventDto) => void,
 ) => {
   const source = new EventSource(
-    `${getProvider().baseUrl}/api/yucca/auth/${kind}/device`,
+    `${getProvider().baseUrl}/api/futo-backups/auth/${kind}/device`,
     { withCredentials: true },
   );
 
