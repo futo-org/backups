@@ -25,6 +25,7 @@ import { RepositoryRestoreJob } from './jobs/repositoryRestore.job.js';
 import { RepositoryRestoreFromPointJob } from './jobs/repositoryRestoreFromPoint.job.js';
 import { RepositorySnapshotForgetJob } from './jobs/repositorySnapshotForget.job.js';
 import { RepositorySyncMetricsJob } from './jobs/repositorySyncMetrics.job.js';
+import { LegacyStateRepository } from './legacy-sqlite/legacyState.repository.js';
 import { SessionGuard } from './middleware/session.guard.js';
 import { type ModuleConfig, ModuleConfigProvider } from './moduleConfig.js';
 import { ResticProxyPool } from './proxy/resticProxyPool.js';
@@ -81,6 +82,7 @@ export const repositories = [
   ConfigRepository,
   DatabaseRepository,
   JobRepository,
+  LegacyStateRepository,
   LockRepository,
   LoggingRepository,
   ModuleConfigRepository,

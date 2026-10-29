@@ -17,8 +17,9 @@ export class DatabaseRepository {
     this.logger.setContext(DatabaseRepository.name);
   }
 
-  async runMigrations(): Promise<void> {
+  async runMigrations(): Promise<{ ranInitialMigration: boolean }> {
     const migrator = this.createMigrator();
+    const [initialMigration] = await migrator.getMigrations();
     const { error, results } = await migrator.migrateToLatest();
 
     for (const result of results ?? []) {
@@ -37,6 +38,12 @@ export class DatabaseRepository {
     }
 
     this.logger.log('Finished running migrations');
+
+    const ranInitialMigration = (results ?? []).some(
+      ({ migrationName, status }) => migrationName === initialMigration?.name && status === 'Success',
+    );
+
+    return { ranInitialMigration };
   }
 
   async resetMigrations(): Promise<void> {

@@ -1,4 +1,5 @@
 import { Injectable, OnApplicationBootstrap } from '@nestjs/common';
+import { LegacyStateRepository } from '../legacy-sqlite/legacyState.repository.js';
 import { BootstrapRepository } from '../repositories/bootstrap.repository.js';
 import { ConfigRepository } from '../repositories/config.repository.js';
 import { DatabaseRepository } from '../repositories/database.repository.js';
@@ -14,6 +15,7 @@ export class BootstrapService implements OnApplicationBootstrap {
   constructor(
     private readonly logger: LoggingRepository,
     private readonly database: DatabaseRepository,
+    private readonly legacyState: LegacyStateRepository,
     private readonly jobService: JobService,
     private readonly config: ConfigRepository,
     private readonly configService: ConfigService,
@@ -30,7 +32,11 @@ export class BootstrapService implements OnApplicationBootstrap {
         await discardStateCacheDirectory(this.moduleConfig.get());
       }
 
-      await this.database.runMigrations();
+      const { ranInitialMigration } = await this.database.runMigrations();
+      if (ranInitialMigration) {
+        await this.legacyState.importFrom(this.moduleConfig.get().statePath);
+      }
+
       await this.config.bootstrap();
       await this.configService.bootstrap();
       await this.schedule.bootstrap();

@@ -65,6 +65,6 @@ describe('openLegacyStateDatabase', () => {
   });
 
   it('refuses a path with no file', async () => {
-    await expect(openLegacyStateDatabase(path)).rejects.toThrow();
+    await expect(openLegacyStateDatabase(path)).rejects.toMatchObject({ message: 'unable to open database file' });
   });
 });
