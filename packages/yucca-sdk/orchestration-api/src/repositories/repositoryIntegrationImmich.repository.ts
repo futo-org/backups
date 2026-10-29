@@ -17,17 +17,10 @@ export class RepositoryIntegrationImmichRepository {
       return;
     }
 
-    const configuration = JSON.parse(integration.configuration) as Omit<ImmichRepositoryConfig, 'libraries'> & {
-      libraries: 'all' | string[];
-    };
-
     return {
       id: integration.repositoryId,
       scheduleId: integration.scheduleId,
-      configuration: {
-        ...configuration,
-        libraries: configuration.libraries === 'all' ? ['all'] : configuration.libraries,
-      } satisfies ImmichRepositoryConfig,
+      configuration: integration.configuration,
     };
   }
 
@@ -43,11 +36,9 @@ export class RepositoryIntegrationImmichRepository {
         .values({
           repositoryId,
           scheduleId,
-          configuration: JSON.stringify(configuration),
+          configuration,
         })
-        .onConflict((oc) =>
-          oc.column('repositoryId').doUpdateSet({ configuration: JSON.stringify(configuration), scheduleId }),
-        )
+        .onConflict((oc) => oc.column('repositoryId').doUpdateSet({ configuration, scheduleId }))
         .returningAll()
         .executeTakeFirstOrThrow();
     });

@@ -1,10 +1,14 @@
 import { schemaDiff, schemaFromCode } from '@immich/sql-tools';
 import { Kysely, sql } from 'kysely';
 import { PGliteDialect } from 'kysely-pglite-dialect';
+import { randomUUID } from 'node:crypto';
 import { createPGlite } from '../bin/pglite.js';
 import { BackendType, ConfigurationKey, JobName, JobStatus } from '../enum.js';
+import { BackendRepository } from '../repositories/backend.repository.js';
 import { ConfigRepository } from '../repositories/config.repository.js';
 import { LoggingRepository } from '../repositories/logging.repository.js';
+import { RepositoryRepository } from '../repositories/repository.repository.js';
+import { RepositoryIntegrationImmichRepository } from '../repositories/repositoryIntegrationImmich.repository.js';
 import { RepositoryPathRepository } from '../repositories/repositoryPath.repository.js';
 import { ScheduleRepository } from '../repositories/schedule.repository.js';
 import './index.js';
@@ -80,6 +84,29 @@ describe('Postgres orchestration schema', () => {
     expect(metrics.lastBackupDuration).toBe(42);
   });
 
+  it('reads backend configuration and retention policies back as objects', async () => {
+    const backends = new BackendRepository(db);
+    const configuration = { type: BackendType.Local, path: '/test-objects' } as const;
+    const backend = await backends.updateBackend(randomUUID(), configuration);
+    expect(await backends.getBackend(backend.id)).toMatchObject({ id: backend.id, configuration });
+
+    const moved = { ...configuration, path: '/test-objects-moved' };
+    await backends.updateBackend(backend.id, moved);
+    expect(await backends.getBackends()).toContainEqual(
+      expect.objectContaining({ id: backend.id, configuration: moved }),
+    );
+
+    const repositories = new RepositoryRepository(db);
+    const repository = await repositories.create({
+      backendId: backend.id,
+      remoteId: 'objects-repository',
+      retentionPolicy: { keepLast: 3 },
+    });
+    expect(await repositories.get(repository.id)).toMatchObject({ retentionPolicy: { keepLast: 3 } });
+    await repositories.update(repository.id, { retentionPolicy: null });
+    expect(await repositories.get(repository.id)).toMatchObject({ retentionPolicy: null });
+  });
+
   it('stores each configuration value as a JSON object', async () => {
     const config = new ConfigRepository(db, { statePath: '/state' } as never, LoggingRepository.create());
     await config.importEncryptionKey('test-key');
@@ -138,14 +165,15 @@ describe('Postgres orchestration schema', () => {
     expect(await schedules.getRepositoryIds(schedule.id)).toEqual([]);
     await schedules.addRepositoryToSchedule(schedule.id, repository.id);
     await db.insertInto('futo_backups_local_metrics').values({ repositoryId: repository.id }).execute();
-    await db
-      .insertInto('futo_backups_integrations_immich_config')
-      .values({
-        repositoryId: repository.id,
-        scheduleId: schedule.id,
-        configuration: { dataFolders: ['upload'], backupConfiguration: true, libraries: ['all'] },
-      })
-      .execute();
+    const integration = new RepositoryIntegrationImmichRepository(db);
+    const configuration = { dataFolders: ['upload'], backupConfiguration: true, libraries: ['all'] };
+    await integration.upsert(repository.id, schedule.id, configuration);
+    expect(await integration.get()).toEqual({ id: repository.id, scheduleId: schedule.id, configuration });
+    await integration.upsert(repository.id, schedule.id, { ...configuration, backupConfiguration: false });
+    expect(await integration.get()).toMatchObject({ configuration: { backupConfiguration: false } });
+    await integration.delete();
+    expect(await integration.get()).toBeUndefined();
+    await integration.upsert(repository.id, schedule.id, configuration);
     await expect(db.deleteFrom('futo_backups_backends').where('id', '=', backend.id).execute()).rejects.toThrow();
 
     await db.deleteFrom('futo_backups_repositories').where('id', '=', repository.id).execute();

@@ -12,36 +12,24 @@ export class BackendRepository {
   async updateBackend(id: string, configuration: BackendConfiguration) {
     return await this.db
       .insertInto('futo_backups_backends')
-      .values({
-        id,
-        configuration: JSON.stringify(configuration),
-      })
-      .onConflict((oc) => oc.doUpdateSet({ configuration: JSON.stringify(configuration) }))
+      .values({ id, configuration })
+      .onConflict((oc) => oc.column('id').doUpdateSet({ configuration }))
       .returningAll()
       .executeTakeFirstOrThrow();
   }
 
   async getBackends() {
-    const backends = await this.db.selectFrom('futo_backups_backends').selectAll('futo_backups_backends').execute();
-    return backends
-      .map(({ id, configuration }) => ({
-        id,
-        configuration: JSON.parse(configuration) as BackendConfiguration,
-      }))
-      .map(({ id, configuration }) => ({ id, configuration, backend: createBackend(configuration) }));
+    const backends = await this.db.selectFrom('futo_backups_backends').selectAll().execute();
+    return backends.map(({ id, configuration }) => ({ id, configuration, backend: createBackend(configuration) }));
   }
 
   async getBackend(id: string) {
-    const backend = await this.db.selectFrom('futo_backups_backends').selectAll('futo_backups_backends').where('id', '=', id).executeTakeFirst();
+    const backend = await this.db
+      .selectFrom('futo_backups_backends')
+      .selectAll()
+      .where('id', '=', id)
+      .executeTakeFirst();
 
-    if (backend) {
-      const configuration = JSON.parse(backend.configuration) as BackendConfiguration;
-
-      return {
-        id: backend.id,
-        configuration,
-        backend: createBackend(configuration),
-      };
-    }
+    return backend && { ...backend, backend: createBackend(backend.configuration) };
   }
 }
