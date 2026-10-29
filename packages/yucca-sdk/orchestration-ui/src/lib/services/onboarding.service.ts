@@ -13,14 +13,14 @@ export const useRecoveryKey = () =>
   createQuery(
     () => ({
       queryKey: recoveryKeyKeys.all,
-      queryFn: () => sdk.currentRecoveryKey(),
+      queryFn: () => sdk.futoBackupsCurrentRecoveryKey(),
     }),
     () => queryClient,
   );
 
 export const handleOnboardingStatus = async () => {
   try {
-    return await sdk.onboardingStatus();
+    return await sdk.futoBackupsOnboardingStatus();
   } catch (error) {
     handleError(error, gt`Failed to load onboarding status`);
     throw error;
@@ -29,7 +29,7 @@ export const handleOnboardingStatus = async () => {
 
 export const handleCurrentRecoveryKey = async () => {
   try {
-    return await sdk.currentRecoveryKey();
+    return await sdk.futoBackupsCurrentRecoveryKey();
   } catch (error) {
     handleError(error, gt`Failed to load recovery key`);
     throw error;
@@ -38,7 +38,7 @@ export const handleCurrentRecoveryKey = async () => {
 
 export const handleConfirmRecoveryKey = async () => {
   try {
-    await sdk.confirmRecoveryKey();
+    await sdk.futoBackupsConfirmRecoveryKey();
   } catch (error) {
     handleError(error, gt`Failed to confirm recovery key`);
     throw error;
@@ -49,7 +49,7 @@ export const handleImportRecoveryKey = async (
   dto: ImportRecoveryKeyRequest,
 ) => {
   try {
-    await sdk.importRecoveryKey(dto);
+    await sdk.futoBackupsImportRecoveryKey(dto);
   } catch (error) {
     handleError(error, gt`Failed to import recovery key`);
     throw error;
@@ -58,7 +58,7 @@ export const handleImportRecoveryKey = async (
 
 export const handleSkipOnboardingExtraConfig = async () => {
   try {
-    await sdk.skipOnboardingExtraConfig();
+    await sdk.futoBackupsSkipOnboardingExtraConfig();
   } catch (error) {
     handleError(error, gt`Failed to save preferences`);
     throw error;
@@ -68,7 +68,7 @@ export const handleSkipOnboardingExtraConfig = async () => {
 export const useEnableTelemetry = () =>
   createMutation(
     () => ({
-      mutationFn: () => sdk.enableTelemetry(),
+      mutationFn: () => sdk.futoBackupsEnableTelemetry(),
       onError: (error) => handleError(error, gt`Failed to save preferences`),
     }),
     () => queryClient,
@@ -77,7 +77,7 @@ export const useEnableTelemetry = () =>
 export const useReportError = () =>
   createMutation(
     () => ({
-      mutationFn: () => sdk.reportError(),
+      mutationFn: () => sdk.futoBackupsReportError(),
       onError: (error) => handleError(error, gt`Failed to report error`),
     }),
     () => queryClient,

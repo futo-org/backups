@@ -50,7 +50,7 @@ describe('handleDeleteRepository', () => {
 
   describe('when the repository still exists remotely', () => {
     beforeEach(() => {
-      vi.mocked(sdk.createTicket).mockResolvedValue({
+      vi.mocked(sdk.futoBackupsCreateTicket).mockResolvedValue({
         redirectTo: 'https://idp.test/authorize',
       });
     });
@@ -62,11 +62,11 @@ describe('handleDeleteRepository', () => {
         'https://idp.test/authorize',
         '_blank',
       );
-      expect(sdk.deleteRepository).not.toHaveBeenCalled();
+      expect(sdk.futoBackupsDeleteRepository).not.toHaveBeenCalled();
     });
 
     it('removes the local repository once the ticket deleted it remotely', async () => {
-      vi.mocked(sdk.syncRepositoryDeletion)
+      vi.mocked(sdk.futoBackupsSyncRepositoryDeletion)
         .mockResolvedValueOnce({ deleted: false })
         .mockResolvedValueOnce({ deleted: true });
 
@@ -75,8 +75,10 @@ describe('handleDeleteRepository', () => {
       await returnToTab();
       await returnToTab();
 
-      expect(sdk.syncRepositoryDeletion).toHaveBeenCalledTimes(2);
-      expect(sdk.syncRepositoryDeletion).toHaveBeenCalledWith('repository-1');
+      expect(sdk.futoBackupsSyncRepositoryDeletion).toHaveBeenCalledTimes(2);
+      expect(sdk.futoBackupsSyncRepositoryDeletion).toHaveBeenCalledWith(
+        'repository-1',
+      );
     });
 
     it('stops syncing the deletion after a while', async () => {
@@ -84,7 +86,7 @@ describe('handleDeleteRepository', () => {
       vi.advanceTimersByTime(15 * 60 * 1000);
       await returnToTab();
 
-      expect(sdk.syncRepositoryDeletion).not.toHaveBeenCalled();
+      expect(sdk.futoBackupsSyncRepositoryDeletion).not.toHaveBeenCalled();
     });
 
     it('leaves deletions from the web app to the ticket page', async () => {
@@ -99,13 +101,13 @@ describe('handleDeleteRepository', () => {
         'https://idp.test/authorize',
         '_blank',
       );
-      expect(sdk.syncRepositoryDeletion).not.toHaveBeenCalled();
+      expect(sdk.futoBackupsSyncRepositoryDeletion).not.toHaveBeenCalled();
     });
   });
 
   describe('when the repository is gone remotely', () => {
     beforeEach(() => {
-      vi.mocked(sdk.createTicket).mockRejectedValue(httpError(410));
+      vi.mocked(sdk.futoBackupsCreateTicket).mockRejectedValue(httpError(410));
     });
 
     it('asks before removing it from this machine', async () => {
@@ -117,14 +119,18 @@ describe('handleDeleteRepository', () => {
         RemoveDeletedRepositoryModal,
         {},
       );
-      expect(sdk.deleteRepository).toHaveBeenCalledWith('repository-1');
+      expect(sdk.futoBackupsDeleteRepository).toHaveBeenCalledWith(
+        'repository-1',
+      );
       expect(window.open).not.toHaveBeenCalled();
       expect(toastManager.danger).not.toHaveBeenCalled();
     });
 
     it('reports a failure to remove it from this machine', async () => {
       vi.mocked(modalManager.show).mockResolvedValue(true as never);
-      vi.mocked(sdk.deleteRepository).mockRejectedValue(httpError(500));
+      vi.mocked(sdk.futoBackupsDeleteRepository).mockRejectedValue(
+        httpError(500),
+      );
 
       await expect(
         handleDeleteRepository('repository-1', true),
@@ -139,21 +145,23 @@ describe('handleDeleteRepository', () => {
       await handleDeleteRepository('repository-1', true);
 
       expect(modalManager.show).toHaveBeenCalled();
-      expect(sdk.deleteRepository).not.toHaveBeenCalled();
+      expect(sdk.futoBackupsDeleteRepository).not.toHaveBeenCalled();
     });
   });
 
   it.each([404, 500])(
     'reports a %s without removing anything',
     async (status) => {
-      vi.mocked(sdk.createTicket).mockRejectedValue(httpError(status));
+      vi.mocked(sdk.futoBackupsCreateTicket).mockRejectedValue(
+        httpError(status),
+      );
 
       await expect(
         handleDeleteRepository('repository-1', true),
       ).rejects.toThrow(`Error: ${status}`);
 
       expect(modalManager.show).not.toHaveBeenCalled();
-      expect(sdk.deleteRepository).not.toHaveBeenCalled();
+      expect(sdk.futoBackupsDeleteRepository).not.toHaveBeenCalled();
       expect(toastManager.danger).toHaveBeenCalled();
     },
   );

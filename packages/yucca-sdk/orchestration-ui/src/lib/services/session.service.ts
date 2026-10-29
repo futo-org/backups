@@ -1,4 +1,7 @@
-import { createSession, type DeviceFlowEventDto } from '$lib/fetch-client';
+import {
+  futoBackupsCreateSession,
+  type DeviceFlowEventDto,
+} from '$lib/fetch-client';
 import { getProvider } from '$lib/providers';
 import { queryClient } from '$lib/query-client';
 import { handleError } from '$lib/utils/handle-error';
@@ -31,7 +34,7 @@ export const startDeviceFlow = (
 export const useCreateSession = () =>
   createMutation(
     () => ({
-      mutationFn: (token: string) => createSession({ token }),
+      mutationFn: (token: string) => futoBackupsCreateSession({ token }),
       onError: (error) => handleError(error, gt`Failed to log in`),
     }),
     () => queryClient,

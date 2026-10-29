@@ -4,7 +4,7 @@
     "/api/futo-backups/auth/oidc/device": {
       "get": {
         "description": "Connect an existing FUTO Backups account to this server.",
-        "operationId": "connectDeviceFlow",
+        "operationId": "futoBackupsConnectDeviceFlow",
         "parameters": [],
         "responses": {
           "200": {
@@ -27,7 +27,7 @@
     "/api/futo-backups/auth/session/device": {
       "get": {
         "description": "Log into standalone backups app using the associated cloud account.",
-        "operationId": "sessionDeviceFlow",
+        "operationId": "futoBackupsSessionDeviceFlow",
         "parameters": [],
         "responses": {
           "200": {
@@ -50,7 +50,7 @@
     "/api/futo-backups/auth/session": {
       "post": {
         "description": "Use existing session token to create a session on your device.",
-        "operationId": "createSession",
+        "operationId": "futoBackupsCreateSession",
         "parameters": [],
         "requestBody": {
           "required": true,
@@ -76,7 +76,7 @@
     "/api/futo-backups/auth/ticket": {
       "post": {
         "description": "Create a ticket to perform a protected repository action.",
-        "operationId": "createTicket",
+        "operationId": "futoBackupsCreateTicket",
         "parameters": [],
         "requestBody": {
           "required": true,
@@ -109,7 +109,7 @@
     "/api/futo-backups/backend": {
       "get": {
         "description": "List the storage backends configured on this server.",
-        "operationId": "getBackends",
+        "operationId": "futoBackupsGetBackends",
         "parameters": [],
         "responses": {
           "200": {
@@ -132,7 +132,7 @@
     "/api/futo-backups/backend/local": {
       "post": {
         "description": "Add a storage backend that writes to a local path on this server.",
-        "operationId": "createLocalBackend",
+        "operationId": "futoBackupsCreateLocalBackend",
         "parameters": [],
         "requestBody": {
           "required": true,
@@ -165,7 +165,7 @@
     "/api/futo-backups/config": {
       "get": {
         "description": "Retrieve the current backups orchestrator configuration.",
-        "operationId": "getConfig",
+        "operationId": "futoBackupsGetConfig",
         "parameters": [],
         "responses": {
           "200": {
@@ -186,7 +186,7 @@
       },
       "put": {
         "description": "Update the backups orchestrator configuration.",
-        "operationId": "updateConfig",
+        "operationId": "futoBackupsUpdateConfig",
         "parameters": [],
         "requestBody": {
           "required": true,
@@ -219,7 +219,7 @@
     "/api/futo-backups/debug/reset": {
       "post": {
         "description": "Delete all orchestrator state. Only available in development mode.",
-        "operationId": "resetOrchestrator",
+        "operationId": "futoBackupsResetOrchestrator",
         "parameters": [],
         "responses": {
           "201": {
@@ -235,7 +235,7 @@
     "/api/futo-backups/fs": {
       "get": {
         "description": "List the files and folders at a path on this server.",
-        "operationId": "getFileListing",
+        "operationId": "futoBackupsGetFileListing",
         "parameters": [
           {
             "name": "path",
@@ -267,7 +267,7 @@
     "/api/futo-backups/integrations": {
       "get": {
         "description": "Retrieve the configuration and state of each integration.",
-        "operationId": "getIntegrations",
+        "operationId": "futoBackupsGetIntegrations",
         "parameters": [],
         "responses": {
           "200": {
@@ -290,7 +290,7 @@
     "/api/futo-backups/integrations/immich/status": {
       "get": {
         "description": "Retrieve the backup status of the Immich integration.",
-        "operationId": "getImmichBackupStatus",
+        "operationId": "futoBackupsGetImmichBackupStatus",
         "parameters": [],
         "responses": {
           "200": {
@@ -313,7 +313,7 @@
     "/api/futo-backups/integrations/immich": {
       "post": {
         "description": "Set up backups for the Immich backup integration.",
-        "operationId": "configureImmichIntegration",
+        "operationId": "futoBackupsConfigureImmichIntegration",
         "parameters": [],
         "requestBody": {
           "required": true,
@@ -346,7 +346,7 @@
     "/api/futo-backups/integrations/immich/database-dump/ignore-warning": {
       "post": {
         "description": "Stop warning that Immich database dumps are not configured.",
-        "operationId": "ignoreImmichDatabaseDumpWarning",
+        "operationId": "futoBackupsIgnoreImmichDatabaseDumpWarning",
         "parameters": [],
         "responses": {
           "201": {
@@ -362,7 +362,7 @@
     "/api/futo-backups/integrations/immich/database-dump": {
       "post": {
         "description": "Configure the Immich database dumps included in backups.",
-        "operationId": "configureImmichDatabaseDump",
+        "operationId": "futoBackupsConfigureImmichDatabaseDump",
         "parameters": [],
         "requestBody": {
           "required": true,
@@ -388,7 +388,7 @@
     "/api/futo-backups/integrations/immich/rollback": {
       "post": {
         "description": "Put Immich into maintenance mode and restore it from a snapshot.",
-        "operationId": "startImmichRollback",
+        "operationId": "futoBackupsStartImmichRollback",
         "parameters": [],
         "requestBody": {
           "required": true,
@@ -414,7 +414,7 @@
     "/api/futo-backups/jobs": {
       "get": {
         "description": "List the jobs for a repository, newest first.",
-        "operationId": "getJobs",
+        "operationId": "futoBackupsGetJobs",
         "parameters": [
           {
             "name": "repositoryId",
@@ -446,7 +446,7 @@
     "/api/futo-backups/jobs/{id}": {
       "get": {
         "description": "Get the status of a job.",
-        "operationId": "getJob",
+        "operationId": "futoBackupsGetJob",
         "parameters": [
           {
             "name": "id",
@@ -476,7 +476,7 @@
       },
       "delete": {
         "description": "Cancel a queued job, or stop it if it is already running.",
-        "operationId": "cancelJob",
+        "operationId": "futoBackupsCancelJob",
         "parameters": [
           {
             "name": "id",
@@ -501,7 +501,7 @@
     "/api/futo-backups/jobs/{id}/download": {
       "get": {
         "description": "Download the full log of a job as JSON lines.",
-        "operationId": "downloadJobLog",
+        "operationId": "futoBackupsDownloadJobLog",
         "parameters": [
           {
             "name": "id",
@@ -534,7 +534,7 @@
     "/api/futo-backups/jobs/{id}/support-log/download": {
       "get": {
         "description": "Download the verbose restic output recorded while the job ran in support mode, as JSON lines.",
-        "operationId": "downloadJobSupportLog",
+        "operationId": "futoBackupsDownloadJobSupportLog",
         "parameters": [
           {
             "name": "id",
@@ -567,7 +567,7 @@
     "/api/futo-backups/onboarding": {
       "get": {
         "description": "Retrieve which onboarding steps this server has completed.",
-        "operationId": "onboardingStatus",
+        "operationId": "futoBackupsOnboardingStatus",
         "parameters": [],
         "responses": {
           "200": {
@@ -590,7 +590,7 @@
     "/api/futo-backups/onboarding/recovery-key": {
       "get": {
         "description": "Retrieve the recovery key that encrypts the backups of this server.",
-        "operationId": "currentRecoveryKey",
+        "operationId": "futoBackupsCurrentRecoveryKey",
         "parameters": [],
         "responses": {
           "200": {
@@ -611,7 +611,7 @@
       },
       "put": {
         "description": "Replace the recovery key with one from an earlier installation.",
-        "operationId": "importRecoveryKey",
+        "operationId": "futoBackupsImportRecoveryKey",
         "parameters": [],
         "requestBody": {
           "required": true,
@@ -635,7 +635,7 @@
       },
       "post": {
         "description": "Record that the user has saved the recovery key.",
-        "operationId": "confirmRecoveryKey",
+        "operationId": "futoBackupsConfirmRecoveryKey",
         "parameters": [],
         "responses": {
           "201": {
@@ -651,7 +651,7 @@
     "/api/futo-backups/onboarding/skip": {
       "post": {
         "description": "Skip the optional configuration steps of onboarding.",
-        "operationId": "skipOnboardingExtraConfig",
+        "operationId": "futoBackupsSkipOnboardingExtraConfig",
         "parameters": [],
         "responses": {
           "201": {
@@ -667,7 +667,7 @@
     "/api/futo-backups/onboarding/telemetry": {
       "post": {
         "description": "Record that the user consents to sending telemetry.",
-        "operationId": "enableTelemetry",
+        "operationId": "futoBackupsEnableTelemetry",
         "parameters": [],
         "responses": {
           "201": {
@@ -683,7 +683,7 @@
     "/api/futo-backups/onboarding/report-error": {
       "post": {
         "description": "Send the current startup error to telemetry.",
-        "operationId": "reportError",
+        "operationId": "futoBackupsReportError",
         "parameters": [],
         "responses": {
           "201": {
@@ -699,7 +699,7 @@
     "/api/futo-backups/repository": {
       "post": {
         "description": "Create a backup repository on a backend.",
-        "operationId": "createRepository",
+        "operationId": "futoBackupsCreateRepository",
         "parameters": [
           {
             "name": "backend",
@@ -739,7 +739,7 @@
       },
       "get": {
         "description": "List the backup repositories known to this server.",
-        "operationId": "getRepositories",
+        "operationId": "futoBackupsGetRepositories",
         "parameters": [],
         "responses": {
           "200": {
@@ -762,7 +762,7 @@
     "/api/futo-backups/repository/inspect": {
       "get": {
         "description": "List repositories on a backend that are not configured on this server.",
-        "operationId": "inspectRepositories",
+        "operationId": "futoBackupsInspectRepositories",
         "parameters": [
           {
             "name": "backend",
@@ -794,7 +794,7 @@
     "/api/futo-backups/repository/{id}": {
       "patch": {
         "description": "Update the settings of a repository.",
-        "operationId": "updateRepository",
+        "operationId": "futoBackupsUpdateRepository",
         "parameters": [
           {
             "name": "id",
@@ -842,7 +842,7 @@
       },
       "delete": {
         "description": "Remove a repository from this server.",
-        "operationId": "deleteRepository",
+        "operationId": "futoBackupsDeleteRepository",
         "parameters": [
           {
             "name": "id",
@@ -865,7 +865,7 @@
       },
       "post": {
         "description": "Queue a backup to a repository and return the ID of its job.",
-        "operationId": "createBackup",
+        "operationId": "futoBackupsCreateBackup",
         "parameters": [
           {
             "name": "id",
@@ -897,7 +897,7 @@
     "/api/futo-backups/repository/{id}/sync-deletion": {
       "post": {
         "description": "Remove a repository from this server once it has been deleted from its backend.",
-        "operationId": "syncRepositoryDeletion",
+        "operationId": "futoBackupsSyncRepositoryDeletion",
         "parameters": [
           {
             "name": "id",
@@ -929,7 +929,7 @@
     "/api/futo-backups/repository/{id}/import": {
       "get": {
         "description": "Check that an existing repository on a backend can be opened with the recovery key.",
-        "operationId": "checkImportRepository",
+        "operationId": "futoBackupsCheckImportRepository",
         "parameters": [
           {
             "name": "id",
@@ -967,7 +967,7 @@
       },
       "post": {
         "description": "Add an existing repository on a backend to this server.",
-        "operationId": "importRepository",
+        "operationId": "futoBackupsImportRepository",
         "parameters": [
           {
             "name": "id",
@@ -1007,7 +1007,7 @@
     "/api/futo-backups/repository/{id}/backend": {
       "put": {
         "description": "Create a new empty repository on the selected backend and redirect future backups to it. Existing snapshots are not migrated.",
-        "operationId": "reconfigureRepositoryPrimaryBackend",
+        "operationId": "futoBackupsReconfigureRepositoryPrimaryBackend",
         "parameters": [
           {
             "name": "id",
@@ -1049,7 +1049,7 @@
     "/api/futo-backups/repository/{id}/snapshots": {
       "get": {
         "description": "List the snapshots in a repository.",
-        "operationId": "getSnapshots",
+        "operationId": "futoBackupsGetSnapshots",
         "parameters": [
           {
             "name": "id",
@@ -1081,7 +1081,7 @@
     "/api/futo-backups/repository/{id}/snapshots/prune": {
       "post": {
         "description": "Queue the removal of snapshots outside the retention policy and return the ID of its job.",
-        "operationId": "pruneRepository",
+        "operationId": "futoBackupsPruneRepository",
         "parameters": [
           {
             "name": "id",
@@ -1113,7 +1113,7 @@
     "/api/futo-backups/repository/{id}/snapshots/{snapshot}": {
       "post": {
         "description": "Queue a restore of files from a snapshot and return the ID of its job.",
-        "operationId": "restoreSnapshot",
+        "operationId": "futoBackupsRestoreSnapshot",
         "parameters": [
           {
             "name": "id",
@@ -1161,7 +1161,7 @@
       },
       "delete": {
         "description": "Remove a snapshot from a repository.",
-        "operationId": "forgetSnapshot",
+        "operationId": "futoBackupsForgetSnapshot",
         "parameters": [
           {
             "name": "id",
@@ -1201,7 +1201,7 @@
     "/api/futo-backups/repository/{id}/snapshots/{snapshot}/restore-from-point": {
       "post": {
         "description": "Restore the orchestrator to a previous state, wiping the current state.",
-        "operationId": "restoreFromPoint",
+        "operationId": "futoBackupsRestoreFromPoint",
         "parameters": [
           {
             "name": "id",
@@ -1259,7 +1259,7 @@
     "/api/futo-backups/repository/{id}/snapshots/{snapshot}/listing": {
       "get": {
         "description": "List the files and folders at a path in a snapshot.",
-        "operationId": "getSnapshotListing",
+        "operationId": "futoBackupsGetSnapshotListing",
         "parameters": [
           {
             "name": "id",
@@ -1307,7 +1307,7 @@
     "/api/futo-backups/schedule": {
       "post": {
         "description": "Create a backup schedule for one or more repositories.",
-        "operationId": "createSchedule",
+        "operationId": "futoBackupsCreateSchedule",
         "parameters": [],
         "requestBody": {
           "required": true,
@@ -1338,7 +1338,7 @@
       },
       "get": {
         "description": "List the backup schedules.",
-        "operationId": "getSchedules",
+        "operationId": "futoBackupsGetSchedules",
         "parameters": [],
         "responses": {
           "200": {
@@ -1361,7 +1361,7 @@
     "/api/futo-backups/schedule/{id}": {
       "patch": {
         "description": "Update a backup schedule.",
-        "operationId": "updateSchedule",
+        "operationId": "futoBackupsUpdateSchedule",
         "parameters": [
           {
             "name": "id",
@@ -1401,7 +1401,7 @@
       },
       "delete": {
         "description": "Delete a backup schedule.",
-        "operationId": "removeSchedule",
+        "operationId": "futoBackupsRemoveSchedule",
         "parameters": [
           {
             "name": "id",
@@ -1426,7 +1426,7 @@
     "/api/futo-backups/support-mode": {
       "get": {
         "description": "Retrieve how many upcoming runs use verbose restic logging, and whether they stream to FUTO.",
-        "operationId": "getSupportMode",
+        "operationId": "futoBackupsGetSupportMode",
         "parameters": [],
         "responses": {
           "200": {
@@ -1447,7 +1447,7 @@
       },
       "put": {
         "description": "Set how many upcoming runs use verbose restic logging, and whether they stream to FUTO.",
-        "operationId": "updateSupportMode",
+        "operationId": "futoBackupsUpdateSupportMode",
         "parameters": [],
         "requestBody": {
           "required": true,

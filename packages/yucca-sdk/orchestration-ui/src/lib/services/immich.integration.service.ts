@@ -2,10 +2,10 @@ import BackupsRecoveryKeyModal from '$lib/components/onboarding/dialogs/BackupsR
 import { modalManager, type ActionItem } from '@immich/ui';
 import { mdiCloudUploadOutline, mdiCogOutline, mdiKeyOutline } from '@mdi/js';
 import {
-  configureImmichDatabaseDump,
+  futoBackupsConfigureImmichDatabaseDump,
   type ConfigureImmichDatabaseDumpRequestDto,
-  getImmichBackupStatus,
-  ignoreImmichDatabaseDumpWarning,
+  futoBackupsGetImmichBackupStatus,
+  futoBackupsIgnoreImmichDatabaseDumpWarning,
   type ImmichBackupStatusDto,
 } from '$lib/fetch-client';
 import { queryClient } from '$lib/query-client';
@@ -122,7 +122,7 @@ export const useImmichBackupStatus = () => {
   const query = createQuery(
     () => ({
       queryKey: immichBackupStatusKeys.all,
-      queryFn: () => getImmichBackupStatus(),
+      queryFn: () => futoBackupsGetImmichBackupStatus(),
     }),
     () => queryClient,
   );
@@ -153,7 +153,7 @@ export const useConfigureImmichDatabaseDump = () =>
   createMutation(
     () => ({
       mutationFn: (dto: ConfigureImmichDatabaseDumpRequestDto) =>
-        configureImmichDatabaseDump(dto),
+        futoBackupsConfigureImmichDatabaseDump(dto),
       onSuccess: (_, dto) =>
         updateImmichBackupStatus((data) => ({
           ...data,
@@ -168,7 +168,7 @@ export const useConfigureImmichDatabaseDump = () =>
 export const useIgnoreImmichDatabaseDumpWarning = () =>
   createMutation(
     () => ({
-      mutationFn: () => ignoreImmichDatabaseDumpWarning(),
+      mutationFn: () => futoBackupsIgnoreImmichDatabaseDumpWarning(),
       onSuccess: () =>
         updateImmichBackupStatus((data) => ({
           ...data,

@@ -382,7 +382,7 @@ export type SupportModeUpdateRequestDto = {
 /**
  * Connect a FUTO Backups account
  */
-export function connectDeviceFlow(opts?: Oazapfts.RequestOpts) {
+export function futoBackupsConnectDeviceFlow(opts?: Oazapfts.RequestOpts) {
     return oazapfts.ok(oazapfts.fetchJson<{
         status: 200;
         data: DeviceFlowEventDto;
@@ -393,7 +393,7 @@ export function connectDeviceFlow(opts?: Oazapfts.RequestOpts) {
 /**
  * Sign in with FUTO Backups account
  */
-export function sessionDeviceFlow(opts?: Oazapfts.RequestOpts) {
+export function futoBackupsSessionDeviceFlow(opts?: Oazapfts.RequestOpts) {
     return oazapfts.ok(oazapfts.fetchJson<{
         status: 200;
         data: DeviceFlowEventDto;
@@ -404,7 +404,7 @@ export function sessionDeviceFlow(opts?: Oazapfts.RequestOpts) {
 /**
  * Create session
  */
-export function createSession(createSessionRequestDto: CreateSessionRequestDto, opts?: Oazapfts.RequestOpts) {
+export function futoBackupsCreateSession(createSessionRequestDto: CreateSessionRequestDto, opts?: Oazapfts.RequestOpts) {
     return oazapfts.ok(oazapfts.fetchText("/api/futo-backups/auth/session", oazapfts.json({
         ...opts,
         method: "POST",
@@ -414,7 +414,7 @@ export function createSession(createSessionRequestDto: CreateSessionRequestDto, 
 /**
  * Create a ticket
  */
-export function createTicket(ticketCreateRequestDto: TicketCreateRequestDto, opts?: Oazapfts.RequestOpts) {
+export function futoBackupsCreateTicket(ticketCreateRequestDto: TicketCreateRequestDto, opts?: Oazapfts.RequestOpts) {
     return oazapfts.ok(oazapfts.fetchJson<{
         status: 201;
         data: TicketCreateResponseDto;
@@ -427,7 +427,7 @@ export function createTicket(ticketCreateRequestDto: TicketCreateRequestDto, opt
 /**
  * List backends
  */
-export function getBackends(opts?: Oazapfts.RequestOpts) {
+export function futoBackupsGetBackends(opts?: Oazapfts.RequestOpts) {
     return oazapfts.ok(oazapfts.fetchJson<{
         status: 200;
         data: BackendsResponseDto;
@@ -438,7 +438,7 @@ export function getBackends(opts?: Oazapfts.RequestOpts) {
 /**
  * Create a local backend
  */
-export function createLocalBackend(createLocalBackendRequestDto: CreateLocalBackendRequestDto, opts?: Oazapfts.RequestOpts) {
+export function futoBackupsCreateLocalBackend(createLocalBackendRequestDto: CreateLocalBackendRequestDto, opts?: Oazapfts.RequestOpts) {
     return oazapfts.ok(oazapfts.fetchJson<{
         status: 201;
         data: BackendResponseDto;
@@ -451,7 +451,7 @@ export function createLocalBackend(createLocalBackendRequestDto: CreateLocalBack
 /**
  * Get backups orchestrator configuration
  */
-export function getConfig(opts?: Oazapfts.RequestOpts) {
+export function futoBackupsGetConfig(opts?: Oazapfts.RequestOpts) {
     return oazapfts.ok(oazapfts.fetchJson<{
         status: 200;
         data: ConfigResponseDto;
@@ -462,7 +462,7 @@ export function getConfig(opts?: Oazapfts.RequestOpts) {
 /**
  * Update backups orchestrator configuration
  */
-export function updateConfig(configUpdateRequestDto: ConfigUpdateRequestDto, opts?: Oazapfts.RequestOpts) {
+export function futoBackupsUpdateConfig(configUpdateRequestDto: ConfigUpdateRequestDto, opts?: Oazapfts.RequestOpts) {
     return oazapfts.ok(oazapfts.fetchJson<{
         status: 200;
         data: ConfigResponseDto;
@@ -475,7 +475,7 @@ export function updateConfig(configUpdateRequestDto: ConfigUpdateRequestDto, opt
 /**
  * Reset the backups orchestrator
  */
-export function resetOrchestrator(opts?: Oazapfts.RequestOpts) {
+export function futoBackupsResetOrchestrator(opts?: Oazapfts.RequestOpts) {
     return oazapfts.ok(oazapfts.fetchText("/api/futo-backups/debug/reset", {
         ...opts,
         method: "POST"
@@ -484,7 +484,7 @@ export function resetOrchestrator(opts?: Oazapfts.RequestOpts) {
 /**
  * List files
  */
-export function getFileListing({ path }: {
+export function futoBackupsGetFileListing({ path }: {
     path?: string;
 } = {}, opts?: Oazapfts.RequestOpts) {
     return oazapfts.ok(oazapfts.fetchJson<{
@@ -499,7 +499,7 @@ export function getFileListing({ path }: {
 /**
  * Get backup integrations
  */
-export function getIntegrations(opts?: Oazapfts.RequestOpts) {
+export function futoBackupsGetIntegrations(opts?: Oazapfts.RequestOpts) {
     return oazapfts.ok(oazapfts.fetchJson<{
         status: 200;
         data: IntegrationsResponseDto;
@@ -510,7 +510,7 @@ export function getIntegrations(opts?: Oazapfts.RequestOpts) {
 /**
  * Get Immich backup status
  */
-export function getImmichBackupStatus(opts?: Oazapfts.RequestOpts) {
+export function futoBackupsGetImmichBackupStatus(opts?: Oazapfts.RequestOpts) {
     return oazapfts.ok(oazapfts.fetchJson<{
         status: 200;
         data: ImmichBackupStatusDto;
@@ -521,7 +521,7 @@ export function getImmichBackupStatus(opts?: Oazapfts.RequestOpts) {
 /**
  * Configure the Immich backup integration
  */
-export function configureImmichIntegration(configureImmichIntegrationRequestDto: ConfigureImmichIntegrationRequestDto, opts?: Oazapfts.RequestOpts) {
+export function futoBackupsConfigureImmichIntegration(configureImmichIntegrationRequestDto: ConfigureImmichIntegrationRequestDto, opts?: Oazapfts.RequestOpts) {
     return oazapfts.ok(oazapfts.fetchJson<{
         status: 201;
         data: ConfigureImmichIntegrationResponseDto;
@@ -534,7 +534,7 @@ export function configureImmichIntegration(configureImmichIntegrationRequestDto:
 /**
  * Ignore the Immich database dump warning
  */
-export function ignoreImmichDatabaseDumpWarning(opts?: Oazapfts.RequestOpts) {
+export function futoBackupsIgnoreImmichDatabaseDumpWarning(opts?: Oazapfts.RequestOpts) {
     return oazapfts.ok(oazapfts.fetchText("/api/futo-backups/integrations/immich/database-dump/ignore-warning", {
         ...opts,
         method: "POST"
@@ -543,7 +543,7 @@ export function ignoreImmichDatabaseDumpWarning(opts?: Oazapfts.RequestOpts) {
 /**
  * Configure Immich database dumps
  */
-export function configureImmichDatabaseDump(configureImmichDatabaseDumpRequestDto: ConfigureImmichDatabaseDumpRequestDto, opts?: Oazapfts.RequestOpts) {
+export function futoBackupsConfigureImmichDatabaseDump(configureImmichDatabaseDumpRequestDto: ConfigureImmichDatabaseDumpRequestDto, opts?: Oazapfts.RequestOpts) {
     return oazapfts.ok(oazapfts.fetchText("/api/futo-backups/integrations/immich/database-dump", oazapfts.json({
         ...opts,
         method: "POST",
@@ -553,7 +553,7 @@ export function configureImmichDatabaseDump(configureImmichDatabaseDumpRequestDt
 /**
  * Roll Immich back to a snapshot
  */
-export function startImmichRollback(immichRollbackRequestDto: ImmichRollbackRequestDto, opts?: Oazapfts.RequestOpts) {
+export function futoBackupsStartImmichRollback(immichRollbackRequestDto: ImmichRollbackRequestDto, opts?: Oazapfts.RequestOpts) {
     return oazapfts.ok(oazapfts.fetchText("/api/futo-backups/integrations/immich/rollback", oazapfts.json({
         ...opts,
         method: "POST",
@@ -563,7 +563,7 @@ export function startImmichRollback(immichRollbackRequestDto: ImmichRollbackRequ
 /**
  * List jobs
  */
-export function getJobs(repositoryId: string, opts?: Oazapfts.RequestOpts) {
+export function futoBackupsGetJobs(repositoryId: string, opts?: Oazapfts.RequestOpts) {
     return oazapfts.ok(oazapfts.fetchJson<{
         status: 200;
         data: JobListResponseDto;
@@ -576,7 +576,7 @@ export function getJobs(repositoryId: string, opts?: Oazapfts.RequestOpts) {
 /**
  * Get a job
  */
-export function getJob(id: string, opts?: Oazapfts.RequestOpts) {
+export function futoBackupsGetJob(id: string, opts?: Oazapfts.RequestOpts) {
     return oazapfts.ok(oazapfts.fetchJson<{
         status: 200;
         data: JobDto;
@@ -587,7 +587,7 @@ export function getJob(id: string, opts?: Oazapfts.RequestOpts) {
 /**
  * Cancel a job
  */
-export function cancelJob(id: string, opts?: Oazapfts.RequestOpts) {
+export function futoBackupsCancelJob(id: string, opts?: Oazapfts.RequestOpts) {
     return oazapfts.ok(oazapfts.fetchText(`/api/futo-backups/jobs/${encodeURIComponent(id)}`, {
         ...opts,
         method: "DELETE"
@@ -596,7 +596,7 @@ export function cancelJob(id: string, opts?: Oazapfts.RequestOpts) {
 /**
  * Download a job log
  */
-export function downloadJobLog(id: string, opts?: Oazapfts.RequestOpts) {
+export function futoBackupsDownloadJobLog(id: string, opts?: Oazapfts.RequestOpts) {
     return oazapfts.ok(oazapfts.fetchBlob<{
         status: 200;
         data: Blob;
@@ -607,7 +607,7 @@ export function downloadJobLog(id: string, opts?: Oazapfts.RequestOpts) {
 /**
  * Download a job support log
  */
-export function downloadJobSupportLog(id: string, opts?: Oazapfts.RequestOpts) {
+export function futoBackupsDownloadJobSupportLog(id: string, opts?: Oazapfts.RequestOpts) {
     return oazapfts.ok(oazapfts.fetchBlob<{
         status: 200;
         data: Blob;
@@ -618,7 +618,7 @@ export function downloadJobSupportLog(id: string, opts?: Oazapfts.RequestOpts) {
 /**
  * Get backup onboarding status
  */
-export function onboardingStatus(opts?: Oazapfts.RequestOpts) {
+export function futoBackupsOnboardingStatus(opts?: Oazapfts.RequestOpts) {
     return oazapfts.ok(oazapfts.fetchJson<{
         status: 200;
         data: OnboardingStatusResponseDto;
@@ -629,7 +629,7 @@ export function onboardingStatus(opts?: Oazapfts.RequestOpts) {
 /**
  * Get the backup recovery key
  */
-export function currentRecoveryKey(opts?: Oazapfts.RequestOpts) {
+export function futoBackupsCurrentRecoveryKey(opts?: Oazapfts.RequestOpts) {
     return oazapfts.ok(oazapfts.fetchJson<{
         status: 200;
         data: CurrentRecoveryKeyResponse;
@@ -640,7 +640,7 @@ export function currentRecoveryKey(opts?: Oazapfts.RequestOpts) {
 /**
  * Import a backup recovery key
  */
-export function importRecoveryKey(importRecoveryKeyRequest: ImportRecoveryKeyRequest, opts?: Oazapfts.RequestOpts) {
+export function futoBackupsImportRecoveryKey(importRecoveryKeyRequest: ImportRecoveryKeyRequest, opts?: Oazapfts.RequestOpts) {
     return oazapfts.ok(oazapfts.fetchText("/api/futo-backups/onboarding/recovery-key", oazapfts.json({
         ...opts,
         method: "PUT",
@@ -650,7 +650,7 @@ export function importRecoveryKey(importRecoveryKeyRequest: ImportRecoveryKeyReq
 /**
  * Confirm the backup recovery key
  */
-export function confirmRecoveryKey(opts?: Oazapfts.RequestOpts) {
+export function futoBackupsConfirmRecoveryKey(opts?: Oazapfts.RequestOpts) {
     return oazapfts.ok(oazapfts.fetchText("/api/futo-backups/onboarding/recovery-key", {
         ...opts,
         method: "POST"
@@ -659,7 +659,7 @@ export function confirmRecoveryKey(opts?: Oazapfts.RequestOpts) {
 /**
  * Skip optional backup onboarding
  */
-export function skipOnboardingExtraConfig(opts?: Oazapfts.RequestOpts) {
+export function futoBackupsSkipOnboardingExtraConfig(opts?: Oazapfts.RequestOpts) {
     return oazapfts.ok(oazapfts.fetchText("/api/futo-backups/onboarding/skip", {
         ...opts,
         method: "POST"
@@ -668,7 +668,7 @@ export function skipOnboardingExtraConfig(opts?: Oazapfts.RequestOpts) {
 /**
  * Enable FUTO Backups telemetry
  */
-export function enableTelemetry(opts?: Oazapfts.RequestOpts) {
+export function futoBackupsEnableTelemetry(opts?: Oazapfts.RequestOpts) {
     return oazapfts.ok(oazapfts.fetchText("/api/futo-backups/onboarding/telemetry", {
         ...opts,
         method: "POST"
@@ -677,7 +677,7 @@ export function enableTelemetry(opts?: Oazapfts.RequestOpts) {
 /**
  * Report a startup error
  */
-export function reportError(opts?: Oazapfts.RequestOpts) {
+export function futoBackupsReportError(opts?: Oazapfts.RequestOpts) {
     return oazapfts.ok(oazapfts.fetchText("/api/futo-backups/onboarding/report-error", {
         ...opts,
         method: "POST"
@@ -686,7 +686,7 @@ export function reportError(opts?: Oazapfts.RequestOpts) {
 /**
  * Create a new backup
  */
-export function createRepository(repositoryCreateRequestDto: RepositoryCreateRequestDto, { backend }: {
+export function futoBackupsCreateRepository(repositoryCreateRequestDto: RepositoryCreateRequestDto, { backend }: {
     backend?: string;
 } = {}, opts?: Oazapfts.RequestOpts) {
     return oazapfts.ok(oazapfts.fetchJson<{
@@ -703,7 +703,7 @@ export function createRepository(repositoryCreateRequestDto: RepositoryCreateReq
 /**
  * List backups
  */
-export function getRepositories(opts?: Oazapfts.RequestOpts) {
+export function futoBackupsGetRepositories(opts?: Oazapfts.RequestOpts) {
     return oazapfts.ok(oazapfts.fetchJson<{
         status: 200;
         data: RepositoryListResponseDto;
@@ -714,7 +714,7 @@ export function getRepositories(opts?: Oazapfts.RequestOpts) {
 /**
  * List remote backups
  */
-export function inspectRepositories({ backend }: {
+export function futoBackupsInspectRepositories({ backend }: {
     backend?: string;
 } = {}, opts?: Oazapfts.RequestOpts) {
     return oazapfts.ok(oazapfts.fetchJson<{
@@ -729,7 +729,7 @@ export function inspectRepositories({ backend }: {
 /**
  * Update a backup
  */
-export function updateRepository(id: string, repositoryUpdateRequestDto: RepositoryUpdateRequestDto, { backend }: {
+export function futoBackupsUpdateRepository(id: string, repositoryUpdateRequestDto: RepositoryUpdateRequestDto, { backend }: {
     backend?: string;
 } = {}, opts?: Oazapfts.RequestOpts) {
     return oazapfts.ok(oazapfts.fetchJson<{
@@ -746,7 +746,7 @@ export function updateRepository(id: string, repositoryUpdateRequestDto: Reposit
 /**
  * Remove a backup
  */
-export function deleteRepository(id: string, opts?: Oazapfts.RequestOpts) {
+export function futoBackupsDeleteRepository(id: string, opts?: Oazapfts.RequestOpts) {
     return oazapfts.ok(oazapfts.fetchText(`/api/futo-backups/repository/${encodeURIComponent(id)}`, {
         ...opts,
         method: "DELETE"
@@ -755,7 +755,7 @@ export function deleteRepository(id: string, opts?: Oazapfts.RequestOpts) {
 /**
  * Start a backup
  */
-export function createBackup(id: string, opts?: Oazapfts.RequestOpts) {
+export function futoBackupsCreateBackup(id: string, opts?: Oazapfts.RequestOpts) {
     return oazapfts.ok(oazapfts.fetchJson<{
         status: 201;
         data: JobResponseDto;
@@ -767,7 +767,7 @@ export function createBackup(id: string, opts?: Oazapfts.RequestOpts) {
 /**
  * Sync a remote deletion
  */
-export function syncRepositoryDeletion(id: string, opts?: Oazapfts.RequestOpts) {
+export function futoBackupsSyncRepositoryDeletion(id: string, opts?: Oazapfts.RequestOpts) {
     return oazapfts.ok(oazapfts.fetchJson<{
         status: 201;
         data: RepositorySyncDeletionResponseDto;
@@ -779,7 +779,7 @@ export function syncRepositoryDeletion(id: string, opts?: Oazapfts.RequestOpts) 
 /**
  * Check a repository import
  */
-export function checkImportRepository(id: string, backend: string, opts?: Oazapfts.RequestOpts) {
+export function futoBackupsCheckImportRepository(id: string, backend: string, opts?: Oazapfts.RequestOpts) {
     return oazapfts.ok(oazapfts.fetchJson<{
         status: 200;
         data: RepositoryCheckImportResponseDto;
@@ -792,7 +792,7 @@ export function checkImportRepository(id: string, backend: string, opts?: Oazapf
 /**
  * Import a repository
  */
-export function importRepository(id: string, backend: string, opts?: Oazapfts.RequestOpts) {
+export function futoBackupsImportRepository(id: string, backend: string, opts?: Oazapfts.RequestOpts) {
     return oazapfts.ok(oazapfts.fetchJson<{
         status: 201;
         data: RepositoryCreateResponseDto;
@@ -806,7 +806,7 @@ export function importRepository(id: string, backend: string, opts?: Oazapfts.Re
 /**
  * Change the primary backend
  */
-export function reconfigureRepositoryPrimaryBackend(id: string, repositoryPrimaryBackendReconfigureRequestDto: RepositoryPrimaryBackendReconfigureRequestDto, opts?: Oazapfts.RequestOpts) {
+export function futoBackupsReconfigureRepositoryPrimaryBackend(id: string, repositoryPrimaryBackendReconfigureRequestDto: RepositoryPrimaryBackendReconfigureRequestDto, opts?: Oazapfts.RequestOpts) {
     return oazapfts.ok(oazapfts.fetchJson<{
         status: 200;
         data: RepositoryCreateResponseDto;
@@ -819,7 +819,7 @@ export function reconfigureRepositoryPrimaryBackend(id: string, repositoryPrimar
 /**
  * List snapshots
  */
-export function getSnapshots(id: string, opts?: Oazapfts.RequestOpts) {
+export function futoBackupsGetSnapshots(id: string, opts?: Oazapfts.RequestOpts) {
     return oazapfts.ok(oazapfts.fetchJson<{
         status: 200;
         data: ListSnapshotsResponseDto;
@@ -830,7 +830,7 @@ export function getSnapshots(id: string, opts?: Oazapfts.RequestOpts) {
 /**
  * Prune a repository
  */
-export function pruneRepository(id: string, opts?: Oazapfts.RequestOpts) {
+export function futoBackupsPruneRepository(id: string, opts?: Oazapfts.RequestOpts) {
     return oazapfts.ok(oazapfts.fetchJson<{
         status: 201;
         data: JobResponseDto;
@@ -842,7 +842,7 @@ export function pruneRepository(id: string, opts?: Oazapfts.RequestOpts) {
 /**
  * Restore a snapshot
  */
-export function restoreSnapshot(id: string, snapshot: string, repositorySnapshotRestoreRequestDto: RepositorySnapshotRestoreRequestDto, opts?: Oazapfts.RequestOpts) {
+export function futoBackupsRestoreSnapshot(id: string, snapshot: string, repositorySnapshotRestoreRequestDto: RepositorySnapshotRestoreRequestDto, opts?: Oazapfts.RequestOpts) {
     return oazapfts.ok(oazapfts.fetchJson<{
         status: 201;
         data: JobResponseDto;
@@ -855,7 +855,7 @@ export function restoreSnapshot(id: string, snapshot: string, repositorySnapshot
 /**
  * Delete a snapshot
  */
-export function forgetSnapshot(id: string, snapshot: string, opts?: Oazapfts.RequestOpts) {
+export function futoBackupsForgetSnapshot(id: string, snapshot: string, opts?: Oazapfts.RequestOpts) {
     return oazapfts.ok(oazapfts.fetchJson<{
         status: 200;
         data: ListSnapshotsResponseDto;
@@ -867,7 +867,7 @@ export function forgetSnapshot(id: string, snapshot: string, opts?: Oazapfts.Req
 /**
  * Restore from snapshot
  */
-export function restoreFromPoint(id: string, snapshot: string, backend: string, repositorySnapshotRestoreFromPointRequestDto: RepositorySnapshotRestoreFromPointRequestDto, opts?: Oazapfts.RequestOpts) {
+export function futoBackupsRestoreFromPoint(id: string, snapshot: string, backend: string, repositorySnapshotRestoreFromPointRequestDto: RepositorySnapshotRestoreFromPointRequestDto, opts?: Oazapfts.RequestOpts) {
     return oazapfts.ok(oazapfts.fetchJson<{
         status: 201;
         data: JobResponseDto;
@@ -882,7 +882,7 @@ export function restoreFromPoint(id: string, snapshot: string, backend: string, 
 /**
  * List snapshot files
  */
-export function getSnapshotListing(id: string, snapshot: string, { path }: {
+export function futoBackupsGetSnapshotListing(id: string, snapshot: string, { path }: {
     path?: string;
 } = {}, opts?: Oazapfts.RequestOpts) {
     return oazapfts.ok(oazapfts.fetchJson<{
@@ -897,7 +897,7 @@ export function getSnapshotListing(id: string, snapshot: string, { path }: {
 /**
  * Create a schedule
  */
-export function createSchedule(scheduleCreateRequestDto: ScheduleCreateRequestDto, opts?: Oazapfts.RequestOpts) {
+export function futoBackupsCreateSchedule(scheduleCreateRequestDto: ScheduleCreateRequestDto, opts?: Oazapfts.RequestOpts) {
     return oazapfts.ok(oazapfts.fetchJson<{
         status: 201;
         data: ScheduleCreateResponseDto;
@@ -910,7 +910,7 @@ export function createSchedule(scheduleCreateRequestDto: ScheduleCreateRequestDt
 /**
  * List schedules
  */
-export function getSchedules(opts?: Oazapfts.RequestOpts) {
+export function futoBackupsGetSchedules(opts?: Oazapfts.RequestOpts) {
     return oazapfts.ok(oazapfts.fetchJson<{
         status: 200;
         data: ScheduleListResponseDto;
@@ -921,7 +921,7 @@ export function getSchedules(opts?: Oazapfts.RequestOpts) {
 /**
  * Update a schedule
  */
-export function updateSchedule(id: string, scheduleUpdateRequestDto: ScheduleUpdateRequestDto, opts?: Oazapfts.RequestOpts) {
+export function futoBackupsUpdateSchedule(id: string, scheduleUpdateRequestDto: ScheduleUpdateRequestDto, opts?: Oazapfts.RequestOpts) {
     return oazapfts.ok(oazapfts.fetchJson<{
         status: 200;
         data: ScheduleUpdateResponseDto;
@@ -934,7 +934,7 @@ export function updateSchedule(id: string, scheduleUpdateRequestDto: ScheduleUpd
 /**
  * Delete a schedule
  */
-export function removeSchedule(id: string, opts?: Oazapfts.RequestOpts) {
+export function futoBackupsRemoveSchedule(id: string, opts?: Oazapfts.RequestOpts) {
     return oazapfts.ok(oazapfts.fetchText(`/api/futo-backups/schedule/${encodeURIComponent(id)}`, {
         ...opts,
         method: "DELETE"
@@ -943,7 +943,7 @@ export function removeSchedule(id: string, opts?: Oazapfts.RequestOpts) {
 /**
  * Get support mode
  */
-export function getSupportMode(opts?: Oazapfts.RequestOpts) {
+export function futoBackupsGetSupportMode(opts?: Oazapfts.RequestOpts) {
     return oazapfts.ok(oazapfts.fetchJson<{
         status: 200;
         data: SupportModeResponseDto;
@@ -954,7 +954,7 @@ export function getSupportMode(opts?: Oazapfts.RequestOpts) {
 /**
  * Update support mode
  */
-export function updateSupportMode(supportModeUpdateRequestDto: SupportModeUpdateRequestDto, opts?: Oazapfts.RequestOpts) {
+export function futoBackupsUpdateSupportMode(supportModeUpdateRequestDto: SupportModeUpdateRequestDto, opts?: Oazapfts.RequestOpts) {
     return oazapfts.ok(oazapfts.fetchJson<{
         status: 200;
         data: SupportModeResponseDto;

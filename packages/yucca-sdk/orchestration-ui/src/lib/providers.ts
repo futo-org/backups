@@ -24,6 +24,11 @@ const clients = {
   customer: yuccaApiClient,
 };
 
+const repositoryListers = {
+  orchestrator: orchestrationApiClient.futoBackupsGetRepositories,
+  customer: yuccaApiClient.getRepositories,
+};
+
 const KEY = '__yucca_provider__';
 
 export const configureYucca = ({
@@ -39,7 +44,7 @@ export const configureYucca = ({
   const provider: YuccaProvider = {
     api,
     baseUrl: client.defaults.baseUrl.replace(/\/$/, ''),
-    getRepositories: client.getRepositories as GetRepositories,
+    getRepositories: repositoryListers[api] as GetRepositories,
   };
   (globalThis as any)[KEY] = provider;
   void setYuccaLanguage(language);

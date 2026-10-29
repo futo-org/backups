@@ -3,7 +3,7 @@
   import UpsellModal from "$lib/components/onboarding/upsell/UpsellModal.svelte";
   import ImmichTestUi from "$lib/components/test/ImmichTestUi.svelte";
   import TestUi from "$lib/components/test/TestUi.svelte";
-  import { resetOrchestrator } from "$lib/fetch-client";
+  import { futoBackupsResetOrchestrator } from "$lib/fetch-client";
   import { options } from "$lib/options";
   import {
     Button,
@@ -27,7 +27,7 @@
     });
 
   async function onReset() {
-    await resetOrchestrator();
+    await futoBackupsResetOrchestrator();
     location.reload();
   }
 

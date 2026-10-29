@@ -16,6 +16,7 @@ export class JobController {
   @Get()
   @ApiOkResponse({ type: JobListResponseDto })
   @ApiOperation({
+    operationId: 'futoBackupsGetJobs',
     summary: 'List jobs',
     description: 'List the jobs for a repository, newest first.',
   })
@@ -27,6 +28,7 @@ export class JobController {
   @ApiParam({ name: 'id', type: String })
   @ApiOkResponse({ type: JobDto })
   @ApiOperation({
+    operationId: 'futoBackupsGetJob',
     summary: 'Get a job',
     description: 'Get the status of a job.',
   })
@@ -44,6 +46,7 @@ export class JobController {
   @ApiParam({ name: 'id', type: String })
   @ApiNoContentResponse()
   @ApiOperation({
+    operationId: 'futoBackupsCancelJob',
     summary: 'Cancel a job',
     description: 'Cancel a queued job, or stop it if it is already running.',
   })
@@ -55,6 +58,7 @@ export class JobController {
   @ApiParam({ name: 'id', type: String })
   @ApiOkResponse({ content: { 'application/jsonl': { schema: { type: 'string', format: 'binary' } } } })
   @ApiOperation({
+    operationId: 'futoBackupsDownloadJobLog',
     summary: 'Download a job log',
     description: 'Download the full log of a job as JSON lines.',
   })
@@ -71,6 +75,7 @@ export class JobController {
   @ApiParam({ name: 'id', type: String })
   @ApiOkResponse({ content: { 'application/jsonl': { schema: { type: 'string', format: 'binary' } } } })
   @ApiOperation({
+    operationId: 'futoBackupsDownloadJobSupportLog',
     summary: 'Download a job support log',
     description: 'Download the verbose restic output recorded while the job ran in support mode, as JSON lines.',
   })

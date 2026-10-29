@@ -10,6 +10,7 @@ export class SupportModeController {
   @Get()
   @ApiOkResponse({ type: SupportModeResponseDto })
   @ApiOperation({
+    operationId: 'futoBackupsGetSupportMode',
     summary: 'Get support mode',
     description: 'Retrieve how many upcoming runs use verbose restic logging, and whether they stream to FUTO.',
   })
@@ -20,6 +21,7 @@ export class SupportModeController {
   @Put()
   @ApiOkResponse({ type: SupportModeResponseDto })
   @ApiOperation({
+    operationId: 'futoBackupsUpdateSupportMode',
     summary: 'Update support mode',
     description: 'Set how many upcoming runs use verbose restic logging, and whether they stream to FUTO.',
   })

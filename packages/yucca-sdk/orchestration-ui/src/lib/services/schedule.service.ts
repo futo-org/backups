@@ -1,7 +1,7 @@
 import { sdk } from '$lib';
 import ConfigureScheduleModal from '$lib/components/schedules/dialogs/ConfigureScheduleModal.svelte';
 import {
-  getSchedules,
+  futoBackupsGetSchedules,
   type ScheduleCreateRequestDto,
   type ScheduleDto,
   type ScheduleUpdateRequestDto,
@@ -22,7 +22,8 @@ export const useSchedules = () =>
   createQuery(
     () => ({
       queryKey: scheduleKeys.all,
-      queryFn: () => getSchedules().then(({ schedules }) => schedules),
+      queryFn: () =>
+        futoBackupsGetSchedules().then(({ schedules }) => schedules),
     }),
     () => queryClient,
   );
@@ -71,7 +72,7 @@ export const useScheduleEventHandler = () => {
 
 export const handleGetSchedules = async () => {
   try {
-    return await sdk.getSchedules();
+    return await sdk.futoBackupsGetSchedules();
   } catch (error) {
     handleError(error, gt`Failed to load schedules`);
     throw error;
@@ -81,7 +82,8 @@ export const handleGetSchedules = async () => {
 export const useCreateSchedule = () =>
   createMutation(
     () => ({
-      mutationFn: (dto: ScheduleCreateRequestDto) => sdk.createSchedule(dto),
+      mutationFn: (dto: ScheduleCreateRequestDto) =>
+        sdk.futoBackupsCreateSchedule(dto),
       onError: (error) => handleError(error, gt`Failed to create schedule`),
     }),
     () => queryClient,
@@ -96,7 +98,7 @@ export const useUpdateSchedule = () =>
       }: {
         id: string;
         dto: ScheduleUpdateRequestDto;
-      }) => sdk.updateSchedule(id, dto),
+      }) => sdk.futoBackupsUpdateSchedule(id, dto),
       onError: (error) => handleError(error, gt`Failed to update schedule`),
     }),
     () => queryClient,
@@ -104,7 +106,7 @@ export const useUpdateSchedule = () =>
 
 export const handlePauseSchedule = async (id: string, name: string) => {
   try {
-    await sdk.updateSchedule(id, { paused: true });
+    await sdk.futoBackupsUpdateSchedule(id, { paused: true });
     toastManager.info(
       gt({ message: 'Paused schedule "{name}"', values: { name } }),
     );
@@ -116,7 +118,7 @@ export const handlePauseSchedule = async (id: string, name: string) => {
 
 export const handleResumeSchedule = async (id: string, name: string) => {
   try {
-    await sdk.updateSchedule(id, { paused: false });
+    await sdk.futoBackupsUpdateSchedule(id, { paused: false });
     toastManager.success(
       gt({ message: 'Resumed schedule "{name}"', values: { name } }),
     );
@@ -128,7 +130,7 @@ export const handleResumeSchedule = async (id: string, name: string) => {
 
 export const handleRemoveSchedule = async (id: string, name: string) => {
   try {
-    await sdk.removeSchedule(id);
+    await sdk.futoBackupsRemoveSchedule(id);
     toastManager.info(
       gt({ message: 'Deleted schedule "{name}"', values: { name } }),
     );

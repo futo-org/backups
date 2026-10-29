@@ -8,6 +8,7 @@ export class DevelopmentController {
 
   @Post('reset')
   @ApiOperation({
+    operationId: 'futoBackupsResetOrchestrator',
     summary: 'Reset the backups orchestrator',
     description: 'Delete all orchestrator state. Only available in development mode.',
   })

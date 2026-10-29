@@ -9,8 +9,8 @@ test.beforeAll(async () => {
     baseUrl: 'http://localhost:22676',
     language: 'en',
   });
-  await sdk.resetOrchestrator();
-  await sdk.importRecoveryKey({
+  await sdk.futoBackupsResetOrchestrator();
+  await sdk.futoBackupsImportRecoveryKey({
     recoveryKey: '0'.repeat(64),
   });
 });

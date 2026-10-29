@@ -99,7 +99,7 @@ const jobStarted = (repositoryId: string) =>
   });
 
 beforeAll(async () => {
-  await sdk.resetOrchestrator();
+  await sdk.futoBackupsResetOrchestrator();
 
   socket = io(baseUrl, {
     path: '/api/futo-backups/socket.io',
@@ -136,7 +136,7 @@ const waitForMessage = (type: string) => {
 
 describe('Onboarding (before setup)', () => {
   it('should report onboarding has not been performed', async () => {
-    await expect(sdk.onboardingStatus()).resolves.toEqual({
+    await expect(sdk.futoBackupsOnboardingStatus()).resolves.toEqual({
       status: 'ready',
       hasTelemetry: 'none',
       requiresAuthentication: false,
@@ -183,11 +183,13 @@ describe('Auth', () => {
   }, 30_000);
 
   it('rejects an invalid session token', async () => {
-    await expect(sdk.createSession({ token: 'not-a-session-token' })).rejects.toMatchObject({ status: 401 });
+    await expect(sdk.futoBackupsCreateSession({ token: 'not-a-session-token' })).rejects.toMatchObject({ status: 401 });
   });
 
   it('returns 404 when creating a ticket for an unknown repository', async () => {
-    await expect(sdk.createTicket({ action: 'repository.delete', repositoryId: randomUUID() })).rejects.toMatchObject({
+    await expect(
+      sdk.futoBackupsCreateTicket({ action: 'repository.delete', repositoryId: randomUUID() }),
+    ).rejects.toMatchObject({
       status: 404,
     });
   });
@@ -195,7 +197,7 @@ describe('Auth', () => {
 
 describe('Backend', () => {
   it('lists yucca as active backend', async () => {
-    await expect(sdk.getBackends()).resolves.toEqual(
+    await expect(sdk.futoBackupsGetBackends()).resolves.toEqual(
       expect.objectContaining({
         backends: [
           expect.objectContaining({
@@ -215,7 +217,7 @@ describe('Filesystem', () => {
     await writeFile(join(workingDir, 'a-file'), 'hi');
     await mkdir(join(workingDir, 'a-dir'));
 
-    await expect(sdk.getFileListing({ path: workingDir })).resolves.toEqual({
+    await expect(sdk.futoBackupsGetFileListing({ path: workingDir })).resolves.toEqual({
       parent: dirname(workingDir),
       path: workingDir,
       items: expect.arrayContaining([
@@ -226,7 +228,7 @@ describe('Filesystem', () => {
   });
 
   it('defaults to the filesystem root when no path is provided', async () => {
-    await expect(sdk.getFileListing()).resolves.toEqual(
+    await expect(sdk.futoBackupsGetFileListing()).resolves.toEqual(
       expect.objectContaining({
         path: sep,
         parent: sep,
@@ -238,7 +240,7 @@ describe('Filesystem', () => {
 
 describe('Integrations', () => {
   it('gets integrations', async () => {
-    await expect(sdk.getIntegrations()).resolves.toEqual(
+    await expect(sdk.futoBackupsGetIntegrations()).resolves.toEqual(
       expect.not.objectContaining({
         immichIntegration: expect.anything(),
       }),
@@ -248,7 +250,7 @@ describe('Integrations', () => {
 
 describe('Onboarding', () => {
   it('reports backend is present', async () => {
-    await expect(sdk.onboardingStatus()).resolves.toEqual(
+    await expect(sdk.futoBackupsOnboardingStatus()).resolves.toEqual(
       expect.objectContaining({
         hasBackend: true,
         hasOnboardedKey: false,
@@ -257,7 +259,7 @@ describe('Onboarding', () => {
   });
 
   it('provides a randomly generated key', async () => {
-    await expect(sdk.currentRecoveryKey()).resolves.toEqual({
+    await expect(sdk.futoBackupsCurrentRecoveryKey()).resolves.toEqual({
       recoveryKey: expect.stringMatching(/[a-f0-9]{64}/),
     });
   });
@@ -265,17 +267,17 @@ describe('Onboarding', () => {
   it('imports a provided key', async () => {
     const recoveryKey = '0'.repeat(64);
 
-    await sdk.importRecoveryKey({
+    await sdk.futoBackupsImportRecoveryKey({
       recoveryKey,
     });
 
-    await expect(sdk.currentRecoveryKey()).resolves.toEqual({ recoveryKey });
+    await expect(sdk.futoBackupsCurrentRecoveryKey()).resolves.toEqual({ recoveryKey });
   });
 
   it('marks key as onboarded', async () => {
-    await sdk.confirmRecoveryKey();
+    await sdk.futoBackupsConfirmRecoveryKey();
 
-    await expect(sdk.onboardingStatus()).resolves.toEqual({
+    await expect(sdk.futoBackupsOnboardingStatus()).resolves.toEqual({
       status: 'ready',
       hasTelemetry: 'none',
       requiresAuthentication: false,
@@ -289,9 +291,9 @@ describe('Onboarding', () => {
   });
 
   it('skips extra config', async () => {
-    await sdk.skipOnboardingExtraConfig();
+    await sdk.futoBackupsSkipOnboardingExtraConfig();
 
-    await expect(sdk.onboardingStatus()).resolves.toEqual({
+    await expect(sdk.futoBackupsOnboardingStatus()).resolves.toEqual({
       status: 'ready',
       hasTelemetry: 'none',
       requiresAuthentication: false,
@@ -307,7 +309,7 @@ describe('Onboarding', () => {
   it('reports a bootstrap error to VictoriaLogs', async () => {
     const reportedAt = Date.now();
 
-    await expect(sdk.reportError()).resolves.toEqual('');
+    await expect(sdk.futoBackupsReportError()).resolves.toEqual('');
 
     const record = await waitForLog(
       (entry: Record<string, unknown>) =>
@@ -322,14 +324,14 @@ describe('Repository', () => {
   let repository: sdk.LocalRepositoryDto;
 
   beforeAll(async () => {
-    ({ repository } = await sdk.createRepository({
+    ({ repository } = await sdk.futoBackupsCreateRepository({
       name: 'Test Repository',
       worm: false,
     }));
   });
 
   it('lists repositories', async () => {
-    await expect(sdk.getRepositories()).resolves.toEqual({
+    await expect(sdk.futoBackupsGetRepositories()).resolves.toEqual({
       repositories: expect.arrayContaining([
         expect.objectContaining({
           id: repository.id,
@@ -341,7 +343,7 @@ describe('Repository', () => {
   it('updates a repository and emits an event', async () => {
     const event = waitForMessage('RepositoryUpdate');
 
-    await expect(sdk.updateRepository(repository.id, { name: 'Renamed Repository' })).resolves.toEqual({
+    await expect(sdk.futoBackupsUpdateRepository(repository.id, { name: 'Renamed Repository' })).resolves.toEqual({
       repository: expect.objectContaining({
         id: repository.id,
         name: 'Renamed Repository',
@@ -358,13 +360,17 @@ describe('Repository', () => {
   });
 
   it('reconfigures the primary backend of a repository', async () => {
-    const { repository: moved } = await sdk.createRepository({ name: 'Moved Repository', worm: false });
-    const { backend } = await sdk.createLocalBackend({ path: await mkdtemp(join(tmpdir(), 'reconfigure-')) });
+    const { repository: moved } = await sdk.futoBackupsCreateRepository({ name: 'Moved Repository', worm: false });
+    const { backend } = await sdk.futoBackupsCreateLocalBackend({
+      path: await mkdtemp(join(tmpdir(), 'reconfigure-')),
+    });
     const primary = { id: backend.id, online: true, type: 'local' };
 
     const event = waitForMessage('RepositoryUpdate');
 
-    await expect(sdk.reconfigureRepositoryPrimaryBackend(moved.id, { backendId: backend.id })).resolves.toEqual({
+    await expect(
+      sdk.futoBackupsReconfigureRepositoryPrimaryBackend(moved.id, { backendId: backend.id }),
+    ).resolves.toEqual({
       repository: expect.objectContaining({
         id: moved.id,
         name: 'Moved Repository',
@@ -378,7 +384,7 @@ describe('Repository', () => {
       repository: expect.objectContaining({ backends: { primary, secondary: [] } }),
     });
 
-    await expect(sdk.getRepositories()).resolves.toEqual({
+    await expect(sdk.futoBackupsGetRepositories()).resolves.toEqual({
       repositories: expect.arrayContaining([
         expect.objectContaining({
           id: moved.id,
@@ -390,20 +396,25 @@ describe('Repository', () => {
 
   it('returns 404 when reconfiguring onto an unknown backend', async () => {
     await expect(
-      sdk.reconfigureRepositoryPrimaryBackend(repository.id, { backendId: randomUUID() }),
+      sdk.futoBackupsReconfigureRepositoryPrimaryBackend(repository.id, { backendId: randomUUID() }),
     ).rejects.toMatchObject({ status: 404 });
   });
 
   it('returns 404 when reconfiguring an unknown repository', async () => {
-    const { backend } = await sdk.createLocalBackend({ path: await mkdtemp(join(tmpdir(), 'reconfigure-')) });
+    const { backend } = await sdk.futoBackupsCreateLocalBackend({
+      path: await mkdtemp(join(tmpdir(), 'reconfigure-')),
+    });
 
     await expect(
-      sdk.reconfigureRepositoryPrimaryBackend(randomUUID(), { backendId: backend.id }),
+      sdk.futoBackupsReconfigureRepositoryPrimaryBackend(randomUUID(), { backendId: backend.id }),
     ).rejects.toMatchObject({ status: 404 });
   });
 
   it('creates a ticket that redirects to the identity provider', async () => {
-    const { redirectTo } = await sdk.createTicket({ action: 'repository.delete', repositoryId: repository.id });
+    const { redirectTo } = await sdk.futoBackupsCreateTicket({
+      action: 'repository.delete',
+      repositoryId: repository.id,
+    });
 
     expect(Object.fromEntries(new URL(redirectTo).searchParams)).toEqual(
       expect.objectContaining({
@@ -418,7 +429,7 @@ describe('Repository', () => {
     const event = waitForMessage('RepositoryCreate');
 
     await expect(
-      sdk.createRepository({
+      sdk.futoBackupsCreateRepository({
         name: 'My Repository',
         worm: false,
       }),
@@ -435,7 +446,7 @@ describe('Repository', () => {
       }),
     });
 
-    await expect(sdk.onboardingStatus()).resolves.toEqual({
+    await expect(sdk.futoBackupsOnboardingStatus()).resolves.toEqual({
       status: 'ready',
       hasTelemetry: 'none',
       requiresAuthentication: false,
@@ -452,13 +463,13 @@ describe('Repository', () => {
     const workingDir = await mkdtemp(join(tmpdir(), 'test-'));
     await writeFile(join(workingDir, 'test-file'), 'hi');
 
-    await sdk.updateRepository(repository.id, {
+    await sdk.futoBackupsUpdateRepository(repository.id, {
       paths: [workingDir],
     });
 
     const updateEvent = waitForMessage('RepositoryUpdate');
 
-    const { jobId } = await sdk.createBackup(repository.id);
+    const { jobId } = await sdk.futoBackupsCreateBackup(repository.id);
 
     await expect(jobFinished(jobId)).resolves.toEqual({
       type: 'JobUpdate',
@@ -483,7 +494,7 @@ describe('Repository', () => {
   }, 60_000);
 
   it('lists the jobs of a repository', async () => {
-    await expect(sdk.getJobs(repository.id)).resolves.toEqual({
+    await expect(sdk.futoBackupsGetJobs(repository.id)).resolves.toEqual({
       jobs: expect.arrayContaining([
         expect.objectContaining({
           id: expect.any(String),
@@ -495,10 +506,10 @@ describe('Repository', () => {
   });
 
   it('gets a single job by id', async () => {
-    const { jobs } = await sdk.getJobs(repository.id);
+    const { jobs } = await sdk.futoBackupsGetJobs(repository.id);
     const { id } = jobs.find((job) => job.name === 'repository-backup')!;
 
-    await expect(sdk.getJob(id)).resolves.toEqual(
+    await expect(sdk.futoBackupsGetJob(id)).resolves.toEqual(
       expect.objectContaining({
         id,
         repositoryId: repository.id,
@@ -509,7 +520,7 @@ describe('Repository', () => {
   });
 
   it('downloads a job log', async () => {
-    const { jobs } = await sdk.getJobs(repository.id);
+    const { jobs } = await sdk.futoBackupsGetJobs(repository.id);
     const { id } = jobs.find((job) => job.name === 'repository-backup')!;
 
     const response = await fetch(`${baseUrl}/api/futo-backups/jobs/${id}/download`);
@@ -528,11 +539,11 @@ describe('Repository', () => {
   });
 
   it('returns 404 when downloading the log of an unknown job', async () => {
-    await expect(sdk.downloadJobLog('does-not-exist')).rejects.toMatchObject({ status: 404 });
+    await expect(sdk.futoBackupsDownloadJobLog('does-not-exist')).rejects.toMatchObject({ status: 404 });
   });
 
   it('list snapshots', async () => {
-    await expect(sdk.getSnapshots(repository.id)).resolves.toEqual({
+    await expect(sdk.futoBackupsGetSnapshots(repository.id)).resolves.toEqual({
       snapshots: expect.arrayContaining([
         expect.objectContaining({
           id: expect.any(String),
@@ -545,9 +556,9 @@ describe('Repository', () => {
   it('lists snapshot contents', async () => {
     const {
       snapshots: [{ id }],
-    } = await sdk.getSnapshots(repository.id);
+    } = await sdk.futoBackupsGetSnapshots(repository.id);
 
-    await expect(sdk.getSnapshotListing(repository.id, id)).resolves.toEqual({
+    await expect(sdk.futoBackupsGetSnapshotListing(repository.id, id)).resolves.toEqual({
       items: expect.any(Array),
       parent: '/',
       path: '/',
@@ -557,9 +568,9 @@ describe('Repository', () => {
   it('restores a snapshot', async () => {
     const {
       snapshots: [{ id }],
-    } = await sdk.getSnapshots(repository.id);
+    } = await sdk.futoBackupsGetSnapshots(repository.id);
 
-    const { jobId } = await sdk.restoreSnapshot(repository.id, id, {});
+    const { jobId } = await sdk.futoBackupsRestoreSnapshot(repository.id, id, {});
 
     await expect(jobFinished(jobId)).resolves.toMatchObject({ job: { status: 'complete' } });
   });
@@ -569,9 +580,9 @@ describe('Repository', () => {
 
     const {
       snapshots: [{ id }],
-    } = await sdk.getSnapshots(repository.id);
+    } = await sdk.futoBackupsGetSnapshots(repository.id);
 
-    await sdk.forgetSnapshot(repository.id, id);
+    await sdk.futoBackupsForgetSnapshot(repository.id, id);
 
     await expect(updateEvent).resolves.toEqual({
       type: 'RepositoryUpdate',
@@ -600,22 +611,22 @@ describe('Snapshot browsing and restore', () => {
     await mkdir(join(workingDir, 'nested'));
     await writeFile(join(workingDir, 'nested', 'deep-file'), 'deep');
 
-    ({ repository } = await sdk.createRepository({
+    ({ repository } = await sdk.futoBackupsCreateRepository({
       name: 'Browse Repository',
       worm: false,
       paths: [workingDir],
     }));
 
-    const { jobId } = await sdk.createBackup(repository.id);
+    const { jobId } = await sdk.futoBackupsCreateBackup(repository.id);
     await jobFinished(jobId);
 
     ({
       snapshots: [{ id: snapshotId }],
-    } = await sdk.getSnapshots(repository.id));
+    } = await sdk.futoBackupsGetSnapshots(repository.id));
   }, 180_000);
 
   it('navigates into a subdirectory of a snapshot', async () => {
-    await expect(sdk.getSnapshotListing(repository.id, snapshotId, { path: workingDir })).resolves.toEqual({
+    await expect(sdk.futoBackupsGetSnapshotListing(repository.id, snapshotId, { path: workingDir })).resolves.toEqual({
       parent: dirname(workingDir),
       path: workingDir,
       items: expect.arrayContaining([
@@ -625,7 +636,7 @@ describe('Snapshot browsing and restore', () => {
     });
 
     await expect(
-      sdk.getSnapshotListing(repository.id, snapshotId, { path: join(workingDir, 'nested') }),
+      sdk.futoBackupsGetSnapshotListing(repository.id, snapshotId, { path: join(workingDir, 'nested') }),
     ).resolves.toEqual({
       parent: workingDir,
       path: join(workingDir, 'nested'),
@@ -635,7 +646,7 @@ describe('Snapshot browsing and restore', () => {
 
   it('restores a snapshot into a target directory with an include filter', async () => {
     const target = await mkdtemp(join(tmpdir(), 'restore-target-'));
-    const { jobId } = await sdk.restoreSnapshot(repository.id, snapshotId, {
+    const { jobId } = await sdk.futoBackupsRestoreSnapshot(repository.id, snapshotId, {
       target,
       include: [join(workingDir, 'nested', 'deep-file')],
     });
@@ -653,17 +664,17 @@ describe('Schedule', () => {
   let schedule: sdk.ScheduleDto;
 
   beforeAll(async () => {
-    ({ repository } = await sdk.createRepository({
+    ({ repository } = await sdk.futoBackupsCreateRepository({
       name: 'Test Repository',
       worm: false,
     }));
 
-    ({ repository: repository2 } = await sdk.createRepository({
+    ({ repository: repository2 } = await sdk.futoBackupsCreateRepository({
       name: 'Test Repository',
       worm: false,
     }));
 
-    ({ schedule } = await sdk.createSchedule({
+    ({ schedule } = await sdk.futoBackupsCreateSchedule({
       name: 'Schedule',
       cron: '* * * * *',
       repositories: [repository.id, repository2.id],
@@ -674,13 +685,13 @@ describe('Schedule', () => {
     const createEvent = waitForMessage('ScheduleCreate');
     const deleteEvent = waitForMessage('ScheduleDelete');
 
-    const { schedule } = await sdk.createSchedule({
+    const { schedule } = await sdk.futoBackupsCreateSchedule({
       name: 'My Schedule',
       cron: '* * * * *',
       repositories: [],
     });
 
-    await expect(sdk.onboardingStatus()).resolves.toEqual({
+    await expect(sdk.futoBackupsOnboardingStatus()).resolves.toEqual({
       status: 'ready',
       hasTelemetry: 'none',
       requiresAuthentication: false,
@@ -699,7 +710,7 @@ describe('Schedule', () => {
       }),
     });
 
-    await sdk.removeSchedule(schedule.id);
+    await sdk.futoBackupsRemoveSchedule(schedule.id);
 
     await expect(deleteEvent).resolves.toEqual({
       type: 'ScheduleDelete',
@@ -708,7 +719,7 @@ describe('Schedule', () => {
   });
 
   it('gets a list of schedules', async () => {
-    await expect(sdk.getSchedules()).resolves.toEqual({
+    await expect(sdk.futoBackupsGetSchedules()).resolves.toEqual({
       schedules: expect.arrayContaining([
         expect.objectContaining({
           id: schedule.id,
@@ -720,7 +731,7 @@ describe('Schedule', () => {
   it('updates schedule', async () => {
     const event = waitForMessage('ScheduleUpdate');
 
-    await sdk.updateSchedule(schedule.id, {
+    await sdk.futoBackupsUpdateSchedule(schedule.id, {
       name: 'Updated Schedule',
       paused: true,
       repositories: [repository2.id, repository.id],
@@ -739,7 +750,7 @@ describe('Schedule', () => {
 
   it('removes and adds repository', async () => {
     const removeEvent = waitForMessage('ScheduleUpdate');
-    await sdk.updateSchedule(schedule.id, { repositories: [repository2.id] });
+    await sdk.futoBackupsUpdateSchedule(schedule.id, { repositories: [repository2.id] });
 
     await expect(removeEvent).resolves.toEqual({
       type: 'ScheduleUpdate',
@@ -750,7 +761,7 @@ describe('Schedule', () => {
     });
 
     const addEvent = waitForMessage('ScheduleUpdate');
-    await sdk.updateSchedule(schedule.id, {
+    await sdk.futoBackupsUpdateSchedule(schedule.id, {
       repositories: [repository2.id, repository.id],
     });
 
@@ -770,26 +781,26 @@ describe('Reset & Restore', () => {
   beforeAll(async () => {
     const {
       repository: { id: restoreRepositoryId },
-    } = await sdk.createRepository({
+    } = await sdk.futoBackupsCreateRepository({
       name: 'My Restore',
       worm: false,
       paths: [resolve(homedir(), '.yucca')],
     });
 
-    const { jobId } = await sdk.createBackup(restoreRepositoryId);
+    const { jobId } = await sdk.futoBackupsCreateBackup(restoreRepositoryId);
     await expect(jobFinished(jobId)).resolves.toMatchObject({ job: { status: 'complete' } });
 
-    const { schedules } = await sdk.getSchedules();
+    const { schedules } = await sdk.futoBackupsGetSchedules();
     backedUpScheduleNames = schedules.map((schedule) => schedule.name);
 
-    await sdk.resetOrchestrator();
+    await sdk.futoBackupsResetOrchestrator();
     await login();
-    await sdk.importRecoveryKey({ recoveryKey: '0'.repeat(64) });
-    await sdk.confirmRecoveryKey();
+    await sdk.futoBackupsImportRecoveryKey({ recoveryKey: '0'.repeat(64) });
+    await sdk.futoBackupsConfirmRecoveryKey();
   }, 60_000);
 
   it('inspects un-imported repositories', async () => {
-    await expect(sdk.inspectRepositories()).resolves.toEqual({
+    await expect(sdk.futoBackupsInspectRepositories()).resolves.toEqual({
       repositories: expect.arrayContaining([
         expect.objectContaining({
           id: expect.any(String),
@@ -805,31 +816,33 @@ describe('Reset & Restore', () => {
   }, 20_000);
 
   it('checks import repository', async () => {
-    const { repositories } = await sdk.getRepositories();
+    const { repositories } = await sdk.futoBackupsGetRepositories();
     const [unimported] = repositories;
 
-    await expect(sdk.checkImportRepository(unimported.id, unimported.backends!.primary.id)).resolves.toEqual({
-      readable: true,
-    });
+    await expect(sdk.futoBackupsCheckImportRepository(unimported.id, unimported.backends!.primary.id)).resolves.toEqual(
+      {
+        readable: true,
+      },
+    );
   });
 
   it('reports a repository absent from a backend as unreadable', async () => {
-    const { repositories } = await sdk.getRepositories();
+    const { repositories } = await sdk.futoBackupsGetRepositories();
     const [unimported] = repositories;
     const path = await mkdtemp(join(tmpdir(), 'empty-backend-'));
-    const { backend } = await sdk.createLocalBackend({ path });
+    const { backend } = await sdk.futoBackupsCreateLocalBackend({ path });
 
-    await expect(sdk.checkImportRepository(unimported.id, backend.id)).resolves.toEqual({
+    await expect(sdk.futoBackupsCheckImportRepository(unimported.id, backend.id)).resolves.toEqual({
       readable: false,
     });
   });
 
   it('imports a repository from backend', async () => {
-    const { repositories } = await sdk.getRepositories();
+    const { repositories } = await sdk.futoBackupsGetRepositories();
     const unimported = repositories.find((repository) => repository.name !== 'My Restore')!;
 
     const event = waitForMessage('RepositoryCreate');
-    const { repository } = await sdk.importRepository(unimported.id, unimported.backends!.primary.id);
+    const { repository } = await sdk.futoBackupsImportRepository(unimported.id, unimported.backends!.primary.id);
 
     expect(repository.id).not.toEqual(unimported.id);
     expect(repository).toEqual(
@@ -848,38 +861,38 @@ describe('Reset & Restore', () => {
   }, 30_000);
 
   it('restores point from repository', async () => {
-    await expect(sdk.getSchedules()).resolves.toEqual(expect.objectContaining({ schedules: [] }));
+    await expect(sdk.futoBackupsGetSchedules()).resolves.toEqual(expect.objectContaining({ schedules: [] }));
 
-    const { repositories } = await sdk.inspectRepositories();
+    const { repositories } = await sdk.futoBackupsInspectRepositories();
     const restore = repositories.find((repository) => repository.name === 'My Restore')!;
     const [{ id: snapshotId }] = restore.snapshots!;
 
-    const { jobId } = await sdk.restoreFromPoint(restore.id, snapshotId, restore.backends!.primary.id, {});
+    const { jobId } = await sdk.futoBackupsRestoreFromPoint(restore.id, snapshotId, restore.backends!.primary.id, {});
 
     await expect(jobFinished(jobId)).resolves.toMatchObject({ job: { status: 'complete' } });
 
-    const { schedules } = await sdk.getSchedules();
+    const { schedules } = await sdk.futoBackupsGetSchedules();
     expect(schedules.map((schedule) => schedule.name)).toEqual(expect.arrayContaining(backedUpScheduleNames));
   }, 45_000);
 });
 
 describe('Repository deletion', () => {
   it('deletes a repository', async () => {
-    const { repository } = await sdk.createRepository({
+    const { repository } = await sdk.futoBackupsCreateRepository({
       name: 'Disposable Repository',
       worm: false,
     });
 
     const event = waitForMessage('RepositoryDelete');
 
-    await sdk.deleteRepository(repository.id);
+    await sdk.futoBackupsDeleteRepository(repository.id);
 
     await expect(event).resolves.toEqual({
       type: 'RepositoryDelete',
       repositoryId: repository.id,
     });
 
-    const { repositories } = await sdk.getRepositories();
+    const { repositories } = await sdk.futoBackupsGetRepositories();
     const localRepositories = repositories.filter((repo) => repo.configuration !== undefined);
 
     expect(localRepositories).toEqual(expect.not.arrayContaining([expect.objectContaining({ id: repository.id })]));
@@ -893,41 +906,41 @@ describe('Repository pruning', () => {
     const workingDir = await mkdtemp(join(tmpdir(), 'prune-'));
     await writeFile(join(workingDir, 'test-file'), 'hi');
 
-    ({ repository } = await sdk.createRepository({
+    ({ repository } = await sdk.futoBackupsCreateRepository({
       name: 'Prune Repository',
       worm: false,
       paths: [workingDir],
     }));
 
-    await sdk.updateRepository(repository.id, {
+    await sdk.futoBackupsUpdateRepository(repository.id, {
       retentionPolicy: { keepLast: 1 },
     });
 
-    const { jobId } = await sdk.createBackup(repository.id);
+    const { jobId } = await sdk.futoBackupsCreateBackup(repository.id);
     await jobFinished(jobId);
   }, 60_000);
 
   it('prunes a repository according to its retention policy', async () => {
-    const { jobId } = await sdk.pruneRepository(repository.id);
+    const { jobId } = await sdk.futoBackupsPruneRepository(repository.id);
 
     await expect(jobFinished(jobId)).resolves.toMatchObject({ job: { status: 'complete' } });
   }, 30_000);
 
   it('rejects pruning a repository without a retention policy', async () => {
-    const { repository: unconfigured } = await sdk.createRepository({
+    const { repository: unconfigured } = await sdk.futoBackupsCreateRepository({
       name: 'No Retention Repository',
       worm: false,
     });
 
-    await sdk.updateRepository(unconfigured.id, { retentionPolicy: null });
+    await sdk.futoBackupsUpdateRepository(unconfigured.id, { retentionPolicy: null });
 
-    await expect(sdk.pruneRepository(unconfigured.id)).rejects.toMatchObject({ status: 400 });
+    await expect(sdk.futoBackupsPruneRepository(unconfigured.id)).rejects.toMatchObject({ status: 400 });
   });
 });
 
 describe('Job cancellation', () => {
   it('returns 404 when cancelling an unknown job', async () => {
-    await expect(sdk.cancelJob('does-not-exist')).rejects.toMatchObject({ status: 404 });
+    await expect(sdk.futoBackupsCancelJob('does-not-exist')).rejects.toMatchObject({ status: 404 });
   });
 
   it('cancels an in-progress backup', async () => {
@@ -935,7 +948,7 @@ describe('Job cancellation', () => {
 
     await writeFile(join(workingDir, 'payload'), randomBytes(64 * 1024 * 1024));
 
-    const { repository } = await sdk.createRepository({
+    const { repository } = await sdk.futoBackupsCreateRepository({
       name: 'Cancellable Repository',
       worm: false,
       paths: [workingDir],
@@ -943,13 +956,13 @@ describe('Job cancellation', () => {
 
     const started = jobStarted(repository.id);
 
-    const { jobId } = await sdk.createBackup(repository.id);
+    const { jobId } = await sdk.futoBackupsCreateBackup(repository.id);
     await started;
 
-    await sdk.cancelJob(jobId);
+    await sdk.futoBackupsCancelJob(jobId);
 
     await expect(jobFinished(jobId)).resolves.toMatchObject({ job: { status: 'cancelled' } });
-    await expect(sdk.getJob(jobId)).resolves.toMatchObject({ id: jobId, status: 'cancelled' });
+    await expect(sdk.futoBackupsGetJob(jobId)).resolves.toMatchObject({ id: jobId, status: 'cancelled' });
   }, 60_000);
 });
 
@@ -957,7 +970,7 @@ describe('Immich integration', () => {
   it('configures the immich integration', async () => {
     const event = waitForMessage('IntegrationUpdate');
 
-    await sdk.configureImmichIntegration({
+    await sdk.futoBackupsConfigureImmichIntegration({
       name: 'Immich Backup',
       worm: false,
       cron: '* * * * *',
@@ -980,7 +993,7 @@ describe('Immich integration', () => {
       }),
     });
 
-    await expect(sdk.getIntegrations()).resolves.toEqual(
+    await expect(sdk.futoBackupsGetIntegrations()).resolves.toEqual(
       expect.objectContaining({
         immichIntegration: expect.objectContaining({
           configuration: expect.objectContaining({ libraries: ['all'] }),
@@ -990,9 +1003,9 @@ describe('Immich integration', () => {
   });
 
   it('reports the immich backup status', async () => {
-    const { immichIntegration } = await sdk.getIntegrations();
+    const { immichIntegration } = await sdk.futoBackupsGetIntegrations();
 
-    await expect(sdk.getImmichBackupStatus()).resolves.toEqual(
+    await expect(sdk.futoBackupsGetImmichBackupStatus()).resolves.toEqual(
       expect.objectContaining({
         integration: immichIntegration,
         repository: expect.objectContaining({ id: immichIntegration!.id }),
@@ -1005,27 +1018,29 @@ describe('Immich integration', () => {
   });
 
   it('configures the immich database dump', async () => {
-    await sdk.configureImmichDatabaseDump({ enabled: false, keepLastAmount: 3 });
+    await sdk.futoBackupsConfigureImmichDatabaseDump({ enabled: false, keepLastAmount: 3 });
 
-    await expect(sdk.getImmichBackupStatus()).resolves.toEqual(
+    await expect(sdk.futoBackupsGetImmichBackupStatus()).resolves.toEqual(
       expect.objectContaining({ databaseDump: { enabled: false, keepLastAmount: 3 } }),
     );
   });
 
   it('rejects a database dump retention below one', async () => {
-    await expect(sdk.configureImmichDatabaseDump({ keepLastAmount: 0 })).rejects.toMatchObject({ status: 400 });
+    await expect(sdk.futoBackupsConfigureImmichDatabaseDump({ keepLastAmount: 0 })).rejects.toMatchObject({
+      status: 400,
+    });
   });
 
   it('ignores the database dump warning', async () => {
-    await sdk.ignoreImmichDatabaseDumpWarning();
+    await sdk.futoBackupsIgnoreImmichDatabaseDumpWarning();
 
-    await expect(sdk.getImmichBackupStatus()).resolves.toEqual(
+    await expect(sdk.futoBackupsGetImmichBackupStatus()).resolves.toEqual(
       expect.objectContaining({ databaseDumpWarningIgnored: true }),
     );
   });
 
   it('starts an immich rollback and sets the maintenance token cookie', async () => {
-    const { immichIntegration } = await sdk.getIntegrations();
+    const { immichIntegration } = await sdk.futoBackupsGetIntegrations();
 
     const response = await fetch(`${baseUrl}/api/futo-backups/integrations/immich/rollback`, {
       method: 'POST',
@@ -1052,7 +1067,7 @@ describe('Local backend', () => {
 
     const event = waitForMessage('BackendCreate');
 
-    const { backend } = await sdk.createLocalBackend({ path });
+    const { backend } = await sdk.futoBackupsCreateLocalBackend({ path });
 
     expect(backend).toEqual(
       expect.objectContaining({
@@ -1067,7 +1082,7 @@ describe('Local backend', () => {
       backend: expect.objectContaining({ id: backend.id, type: 'local' }),
     });
 
-    await expect(sdk.getBackends()).resolves.toEqual(
+    await expect(sdk.futoBackupsGetBackends()).resolves.toEqual(
       expect.objectContaining({
         backends: expect.arrayContaining([expect.objectContaining({ id: backend.id, type: 'local' })]),
       }),
@@ -1079,20 +1094,20 @@ describe('Telemetry', () => {
   let repository: sdk.LocalRepositoryDto;
 
   beforeAll(async () => {
-    ({ repository } = await sdk.createRepository({
+    ({ repository } = await sdk.futoBackupsCreateRepository({
       name: 'Telemetry Repository',
       worm: false,
     }));
 
     const workingDir = await mkdtemp(join(tmpdir(), 'telemetry-'));
     await writeFile(join(workingDir, 'test-file'), 'hi');
-    await sdk.updateRepository(repository.id, { paths: [workingDir] });
+    await sdk.futoBackupsUpdateRepository(repository.id, { paths: [workingDir] });
 
-    await sdk.enableTelemetry();
+    await sdk.futoBackupsEnableTelemetry();
   }, 30_000);
 
   it('ships a structured backup log to VictoriaLogs', async () => {
-    const { jobId } = await sdk.createBackup(repository.id);
+    const { jobId } = await sdk.futoBackupsCreateBackup(repository.id);
     await jobFinished(jobId);
 
     const record = await waitForLog((entry: Record<string, unknown>) => {
