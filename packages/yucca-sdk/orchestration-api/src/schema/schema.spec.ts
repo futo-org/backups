@@ -19,6 +19,7 @@ import { RepositoryLocalMetricsRepository } from '../repositories/repositoryLoca
 import { RepositoryPathRepository } from '../repositories/repositoryPath.repository.js';
 import { ScheduleRepository } from '../repositories/schedule.repository.js';
 import { StorageRepository } from '../repositories/storage.repository.js';
+import { SupportContextRepository } from '../repositories/supportContext.repository.js';
 import './index.js';
 import type { DB } from './index.js';
 
@@ -292,6 +293,8 @@ describe('Postgres orchestration schema', () => {
       { publish: () => {} } as never,
       LoggingRepository.create(),
       {} as never,
+      { begin: async () => undefined } as never,
+      new SupportContextRepository(),
     );
     jobs.onModuleInit();
 

@@ -74,6 +74,7 @@ describe(LegacyStateRepository.name, () => {
         ('skipped-onboarding-extra-config', '1'),
         ('ignored-immich-database-dump-warning', '1'),
         ('restic-o-rest-connections', '12'),
+        ('support-mode', '{"remainingRuns":2,"streamToFuto":true,"includePaths":false}'),
         ('session-secret', 'secret'),
         ('state-path', '/old/state')`,
       `INSERT INTO backends (id, configuration) VALUES ('${backendId}', '{"type":"local","path":"/backups"}')`,
@@ -99,6 +100,7 @@ describe(LegacyStateRepository.name, () => {
       [ConfigurationKey.SkippedOnboardingExtraConfig]: { isSkipped: true },
       [ConfigurationKey.IgnoredImmichDatabaseDumpWarning]: { isIgnored: true },
       [ConfigurationKey.ResticOptionRestConnections]: { connections: 12 },
+      [ConfigurationKey.SupportMode]: { remainingRuns: 2, streamToFuto: true, includePaths: false },
     });
 
     const backends = await db.selectFrom('futo_backups_backends').selectAll().execute();

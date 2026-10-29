@@ -1,7 +1,7 @@
 import { BeforeApplicationShutdown, Injectable, NotFoundException, OnModuleInit } from '@nestjs/common';
 import { DiscoveryService, Reflector } from '@nestjs/core';
 import { Interval } from '@nestjs/schedule';
-import { Kysely, Selectable, UpdateQueryBuilder, UpdateResult } from 'kysely';
+import { Kysely, Selectable, sql, UpdateQueryBuilder, UpdateResult } from 'kysely';
 import { InjectKysely } from 'nestjs-kysely';
 import { randomUUID } from 'node:crypto';
 import { dirname, join, resolve } from 'node:path';
@@ -229,15 +229,15 @@ export class JobRepository implements OnModuleInit, BeforeApplicationShutdown {
   }
 
   async getLastSnapshotId(repositoryId: string): Promise<string | undefined> {
-    const snapshotId = sql<string | null>`json_extract(outcome, '$.summary.snapshotId')`;
+    const snapshotId = sql<string | null>`outcome -> 'summary' ->> 'snapshotId'`;
     const job = await this.db
-      .selectFrom('jobs')
+      .selectFrom('futo_backups_jobs')
       .select(snapshotId.as('snapshotId'))
       .where('repositoryId', '=', repositoryId)
       .where('name', '=', JobName.RepositoryBackup)
       .where(snapshotId, 'is not', null)
       .orderBy('queuedAt', 'desc')
-      .orderBy(sql`rowid`, 'desc')
+      .orderBy('sequence', 'desc')
       .limit(1)
       .executeTakeFirst();
 

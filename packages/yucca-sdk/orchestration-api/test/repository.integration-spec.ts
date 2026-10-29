@@ -612,7 +612,7 @@ describe('Repository', () => {
 
     afterEach(async () => {
       await ctx.module.get(RepositoryService).deleteRepository(repositoryId);
-      ctx.database.prepare('DELETE FROM backends WHERE id = ?').run(yuccaBackendId);
+      await ctx.db.deleteFrom('futo_backups_backends').where('id', '=', yuccaBackendId).execute();
     });
 
     const isKnownLocally = async () => Boolean(await ctx.module.get(RepositoryRepository).get(repositoryId));

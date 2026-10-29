@@ -20,6 +20,7 @@ const importedConfigValues: { [Key in ConfigurationKey]?: (value: string) => Con
   [ConfigurationKey.SkippedOnboardingExtraConfig]: () => ({ isSkipped: true }),
   [ConfigurationKey.IgnoredImmichDatabaseDumpWarning]: () => ({ isIgnored: true }),
   [ConfigurationKey.ResticOptionRestConnections]: (value) => ({ connections: Number.parseInt(value) }),
+  [ConfigurationKey.SupportMode]: (value) => JSON.parse(value),
 };
 
 @Injectable()

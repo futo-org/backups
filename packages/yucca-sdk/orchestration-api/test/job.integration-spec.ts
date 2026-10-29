@@ -38,9 +38,6 @@ const insertJob = async (status: JobStatus, queuedAt: Date, logFilePath = `logs/
   return id;
 };
 
-const backupOutcome = (snapshotId?: string) =>
-  JSON.stringify({ errors: [], summary: snapshotId ? { type: 'backup', snapshotId } : undefined });
-
 const blockForgetUntilAborted = () => {
   const started = Promise.withResolvers<void>();
   ctx.resticMock.forget.mockImplementationOnce(
@@ -264,61 +261,65 @@ describe(JobRepository.name, () => {
 
   it('finds the snapshot of the most recent backup that produced one', async () => {
     const jobs = ctx.module.get(JobRepository);
-    const insert = ctx.database.prepare(
-      `INSERT INTO jobs (id, name, repositoryId, data, status, outcome, logFilePath, queuedAt)
-        VALUES (?, ?, ?, '{}', ?, ?, 'logs/jobs/backup.jsonl', ?)`,
-    );
-
     await expect(jobs.getLastSnapshotId(repositoryId)).resolves.toBeUndefined();
 
-    insert.run(
-      'backup-old',
-      JobName.RepositoryBackup,
-      repositoryId,
-      'complete',
-      backupOutcome('snapshot-old'),
-      '2100-01-01T00:00:00.000Z',
-    );
-    insert.run(
-      'backup-new',
-      JobName.RepositoryBackup,
-      repositoryId,
-      'warn',
-      backupOutcome('snapshot-new'),
-      '2100-01-02T00:00:00.000Z',
-    );
-    insert.run(
-      'backup-failed',
-      JobName.RepositoryBackup,
-      repositoryId,
-      'failed',
-      backupOutcome(),
-      '2100-01-03T00:00:00.000Z',
-    );
-    insert.run(
-      'backup-interrupted',
-      JobName.RepositoryBackup,
-      repositoryId,
-      'incomplete',
-      null,
-      '2100-01-04T00:00:00.000Z',
-    );
-    insert.run(
-      'restore',
-      JobName.RepositoryRestore,
-      repositoryId,
-      'complete',
-      backupOutcome('snapshot-restore'),
-      '2100-01-05T00:00:00.000Z',
-    );
+    const inserted = await ctx.db
+      .insertInto('futo_backups_jobs')
+      .values(
+        [
+          {
+            name: JobName.RepositoryBackup,
+            status: JobStatus.Complete,
+            snapshotId: 'snapshot-old',
+            date: '2100-01-01',
+          },
+          { name: JobName.RepositoryBackup, status: JobStatus.Warn, snapshotId: 'snapshot-new', date: '2100-01-02' },
+          { name: JobName.RepositoryBackup, status: JobStatus.Failed, snapshotId: undefined, date: '2100-01-03' },
+          { name: JobName.RepositoryBackup, status: JobStatus.Incomplete, snapshotId: null, date: '2100-01-04' },
+          {
+            name: JobName.RepositoryRestore,
+            status: JobStatus.Complete,
+            snapshotId: 'snapshot-restore',
+            date: '2100-01-05',
+          },
+        ].map(({ name, status, snapshotId, date }) => ({
+          name,
+          repositoryId,
+          data: { repositoryId, snapshotId: 'snapshot-1' },
+          status,
+          outcome:
+            snapshotId === null
+              ? null
+              : {
+                  errors: [],
+                  summary: snapshotId
+                    ? {
+                        type: 'backup' as const,
+                        snapshotId,
+                        filesNew: 0,
+                        filesChanged: 0,
+                        totalFilesProcessed: 0,
+                        totalBytesProcessed: 0,
+                      }
+                    : undefined,
+                },
+          logFilePath: 'logs/jobs/backup.jsonl',
+          queuedAt: new Date(date + 'T00:00:00.000Z'),
+        })),
+      )
+      .returning('id')
+      .execute();
 
     await expect(jobs.getLastSnapshotId(repositoryId)).resolves.toBe('snapshot-new');
 
-    ctx.database
-      .prepare(
-        `DELETE FROM jobs WHERE id IN ('backup-old', 'backup-new', 'backup-failed', 'backup-interrupted', 'restore')`,
+    await ctx.db
+      .deleteFrom('futo_backups_jobs')
+      .where(
+        'id',
+        'in',
+        inserted.map(({ id }) => id),
       )
-      .run();
+      .execute();
   });
 
   it('lists the jobs of a repository newest first, without their data', async () => {
@@ -496,7 +497,7 @@ describe('support sessions', () => {
     const finish = jest.spyOn(SupportSession.prototype, 'finish').mockImplementationOnce(async () => {
       finishing.resolve();
       await release.promise;
-      return { sessionId: undefined, droppedLines: 0, localDroppedLines: 0 };
+      return { droppedLines: 0, localDroppedLines: 0 };
     });
 
     try {

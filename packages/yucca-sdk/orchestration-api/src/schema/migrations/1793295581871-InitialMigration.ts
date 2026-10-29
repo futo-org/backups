@@ -3,7 +3,7 @@ import { Kysely, sql } from 'kysely';
 export async function up(db: Kysely<any>): Promise<void> {
   await sql`CREATE TYPE "futo_backups_job_name_enum" AS ENUM ('repository-backup','repository-prune','repository-restore','repository-restore-from-point','repository-snapshot-forget','repository-sync-metrics');`.execute(db);
   await sql`CREATE TYPE "futo_backups_job_status_enum" AS ENUM ('queued','running','complete','warn','failed','cancelled','incomplete');`.execute(db);
-  await sql`CREATE TYPE "futo_backups_configuration_key_enum" AS ENUM ('encryption-key','onboarded-key','telemetry','skipped-onboarding-extra-config','ignored-immich-database-dump-warning','restic-o-rest-connections','session-secret','state-path','throttle');`.execute(db);
+  await sql`CREATE TYPE "futo_backups_configuration_key_enum" AS ENUM ('encryption-key','onboarded-key','telemetry','skipped-onboarding-extra-config','ignored-immich-database-dump-warning','restic-o-rest-connections','session-secret','state-path','throttle','support-mode');`.execute(db);
   await sql`CREATE TYPE "futo_backups_last_backup_status_enum" AS ENUM ('incomplete','complete','warn','failed','cancelled');`.execute(db);
   await sql`CREATE TABLE "futo_backups_backends" (
   "id" uuid NOT NULL DEFAULT gen_random_uuid(),
