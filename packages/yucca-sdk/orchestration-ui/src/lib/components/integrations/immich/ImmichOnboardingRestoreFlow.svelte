@@ -5,9 +5,11 @@
   import OnboardingStepModal from "$lib/components/onboarding/steps/OnboardingStepModal.svelte";
   import OnboardingStepTelemetry from "$lib/components/onboarding/steps/OnboardingStepTelemetry.svelte";
   import RestorePointFlow from "$lib/components/onboarding/restore-point-flow/RestorePointFlow.svelte";
+  import RestorePointFlow4Restore from "$lib/components/onboarding/restore-point-flow/RestorePointFlow4Restore.svelte";
   import type { OnboardingStatusResponseDto } from "$lib/fetch-client";
   import {
     handleConfirmRecoveryKey,
+    handleContinueAfterRestore,
     handleOnboardingStatus,
   } from "$lib/services/onboarding.service";
   import { LoadingSpinner } from "@immich/ui";
@@ -27,7 +29,19 @@
     | "key-import"
     | "backup-service"
     | "restore-point"
-    | "key-reimport" = $state("key-import");
+    | "key-reimport"
+    | "restoring" = $state("key-import");
+  let restoreJobId: string | undefined = $state();
+
+  const onRestore = (jobId: string) => {
+    restoreJobId = jobId;
+    stage = "restoring";
+  };
+
+  const onRestoreFinished = async () => {
+    await handleContinueAfterRestore();
+    onFinish();
+  };
 
   onMount(() => {
     handleOnboardingStatus().then((data) => {
@@ -37,7 +51,9 @@
         return;
       }
 
-      if (data.hasTelemetry === "none") {
+      if (data.restoreJobId) {
+        onRestore(data.restoreJobId);
+      } else if (data.hasTelemetry === "none") {
         stage = "telemetry";
       } else if (data.hasOnboardedKey) {
         stage = data.hasBackend ? "restore-point" : "backup-service";
@@ -101,6 +117,8 @@
   <RestorePointFlow
     onImportKey={() => (stage = "key-reimport")}
     onCancel={onExit}
-    {onFinish}
+    {onRestore}
   />
+{:else if stage === "restoring" && restoreJobId}
+  <RestorePointFlow4Restore jobId={restoreJobId} onFinish={onRestoreFinished} />
 {/if}

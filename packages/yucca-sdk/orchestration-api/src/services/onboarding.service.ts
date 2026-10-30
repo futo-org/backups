@@ -1,13 +1,16 @@
 import { Injectable } from '@nestjs/common';
 import { CurrentRecoveryKeyResponse, OnboardingStatusResponseDto } from '../dto/onboarding.dto.js';
-import { BootstrapStatus, TelemetryLevel } from '../enum.js';
+import { BootstrapStatus, JobName, JobStatus, TelemetryLevel } from '../enum.js';
 import { BackendRepository } from '../repositories/backend.repository.js';
 import { BootstrapRepository } from '../repositories/bootstrap.repository.js';
 import { ConfigRepository } from '../repositories/config.repository.js';
+import { JobRepository } from '../repositories/job.repository.js';
 import { RepositoryRepository } from '../repositories/repository.repository.js';
 import { ScheduleRepository } from '../repositories/schedule.repository.js';
 import { Session, SessionService } from './session.service.js';
 import { TelemetryService } from './telemetry.service.js';
+
+const succeededStatuses = new Set([JobStatus.Complete, JobStatus.Warn]);
 
 @Injectable()
 export class OnboardingService {
@@ -17,6 +20,7 @@ export class OnboardingService {
     private readonly schedule: ScheduleRepository,
     private readonly config: ConfigRepository,
     private readonly bootstrap: BootstrapRepository,
+    private readonly jobs: JobRepository,
     private readonly telemetry: TelemetryService,
     private readonly session: SessionService,
   ) {}
@@ -59,7 +63,30 @@ export class OnboardingService {
       hasBackup: repositories.length > 0,
       hasSchedule: schedules.length > 0,
       hasSkippedExtraConfig: await this.config.hasSkippedExtraConfig(),
+      restoreJobId: await this.getRestoreJobId(),
     };
+  }
+
+  private async getRestoreJobId() {
+    const active = await this.jobs.getActive(JobName.RepositoryRestoreFromPoint);
+    if (active) {
+      return active.id;
+    }
+
+    if (!(await this.config.hasRestoreAwaitingContinue())) {
+      return;
+    }
+
+    const latest = await this.jobs.getLatestByName(JobName.RepositoryRestoreFromPoint);
+    if (!latest || !succeededStatuses.has(latest.status)) {
+      return;
+    }
+
+    return latest.id;
+  }
+
+  async continueAfterRestore() {
+    await this.config.clearRestoreAwaitingContinue();
   }
 
   async currentRecoveryKey(): Promise<CurrentRecoveryKeyResponse> {

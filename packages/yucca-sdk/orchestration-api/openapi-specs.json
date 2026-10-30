@@ -680,6 +680,22 @@
         ]
       }
     },
+    "/api/futo-backups/onboarding/restore/continue": {
+      "post": {
+        "description": "Record that the user has moved on from a finished restore, so it is no longer offered on reload.",
+        "operationId": "futoBackupsContinueAfterRestore",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "summary": "Continue after a restore",
+        "tags": [
+          "Onboarding"
+        ]
+      }
+    },
     "/api/futo-backups/onboarding/report-error": {
       "post": {
         "description": "Send the current startup error to telemetry.",
@@ -2512,6 +2528,9 @@
           },
           "hasSkippedExtraConfig": {
             "type": "boolean"
+          },
+          "restoreJobId": {
+            "type": "string"
           }
         },
         "required": [

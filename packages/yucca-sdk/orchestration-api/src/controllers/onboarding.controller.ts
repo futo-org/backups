@@ -80,6 +80,17 @@ export class OnboardingController {
     await this.service.enableTelemetry();
   }
 
+  @Post('/restore/continue')
+  @ApiOperation({
+    operationId: 'futoBackupsContinueAfterRestore',
+    summary: 'Continue after a restore',
+    description: 'Record that the user has moved on from a finished restore, so it is no longer offered on reload.',
+  })
+  @ApiCreatedResponse()
+  async continueAfterRestore() {
+    await this.service.continueAfterRestore();
+  }
+
   @Post('/report-error')
   @ApiOperation({
     operationId: 'futoBackupsReportError',

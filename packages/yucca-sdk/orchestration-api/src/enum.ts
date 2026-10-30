@@ -29,6 +29,7 @@ export enum ConfigurationKey {
   ThrottleBytesPerSec = 'throttle-bytes-per-sec',
   ThrottleQuietHours = 'throttle-quiet-hours',
   SupportMode = 'support-mode',
+  RestoreAwaitingContinue = 'restore-awaiting-continue',
 }
 
 export enum MetadataKey {

@@ -58,6 +58,12 @@ export const isJobFinished = (
 ): status is Exclude<YuccaJobStatus, 'queued' | 'running'> =>
   status !== undefined && status !== 'queued' && status !== 'running';
 
+export const isJobSucceeded = (status?: YuccaJobStatus) =>
+  status === 'complete' || status === 'warn';
+
+export const getJobProgress = (job?: JobDto) =>
+  isJobSucceeded(job?.status) ? 1 : (job?.progress?.percentDone ?? 0);
+
 export const getRemainingText = (
   progress: JobProgressDto | undefined,
   now: number,

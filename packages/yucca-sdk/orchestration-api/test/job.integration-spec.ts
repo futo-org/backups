@@ -7,6 +7,8 @@ import { type GatewayEvent } from '../src/events/events.gateway.js';
 import { ConfigRepository } from '../src/repositories/config.repository.js';
 import { JobRepository } from '../src/repositories/job.repository.js';
 import { ModuleConfigRepository } from '../src/repositories/moduleConfig.repository.js';
+import { BootstrapService } from '../src/services/bootstrap.service.js';
+import { OnboardingService } from '../src/services/onboarding.service.js';
 import { RepositoryService } from '../src/services/repository.service.js';
 import { SupportSession } from '../src/utils/supportSession.js';
 import { createTestingModule, TestContext } from './testUtils.js';
@@ -509,10 +511,13 @@ const restorePoint = async (failStateRestore = false) => {
 
 const marker = () => ctx.database.prepare(`SELECT value FROM config WHERE key = 'restored-marker'`).get();
 
+const restoreJobId = async () => (await ctx.module.get(OnboardingService).onboardingStatus()).restoreJobId;
+
 describe('restore from point', () => {
   afterEach(() => {
     ctx.resticMock.restore.mockReset();
     ctx.database.prepare(`DELETE FROM config WHERE key = 'restored-marker'`).run();
+    ctx.database.prepare(`DELETE FROM config WHERE key = 'restore-awaiting-continue'`).run();
   });
 
   it('restores the files and the previous install state for a repository not yet known locally', async () => {
@@ -542,6 +547,135 @@ describe('restore from point', () => {
 
     expect(marker()).toBeUndefined();
     expect(getJob(jobId)).toMatchObject({ status: JobStatus.Failed });
+    await expect(restoreJobId()).resolves.toBeUndefined();
+  });
+
+  it('keeps offering a finished restore after a job queued behind it runs', async () => {
+    const jobs = ctx.module.get(JobRepository);
+    const started = Promise.withResolvers<void>();
+    const released = Promise.withResolvers<void>();
+    ctx.resticMock.restore.mockImplementationOnce(() => {
+      started.resolve();
+      return released.promise as never;
+    });
+
+    const { jobId } = await ctx.module
+      .get(RepositoryService)
+      .restoreFromPoint('remote-repository', 'snapshot-1', ctx.backendId, { include: ['/photos'] });
+    await started.promise;
+    const laterId = await jobs.queue(forget('snapshot-1'));
+
+    released.resolve();
+    await jobs.wait(jobId);
+    await jobs.wait(laterId);
+
+    await expect(restoreJobId()).resolves.toBe(jobId);
+  });
+
+  it('keeps the restore visible to every worker once the previous install state replaces the database', async () => {
+    const jobs = ctx.module.get(JobRepository);
+    const bootstrapService = ctx.module.get(BootstrapService);
+    const runBootstrap = bootstrapService.onApplicationBootstrap.bind(bootstrapService);
+    const swapped = Promise.withResolvers<void>();
+    const released = Promise.withResolvers<void>();
+    const bootstrap = jest.spyOn(bootstrapService, 'onApplicationBootstrap').mockImplementationOnce(async () => {
+      await runBootstrap();
+      swapped.resolve();
+      await released.promise;
+    });
+
+    try {
+      const jobId = await restorePoint();
+      await swapped.promise;
+
+      expect(marker()).toEqual({ value: 'yes' });
+      expect(getJob(jobId)).toMatchObject({ status: JobStatus.Running });
+      await expect(jobs.get(jobId)).resolves.toMatchObject({ id: jobId, status: JobStatus.Running });
+      await expect(restoreJobId()).resolves.toBe(jobId);
+
+      released.resolve();
+      await jobs.wait(jobId);
+
+      await expect(restoreJobId()).resolves.toBe(jobId);
+
+      await jobs.wait(await jobs.queue(forget('snapshot-1')));
+
+      await expect(restoreJobId()).resolves.toBe(jobId);
+
+      await ctx.module.get(OnboardingService).continueAfterRestore();
+
+      await expect(restoreJobId()).resolves.toBeUndefined();
+    } finally {
+      bootstrap.mockRestore();
+    }
+  });
+
+  it('rejects a second restore while one is running', async () => {
+    const jobs = ctx.module.get(JobRepository);
+    const repositoryService = ctx.module.get(RepositoryService);
+    const started = Promise.withResolvers<void>();
+    const released = Promise.withResolvers<void>();
+    ctx.resticMock.restore.mockImplementationOnce(() => {
+      started.resolve();
+      return released.promise as never;
+    });
+
+    const { jobId } = await repositoryService.restoreFromPoint('remote-repository', 'snapshot-1', ctx.backendId, {
+      include: ['/photos'],
+    });
+    await started.promise;
+
+    await expect(
+      repositoryService.restoreFromPoint('remote-repository', 'snapshot-2', ctx.backendId, { include: ['/photos'] }),
+    ).rejects.toThrow('A restore is already in progress');
+
+    released.resolve();
+    await jobs.wait(jobId);
+  });
+
+  it('rejects a second restore while one is queued', async () => {
+    const jobs = ctx.module.get(JobRepository);
+    const repositoryService = ctx.module.get(RepositoryService);
+    const started = blockForgetUntilAborted();
+
+    const forgetId = await jobs.queue(forget('snapshot-1'));
+    await started;
+    const { jobId } = await repositoryService.restoreFromPoint('remote-repository', 'snapshot-1', ctx.backendId, {
+      include: ['/photos'],
+    });
+    const laterId = await jobs.queue(forget('snapshot-2'));
+
+    await expect(restoreJobId()).resolves.toBe(jobId);
+    await expect(
+      repositoryService.restoreFromPoint('remote-repository', 'snapshot-2', ctx.backendId, { include: ['/photos'] }),
+    ).rejects.toThrow('A restore is already in progress');
+
+    await jobs.cancel(forgetId);
+    await jobs.wait(jobId);
+    await jobs.wait(laterId);
+  });
+
+  it('queues only one of two restores requested at the same time', async () => {
+    const jobs = ctx.module.get(JobRepository);
+    const repositoryService = ctx.module.get(RepositoryService);
+    const started = blockForgetUntilAborted();
+
+    const forgetId = await jobs.queue(forget('snapshot-1'));
+    await started;
+    const results = await Promise.allSettled(
+      ['snapshot-1', 'snapshot-2'].map((snapshotId) =>
+        repositoryService.restoreFromPoint('remote-repository', snapshotId, ctx.backendId, { include: ['/photos'] }),
+      ),
+    );
+
+    expect(results.map((result) => result.status).toSorted()).toEqual(['fulfilled', 'rejected']);
+
+    await jobs.cancel(forgetId);
+    for (const result of results) {
+      if (result.status === 'fulfilled') {
+        await jobs.wait(result.value.jobId);
+      }
+    }
   });
 
   it('makes repository deletion wait for a job that is still finishing its support session', async () => {
