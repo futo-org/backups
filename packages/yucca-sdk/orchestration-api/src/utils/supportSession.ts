@@ -14,6 +14,8 @@ const LOCAL_DESTROY_GRACE_MS = 1000;
 
 const noop = () => {};
 
+const UNCHANGED_ITEM_PREFIX = '{"message_type":"verbose_status","action":"unchanged"';
+
 export type SupportSessionOptions = { maxLocalBufferBytes: number; localFinishTimeoutMs: number };
 
 export type SupportStream = {
@@ -72,7 +74,10 @@ export class SupportSession {
     this.recordLocally(line);
 
     if (this.stream) {
-      this.stream.shipper.push(this.stream.redact ? { ...line, message: this.stream.redact(line.message) } : line);
+      const expendable = line.stream === 'stdout' && line.message.startsWith(UNCHANGED_ITEM_PREFIX);
+      this.stream.shipper.push(this.stream.redact ? { ...line, message: this.stream.redact(line.message) } : line, {
+        expendable,
+      });
     }
   }
 
