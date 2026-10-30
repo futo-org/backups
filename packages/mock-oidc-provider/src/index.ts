@@ -52,7 +52,7 @@ const configuration: Configuration = {
   },
   findAccount: (_ctx, sub) => ({
     accountId: sub,
-    claims: () => ({ sub, name: sub, email: `${sub}@example.test`, email_verified: true }),
+    claims: () => ({ sub, name: sub, email: `${sub}@example.test`, email_verified: !sub.startsWith('unverified-') }),
   }),
 };
 

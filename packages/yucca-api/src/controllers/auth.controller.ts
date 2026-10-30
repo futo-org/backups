@@ -1,5 +1,6 @@
 import { Body, Controller, Get, Param, Post, Query, Req, Res, Sse } from '@nestjs/common';
 import { ApiCreatedResponse, ApiOkResponse, ApiQuery } from '@nestjs/swagger';
+import { parse } from 'cookie';
 import { type Request, type Response } from 'express';
 import { Duration } from 'luxon';
 import { type Observable } from 'rxjs';
@@ -95,7 +96,12 @@ export class AuthController {
       }
 
       if (error instanceof EmailNotVerifiedException) {
-        response.redirect('/login/invite?error=not_verified');
+        const query = new URLSearchParams({ error: 'not_verified' });
+        const discordInvite = parse(request.headers.cookie ?? '')[CookieName.DiscordInvite];
+        if (discordInvite) {
+          query.set('token', discordInvite);
+        }
+        response.redirect(`/login/invite?${query}`);
         return;
       }
 
