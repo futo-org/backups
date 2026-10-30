@@ -277,15 +277,18 @@ export class AuthService {
         await this.assertEmailAllowed(claims.email.toLowerCase(), allowlist, inviteCode);
       }
 
-      if (await users.getByEmail(claims.email)) {
-        throw new EmailInUseException();
-      }
-
-      user = await users.create({
-        sub: claims.sub,
-        name: claims.name,
-        email: claims.email,
-      });
+      user = await users
+        .create({
+          sub: claims.sub,
+          name: claims.name,
+          email: claims.email,
+        })
+        .catch((error: unknown) => {
+          if (error instanceof Error && 'constraint_name' in error && error.constraint_name === 'users_email_uq') {
+            throw new EmailInUseException();
+          }
+          throw error;
+        });
 
       await connection.getOrCreateDefault(user.id);
     }

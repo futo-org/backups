@@ -534,12 +534,13 @@ describe(AuthService.name, () => {
 
     it('should reject a new user whose email belongs to another account', async () => {
       env.ALLOWED_EMAIL_DOMAINS = ['example.com'];
-      mocks.user.getByEmail.mockResolvedValue({ id: 'other-user' });
+      mocks.user.create.mockRejectedValue(
+        Object.assign(new Error('duplicate key'), { code: '23505', constraint_name: 'users_email_uq' }),
+      );
 
       await expect(sut.getOrCreateUser(claims)).rejects.toThrowErrorMatchingInlineSnapshot(
         `"Email is already used by another account"`,
       );
-      expect(mocks.user.create).not.toHaveBeenCalled();
     });
 
     describe('discord invites', () => {
