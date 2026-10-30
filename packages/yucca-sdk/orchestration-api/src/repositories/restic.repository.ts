@@ -11,6 +11,7 @@ import {
   snapshots,
   stats,
   unlock,
+  version,
 } from '@futo-org/restic-wrapper';
 import { Injectable } from '@nestjs/common';
 import type { ChildProcess } from 'node:child_process';
@@ -20,6 +21,8 @@ import { ConfigRepository, ResticPlacement } from './config.repository.js';
 import { ModuleConfigRepository } from './moduleConfig.repository.js';
 import { SupportContextRepository } from './supportContext.repository.js';
 
+const DEFAULT_WALK_CONCURRENCY = 64;
+
 type Traceable = {
   verbose(level?: boolean | number): unknown;
   on(event: 'process', listener: (process: ChildProcess) => void): unknown;
@@ -27,6 +30,8 @@ type Traceable = {
 
 @Injectable()
 export class ResticRepository {
+  private futoBuild?: Promise<boolean>;
+
   constructor(
     private readonly config: ConfigRepository,
     private readonly moduleConfig: ModuleConfigRepository,
@@ -69,6 +74,7 @@ export class ResticRepository {
   ) {
     const write = createSampledLogWriter(log);
     const { connections, packSizeMib } = await this.config.getResticOptions(placement);
+    const walkConcurrency = await this.walkConcurrency();
 
     // restic's default parent match includes the hostname, which in a container changes on every recreate and
     // would force a full re-read.
@@ -81,12 +87,25 @@ export class ResticRepository {
       .tag(...tags)
       .groupBy('paths')
       .parent(parent)
-      .walkConcurrency(this.moduleConfig.get().resticWalkConcurrency)
+      .walkConcurrency(walkConcurrency)
       .addFile(...paths)
       .excludeCaches()
       .signal(signal)
       .on('event', write)
       .run();
+  }
+
+  private async walkConcurrency() {
+    const configured = this.moduleConfig.get().resticWalkConcurrency;
+    if (configured !== undefined) {
+      return configured;
+    }
+
+    // Only FUTO's restic build walks in parallel; upstream restic rejects the flag.
+    this.futoBuild ??= version()
+      .then((info) => info.version.includes('+futo.'))
+      .catch(() => false);
+    return (await this.futoBuild) ? DEFAULT_WALK_CONCURRENCY : undefined;
   }
 
   async restore(
