@@ -140,7 +140,7 @@ describe(ResticRepository.name, () => {
     expect(attach).not.toHaveBeenCalled();
   }, 30_000);
 
-  const backupCommandLine = async (resticWalkConcurrency?: number) => {
+  const backupCommandLine = async (resticWalkConcurrency?: number, totalKnown = false) => {
     const attach = jest.spyOn(SupportSession.prototype, 'attach');
     const configured = new ResticRepository(
       { getResticOptions: () => Promise.resolve({ connections: 2, packSizeMib: undefined }) } as never,
@@ -149,7 +149,11 @@ describe(ResticRepository.name, () => {
     );
 
     // Only the command line matters here; the restic on PATH may not know the flag.
-    await recordedLines(() => configured.backup(repository, key, placement, [source]).catch(() => null));
+    await recordedLines(() =>
+      configured
+        .backup(repository, key, placement, [source], undefined, undefined, [], undefined, totalKnown)
+        .catch(() => null),
+    );
 
     const child = attach.mock.calls.find(([, command]) => command === 'backup')?.[0];
     attach.mockRestore();
@@ -172,6 +176,25 @@ describe(ResticRepository.name, () => {
     const args = await withRestic('0.19.1+futo.test', () => backupCommandLine());
 
     expect(args[args.indexOf('--walk-concurrency') + 1]).toBe('64');
+  }, 30_000);
+
+  it('skips the scan of a parallel walk when the size of the backup is already known', async () => {
+    await expect(backupCommandLine(8, true)).resolves.toContain('--no-scan');
+  }, 30_000);
+
+  it('keeps the scan when the size of the backup is unknown', async () => {
+    await expect(backupCommandLine(8)).resolves.not.toContain('--no-scan');
+  }, 30_000);
+
+  it('keeps the scan of a serial walk', async () => {
+    await expect(backupCommandLine(1, true)).resolves.not.toContain('--no-scan');
+    await expect(withRestic('0.19.1', () => backupCommandLine(undefined, true))).resolves.not.toContain('--no-scan');
+  }, 30_000);
+
+  it("skips the scan of FUTO's restic walking in parallel by default", async () => {
+    await expect(withRestic('0.19.1+futo.test', () => backupCommandLine(undefined, true))).resolves.toContain(
+      '--no-scan',
+    );
   }, 30_000);
 
   it('finds the parent snapshot after the hostname changes', async () => {

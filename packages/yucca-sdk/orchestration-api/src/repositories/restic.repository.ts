@@ -71,6 +71,7 @@ export class ResticRepository {
     signal?: AbortSignal,
     tags: string[] = [],
     parent?: string,
+    totalKnown = false,
   ) {
     const write = createSampledLogWriter(log);
     const { connections, packSizeMib } = await this.config.getResticOptions(placement);
@@ -88,6 +89,8 @@ export class ResticRepository {
       .groupBy('paths')
       .parent(parent)
       .walkConcurrency(walkConcurrency)
+      // A serial walk is faster with restic's scan running ahead of it, which warms the cache.
+      .noScan(totalKnown && (walkConcurrency ?? 1) > 1)
       .addFile(...paths)
       .excludeCaches()
       .signal(signal)

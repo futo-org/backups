@@ -95,6 +95,11 @@ export class RepositoryBackupJob implements JobHandler<RepositoryBackupData> {
 
       await this.restic.unlockAll(endpoint, key, placement);
       const parent = await this.findParentSnapshot(repositoryId, endpoint, key, placement, ctx.signal);
+      const previousBytes = parent?.totalBytes || undefined;
+      if (previousBytes !== undefined) {
+        ctx.expectTotalBytes(previousBytes);
+      }
+
       let summary;
       try {
         summary = await this.restic.backup(
@@ -105,7 +110,8 @@ export class RepositoryBackupJob implements JobHandler<RepositoryBackupData> {
           (event) => ctx.log(event),
           ctx.signal,
           tags,
-          parent,
+          parent?.id,
+          previousBytes !== undefined,
         );
       } catch (backupError) {
         if (!(backupError instanceof ResticBackupCommandCouldNotReadSourceDataError)) {
@@ -188,16 +194,17 @@ export class RepositoryBackupJob implements JobHandler<RepositoryBackupData> {
     key: Uint8Array,
     placement: ResticPlacement,
     signal: AbortSignal,
-  ): Promise<string | undefined> {
-    const snapshotId = await this.jobs.getLastSnapshotId(repositoryId);
-    if (!snapshotId) {
+  ): Promise<{ id: string; totalBytes?: number } | undefined> {
+    const last = await this.jobs.getLastBackup(repositoryId);
+    if (!last) {
       return;
     }
 
+    const { snapshotId, totalBytes } = last;
     try {
       const snapshots = await this.restic.snapshot(endpoint, key, placement, snapshotId, signal);
       if (snapshots.some(({ id }) => id === snapshotId)) {
-        return snapshotId;
+        return { id: snapshotId, totalBytes };
       }
 
       this.telemetry.submitStructuredLog('Previous snapshot no longer exists, choosing the parent by paths', {

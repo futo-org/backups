@@ -20,8 +20,8 @@ const forget = (snapshotId: string) =>
 const getJob = (id: string) =>
   ctx.database.prepare('SELECT * FROM jobs WHERE id = ?').get(id) as { status: JobStatus; outcome: string | null };
 
-const backupOutcome = (snapshotId?: string) =>
-  JSON.stringify({ errors: [], summary: snapshotId ? { type: 'backup', snapshotId } : undefined });
+const backupOutcome = (snapshotId?: string, totalBytesProcessed?: number) =>
+  JSON.stringify({ errors: [], summary: snapshotId ? { type: 'backup', snapshotId, totalBytesProcessed } : undefined });
 
 const blockForgetUntilAborted = () => {
   const started = Promise.withResolvers<void>();
@@ -255,14 +255,14 @@ describe(JobRepository.name, () => {
     expect(latest?.id).not.toBe('imported-history');
   });
 
-  it('finds the snapshot of the most recent backup that produced one', async () => {
+  it('finds the snapshot and size of the most recent backup that produced one', async () => {
     const jobs = ctx.module.get(JobRepository);
     const insert = ctx.database.prepare(
       `INSERT INTO jobs (id, name, repositoryId, data, status, outcome, logFilePath, queuedAt)
         VALUES (?, ?, ?, '{}', ?, ?, 'logs/jobs/backup.jsonl', ?)`,
     );
 
-    await expect(jobs.getLastSnapshotId(repositoryId)).resolves.toBeUndefined();
+    await expect(jobs.getLastBackup(repositoryId)).resolves.toBeUndefined();
 
     insert.run(
       'backup-old',
@@ -277,7 +277,7 @@ describe(JobRepository.name, () => {
       JobName.RepositoryBackup,
       repositoryId,
       'warn',
-      backupOutcome('snapshot-new'),
+      backupOutcome('snapshot-new', 5_000_000),
       '2100-01-02T00:00:00.000Z',
     );
     insert.run(
@@ -305,7 +305,10 @@ describe(JobRepository.name, () => {
       '2100-01-05T00:00:00.000Z',
     );
 
-    await expect(jobs.getLastSnapshotId(repositoryId)).resolves.toBe('snapshot-new');
+    await expect(jobs.getLastBackup(repositoryId)).resolves.toEqual({
+      snapshotId: 'snapshot-new',
+      totalBytes: 5_000_000,
+    });
 
     ctx.database
       .prepare(

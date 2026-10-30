@@ -12,7 +12,7 @@ describe(RepositoryBackupJob.name, () => {
     placement: { siteCode: null, storageClusterCode: null },
   };
 
-  const makeJob = (lastSnapshotId?: string, signal = new AbortController().signal) => {
+  const makeJob = (lastSnapshotId?: string, signal = new AbortController().signal, lastTotalBytes?: number) => {
     const repositoryService = {
       getBackendOrThrow: jest.fn<() => Promise<object>>().mockResolvedValue({
         backend: { isMetricsCapable: () => false },
@@ -34,7 +34,9 @@ describe(RepositoryBackupJob.name, () => {
     const restic = newResticRepositoryMock();
     const jobs = {
       queue: jest.fn(),
-      getLastSnapshotId: jest.fn<() => Promise<string | undefined>>().mockResolvedValue(lastSnapshotId),
+      getLastBackup: jest
+        .fn<() => Promise<{ snapshotId: string; totalBytes?: number } | undefined>>()
+        .mockResolvedValue(lastSnapshotId ? { snapshotId: lastSnapshotId, totalBytes: lastTotalBytes } : undefined),
     };
     const telemetry = { submitStructuredLog: jest.fn() };
     const context = new JobContext(signal, new PassThrough());
@@ -71,13 +73,47 @@ describe(RepositoryBackupJob.name, () => {
     expect(restic.backup.mock.calls[0][7]).toBe('snapshot-1');
   });
 
-  it('leaves the parent to restic when the previous snapshot no longer exists', async () => {
+  it('expects the size of the previous backup so restic can skip its scan', async () => {
+    const { job, restic, context } = makeJob('snapshot-1', undefined, 5_000_000);
+    restic.snapshot.mockResolvedValue([{ id: 'snapshot-1' }] as never);
+    const expectTotalBytes = jest.spyOn(context, 'expectTotalBytes');
+
+    await job.run({ repositoryId: 'repository-1' }, context);
+
+    expect(expectTotalBytes).toHaveBeenCalledWith(5_000_000);
+    expect(restic.backup.mock.calls[0][8]).toBe(true);
+  });
+
+  it('lets restic scan when the previous backup recorded no size', async () => {
     const { job, restic, context } = makeJob('snapshot-1');
+    restic.snapshot.mockResolvedValue([{ id: 'snapshot-1' }] as never);
+    const expectTotalBytes = jest.spyOn(context, 'expectTotalBytes');
+
+    await job.run({ repositoryId: 'repository-1' }, context);
+
+    expect(expectTotalBytes).not.toHaveBeenCalled();
+    expect(restic.backup.mock.calls[0][8]).toBe(false);
+  });
+
+  it('lets restic scan when the previous backup was empty', async () => {
+    const { job, restic, context } = makeJob('snapshot-1', undefined, 0);
+    restic.snapshot.mockResolvedValue([{ id: 'snapshot-1' }] as never);
+    const expectTotalBytes = jest.spyOn(context, 'expectTotalBytes');
+
+    await job.run({ repositoryId: 'repository-1' }, context);
+
+    expect(expectTotalBytes).not.toHaveBeenCalled();
+    expect(restic.backup.mock.calls[0][8]).toBe(false);
+  });
+
+  it('leaves the parent to restic when the previous snapshot no longer exists', async () => {
+    const { job, restic, context } = makeJob('snapshot-1', undefined, 5_000_000);
     restic.snapshot.mockResolvedValue([]);
 
     await job.run({ repositoryId: 'repository-1' }, context);
 
     expect(restic.backup.mock.calls[0][7]).toBeUndefined();
+    expect(restic.backup.mock.calls[0][8]).toBe(false);
   });
 
   it('still backs up when the previous snapshot cannot be looked up', async () => {
