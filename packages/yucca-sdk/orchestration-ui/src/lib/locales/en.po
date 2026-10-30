@@ -2700,6 +2700,10 @@ msgid "Your backups stay encrypted and can only be restored with your recovery k
 msgstr "Your backups stay encrypted and can only be restored with your recovery key."
 
 #: ../../web/src/routes/login/invite/+page.svelte
+msgid "Your email is already used by another FUTO Backups account. Contact support to sort it out."
+msgstr "Your email is already used by another FUTO Backups account. Contact support to sort it out."
+
+#: ../../web/src/routes/login/invite/+page.svelte
 msgid "Your email isn't part of the beta yet."
 msgstr "Your email isn't part of the beta yet."
 

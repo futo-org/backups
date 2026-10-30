@@ -20,7 +20,12 @@ import { SessionRepository } from 'src/repositories/session.repository.js';
 import { TicketRepository } from 'src/repositories/ticket.repository.js';
 import { RegistrationRepositories, UserRepository } from 'src/repositories/user.repository.js';
 import { UserAllowlistRepository } from 'src/repositories/userAllowlist.repository.js';
-import { EmailNotAllowedException, FeatureNotEnabledException, TicketRequiredException } from 'src/utils/exceptions.js';
+import {
+  EmailInUseException,
+  EmailNotAllowedException,
+  FeatureNotEnabledException,
+  TicketRequiredException,
+} from 'src/utils/exceptions.js';
 
 import { isInAppPath } from 'src/utils/redirect.js';
 import { ensureOwned } from 'src/utils/repository.js';
@@ -251,10 +256,16 @@ export class AuthService {
         throw new UnauthorizedException('Account is disabled');
       }
 
-      await users.update(user.id, {
-        name: claims.name,
-        email: claims.email,
-      });
+      const owner = await users.getByEmail(claims.email);
+      if (owner && owner.id !== user.id) {
+        this.logger.warn({ userId: user.id, otherUserId: owner.id }, 'email from provider is used by another account');
+        await users.update(user.id, { name: claims.name });
+      } else {
+        await users.update(user.id, {
+          name: claims.name,
+          email: claims.email,
+        });
+      }
     }
 
     // Consumed before the user row exists: a concurrent redemption of the same
@@ -264,6 +275,10 @@ export class AuthService {
     if (!user) {
       if (!invite) {
         await this.assertEmailAllowed(claims.email.toLowerCase(), allowlist, inviteCode);
+      }
+
+      if (await users.getByEmail(claims.email)) {
+        throw new EmailInUseException();
       }
 
       user = await users.create({
