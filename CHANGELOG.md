@@ -1,5 +1,27 @@
 # Changelog
 
+## [1.12.0](https://github.com/futo-org/backups/compare/v1.11.5...v1.12.0) (2026-10-30)
+
+
+### Features
+
+* **web:** onboarding checklist and backup info on the dashboard overview ([#133](https://github.com/futo-org/backups/issues/133)) ([2722ba0](https://github.com/futo-org/backups/commit/2722ba02ad5fe88ee199626b89ae86e0f62a071c))
+* **yucca sdk:** probe docs.futo.cloud on connectivity failures to tell the user's network from our outage ([#124](https://github.com/futo-org/backups/issues/124)) ([6fe2937](https://github.com/futo-org/backups/commit/6fe2937c15e2290f4fa57c4c069896a0ee46fb47))
+* **yucca sdk:** skip restic's scan on parallel incrementals and estimate progress from the previous backup ([#143](https://github.com/futo-org/backups/issues/143)) ([ccc8bdd](https://github.com/futo-org/backups/commit/ccc8bdd9b8bc3c5d71ae3c7d2e5aaaf0f59746d0))
+* **yucca sdk:** walk 64 directory entries at a time with futo's restic ([#142](https://github.com/futo-org/backups/issues/142)) ([e2a3637](https://github.com/futo-org/backups/commit/e2a3637bf6f91abf4c18e02fce5d371ca6109b98))
+
+
+### Bug Fixes
+
+* **e2e:** stop the k3d e2e cleanup from killing its own process group ([#136](https://github.com/futo-org/backups/issues/136)) ([4720c82](https://github.com/futo-org/backups/commit/4720c82ceed70e7702af89b197eae35aca3d6585))
+* **yucca sdk:** ship support status, summary and error lines ahead of per-file lines ([#140](https://github.com/futo-org/backups/issues/140)) ([0a3d3b8](https://github.com/futo-org/backups/commit/0a3d3b83b717fa51352c29baca95f72150673ea9))
+
+
+### Miscellaneous Chores
+
+* **standalone-app:** ship restic with the parallel scan ([#141](https://github.com/futo-org/backups/issues/141)) ([e66332d](https://github.com/futo-org/backups/commit/e66332d7d0d1abbb3d1247887e94d00c14fdc66d))
+* use futo's restic build in dev and ci ([#144](https://github.com/futo-org/backups/issues/144)) ([19a7a96](https://github.com/futo-org/backups/commit/19a7a96ca2bff5caa57f4676a10de5533ab63150))
+
 ## [1.11.5](https://github.com/futo-org/backups/compare/v1.11.4...v1.11.5) (2026-10-29)
 
 
