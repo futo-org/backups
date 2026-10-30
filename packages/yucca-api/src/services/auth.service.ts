@@ -20,7 +20,12 @@ import { SessionRepository } from 'src/repositories/session.repository.js';
 import { TicketRepository } from 'src/repositories/ticket.repository.js';
 import { RegistrationRepositories, UserRepository } from 'src/repositories/user.repository.js';
 import { UserAllowlistRepository } from 'src/repositories/userAllowlist.repository.js';
-import { EmailNotAllowedException, FeatureNotEnabledException, TicketRequiredException } from 'src/utils/exceptions.js';
+import {
+  EmailNotAllowedException,
+  EmailNotVerifiedException,
+  FeatureNotEnabledException,
+  TicketRequiredException,
+} from 'src/utils/exceptions.js';
 
 import { isInAppPath } from 'src/utils/redirect.js';
 import { ensureOwned } from 'src/utils/repository.js';
@@ -219,7 +224,7 @@ export class AuthService {
   }
 
   async getOrCreateUser(
-    claims: Pick<UserInfoResponse, 'sub' | 'name' | 'email'>,
+    claims: Pick<UserInfoResponse, 'sub' | 'name' | 'email' | 'email_verified'>,
     inviteCode?: string,
     discordInvite?: string,
   ) {
@@ -231,14 +236,19 @@ export class AuthService {
       throw new InternalServerErrorException('email is missing from claims');
     }
 
-    const identity = { sub: claims.sub, name: claims.name, email: claims.email };
+    const identity = {
+      sub: claims.sub,
+      name: claims.name,
+      email: claims.email,
+      emailVerified: claims.email_verified === true,
+    };
     return this.user.withRegistration(claims.sub, (repositories) =>
       this.registerUser(identity, repositories, inviteCode, discordInvite),
     );
   }
 
   private async registerUser(
-    claims: { sub: string; name: string; email: string },
+    claims: { sub: string; name: string; email: string; emailVerified: boolean },
     repositories: RegistrationRepositories,
     inviteCode?: string,
     discordInvite?: string,
@@ -251,10 +261,10 @@ export class AuthService {
         throw new UnauthorizedException('Account is disabled');
       }
 
-      await users.update(user.id, {
-        name: claims.name,
-        email: claims.email,
-      });
+      await users.update(
+        user.id,
+        claims.emailVerified ? { name: claims.name, email: claims.email } : { name: claims.name },
+      );
     }
 
     // Consumed before the user row exists: a concurrent redemption of the same
@@ -262,6 +272,10 @@ export class AuthService {
     const invite = discordInvite ? await discord.consumeInviteRequest(discordInvite) : undefined;
 
     if (!user) {
+      if (!claims.emailVerified) {
+        throw new EmailNotVerifiedException();
+      }
+
       if (!invite) {
         await this.assertEmailAllowed(claims.email.toLowerCase(), allowlist, inviteCode);
       }

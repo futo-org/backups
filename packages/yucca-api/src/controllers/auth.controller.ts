@@ -9,7 +9,7 @@ import { CookieName } from 'src/enum.js';
 import { env } from 'src/env.js';
 import { Auth, AuthRoute } from 'src/middleware/auth.guard.js';
 import { AuthService } from 'src/services/auth.service.js';
-import { EmailNotAllowedException } from 'src/utils/exceptions.js';
+import { EmailNotAllowedException, EmailNotVerifiedException } from 'src/utils/exceptions.js';
 import { isInAppPath } from 'src/utils/redirect.js';
 
 @Controller('/auth')
@@ -91,6 +91,11 @@ export class AuthController {
 
       if (error instanceof EmailNotAllowedException) {
         response.redirect('/login/invite?error=not_allowed');
+        return;
+      }
+
+      if (error instanceof EmailNotVerifiedException) {
+        response.redirect('/login/invite?error=not_verified');
         return;
       }
 

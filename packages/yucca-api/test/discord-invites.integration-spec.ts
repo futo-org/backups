@@ -281,7 +281,7 @@ describe('Discord invite reservations (integration)', () => {
 
       await expect(
         signup.getOrCreateUser(
-          { sub: 'new-customer', name: 'Customer', email: 'taken@example.test' },
+          { sub: 'new-customer', name: 'Customer', email: 'taken@example.test', email_verified: true },
           inviteCode,
           token,
         ),
@@ -293,7 +293,7 @@ describe('Discord invite reservations (integration)', () => {
       expect(await discord.getRequestByCode(reservation.request.code)).toBeDefined();
       expect(await discord.getInviteBatch(batch.id)).toMatchObject({ remaining: 0 });
       const user = await signup.getOrCreateUser(
-        { sub: 'new-customer', name: 'Customer', email: 'new@example.test' },
+        { sub: 'new-customer', name: 'Customer', email: 'new@example.test', email_verified: true },
         inviteCode,
         token,
       );
@@ -313,7 +313,7 @@ describe('Discord invite reservations (integration)', () => {
     try {
       await expect(
         auth.getOrCreateUser(
-          { sub: 'new-customer', name: 'Customer', email: 'new@example.test' },
+          { sub: 'new-customer', name: 'Customer', email: 'new@example.test', email_verified: true },
           undefined,
           reservation.request.code,
         ),
@@ -327,7 +327,7 @@ describe('Discord invite reservations (integration)', () => {
     expect(await discord.getRequestByCode(reservation.request.code)).toBeDefined();
     expect(await discord.getLinkByDiscordUserId('customer-1')).toBeUndefined();
     const user = await auth.getOrCreateUser(
-      { sub: 'new-customer', name: 'Customer', email: 'new@example.test' },
+      { sub: 'new-customer', name: 'Customer', email: 'new@example.test', email_verified: true },
       undefined,
       reservation.request.code,
     );
@@ -338,7 +338,7 @@ describe('Discord invite reservations (integration)', () => {
   it('serializes concurrent callbacks for the same account and creates one default connection', async () => {
     const batch = await createBatch();
     const reservation = await claim('customer-1', batch.id);
-    const identity = { sub: 'new-customer', name: 'Customer', email: 'new@example.test' };
+    const identity = { sub: 'new-customer', name: 'Customer', email: 'new@example.test', email_verified: true };
 
     const users = await Promise.all([
       auth.getOrCreateUser(identity, undefined, reservation.request.code),
@@ -351,8 +351,18 @@ describe('Discord invite reservations (integration)', () => {
   });
 
   it('retries the whole registration when ordinary linking creates an advisory-lock deadlock', async () => {
-    const identity = { sub: 'existing-customer', name: 'Customer', email: 'existing@example.test' };
-    const user = await new UserRepository(db).create({ ...identity, id: '11111111-1111-1111-1111-111111111111' });
+    const identity = {
+      sub: 'existing-customer',
+      name: 'Customer',
+      email: 'existing@example.test',
+      email_verified: true,
+    };
+    const user = await new UserRepository(db).create({
+      sub: identity.sub,
+      name: identity.name,
+      email: identity.email,
+      id: '11111111-1111-1111-1111-111111111111',
+    });
     const discordUserId = await fixtures.discordIdAfterUser(user.id);
     const batch = await createBatch();
     const reservation = await claim(discordUserId, batch.id);
@@ -395,8 +405,18 @@ describe('Discord invite reservations (integration)', () => {
   it.each(['link', 'linkDirect'] as const)(
     'retries standalone %s when ordinary linking is the deadlock victim',
     async (mode) => {
-      const identity = { sub: 'existing-customer', name: 'Customer', email: 'existing@example.test' };
-      const user = await new UserRepository(db).create({ ...identity, id: '11111111-1111-1111-1111-111111111111' });
+      const identity = {
+        sub: 'existing-customer',
+        name: 'Customer',
+        email: 'existing@example.test',
+        email_verified: true,
+      };
+      const user = await new UserRepository(db).create({
+        sub: identity.sub,
+        name: identity.name,
+        email: identity.email,
+        id: '11111111-1111-1111-1111-111111111111',
+      });
       const discordUserId = await fixtures.discordIdAfterUser(user.id);
       const batch = await createBatch();
       const reservation = await claim(discordUserId, batch.id);

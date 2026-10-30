@@ -7,6 +7,12 @@ export class EmailNotAllowedException extends ForbiddenException {
   }
 }
 
+export class EmailNotVerifiedException extends ForbiddenException {
+  constructor() {
+    super('Email is not verified');
+  }
+}
+
 export class FeatureNotEnabledException extends ForbiddenException {
   constructor(feature: string) {
     super(`Feature '${feature}' is not enabled for this account`);

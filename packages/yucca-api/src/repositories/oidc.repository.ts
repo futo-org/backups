@@ -86,7 +86,12 @@ export class OidcRepository implements OnModuleInit {
   ): Promise<client.IDToken | undefined> {
     const claims = tokens.claims();
 
-    if (!claims || (typeof claims.name === 'string' && typeof claims.email === 'string')) {
+    if (
+      !claims ||
+      (typeof claims.name === 'string' &&
+        typeof claims.email === 'string' &&
+        typeof claims.email_verified === 'boolean')
+    ) {
       return claims;
     }
 

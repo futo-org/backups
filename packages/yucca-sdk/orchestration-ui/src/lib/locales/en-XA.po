@@ -2551,6 +2551,10 @@ msgstr ""
 msgid "Uses cron syntax"
 msgstr ""
 
+#: ../../web/src/routes/login/invite/+page.svelte
+msgid "Verify your email address in your FUTO account, then sign in again."
+msgstr ""
+
 #: src/lib/components/backups/run-history/RepositoryRunHistory.svelte
 #: src/lib/components/backups/snapshots-list/RepositorySnapshotsList.svelte
 #: src/lib/components/dashboard/DashboardBackupHealth.svelte
