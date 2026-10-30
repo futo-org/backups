@@ -91,6 +91,7 @@ export const newUserRepositoryMock = (): jest.Mocked<RepositoryInterface<UserRep
     create: jest.fn(),
     getByAccessToken: jest.fn(),
     getBySub: jest.fn(),
+    getByEmail: jest.fn(),
     getFeatureOverrides: jest.fn().mockResolvedValue([]),
     update: jest.fn(),
   };

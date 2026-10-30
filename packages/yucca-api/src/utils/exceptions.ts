@@ -1,9 +1,15 @@
-import { ForbiddenException, NotFoundException } from '@nestjs/common';
+import { ConflictException, ForbiddenException, NotFoundException } from '@nestjs/common';
 import { TicketAction } from 'src/enum.js';
 
 export class EmailNotAllowedException extends ForbiddenException {
   constructor() {
     super('Email is not allowed during the beta');
+  }
+}
+
+export class EmailInUseException extends ConflictException {
+  constructor() {
+    super('Email is already used by another account');
   }
 }
 

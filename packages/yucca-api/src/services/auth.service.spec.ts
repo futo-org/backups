@@ -513,6 +513,36 @@ describe(AuthService.name, () => {
       expect(mocks.user.update).toHaveBeenCalledWith(mockUser.id, { name: claims.name, email: claims.email });
     });
 
+    it('should keep the stored email when the new one belongs to another account', async () => {
+      mocks.user.getBySub.mockResolvedValue(mockUser);
+      mocks.user.getByEmail.mockResolvedValue({ id: 'other-user' });
+
+      await expect(sut.getOrCreateUser(claims)).resolves.toEqual(mockUser);
+
+      expect(mocks.user.update).toHaveBeenCalledWith(mockUser.id, { name: claims.name });
+      expect(mocks.logger.warn).toHaveBeenCalled();
+    });
+
+    it('should update the email when it already belongs to the same account', async () => {
+      mocks.user.getBySub.mockResolvedValue(mockUser);
+      mocks.user.getByEmail.mockResolvedValue({ id: mockUser.id });
+
+      await expect(sut.getOrCreateUser(claims)).resolves.toEqual(mockUser);
+
+      expect(mocks.user.update).toHaveBeenCalledWith(mockUser.id, { name: claims.name, email: claims.email });
+    });
+
+    it('should reject a new user whose email belongs to another account', async () => {
+      env.ALLOWED_EMAIL_DOMAINS = ['example.com'];
+      mocks.user.create.mockRejectedValue(
+        Object.assign(new Error('duplicate key'), { code: '23505', constraint_name: 'users_email_uq' }),
+      );
+
+      await expect(sut.getOrCreateUser(claims)).rejects.toThrowErrorMatchingInlineSnapshot(
+        `"Email is already used by another account"`,
+      );
+    });
+
     describe('discord invites', () => {
       const inviteRequest = {
         id: 'request-id',

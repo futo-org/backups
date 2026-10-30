@@ -46,6 +46,10 @@ export class UserRepository {
     return this.db.selectFrom('users').select(['id', 'disabled']).where('sub', '=', sub).executeTakeFirst();
   }
 
+  getByEmail(email: string) {
+    return this.db.selectFrom('users').select(['id']).where('email', '=', email).executeTakeFirst();
+  }
+
   getByAccessToken(accessToken: string) {
     return this.db
       .selectFrom('sessions')

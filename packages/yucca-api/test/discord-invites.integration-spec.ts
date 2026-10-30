@@ -15,6 +15,7 @@ import { DB } from 'src/schema/index.js';
 import { AuthService } from 'src/services/auth.service.js';
 import { DiscordService } from 'src/services/discord.service.js';
 import { getKyselyConfig } from 'src/utils/database.js';
+import { EmailInUseException } from 'src/utils/exceptions.js';
 import request from 'supertest';
 import { App } from 'supertest/types.js';
 import { newMocks } from './mocks.js';
@@ -285,7 +286,7 @@ describe('Discord invite reservations (integration)', () => {
           inviteCode,
           token,
         ),
-      ).rejects.toMatchObject({ code: '23505' });
+      ).rejects.toBeInstanceOf(EmailInUseException);
 
       expect(users.attempts).toBe(1);
       expect(await new UserRepository(db).getBySub('new-customer')).toBeUndefined();

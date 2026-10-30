@@ -18,6 +18,7 @@
   let inviteCode = $state("");
 
   const notAllowed = page.url.searchParams.get("error") === "not_allowed";
+  const emailInUse = page.url.searchParams.get("error") === "email_in_use";
 
   const submit = (event: SubmitEvent) => {
     event.preventDefault();
@@ -50,6 +51,11 @@
           {#if notAllowed}
             <Alert color="warning"
               >{$t`Your email isn't part of the beta yet.`}</Alert
+            >
+          {/if}
+          {#if emailInUse}
+            <Alert color="warning"
+              >{$t`Your email is already used by another FUTO Backups account. Contact support to sort it out.`}</Alert
             >
           {/if}
           {#if data.invite}
