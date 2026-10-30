@@ -24,6 +24,11 @@ const uploadSteadily = (context: JobContext, totalBytes: number, until: number, 
   }
 };
 
+const unscannedStatus = (seconds: number, bytesDone: number) => {
+  jest.setSystemTime(seconds * 1000);
+  return { message_type: 'status', percent_done: 0, bytes_done: bytesDone } as JobLogEvent;
+};
+
 const secondsRemaining = (context: JobContext) =>
   context.progress?.estimatedEndAt && (Date.parse(context.progress.estimatedEndAt) - Date.now()) / 1000;
 
@@ -179,5 +184,90 @@ describe(JobContext.name, () => {
 
     expect(context.progress).toMatchObject({ percentDone: 1, currentFiles: [], totalBytes: 3000 * megabyte });
     expect(context.progress?.estimatedEndAt).toBeUndefined();
+  });
+
+  it('measures progress against the size of the previous backup when restic skips its scan', () => {
+    const context = createContext();
+    context.expectTotalBytes(1000 * megabyte);
+
+    context.log(unscannedStatus(0, 250 * megabyte));
+
+    expect(context.progress).toMatchObject({
+      percentDone: 0.25,
+      scanning: false,
+      bytesDone: 250 * megabyte,
+      totalBytes: 1000 * megabyte,
+    });
+  });
+
+  it('estimates the end from the size of the previous backup', () => {
+    const context = createContext();
+    context.expectTotalBytes(1600 * megabyte);
+
+    for (let second = 0; second <= 60; second++) {
+      context.log(unscannedStatus(second, second * 10 * megabyte));
+    }
+
+    expect(secondsRemaining(context)).toBe(100);
+  });
+
+  it('holds at 99% without a total or an estimate once the backup outgrows the previous one', () => {
+    const context = createContext();
+    context.expectTotalBytes(1000 * megabyte);
+
+    context.log(unscannedStatus(0, 900 * megabyte));
+    context.log(unscannedStatus(1, 1200 * megabyte));
+
+    expect(context.progress).toMatchObject({ percentDone: 0.99, scanning: false, bytesDone: 1200 * megabyte });
+    expect(context.progress?.totalBytes).toBeUndefined();
+    expect(context.progress?.estimatedEndAt).toBeUndefined();
+  });
+
+  it('stays below 100% while the backup approaches the size of the previous one', () => {
+    const context = createContext();
+    context.expectTotalBytes(1000 * megabyte);
+
+    context.log(unscannedStatus(0, 999 * megabyte));
+
+    expect(context.progress?.percentDone).toBe(0.99);
+  });
+
+  it.each([
+    { name: 'smaller', finalBytes: 800 * megabyte },
+    { name: 'larger', finalBytes: 1200 * megabyte },
+  ])('reports the real size once a backup $name than the previous one finishes', ({ finalBytes }) => {
+    const context = createContext();
+    context.expectTotalBytes(1000 * megabyte);
+    context.log(unscannedStatus(0, finalBytes));
+
+    context.log({
+      message_type: 'summary',
+      files_new: 0,
+      files_changed: 0,
+      total_files_processed: 1,
+      total_bytes_processed: finalBytes,
+      snapshot_id: 'abc',
+    } as JobLogEvent);
+
+    expect(context.progress).toMatchObject({ percentDone: 1, bytesDone: finalBytes, totalBytes: finalBytes });
+  });
+
+  it('reports a finite percentage when the previous backup was empty', () => {
+    const context = createContext();
+    context.expectTotalBytes(0);
+
+    context.log(unscannedStatus(0, 0));
+
+    expect(context.progress).toMatchObject({ percentDone: 0.99, scanning: false });
+    expect(context.progress?.totalBytes).toBeUndefined();
+  });
+
+  it("uses restic's own totals when it scans anyway", () => {
+    const context = createContext();
+    context.expectTotalBytes(1000 * megabyte);
+
+    context.log(status(0, 100 * megabyte, 4000 * megabyte));
+
+    expect(context.progress).toMatchObject({ percentDone: 0.025, totalBytes: 4000 * megabyte });
   });
 });
