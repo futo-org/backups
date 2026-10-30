@@ -23,6 +23,7 @@ import { BackendType, CookieName } from '../enum.js';
 import { ResticProxyPool } from '../proxy/resticProxyPool.js';
 import { LoggingRepository } from '../repositories/logging.repository.js';
 import { BackendConfiguration } from '../schema/tables/backend.table.js';
+import { retryingFetch } from '../utils/retryingFetch.js';
 import { yuccaWellKnown } from '../wellKnown.js';
 import { Backend } from './backend.js';
 
@@ -37,6 +38,7 @@ export class YuccaBackend extends Backend {
   private async getRequestOptions() {
     return {
       baseUrl: this.configuration.url ?? (await yuccaWellKnown.getBaseUrl()),
+      fetch: retryingFetch,
       headers: {
         cookie: `${CookieName.YuccaAccessToken}=${this.configuration.accessToken}`,
       },

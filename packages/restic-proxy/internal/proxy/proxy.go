@@ -46,8 +46,7 @@ func New(cl client.Client, sessionToken string, smartAutoRepository bool) *Handl
 	grants := hashmap.New[string, client.Grant]()
 
 	handler := &Handler{
-		client:  cl,
-		reverse: reverseProxy(grants),
+		client: cl,
 
 		sessionToken:        sessionToken,
 		smartAutoRepository: smartAutoRepository,
@@ -56,6 +55,7 @@ func New(cl client.Client, sessionToken string, smartAutoRepository bool) *Handl
 		denials:          hashmap.New[string, denial](),
 		autoRepositories: hashmap.New[string, string](),
 	}
+	handler.reverse = reverseProxy(grants, &handler.throttle)
 
 	return handler
 }
