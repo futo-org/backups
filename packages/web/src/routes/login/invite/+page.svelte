@@ -18,6 +18,7 @@
   let inviteCode = $state("");
 
   const notAllowed = page.url.searchParams.get("error") === "not_allowed";
+  const notVerified = page.url.searchParams.get("error") === "not_verified";
 
   const submit = (event: SubmitEvent) => {
     event.preventDefault();
@@ -50,6 +51,11 @@
           {#if notAllowed}
             <Alert color="warning"
               >{$t`Your email isn't part of the beta yet.`}</Alert
+            >
+          {/if}
+          {#if notVerified}
+            <Alert color="warning"
+              >{$t`Verify your email address in your FUTO account, then sign in again.`}</Alert
             >
           {/if}
           {#if data.invite}

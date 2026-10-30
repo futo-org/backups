@@ -244,8 +244,12 @@ describe('AuthController (e2e)', () => {
       env.ALLOWED_EMAIL_DOMAINS = allowedEmailDomains;
     });
 
-    const loginCallback = async (sub: string, inviteCode?: string) => {
-      const loginPath = inviteCode ? `/api/auth/oidc/login?invite_code=${inviteCode}` : '/api/auth/oidc/login';
+    const loginCallback = async (sub: string, inviteCode?: string, discordInvite?: string) => {
+      const loginPath = inviteCode
+        ? `/api/auth/oidc/login?invite_code=${inviteCode}`
+        : discordInvite
+          ? `/api/auth/oidc/login?discord_invite=${discordInvite}`
+          : '/api/auth/oidc/login';
       const { header } = await request(app.getHttpServer()).get(loginPath).expect(302);
       const cookies = parse((header['set-cookie'] as never as string[]).join('; '));
 
@@ -266,11 +270,32 @@ describe('AuthController (e2e)', () => {
       if (cookies['yucca-invite-code']) {
         cookieHeader.push(`yucca-invite-code=${cookies['yucca-invite-code']}`);
       }
+      if (cookies['yucca-discord-invite']) {
+        cookieHeader.push(`yucca-discord-invite=${cookies['yucca-discord-invite']}`);
+      }
 
       return request(app.getHttpServer())
         .get(callbackUrl.pathname + callbackUrl.search)
         .set('Cookie', cookieHeader);
     };
+
+    it('sends a new user with an unverified email back to the invite page', async () => {
+      env.ALLOWED_EMAIL_DOMAINS = ['example.test'];
+
+      const response = await loginCallback('unverified-user');
+
+      expect(response.status).toBe(302);
+      expect(response.header.location).toBe('/login/invite?error=not_verified');
+      await expect(testUtils.getUserBySub('unverified-user')).resolves.toBeUndefined();
+    });
+
+    it('keeps the Discord invite when a new user has an unverified email', async () => {
+      const response = await loginCallback('unverified-invitee', undefined, 'discord-token');
+
+      expect(response.status).toBe(302);
+      expect(response.header.location).toBe('/login/invite?error=not_verified&token=discord-token');
+      await expect(testUtils.getUserBySub('unverified-invitee')).resolves.toBeUndefined();
+    });
 
     it('redirects a non-allowlisted new user to the invite page', async () => {
       const response = await loginCallback('blocked-user');

@@ -232,6 +232,7 @@ describe(AuthService.name, () => {
       const claims = {
         name: 'name',
         email: 'name@example.test',
+        email_verified: true,
       };
 
       const accessToken = Symbol('Access Token');
@@ -268,6 +269,7 @@ describe(AuthService.name, () => {
       const claims = {
         name: 'name',
         email: 'email',
+        email_verified: true,
       };
 
       const accessToken = Symbol('Access Token');
@@ -301,7 +303,7 @@ describe(AuthService.name, () => {
   });
 
   describe('oidcDeviceFlow', () => {
-    const claims = { sub: 'oidc-sub', name: 'name', email: 'user@example.com' };
+    const claims = { sub: 'oidc-sub', name: 'name', email: 'user@example.com', email_verified: true };
     const accessToken = 'device-token';
 
     beforeEach(() => {
@@ -414,6 +416,7 @@ describe(AuthService.name, () => {
       sub: 'new-sub',
       name: 'name',
       email: 'New@Example.com',
+      email_verified: true,
     };
 
     const entry = {
@@ -511,6 +514,31 @@ describe(AuthService.name, () => {
 
       expect(mocks.userAllowlist.getByEmail).not.toHaveBeenCalled();
       expect(mocks.user.update).toHaveBeenCalledWith(mockUser.id, { name: claims.name, email: claims.email });
+    });
+
+    it('should keep the stored email when the new one is not verified', async () => {
+      mocks.user.getBySub.mockResolvedValue(mockUser);
+
+      await expect(sut.getOrCreateUser({ ...claims, email_verified: false })).resolves.toEqual(mockUser);
+
+      expect(mocks.user.update).toHaveBeenCalledWith(mockUser.id, { name: claims.name });
+    });
+
+    it('should reject a new user whose email is not verified', async () => {
+      env.ALLOWED_EMAIL_DOMAINS = ['example.com'];
+
+      await expect(
+        sut.getOrCreateUser({ ...claims, email_verified: false }),
+      ).rejects.toThrowErrorMatchingInlineSnapshot(`"Email is not verified"`);
+      expect(mocks.user.create).not.toHaveBeenCalled();
+    });
+
+    it('should reject a new user when the provider does not say the email is verified', async () => {
+      env.ALLOWED_EMAIL_DOMAINS = ['example.com'];
+      const { email_verified: _, ...unknown } = claims;
+
+      await expect(sut.getOrCreateUser(unknown)).rejects.toThrowErrorMatchingInlineSnapshot(`"Email is not verified"`);
+      expect(mocks.user.create).not.toHaveBeenCalled();
     });
 
     describe('discord invites', () => {
