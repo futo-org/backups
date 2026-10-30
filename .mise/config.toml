@@ -23,7 +23,10 @@ pnpm = "10.28.1"
 wrangler = "4.127.0"
 go = "1.27.3"
 golangci-lint = "2.14.0"
-restic = "0.19.1"
+# restic is FUTO's build from futo-org/restic, the one the images ship (parallel directory walk).
+# It has no release downloads, so `mise install` pulls it out of the standalone image's pinned
+# restic image with crane (see .mise/tasks/restic/install and [hooks] below).
+"aqua:google/go-containerregistry" = "0.22.1"
 
 gh = "2.102.0"
 "github:git-town/git-town" = "v24.1.0"
@@ -94,7 +97,11 @@ description = "Run all possible code fixes"
 run = [{ task = "*:fix" }, { task = "//packages/yucca-sdk/orchestration-ui:lingui" }]
 
 
+[hooks]
+postinstall = "mise run restic:install"
+
 [env]
+_.path = ["{{config_root}}/.mise/bin"]
 NODE_ENV = "development"
 LOG_LEVEL = "debug"
 

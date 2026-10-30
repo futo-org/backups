@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 #MISE description="Run the database-backed integration tests against the local k3d stack's infra"
+#MISE depends=["//:restic:install"]
 #MISE dir="{{config_root}}"
 # Kube replacement for the compose-backed `mise docker:start && mise test:integration`:
 # the tests boot the apps on this host but take their infrastructure — postgres

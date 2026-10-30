@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 #MISE description="Run the S3-backed integration tests against the k3d stack's Ceph RGW"
+#MISE depends=["//:restic:install"]
 #MISE dir="{{config_root}}"
 # The other half of `mise test:integration:k3d`: the suites needing object
 # storage rather than (or as well as) postgres. They run in the e2e job, where
