@@ -2,6 +2,31 @@
 
 lockfile_version = 1
 
+[[tools."aqua:google/go-containerregistry"]]
+version = "0.22.1"
+backend = "aqua:google/go-containerregistry"
+specifiers = ["0.22.1"]
+
+[tools."aqua:google/go-containerregistry"."platforms.linux-arm64"]
+checksum = "sha256:898c0cff975f898a33e8c4580bdafb0e7c02c7faa33374e946762f97c4ab7110"
+url = "https://github.com/google/go-containerregistry/releases/download/v0.22.1/go-containerregistry_Linux_arm64.tar.gz"
+url_api = "https://api.github.com/repos/google/go-containerregistry/releases/assets/543544372"
+
+[tools."aqua:google/go-containerregistry"."platforms.linux-x64"]
+checksum = "sha256:0ab7a1d6932a213aed964ce97666c3077fe691c8606413674a8b3e0b9ec4cda0"
+url = "https://github.com/google/go-containerregistry/releases/download/v0.22.1/go-containerregistry_Linux_x86_64.tar.gz"
+url_api = "https://api.github.com/repos/google/go-containerregistry/releases/assets/543544389"
+
+[tools."aqua:google/go-containerregistry"."platforms.macos-arm64"]
+checksum = "sha256:2231fc8df8806d20d680ff1225db44e095a55dd6ac1ae8eced4faf4b278b78fb"
+url = "https://github.com/google/go-containerregistry/releases/download/v0.22.1/go-containerregistry_Darwin_arm64.tar.gz"
+url_api = "https://api.github.com/repos/google/go-containerregistry/releases/assets/543544436"
+
+[tools."aqua:google/go-containerregistry"."platforms.macos-x64"]
+checksum = "sha256:6fedd06a648c11335f0e8b9547e4783002c30e9336047fec292942cd518bb799"
+url = "https://github.com/google/go-containerregistry/releases/download/v0.22.1/go-containerregistry_Darwin_x86_64.tar.gz"
+url_api = "https://api.github.com/repos/google/go-containerregistry/releases/assets/543544434"
+
 [[tools.flux2]]
 version = "2.9.5"
 backend = "aqua:fluxcd/flux2"
@@ -297,31 +322,6 @@ url_api = "https://api.github.com/repos/pnpm/pnpm/releases/assets/342724192"
 checksum = "sha256:11cc2b5c9e6f0e1d6e2bfb414e0db3d26f07378a76c2c045ec9dbecc91050bd4"
 url = "https://github.com/pnpm/pnpm/releases/download/v10.28.1/pnpm-macos-x64"
 url_api = "https://api.github.com/repos/pnpm/pnpm/releases/assets/342724195"
-
-[[tools.restic]]
-version = "0.19.1"
-backend = "aqua:restic/restic"
-specifiers = ["0.19.1"]
-
-[tools.restic."platforms.linux-arm64"]
-checksum = "sha256:a5f64aaab53d51e311fa3829124c5b703f2d14cf187d8640b6be3b2b49376465"
-url = "https://github.com/restic/restic/releases/download/v0.19.1/restic_0.19.1_linux_arm64.bz2"
-url_api = "https://api.github.com/repos/restic/restic/releases/assets/466999588"
-
-[tools.restic."platforms.linux-x64"]
-checksum = "sha256:f415415624dcc452f2a02b8c33641791a8c6d6d3b65bbb3543fcf9a25151585c"
-url = "https://github.com/restic/restic/releases/download/v0.19.1/restic_0.19.1_linux_amd64.bz2"
-url_api = "https://api.github.com/repos/restic/restic/releases/assets/466999719"
-
-[tools.restic."platforms.macos-arm64"]
-checksum = "sha256:7be0a144ccc377880f294204aa271d76e4b79554b42a751151d425ce6ebac143"
-url = "https://github.com/restic/restic/releases/download/v0.19.1/restic_0.19.1_darwin_arm64.bz2"
-url_api = "https://api.github.com/repos/restic/restic/releases/assets/467000314"
-
-[tools.restic."platforms.macos-x64"]
-checksum = "sha256:c38d579622cf602f665234c5a8c315030b6cf70656028fe6dc29a786b60e5f35"
-url = "https://github.com/restic/restic/releases/download/v0.19.1/restic_0.19.1_darwin_amd64.bz2"
-url_api = "https://api.github.com/repos/restic/restic/releases/assets/467000400"
 
 [[tools.tilt]]
 version = "0.37.8"

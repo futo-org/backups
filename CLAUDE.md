@@ -39,6 +39,8 @@ private repository; nothing here may depend on it.
 - Everything runs through **[mise](https://mise.jdx.dev/)** tasks (`.mise/tasks/` scripts +
   `.mise/config.toml` aggregates). mise pins every binary (node, pnpm, go, kubectl, helm, tilt…)
   — do not assume a tool is on PATH outside of mise.
+- restic is FUTO's build (`futo-org/restic`, parallel directory walk), not upstream: `mise install`
+  pulls it from the restic image `packages/standalone-app/Dockerfile` pins, via `.mise/tasks/restic/install`.
 - **pnpm workspaces** with a **catalog** (`pnpm-workspace.yaml`): add/bump shared deps in the
   catalog, referenced as `"catalog:"` in each `package.json` — not in individual packages.
 - Optional dev secrets go in a gitignored root `.env` (copy `.env.example`); values may be

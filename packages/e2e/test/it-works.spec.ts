@@ -13,10 +13,10 @@ it('can connect to the orchestrator API', async () => {
   await expect(fetch(`http://localhost:22676`).then((response) => response.status)).resolves.toBe(404);
 });
 
-it('can load restic', async () => {
+it("can load FUTO's restic build", async () => {
   await expect(version).resolves.toEqual(
     expect.objectContaining({
-      version: '0.19.1',
+      version: expect.stringMatching(/^0\.19\.1\+futo\./),
     }),
   );
 });
