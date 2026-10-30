@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.12.1](https://github.com/futo-org/backups/compare/v1.12.0...v1.12.1) (2026-10-30)
+
+
+### Bug Fixes
+
+* **yucca sdk:** reattach the restore flow to an in-progress restore ([#118](https://github.com/futo-org/backups/issues/118)) ([a9cc691](https://github.com/futo-org/backups/commit/a9cc6918fe4e72a55701abe01db1494136af78c0))
+
 ## [1.12.0](https://github.com/futo-org/backups/compare/v1.11.5...v1.12.0) (2026-10-30)
 
 
