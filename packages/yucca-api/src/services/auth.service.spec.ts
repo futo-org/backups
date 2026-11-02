@@ -202,18 +202,6 @@ describe(AuthService.name, () => {
       ).rejects.toThrowErrorMatchingInlineSnapshot(`"no id token received"`);
     });
 
-    it('should fail if name claim missing from provider', async () => {
-      mocks.oidc.callback.mockResolvedValue({} as never);
-      await expect(
-        sut.oidcCallback({
-          ...request,
-          headers: {
-            cookie: 'yucca-oidc-state=state; yucca-oidc-code-verifier=code',
-          },
-        } as never),
-      ).rejects.toThrowErrorMatchingInlineSnapshot(`"name is missing from claims"`);
-    });
-
     it('should fail if email claim missing from provider', async () => {
       mocks.oidc.callback.mockResolvedValue({
         name: 'name',
@@ -511,6 +499,22 @@ describe(AuthService.name, () => {
 
       expect(mocks.userAllowlist.getByEmail).not.toHaveBeenCalled();
       expect(mocks.user.update).toHaveBeenCalledWith(mockUser.id, { name: claims.name, email: claims.email });
+    });
+
+    it('should use the given and family name when the name claim is missing', async () => {
+      env.ALLOWED_EMAIL_DOMAINS = ['example.com'];
+
+      await sut.getOrCreateUser({ sub: claims.sub, given_name: 'Given', family_name: 'Family', email: claims.email });
+
+      expect(mocks.user.create).toHaveBeenCalledWith({ sub: claims.sub, name: 'Given Family', email: claims.email });
+    });
+
+    it('should use the email when the name claims are blank', async () => {
+      env.ALLOWED_EMAIL_DOMAINS = ['example.com'];
+
+      await sut.getOrCreateUser({ sub: claims.sub, name: ' ', given_name: '', email: claims.email });
+
+      expect(mocks.user.create).toHaveBeenCalledWith({ sub: claims.sub, name: claims.email, email: claims.email });
     });
 
     describe('discord invites', () => {
