@@ -4,11 +4,9 @@ import { gt } from 'svelte-i18n-lingui';
 let isPageUnloading = false;
 
 if (globalThis.window !== undefined) {
-  const markPageUnloading = () => {
+  globalThis.addEventListener('pagehide', () => {
     isPageUnloading = true;
-  };
-  globalThis.addEventListener('pagehide', markPageUnloading);
-  globalThis.addEventListener('beforeunload', markPageUnloading);
+  });
   globalThis.addEventListener('pageshow', () => {
     isPageUnloading = false;
   });
