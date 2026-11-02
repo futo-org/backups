@@ -25,6 +25,8 @@ import { EmailNotAllowedException, FeatureNotEnabledException, TicketRequiredExc
 import { isInAppPath } from 'src/utils/redirect.js';
 import { ensureOwned } from 'src/utils/repository.js';
 
+const hasText = (value: unknown) => typeof value === 'string' && value.trim() !== '';
+
 @Injectable()
 export class AuthService {
   constructor(
@@ -219,19 +221,17 @@ export class AuthService {
   }
 
   async getOrCreateUser(
-    claims: Pick<UserInfoResponse, 'sub' | 'name' | 'email'>,
+    claims: Pick<UserInfoResponse, 'sub' | 'name' | 'given_name' | 'family_name' | 'email'>,
     inviteCode?: string,
     discordInvite?: string,
   ) {
-    if (typeof claims.name !== 'string') {
-      throw new InternalServerErrorException('name is missing from claims');
-    }
-
     if (typeof claims.email !== 'string') {
       throw new InternalServerErrorException('email is missing from claims');
     }
 
-    const identity = { sub: claims.sub, name: claims.name, email: claims.email };
+    const fullName = [claims.given_name, claims.family_name].filter((part) => hasText(part)).join(' ');
+    const name = [claims.name, fullName].find((candidate) => hasText(candidate)) ?? claims.email;
+    const identity = { sub: claims.sub, name, email: claims.email };
     return this.user.withRegistration(claims.sub, (repositories) =>
       this.registerUser(identity, repositories, inviteCode, discordInvite),
     );
