@@ -219,6 +219,7 @@ export class FreshdeskSyncService {
         await this.discord.closeThread(await this.discord.getThreadById(fresh.staffThreadId));
       }
       await this.discord.closeThread(await this.discord.getThreadById(fresh.threadId));
+      await this.disableSupportMode(fresh.threadId);
       await this.api.updateTicket(fresh.id, { closed: true });
       this.forgetMapping(fresh);
     });
@@ -338,9 +339,16 @@ export class FreshdeskSyncService {
       await this.discord.closeThread(await this.discord.getThreadById(mapping.staffThreadId));
     }
     await this.discord.closeThread(await this.discord.getThreadById(mapping.threadId));
+    await this.disableSupportMode(mapping.threadId);
     await this.finalizeRequester(mapping);
     await this.api.updateTicket(mapping.id, { closed: true });
     this.forgetMapping(mapping);
+  }
+
+  private async disableSupportMode(threadId: string): Promise<void> {
+    await this.api
+      .disableSupportMode(threadId)
+      .catch((error: unknown) => this.logger.warn(error, 'could not turn off support mode for the closed ticket'));
   }
 
   private async postToDiscord(mapping: TicketMapping, conversation: FreshdeskConversation): Promise<void> {

@@ -106,4 +106,67 @@ describe(YuccaApiRepository.name, () => {
 
     await expect(sut.getInviteBatch('batch-1')).rejects.toThrow();
   });
+
+  it('turns support mode on for a ticket owner', async () => {
+    mocks.fetch.mockResolvedValue(Response.json({ status: 'enabled' }));
+
+    await expect(sut.enableSupportMode('thread/1', 'customer-1')).resolves.toBe('enabled');
+
+    expect(mocks.fetch).toHaveBeenCalledWith(
+      new URL('http://yucca.test/api/internal/discord/support-mode/thread%2F1'),
+      expect.objectContaining({
+        method: 'PUT',
+        body: JSON.stringify({ discordUserId: 'customer-1' }),
+        signal: expect.any(AbortSignal),
+      }),
+    );
+  });
+
+  it('reports a ticket owner without a linked account', async () => {
+    mocks.fetch.mockResolvedValue(new Response(null, { status: 404 }));
+
+    await expect(sut.enableSupportMode('thread-1', 'stranger')).resolves.toBe('no-account');
+  });
+
+  it('lists the tickets holding support mode', async () => {
+    mocks.fetch.mockResolvedValue(Response.json({ items: [{ threadId: 'thread-1' }] }));
+
+    await expect(sut.listSupportModeTickets()).resolves.toEqual(['thread-1']);
+    expect(mocks.fetch).toHaveBeenCalledWith(
+      new URL('http://yucca.test/api/internal/discord/support-mode'),
+      expect.objectContaining({ method: 'GET', signal: expect.any(AbortSignal) }),
+    );
+  });
+
+  it('turns support mode off for a closed ticket', async () => {
+    mocks.fetch.mockResolvedValue(new Response(null, { status: 204 }));
+
+    await sut.disableSupportMode('thread-1');
+
+    expect(mocks.fetch).toHaveBeenCalledWith(
+      new URL('http://yucca.test/api/internal/discord/support-mode/thread-1'),
+      expect.objectContaining({ method: 'DELETE', signal: expect.any(AbortSignal) }),
+    );
+  });
+
+  it.each([
+    ['turning support mode on', (sut: YuccaApiRepository) => sut.enableSupportMode('thread-1', 'customer-1')],
+    ['listing support-mode tickets', (sut: YuccaApiRepository) => sut.listSupportModeTickets()],
+    ['turning support mode off', (sut: YuccaApiRepository) => sut.disableSupportMode('thread-1')],
+  ])('gives up %s when yucca-api never answers', async (_, call) => {
+    const controller = new AbortController();
+    const timeout = jest.spyOn(AbortSignal, 'timeout').mockReturnValue(controller.signal);
+    mocks.fetch.mockImplementationOnce(
+      (_url, options) =>
+        new Promise<Response>((_resolve, reject) => {
+          options!.signal!.addEventListener('abort', () => reject(options!.signal!.reason as Error), { once: true });
+        }),
+    );
+
+    const pending = call(sut);
+    expect(timeout).toHaveBeenCalledWith(10_000);
+    controller.abort(new DOMException('Support mode timed out', 'TimeoutError'));
+
+    await expect(pending).rejects.toThrow('Support mode timed out');
+  });
 });

@@ -109,6 +109,10 @@ export class DiscordRepository {
         .setDescription('Close this ticket on Discord and hand it to email support (staff only)')
         .toJSON(),
       new SlashCommandBuilder()
+        .setName('support-mode')
+        .setDescription("Let this ticket's user send support logs to FUTO until the ticket closes (staff only)")
+        .toJSON(),
+      new SlashCommandBuilder()
         .setName('beta-invite')
         .setDescription('Invite a user to the closed beta or post a claim button (staff only)')
         .addUserOption((option) => option.setName('user').setDescription('DM a personal invite to this user'))
@@ -411,6 +415,18 @@ export class DiscordRepository {
       throw new TypeError(`Channel ${threadId} is not a thread`);
     }
     return channel;
+  }
+
+  async isTicketClosed(threadId: string): Promise<boolean> {
+    try {
+      const thread = await this.getThreadById(threadId, true);
+      return thread.locked === true;
+    } catch (error) {
+      if (error instanceof TypeError || (error instanceof DiscordAPIError && Number(error.status) === 404)) {
+        return true;
+      }
+      throw error;
+    }
   }
 
   async sendToThread(threadId: string, message: MessageCreateOptions): Promise<void> {

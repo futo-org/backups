@@ -166,6 +166,9 @@ export class SupportService implements OnApplicationBootstrap {
       if (interaction.isChatInputCommand() && interaction.commandName === 'staff-notes') {
         return await this.onStaffNotesRequested(interaction);
       }
+      if (interaction.isChatInputCommand() && interaction.commandName === 'support-mode') {
+        return await this.onSupportModeRequested(interaction);
+      }
       if (interaction.isChatInputCommand() && interaction.commandName === 'claim-backups-role') {
         return await this.onClaimRequested(interaction);
       }
@@ -291,6 +294,22 @@ export class SupportService implements OnApplicationBootstrap {
       content: Messages.claimPrompt(env.DISCORD_CHAT_CHANNEL_ID),
       components: [this.buttonRow(ComponentId.ClaimRole, Messages.claimPromptButton)],
     });
+  }
+
+  @Cron(CronExpression.EVERY_10_MINUTES)
+  async revokeClosedTicketSupportMode() {
+    if (!this.discord.enabled) {
+      return;
+    }
+    for (const threadId of await this.api.listSupportModeTickets()) {
+      try {
+        if (await this.discord.isTicketClosed(threadId)) {
+          await this.api.disableSupportMode(threadId);
+        }
+      } catch (error) {
+        this.logger.warn(error, `could not check support mode for ticket ${threadId}`);
+      }
+    }
   }
 
   private chatMention(): string {
@@ -612,6 +631,50 @@ export class SupportService implements OnApplicationBootstrap {
     });
   }
 
+  private async onSupportModeRequested(interaction: ChatInputCommandInteraction) {
+    if (!isStaff(interaction)) {
+      await interaction.reply({ content: Messages.staffOnlySupportMode, flags: MessageFlags.Ephemeral });
+      return;
+    }
+
+    const thread = interaction.channel;
+    if (
+      !(thread instanceof ThreadChannel) ||
+      thread.parentId !== env.DISCORD_SUPPORT_CHANNEL_ID ||
+      !/^(ticket|staff)-/.test(thread.name) ||
+      thread.locked
+    ) {
+      await interaction.reply({ content: Messages.supportModeNotATicket, flags: MessageFlags.Ephemeral });
+      return;
+    }
+
+    await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+    const fromTicket = thread.name.startsWith('ticket-');
+    const ticket = fromTicket
+      ? thread
+      : await this.discord.findSupportThreadByName(thread.name.replace(/^staff-/, 'ticket-'));
+    const opening = ticket && !ticket.locked ? await this.discord.getTicketOpening(ticket.id) : null;
+    if (!ticket || !opening) {
+      await interaction.editReply({ content: Messages.supportModeMissingTicket });
+      return;
+    }
+
+    const result = await this.api.enableSupportMode(ticket.id, opening.discordUserId);
+    if (result === 'no-account') {
+      await interaction.editReply({ content: Messages.supportModeNoAccount });
+      return;
+    }
+    if (fromTicket) {
+      await this.discord.sendToThread(ticket.id, {
+        content: Messages.supportModeInstructions(opening.discordUserId),
+        allowedMentions: { users: [opening.discordUserId] },
+      });
+    }
+    await interaction.editReply({
+      content: result === 'enabled' ? Messages.supportModeEnabled : Messages.supportModeAlreadyEnabled,
+    });
+  }
+
   private async onCloseRequested(interaction: ButtonInteraction) {
     if (!isStaff(interaction)) {
       await interaction.reply({ content: Messages.staffOnlyClose, flags: MessageFlags.Ephemeral });
@@ -636,6 +699,9 @@ export class SupportService implements OnApplicationBootstrap {
       await this.discord.closeThread(staffThread);
     }
     await this.discord.closeThread(thread);
+    await this.api
+      .disableSupportMode(thread.id)
+      .catch((error: unknown) => this.logger.warn(error, 'could not turn off support mode for the closed ticket'));
 
     void this.freshdeskSync
       .onTicketClosed(thread.id)

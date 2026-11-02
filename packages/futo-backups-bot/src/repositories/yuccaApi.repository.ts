@@ -3,6 +3,7 @@ import { env } from 'src/env.js';
 import { z } from 'zod';
 
 const INVITE_BATCH_LOOKUP_TIMEOUT_MS = 10_000;
+const SUPPORT_MODE_TIMEOUT_MS = 10_000;
 
 const linkRequestCreatedSchema = z.object({
   code: z.string(),
@@ -66,6 +67,14 @@ const ticketMappingSchema = z.object({
   closedAt: z.coerce.date().nullable(),
 });
 
+const supportModeSchema = z.object({
+  status: z.enum(['enabled', 'already-enabled']),
+});
+
+const supportModeTicketListSchema = z.object({
+  items: z.array(z.object({ threadId: z.string() })),
+});
+
 const ticketMappingListSchema = z.object({
   items: z.array(ticketMappingSchema),
 });
@@ -84,6 +93,7 @@ export type InviteResult =
   | ({ status: 'ok' } & z.infer<typeof inviteCreatedSchema>)
   | { status: 'already-linked' | 'invite-used' | 'exhausted' | 'cancelled' };
 export type InviteBatch = z.infer<typeof inviteBatchSchema>;
+export type SupportModeResult = z.infer<typeof supportModeSchema>['status'] | 'no-account';
 
 @Injectable()
 export class YuccaApiRepository {
@@ -246,6 +256,41 @@ export class YuccaApiRepository {
 
   async updateTicket(id: string, updates: TicketMappingUpdate): Promise<void> {
     await this.request('PATCH', `/api/internal/discord/tickets/${encodeURIComponent(id)}`, updates);
+  }
+
+  async enableSupportMode(threadId: string, discordUserId: string): Promise<SupportModeResult> {
+    const response = await this.request(
+      'PUT',
+      `/api/internal/discord/support-mode/${encodeURIComponent(threadId)}`,
+      { discordUserId },
+      [404],
+      AbortSignal.timeout(SUPPORT_MODE_TIMEOUT_MS),
+    );
+    if (response.status === 404) {
+      return 'no-account';
+    }
+    return supportModeSchema.parse(await response.json()).status;
+  }
+
+  async listSupportModeTickets(): Promise<string[]> {
+    const response = await this.request(
+      'GET',
+      '/api/internal/discord/support-mode',
+      undefined,
+      [],
+      AbortSignal.timeout(SUPPORT_MODE_TIMEOUT_MS),
+    );
+    return supportModeTicketListSchema.parse(await response.json()).items.map(({ threadId }) => threadId);
+  }
+
+  async disableSupportMode(threadId: string): Promise<void> {
+    await this.request(
+      'DELETE',
+      `/api/internal/discord/support-mode/${encodeURIComponent(threadId)}`,
+      undefined,
+      [],
+      AbortSignal.timeout(SUPPORT_MODE_TIMEOUT_MS),
+    );
   }
 
   private async request(

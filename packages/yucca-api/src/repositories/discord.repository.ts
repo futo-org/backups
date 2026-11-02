@@ -8,6 +8,12 @@ import { DiscordInviteBatchTable } from 'src/schema/tables/discordInviteBatch.ta
 import { DiscordLinkRequestTable } from 'src/schema/tables/discordLinkRequest.table.js';
 import { DiscordTicketTable } from 'src/schema/tables/discordTicket.table.js';
 
+const TICKET_GRANT_PREFIX = 'discord-ticket:';
+const TICKET_GRANT_REASON = 'Turned on from a Discord support ticket until it closes';
+
+const lockTicketGrants = (trx: Kysely<DB>, userId: string, flag: string) =>
+  sql`SELECT pg_advisory_xact_lock(hashtext(${`${TICKET_GRANT_PREFIX}${flag}:${userId}`}))`.execute(trx);
+
 export type InviteClaimResult =
   | { status: 'linked' | 'used' | 'unknownBatch' | 'exhausted' | 'cancelled' }
   | { status: 'ok'; request: Selectable<DiscordLinkRequestTable>; remaining: number | null };
@@ -345,6 +351,109 @@ export class DiscordRepository {
       .returning('id')
       .executeTakeFirst();
     return updated !== undefined;
+  }
+
+  grantTicketFeature(threadId: string, userId: string, flag: string): Promise<boolean> {
+    return inTransaction(this.db, async (trx) => {
+      await lockTicketGrants(trx, userId, flag);
+      const existing = await trx
+        .selectFrom('userFeatureFlagOverride')
+        .select(['value', 'setBy'])
+        .where('userId', '=', userId)
+        .where('flag', '=', flag)
+        .forUpdate()
+        .executeTakeFirst();
+      const ticketOwned = existing?.setBy.startsWith(TICKET_GRANT_PREFIX) ?? false;
+      if (existing?.value && !ticketOwned) {
+        return false;
+      }
+      if (!ticketOwned) {
+        await trx
+          .deleteFrom('discordTicketFeatureGrants')
+          .where('userId', '=', userId)
+          .where('flag', '=', flag)
+          .execute();
+      }
+      const setBy = `${TICKET_GRANT_PREFIX}${threadId}`;
+      const granted = await trx
+        .insertInto('userFeatureFlagOverride')
+        .values({ userId, flag, value: true, setBy, reason: TICKET_GRANT_REASON })
+        .onConflict((oc) =>
+          oc
+            .columns(['userId', 'flag'])
+            .doUpdateSet({ value: true, setBy, reason: TICKET_GRANT_REASON, updatedAt: new Date() })
+            .where((eb) =>
+              eb.or([
+                eb('userFeatureFlagOverride.value', '=', false),
+                eb('userFeatureFlagOverride.setBy', 'like', `${TICKET_GRANT_PREFIX}%`),
+              ]),
+            ),
+        )
+        .returning('id')
+        .executeTakeFirst();
+      if (!granted) {
+        return false;
+      }
+      await trx
+        .insertInto('discordTicketFeatureGrants')
+        .values({ threadId, userId, flag })
+        .onConflict((oc) => oc.columns(['threadId', 'userId', 'flag']).doNothing())
+        .execute();
+      return true;
+    });
+  }
+
+  async listTicketFeatureGrants(flag: string): Promise<string[]> {
+    const grants = await this.db
+      .selectFrom('discordTicketFeatureGrants')
+      .select('threadId')
+      .distinct()
+      .where('flag', '=', flag)
+      .execute();
+    return grants.map(({ threadId }) => threadId);
+  }
+
+  async revokeTicketFeature(threadId: string, flag: string) {
+    const grants = await this.db
+      .selectFrom('discordTicketFeatureGrants')
+      .select('userId')
+      .where('threadId', '=', threadId)
+      .where('flag', '=', flag)
+      .execute();
+    for (const { userId } of grants) {
+      await inTransaction(this.db, async (trx) => {
+        await lockTicketGrants(trx, userId, flag);
+        await trx
+          .deleteFrom('discordTicketFeatureGrants')
+          .where('threadId', '=', threadId)
+          .where('userId', '=', userId)
+          .where('flag', '=', flag)
+          .execute();
+        const remaining = await trx
+          .selectFrom('discordTicketFeatureGrants')
+          .select('threadId')
+          .where('userId', '=', userId)
+          .where('flag', '=', flag)
+          .orderBy('createdAt', 'desc')
+          .executeTakeFirst();
+        if (remaining) {
+          await trx
+            .updateTable('userFeatureFlagOverride')
+            .set({ setBy: `${TICKET_GRANT_PREFIX}${remaining.threadId}`, updatedAt: new Date() })
+            .where('userId', '=', userId)
+            .where('flag', '=', flag)
+            .where('setBy', '=', `${TICKET_GRANT_PREFIX}${threadId}`)
+            .execute();
+          return;
+        }
+        await trx
+          .deleteFrom('userFeatureFlagOverride')
+          .where('userId', '=', userId)
+          .where('flag', '=', flag)
+          .where('setBy', 'like', `${TICKET_GRANT_PREFIX}%`)
+          .execute();
+      });
+    }
   }
 
   getUserSummary(userId: string) {

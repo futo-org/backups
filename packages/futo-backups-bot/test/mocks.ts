@@ -44,6 +44,7 @@ export const newDiscordRepositoryMock = (): jest.Mocked<RepositoryInterface<Disc
     listOpenTicketThreads: jest.fn().mockResolvedValue([]),
     findSupportThreadByName: jest.fn(),
     closeThread: jest.fn(),
+    isTicketClosed: jest.fn<DiscordRepository['isTicketClosed']>().mockResolvedValue(false),
     listClosedTicketThreads: jest.fn().mockResolvedValue([]),
     fetchAllMessages: jest.fn(),
     deleteThread: jest.fn(),
@@ -95,6 +96,9 @@ export const newYuccaApiRepositoryMock = (): jest.Mocked<RepositoryInterface<Yuc
     getTicketByFreshdeskId: jest.fn().mockResolvedValue(null),
     listOpenTickets: jest.fn().mockResolvedValue([]),
     updateTicket: jest.fn().mockResolvedValue(void 0),
+    enableSupportMode: jest.fn<YuccaApiRepository['enableSupportMode']>().mockResolvedValue('enabled'),
+    listSupportModeTickets: jest.fn<YuccaApiRepository['listSupportModeTickets']>().mockResolvedValue([]),
+    disableSupportMode: jest.fn<YuccaApiRepository['disableSupportMode']>().mockResolvedValue(void 0),
   };
 };
 

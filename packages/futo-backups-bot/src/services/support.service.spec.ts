@@ -1,5 +1,5 @@
 import { jest } from '@jest/globals';
-import { ThreadChannel } from 'discord.js';
+import { MessageFlags, ThreadChannel } from 'discord.js';
 import { ComponentId } from 'src/enum.js';
 import { InviteService } from 'src/services/invite.service.js';
 import { SupportService } from 'src/services/support.service.js';
@@ -70,6 +70,9 @@ const newModalInteraction = (description: string, overrides: object = {}) =>
     fields: { getTextInputValue: jest.fn().mockReturnValue(description) },
     ...overrides,
   }) as never;
+
+const supportModeCommand = (channel: unknown, roles = ['staff-role']) =>
+  newCommandInteraction({}, { commandName: 'support-mode', member: { roles }, channel });
 
 const humanMessage = (ts: number) => ({ author: { bot: false }, createdTimestamp: ts, components: [] }) as never;
 const promptMessage = (ts: number, del = jest.fn().mockResolvedValue(void 0)) =>
@@ -508,6 +511,7 @@ describe(SupportService.name, () => {
       expect(mocks.discord.findSupportThreadByName).toHaveBeenCalledWith('staff-someone-6789');
       expect(mocks.discord.closeThread).toHaveBeenCalledWith(staffThread);
       expect(mocks.discord.closeThread).toHaveBeenCalledWith(thread);
+      expect(mocks.api.disableSupportMode).toHaveBeenCalledWith('thread-1');
       expect((interaction as { editReply: jest.Mock }).editReply).toHaveBeenCalledWith(
         expect.objectContaining({ content: expect.stringContaining('closed') }),
       );
@@ -523,6 +527,147 @@ describe(SupportService.name, () => {
       await sut.handleInteraction(interaction);
 
       expect(mocks.discord.closeThread).not.toHaveBeenCalled();
+      expect(mocks.api.disableSupportMode).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('closed ticket support mode sweep', () => {
+    it('turns support mode off for tickets that closed or disappeared', async () => {
+      mocks.api.listSupportModeTickets.mockResolvedValue(['open-thread', 'closed-thread']);
+      mocks.discord.isTicketClosed.mockImplementation((threadId) => Promise.resolve(threadId === 'closed-thread'));
+
+      await sut.revokeClosedTicketSupportMode();
+
+      expect(mocks.api.disableSupportMode).toHaveBeenCalledTimes(1);
+      expect(mocks.api.disableSupportMode).toHaveBeenCalledWith('closed-thread');
+    });
+
+    it('keeps checking the other tickets after one fails', async () => {
+      mocks.api.listSupportModeTickets.mockResolvedValue(['flaky-thread', 'closed-thread']);
+      mocks.discord.isTicketClosed.mockRejectedValueOnce(new Error('Discord unavailable')).mockResolvedValueOnce(true);
+
+      await sut.revokeClosedTicketSupportMode();
+
+      expect(mocks.logger.warn).toHaveBeenCalled();
+      expect(mocks.api.disableSupportMode).toHaveBeenCalledWith('closed-thread');
+      expect(mocks.api.disableSupportMode).not.toHaveBeenCalledWith('flaky-thread');
+    });
+  });
+
+  describe('/support-mode command', () => {
+    const ticket = asThread({ id: 'thread-1', name: 'ticket-someone-6789-x', parentId: 'support-channel' });
+    const staffThread = asThread({ id: 'thread-2', name: 'staff-someone-6789-x', parentId: 'support-channel' });
+    const opening = { discordUserId: '123456789', description: 'Backups are slow' };
+
+    it('turns support mode on and tells the user how to use it when run in the ticket', async () => {
+      mocks.discord.getTicketOpening.mockResolvedValue(opening);
+      const interaction = supportModeCommand(ticket);
+
+      await sut.handleInteraction(interaction);
+
+      expect(mocks.api.enableSupportMode).toHaveBeenCalledWith('thread-1', '123456789');
+      expect(mocks.discord.sendToThread).toHaveBeenCalledWith('thread-1', {
+        content: expect.stringContaining('Send logs to FUTO'),
+        allowedMentions: { users: ['123456789'] },
+      });
+      expect((interaction as { deferReply: jest.Mock }).deferReply).toHaveBeenCalledWith({
+        flags: MessageFlags.Ephemeral,
+      });
+      expect((interaction as { editReply: jest.Mock }).editReply).toHaveBeenCalledWith({
+        content: expect.stringContaining('turns off when this ticket closes'),
+      });
+    });
+
+    it('turns support mode on for the ticket user without messaging them when run in the staff thread', async () => {
+      mocks.discord.findSupportThreadByName.mockResolvedValue(ticket as never);
+      mocks.discord.getTicketOpening.mockResolvedValue(opening);
+      const interaction = supportModeCommand(staffThread);
+
+      await sut.handleInteraction(interaction);
+
+      expect(mocks.discord.findSupportThreadByName).toHaveBeenCalledWith('ticket-someone-6789-x');
+      expect(mocks.api.enableSupportMode).toHaveBeenCalledWith('thread-1', '123456789');
+      expect(mocks.discord.sendToThread).not.toHaveBeenCalled();
+      expect((interaction as { editReply: jest.Mock }).editReply).toHaveBeenCalledWith({
+        content: expect.stringContaining('turns off when this ticket closes'),
+      });
+    });
+
+    it('says when an admin had already turned support mode on', async () => {
+      mocks.discord.getTicketOpening.mockResolvedValue(opening);
+      mocks.api.enableSupportMode.mockResolvedValue('already-enabled');
+      const interaction = supportModeCommand(ticket);
+
+      await sut.handleInteraction(interaction);
+
+      expect(mocks.discord.sendToThread).toHaveBeenCalled();
+      expect((interaction as { editReply: jest.Mock }).editReply).toHaveBeenCalledWith({
+        content: expect.stringContaining('leaves it on'),
+      });
+    });
+
+    it('reports a ticket user without a linked account', async () => {
+      mocks.discord.getTicketOpening.mockResolvedValue(opening);
+      mocks.api.enableSupportMode.mockResolvedValue('no-account');
+      const interaction = supportModeCommand(ticket);
+
+      await sut.handleInteraction(interaction);
+
+      expect(mocks.discord.sendToThread).not.toHaveBeenCalled();
+      expect((interaction as { editReply: jest.Mock }).editReply).toHaveBeenCalledWith({
+        content: expect.stringContaining('no linked'),
+      });
+    });
+
+    it('refuses when the staff thread points at a locked ticket', async () => {
+      mocks.discord.findSupportThreadByName.mockResolvedValue(asThread({ ...ticket, locked: true }) as never);
+      mocks.discord.getTicketOpening.mockResolvedValue(opening);
+      const interaction = supportModeCommand(staffThread);
+
+      await sut.handleInteraction(interaction);
+
+      expect(mocks.api.enableSupportMode).not.toHaveBeenCalled();
+      expect((interaction as { editReply: jest.Mock }).editReply).toHaveBeenCalledWith({
+        content: expect.stringContaining('could not be found'),
+      });
+    });
+
+    it('refuses when the staff thread has no open ticket', async () => {
+      mocks.discord.findSupportThreadByName.mockResolvedValue(void 0);
+      const interaction = supportModeCommand(staffThread);
+
+      await sut.handleInteraction(interaction);
+
+      expect(mocks.api.enableSupportMode).not.toHaveBeenCalled();
+      expect((interaction as { editReply: jest.Mock }).editReply).toHaveBeenCalledWith({
+        content: expect.stringContaining('could not be found'),
+      });
+    });
+
+    it('rejects non-staff', async () => {
+      const interaction = supportModeCommand(ticket, []);
+
+      await sut.handleInteraction(interaction);
+
+      expect(mocks.api.enableSupportMode).not.toHaveBeenCalled();
+      expect((interaction as { reply: jest.Mock }).reply).toHaveBeenCalledWith(
+        expect.objectContaining({ content: expect.stringContaining('staff') }),
+      );
+    });
+
+    it.each([
+      ['outside a thread', null],
+      ['in a closed ticket', asThread({ ...ticket, locked: true })],
+      ['in another channel', asThread({ ...ticket, parentId: 'other-channel' })],
+    ])('refuses %s', async (_, channel) => {
+      const interaction = supportModeCommand(channel);
+
+      await sut.handleInteraction(interaction);
+
+      expect(mocks.api.enableSupportMode).not.toHaveBeenCalled();
+      expect((interaction as { reply: jest.Mock }).reply).toHaveBeenCalledWith(
+        expect.objectContaining({ content: expect.stringContaining('open ticket') }),
+      );
     });
   });
 });

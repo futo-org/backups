@@ -1,3 +1,4 @@
+import { FeatureFlags } from '@common/server';
 import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { Duration } from 'luxon';
 import { AuthDto } from 'src/dto/auth.dto.js';
@@ -15,6 +16,9 @@ import {
   DiscordLinkRequestCreatedDto,
   DiscordLinkRequestResponseDto,
   DiscordLinkUsernameUpdateDto,
+  DiscordSupportModeDto,
+  DiscordSupportModeEnableDto,
+  DiscordSupportModeTicketListDto,
   DiscordTicketCreateDto,
   DiscordTicketDto,
   DiscordTicketListDto,
@@ -191,6 +195,21 @@ export class DiscordService {
     if (!updated) {
       throw new NotFoundException(`No ticket with id ${id}`);
     }
+  }
+
+  async enableSupportMode(threadId: string, dto: DiscordSupportModeEnableDto): Promise<DiscordSupportModeDto> {
+    const link = await this.getLink(dto.discordUserId);
+    const granted = await this.discord.grantTicketFeature(threadId, link.userId, FeatureFlags.supportLogStreaming.key);
+    return { status: granted ? 'enabled' : 'already-enabled' };
+  }
+
+  async listSupportModeTickets(): Promise<DiscordSupportModeTicketListDto> {
+    const threadIds = await this.discord.listTicketFeatureGrants(FeatureFlags.supportLogStreaming.key);
+    return { items: threadIds.map((threadId) => ({ threadId })) };
+  }
+
+  disableSupportMode(threadId: string): Promise<void> {
+    return this.discord.revokeTicketFeature(threadId, FeatureFlags.supportLogStreaming.key);
   }
 
   async getUserSummary(userId: string): Promise<DiscordUserSummaryDto> {

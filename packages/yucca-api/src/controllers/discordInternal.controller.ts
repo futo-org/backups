@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   HttpCode,
   HttpStatus,
@@ -8,6 +9,7 @@ import {
   ParseUUIDPipe,
   Patch,
   Post,
+  Put,
   UseGuards,
 } from '@nestjs/common';
 import { ApiExcludeController } from '@nestjs/swagger';
@@ -23,6 +25,9 @@ import {
   DiscordLinkRequestCreateDto,
   DiscordLinkRequestCreatedDto,
   DiscordLinkUsernameUpdateDto,
+  DiscordSupportModeDto,
+  DiscordSupportModeEnableDto,
+  DiscordSupportModeTicketListDto,
   DiscordTicketCreateDto,
   DiscordTicketDto,
   DiscordTicketListDto,
@@ -115,5 +120,24 @@ export class DiscordInternalController {
   @HttpCode(HttpStatus.NO_CONTENT)
   updateTicket(@Param('id', ParseUUIDPipe) id: string, @Body() dto: DiscordTicketUpdateDto): Promise<void> {
     return this.discord.updateTicket(id, dto);
+  }
+
+  @Get('/support-mode')
+  listSupportModeTickets(): Promise<DiscordSupportModeTicketListDto> {
+    return this.discord.listSupportModeTickets();
+  }
+
+  @Put('/support-mode/:threadId')
+  enableSupportMode(
+    @Param('threadId') threadId: string,
+    @Body() dto: DiscordSupportModeEnableDto,
+  ): Promise<DiscordSupportModeDto> {
+    return this.discord.enableSupportMode(threadId, dto);
+  }
+
+  @Delete('/support-mode/:threadId')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  disableSupportMode(@Param('threadId') threadId: string): Promise<void> {
+    return this.discord.disableSupportMode(threadId);
   }
 }
