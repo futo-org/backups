@@ -1,6 +1,26 @@
 import { toastManager } from '@immich/ui';
 import { gt } from 'svelte-i18n-lingui';
 
+let isPageUnloading = false;
+
+if (globalThis.window !== undefined) {
+  globalThis.addEventListener('pagehide', () => {
+    isPageUnloading = true;
+  });
+  globalThis.addEventListener('pageshow', () => {
+    isPageUnloading = false;
+  });
+}
+
+function isServerError(error: unknown) {
+  if (typeof error !== 'object' || error === null) {
+    return false;
+  }
+
+  const { status, data } = error as { status?: unknown; data?: unknown };
+  return status !== undefined || data !== undefined;
+}
+
 export function getServerErrorMessage(error: {
   data?: { message?: string };
   message?: string;
@@ -42,8 +62,14 @@ export function handleError(error: unknown, localizedMessage: string) {
     standardizedError.stack,
   );
 
+  if (isPageUnloading) {
+    return;
+  }
+
   try {
-    let serverMessage = getServerErrorMessage(error as never);
+    let serverMessage = isServerError(error)
+      ? getServerErrorMessage(error as never)
+      : undefined;
     if (serverMessage) {
       serverMessage = `${String(serverMessage).slice(0, 75)}\n(Yucca Server Error)`;
     }
