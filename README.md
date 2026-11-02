@@ -96,6 +96,13 @@ original issue and recent ticket messages, including mirrored email replies,
 and bypass automatic triage. Set `COLUMBO_URL` and the shared `INTERNAL_SECRET`
 to connect the bot to Columbo.
 
+Staff can run `/support-mode` in a ticket or its staff-notes thread to let the
+ticket's user stream support-mode logs to FUTO. Run in the ticket, it also posts
+the steps for turning support mode on in the app. It turns off again once every
+ticket that turned it on is closed, resolved in Freshdesk or handed off. If an
+admin turns it off with `yuctl` while a ticket is open, it stays off; an
+admin's earlier on is left in place when the tickets close.
+
 Automatic investigations wait for one minute of ticket-owner inactivity before
 starting. Set `COLUMBO_TICKET_QUIET_SECONDS` to change the delay, or `0` to disable
 it. Follow-up messages and supported attachments are fetched before triage;

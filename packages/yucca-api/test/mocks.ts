@@ -50,6 +50,9 @@ export const newDiscordRepositoryMock = (): jest.Mocked<RepositoryInterface<Disc
     getTicketByFreshdeskId: jest.fn(),
     listOpenTickets: jest.fn().mockResolvedValue([]),
     updateTicket: jest.fn().mockResolvedValue(true),
+    grantTicketFeature: jest.fn(),
+    listTicketFeatureGrants: jest.fn<DiscordRepository['listTicketFeatureGrants']>().mockResolvedValue([]),
+    revokeTicketFeature: jest.fn<DiscordRepository['revokeTicketFeature']>().mockResolvedValue(void 0),
     getUserSummary: jest.fn(),
   };
 };

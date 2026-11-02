@@ -486,6 +486,7 @@ describe(FreshdeskSyncService.name, () => {
       expect(mocks.discord.closeThread).toHaveBeenCalledTimes(2);
       expect(mocks.freshdesk.resolveTicket).not.toHaveBeenCalled();
       expect(mocks.freshdesk.setRequester).toHaveBeenCalledWith('42', 'someone@example.test', 'Someone');
+      expect(mocks.api.disableSupportMode).toHaveBeenCalledWith('thread-1');
       expect(mocks.api.updateTicket).toHaveBeenCalledWith('map-1', { closed: true });
     });
 
@@ -610,10 +611,23 @@ describe(FreshdeskSyncService.name, () => {
         expect.objectContaining({ content: expect.stringContaining('<@cust>') }),
       );
       expect(mocks.discord.closeThread).toHaveBeenCalledTimes(2);
+      expect(mocks.api.disableSupportMode).toHaveBeenCalledWith('thread-1');
       expect(mocks.api.updateTicket).toHaveBeenCalledWith('map-1', { closed: true });
       expect((interaction as { editReply: jest.Mock }).editReply).toHaveBeenCalledWith(
         expect.objectContaining({ content: expect.stringContaining('Handed off') }),
       );
+    });
+
+    it('still closes the ticket when support mode cannot be turned off', async () => {
+      mocks.api.getTicketByThread.mockResolvedValue(mapping);
+      mocks.api.getUserSummary.mockResolvedValue(summary);
+      mocks.discord.getThreadById.mockResolvedValue({} as never);
+      mocks.api.disableSupportMode.mockRejectedValue(new Error('yucca-api down'));
+
+      await sut.onHandoffCommand(staffInteraction());
+
+      expect(mocks.logger.warn).toHaveBeenCalled();
+      expect(mocks.api.updateTicket).toHaveBeenCalledWith('map-1', { closed: true });
     });
 
     it('refuses non-staff', async () => {

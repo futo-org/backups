@@ -47,6 +47,20 @@ export const Messages = {
   investigationNoAccount: 'This ticket has no linked FUTO Backups account to investigate.',
   investigationQueued: 'Investigation queued. Columbo will post its findings in this staff thread.',
   investigationRequested: (staffId: string) => `Investigation requested by <@${staffId}>.`,
+  staffOnlySupportMode: 'Only staff can turn on support mode.',
+  supportModeNotATicket: 'Run this inside an open ticket or its staff-notes thread.',
+  supportModeMissingTicket: 'The open ticket for this thread could not be found.',
+  supportModeNoAccount: 'This ticket has no linked FUTO Backups account to turn support mode on for.',
+  supportModeEnabled: 'Support mode is on for this user and turns off when this ticket closes.',
+  supportModeAlreadyEnabled:
+    'Support mode was already turned on for this user by an admin, so closing this ticket leaves it on.',
+  supportModeInstructions: (userId: string) =>
+    [
+      `<@${userId}>, we turned on support mode for your account, so your backups can send us detailed logs.`,
+      '1. In Immich, go to **Administration → Backups → Configure**. In the standalone app, open **Settings**.',
+      "2. Open **Support mode**, set **Runs in support mode** to the number of runs to record, turn on **Send logs to FUTO** and click **Save**. If you don't see **Send logs to FUTO**, reload the page.",
+      '3. Start a backup, or wait for the next one. When it finishes, open its **View Log** and send us the **Support code** shown there.',
+    ].join('\n'),
   versionsHeader: 'Versions observed (last 30 days):',
   versionsUnknown: 'Versions: unknown — no version telemetry found.',
   versionsUnavailable: 'Versions: unknown — telemetry lookup unavailable.',

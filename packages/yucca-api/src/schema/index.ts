@@ -7,6 +7,7 @@ import { DiscordInviteBatchTable } from './tables/discordInviteBatch.table.js';
 import { DiscordLinkTable } from './tables/discordLink.table.js';
 import { DiscordLinkRequestTable } from './tables/discordLinkRequest.table.js';
 import { DiscordTicketTable } from './tables/discordTicket.table.js';
+import { DiscordTicketFeatureGrantTable } from './tables/discordTicketFeatureGrant.table.js';
 import { RepositoryTable } from './tables/repository.table.js';
 import { RepositoryMeterTable } from './tables/repositoryMeter.table.js';
 import { RepositoryMeterHistoryTable } from './tables/repositoryMeterHistory.table.js';
@@ -42,6 +43,7 @@ export class ImmichDatabase {
     DiscordLinkRequestTable,
     DiscordInviteBatchTable,
     DiscordTicketTable,
+    DiscordTicketFeatureGrantTable,
     SupportLogSessionTable,
     SupportLogSessionReportTable,
   ];
@@ -70,6 +72,7 @@ export interface DB {
   discordLinkRequests: DiscordLinkRequestTable;
   discordInviteBatches: DiscordInviteBatchTable;
   discordTickets: DiscordTicketTable;
+  discordTicketFeatureGrants: DiscordTicketFeatureGrantTable;
   supportLogSessions: SupportLogSessionTable;
   supportLogSessionReports: SupportLogSessionReportTable;
 }
