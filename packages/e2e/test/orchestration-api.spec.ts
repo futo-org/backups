@@ -539,7 +539,7 @@ describe('Repository', () => {
   });
 
   it('returns 404 when downloading the log of an unknown job', async () => {
-    await expect(sdk.futoBackupsDownloadJobLog('does-not-exist')).rejects.toMatchObject({ status: 404 });
+    await expect(sdk.futoBackupsDownloadJobLog(randomUUID())).rejects.toMatchObject({ status: 404 });
   });
 
   it('list snapshots', async () => {
@@ -940,7 +940,11 @@ describe('Repository pruning', () => {
 
 describe('Job cancellation', () => {
   it('returns 404 when cancelling an unknown job', async () => {
-    await expect(sdk.futoBackupsCancelJob('does-not-exist')).rejects.toMatchObject({ status: 404 });
+    await expect(sdk.futoBackupsCancelJob(randomUUID())).rejects.toMatchObject({ status: 404 });
+  });
+
+  it('returns 400 when cancelling a job id that is not a uuid', async () => {
+    await expect(sdk.futoBackupsCancelJob('does-not-exist')).rejects.toMatchObject({ status: 400 });
   });
 
   it('cancels an in-progress backup', async () => {

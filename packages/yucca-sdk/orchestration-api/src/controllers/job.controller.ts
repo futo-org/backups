@@ -2,6 +2,7 @@ import { Controller, Delete, Get, HttpCode, NotFoundException, Param, Query, Res
 import { ApiNoContentResponse, ApiOkResponse, ApiOperation, ApiParam } from '@nestjs/swagger';
 import { type Response } from 'express';
 import { JobDto, JobListRequestDto, JobListResponseDto } from '../dto/job.dto.js';
+import { UUIDParamDto } from '../dto/param.dto.js';
 import { JobRepository } from '../repositories/job.repository.js';
 import { StorageRepository } from '../repositories/storage.repository.js';
 import { supportLogFilePath } from '../services/supportMode.service.js';
@@ -32,7 +33,7 @@ export class JobController {
     summary: 'Get a job',
     description: 'Get the status of a job.',
   })
-  async getJob(@Param('id') id: string): Promise<JobDto> {
+  async getJob(@Param() { id }: UUIDParamDto): Promise<JobDto> {
     const job = await this.repository.get(id);
     if (!job) {
       throw new NotFoundException('Job not found');
@@ -50,7 +51,7 @@ export class JobController {
     summary: 'Cancel a job',
     description: 'Cancel a queued job, or stop it if it is already running.',
   })
-  cancelJob(@Param('id') id: string): Promise<void> {
+  cancelJob(@Param() { id }: UUIDParamDto): Promise<void> {
     return this.repository.cancel(id);
   }
 
@@ -62,7 +63,7 @@ export class JobController {
     summary: 'Download a job log',
     description: 'Download the full log of a job as JSON lines.',
   })
-  async downloadJobLog(@Param('id') id: string, @Res() response: Response): Promise<void> {
+  async downloadJobLog(@Param() { id }: UUIDParamDto, @Res() response: Response): Promise<void> {
     const logFilePath = await this.repository.getLogFilePath(id);
     if (!logFilePath) {
       throw new NotFoundException('Job not found');
@@ -79,7 +80,7 @@ export class JobController {
     summary: 'Download a job support log',
     description: 'Download the verbose restic output recorded while the job ran in support mode, as JSON lines.',
   })
-  async downloadJobSupportLog(@Param('id') id: string, @Res() response: Response): Promise<void> {
+  async downloadJobSupportLog(@Param() { id }: UUIDParamDto, @Res() response: Response): Promise<void> {
     const logFilePath = await this.repository.getLogFilePath(id);
     if (!logFilePath) {
       throw new NotFoundException('Job not found');

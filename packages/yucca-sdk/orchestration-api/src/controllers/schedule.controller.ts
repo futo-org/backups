@@ -1,5 +1,6 @@
 import { Body, Controller, Delete, Get, Param, Patch, Post } from '@nestjs/common';
 import { ApiCreatedResponse, ApiOkResponse, ApiOperation, ApiParam } from '@nestjs/swagger';
+import { UUIDParamDto } from '../dto/param.dto.js';
 import {
   ScheduleCreateRequestDto,
   ScheduleCreateResponseDto,
@@ -43,7 +44,10 @@ export class ScheduleController {
     summary: 'Update a schedule',
     description: 'Update a backup schedule.',
   })
-  updateSchedule(@Param('id') id: string, @Body() dto: ScheduleUpdateRequestDto): Promise<ScheduleUpdateResponseDto> {
+  updateSchedule(
+    @Param() { id }: UUIDParamDto,
+    @Body() dto: ScheduleUpdateRequestDto,
+  ): Promise<ScheduleUpdateResponseDto> {
     return this.service.updateSchedule(id, dto);
   }
 
@@ -55,7 +59,7 @@ export class ScheduleController {
     description: 'Delete a backup schedule.',
   })
   @ApiOkResponse()
-  removeSchedule(@Param('id') id: string): Promise<void> {
+  removeSchedule(@Param() { id }: UUIDParamDto): Promise<void> {
     return this.service.removeSchedule(id);
   }
 }
