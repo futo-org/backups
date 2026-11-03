@@ -293,7 +293,7 @@ describe('Postgres orchestration schema', () => {
       { publish: () => {} } as never,
       LoggingRepository.create(),
       {} as never,
-      { begin: async () => undefined } as never,
+      { begin: () => Promise.resolve() } as never,
       new SupportContextRepository(),
     );
     jobs.onModuleInit();
