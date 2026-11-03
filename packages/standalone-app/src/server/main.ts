@@ -7,8 +7,9 @@ import express from 'express';
 import { PGliteDialect } from 'kysely-pglite-dialect';
 import { ZodValidationPipe } from 'nestjs-zod';
 import { existsSync } from 'node:fs';
-import { mkdir, stat } from 'node:fs/promises';
+import { mkdir, stat, writeFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
+import { CACHEDIR_TAG_CONTENTS, CACHEDIR_TAG_FILE_NAME } from './consts.js';
 import { readEnv } from './env.js';
 
 async function bootstrap() {
@@ -31,6 +32,7 @@ async function bootstrap() {
   }
 
   const database = await PGlite.create({ dataDir: databasePath, loadDataDir });
+  await writeFile(resolve(databasePath, CACHEDIR_TAG_FILE_NAME), CACHEDIR_TAG_CONTENTS);
 
   const app = await NestFactory.create<NestExpressApplication>(
     OrchestrationApiModule.forRootAsync({
