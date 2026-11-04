@@ -13,6 +13,12 @@ export type ImmichDatabaseDumpConfig = {
   keepLastAmount: number;
 };
 
+export type DatabaseHooks = {
+  tagName: string;
+  dump(signal: AbortSignal): Promise<string>;
+  cleanup?(): Promise<void>;
+};
+
 export type ImmichIntegration = {
   dataPath: string;
   dataFolders: string[];
@@ -23,8 +29,6 @@ export type ImmichIntegration = {
     exclusionPatterns: string[];
   }[];
   hooks: {
-    createDatabaseBackup(signal: AbortSignal): Promise<string>;
-    cleanupDatabaseBackups(): Promise<void>;
     getImmichDatabaseDumpConfig(): Promise<ImmichDatabaseDumpConfig>;
     configureImmichDatabaseDump(config: Partial<ImmichDatabaseDumpConfig>): Promise<void>;
     enterMaintenanceRollback(
@@ -51,6 +55,8 @@ export type ModuleConfig = {
 
   authenticate?: AuthenticateFn;
   onInternalEvent?: (event: GatewayEvent) => void;
+
+  databaseHooks?: DatabaseHooks;
 
   immichIntegration?: ImmichIntegration;
 };

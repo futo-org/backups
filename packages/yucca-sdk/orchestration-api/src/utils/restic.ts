@@ -38,3 +38,6 @@ export const createSampledLogWriter = <T extends BackupMessage | RestoreMessage>
     log(event);
   };
 };
+
+export const getDatabaseBackupFileName = (tags: string[] | undefined, tagName: string) =>
+  tags?.find((tag) => tag.startsWith(`${tagName}=`))?.slice(tagName.length + 1);

@@ -95,7 +95,3 @@ export enum TelemetryLevel {
   Full = 'full',
   None = 'none',
 }
-
-export enum ResticTagPrefix {
-  ImmichBackupFileName = 'yucca.v1.immichBackupFileName',
-}

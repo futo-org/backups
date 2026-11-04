@@ -16,6 +16,13 @@ async function bootstrap() {
         dialect: new PGliteDialect(database),
         wellKnownUrl: process.env.FUTO_BACKUPS_WELL_KNOWN_URL,
         developmentMode: true,
+        databaseHooks: {
+          tagName: 'yucca.v1.immichBackupFileName',
+          dump() {
+            return Promise.resolve('dev-database-backup.sql');
+          },
+          async cleanup() {},
+        },
         immichIntegration: {
           dataFolders: ['upload', 'profile', 'library', 'backups', 'thumbs', 'encoded-video'],
           dataPath: '/immich_data',
@@ -28,10 +35,6 @@ async function bootstrap() {
             },
           ],
           hooks: {
-            createDatabaseBackup() {
-              return Promise.resolve('dev-database-backup.sql');
-            },
-            async cleanupDatabaseBackups() {},
             getImmichDatabaseDumpConfig() {
               return Promise.resolve(databaseDumpConfig);
             },
