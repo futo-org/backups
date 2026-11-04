@@ -34,19 +34,25 @@ export async function createPGliteDatabase(databasePath: string, statePath: stri
       return STATE_DUMP_FILE_NAME;
     },
     async restore(fileName) {
+      const nextDatabasePath = `${databasePath}.next`;
       const previousDatabasePath = `${databasePath}.previous`;
-      const dump = await openAsBlob(resolve(statePath, fileName));
-      await database.close();
+      await rm(nextDatabasePath, { recursive: true, force: true });
       await rm(previousDatabasePath, { recursive: true, force: true });
-      await rename(databasePath, previousDatabasePath);
 
+      const dump = await openAsBlob(resolve(statePath, fileName));
+      const next = await PGlite.create({ dataDir: nextDatabasePath, loadDataDir: dump });
+      await next.close();
+
+      await database.close();
       try {
-        database = await PGlite.create({ dataDir: databasePath, loadDataDir: dump });
-      } catch (error) {
-        await rm(databasePath, { recursive: true, force: true });
-        await rename(previousDatabasePath, databasePath);
+        await rename(databasePath, previousDatabasePath);
+        await rename(nextDatabasePath, databasePath);
+      } finally {
+        if (!existsSync(databasePath)) {
+          await rename(previousDatabasePath, databasePath);
+        }
+
         database = await PGlite.create({ dataDir: databasePath });
-        throw error;
       }
 
       await writeFile(resolve(databasePath, CACHEDIR_TAG_FILE_NAME), CACHEDIR_TAG_CONTENTS);
