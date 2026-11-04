@@ -7,6 +7,8 @@ import { getBytesPerMs, sampleUploadRate, startUploadRate, type UploadRate } fro
 
 export type JobLogEvent = BackupMessage | RestoreMessage | ErrorMessage | ForgetMessage;
 
+const MAX_ESTIMATED_PERCENT_DONE = 0.99;
+
 type StatusMessage<T> = Extract<T, { message_type: 'status' }>;
 type ResticStatus = StatusMessage<BackupMessage> & Partial<StatusMessage<RestoreMessage>>;
 
@@ -15,6 +17,7 @@ export class JobContext {
   progress?: JobProgressDto;
 
   private scanFinished = false;
+  private expectedBytes?: number;
   private rate?: UploadRate;
   private shown?: ShownEstimate;
 
@@ -22,6 +25,10 @@ export class JobContext {
     readonly signal: AbortSignal,
     readonly logWriter: Writable,
   ) {}
+
+  expectTotalBytes(bytes: number) {
+    this.expectedBytes = bytes;
+  }
 
   log(event: JobLogEvent) {
     this.logWriter.write(JSON.stringify(event) + '\n');
@@ -39,15 +46,26 @@ export class JobContext {
       case 'status': {
         const status: ResticStatus = event;
         const bytesDone = status.bytes_done ?? status.bytes_restored;
+        const expected = status.total_bytes === undefined ? this.expectedBytes : undefined;
+        const outgrown = expected !== undefined && (bytesDone ?? 0) >= expected;
+        const totalBytes = outgrown ? undefined : (expected ?? status.total_bytes);
 
-        this.scanFinished ||= status.seconds_remaining !== undefined || status.bytes_restored !== undefined;
+        this.scanFinished ||=
+          expected !== undefined || status.seconds_remaining !== undefined || status.bytes_restored !== undefined;
+
+        let percentDone = Math.min(status.percent_done, 1);
+        if (expected !== undefined) {
+          percentDone = outgrown
+            ? MAX_ESTIMATED_PERCENT_DONE
+            : Math.min((bytesDone ?? 0) / expected, MAX_ESTIMATED_PERCENT_DONE);
+        }
 
         const progress = {
-          percentDone: Math.min(status.percent_done, 1),
+          percentDone,
           scanning: !this.scanFinished,
-          estimatedEndAt: this.estimateEnd(bytesDone, status.total_bytes),
+          estimatedEndAt: this.estimateEnd(bytesDone, totalBytes),
           bytesDone,
-          totalBytes: status.total_bytes,
+          totalBytes,
           currentFiles: status.current_files ?? [],
         };
 
@@ -60,6 +78,10 @@ export class JobContext {
       case 'summary': {
         this.progress = {
           ...this.progress,
+          ...('total_bytes_processed' in event && {
+            bytesDone: event.total_bytes_processed,
+            totalBytes: event.total_bytes_processed,
+          }),
           percentDone: 1,
           scanning: false,
           estimatedEndAt: undefined,

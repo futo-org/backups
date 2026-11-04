@@ -1,13 +1,15 @@
 import { jest } from '@jest/globals';
 import { randomUUID } from 'node:crypto';
-import { access, mkdtemp, readFile } from 'node:fs/promises';
+import { access, mkdir, mkdtemp, readFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { JobName, JobStatus } from '../src/enum.js';
+import { ConfigurationKey, JobName, JobStatus } from '../src/enum.js';
 import { type GatewayEvent } from '../src/events/events.gateway.js';
 import { ConfigRepository } from '../src/repositories/config.repository.js';
 import { JobRepository } from '../src/repositories/job.repository.js';
 import { ModuleConfigRepository } from '../src/repositories/moduleConfig.repository.js';
+import { BootstrapService } from '../src/services/bootstrap.service.js';
+import { OnboardingService } from '../src/services/onboarding.service.js';
 import { RepositoryService } from '../src/services/repository.service.js';
 import { SupportSession } from '../src/utils/supportSession.js';
 import { createTestingModule, TestContext } from './testUtils.js';
@@ -259,9 +261,9 @@ describe(JobRepository.name, () => {
     expect(latest?.id).not.toBe(importedId);
   });
 
-  it('finds the snapshot of the most recent backup that produced one', async () => {
+  it('finds the snapshot and size of the most recent backup that produced one', async () => {
     const jobs = ctx.module.get(JobRepository);
-    await expect(jobs.getLastSnapshotId(repositoryId)).resolves.toBeUndefined();
+    await expect(jobs.getLastBackup(repositoryId)).resolves.toBeUndefined();
 
     const inserted = await ctx.db
       .insertInto('futo_backups_jobs')
@@ -273,7 +275,13 @@ describe(JobRepository.name, () => {
             snapshotId: 'snapshot-old',
             date: '2100-01-01',
           },
-          { name: JobName.RepositoryBackup, status: JobStatus.Warn, snapshotId: 'snapshot-new', date: '2100-01-02' },
+          {
+            name: JobName.RepositoryBackup,
+            status: JobStatus.Warn,
+            snapshotId: 'snapshot-new',
+            totalBytes: 5_000_000,
+            date: '2100-01-02',
+          },
           { name: JobName.RepositoryBackup, status: JobStatus.Failed, snapshotId: undefined, date: '2100-01-03' },
           { name: JobName.RepositoryBackup, status: JobStatus.Incomplete, snapshotId: null, date: '2100-01-04' },
           {
@@ -282,7 +290,7 @@ describe(JobRepository.name, () => {
             snapshotId: 'snapshot-restore',
             date: '2100-01-05',
           },
-        ].map(({ name, status, snapshotId, date }) => ({
+        ].map(({ name, status, snapshotId, totalBytes, date }) => ({
           name,
           repositoryId,
           data: { repositoryId, snapshotId: 'snapshot-1' },
@@ -299,7 +307,7 @@ describe(JobRepository.name, () => {
                         filesNew: 0,
                         filesChanged: 0,
                         totalFilesProcessed: 0,
-                        totalBytesProcessed: 0,
+                        totalBytesProcessed: totalBytes ?? 0,
                       }
                     : undefined,
                 },
@@ -310,7 +318,10 @@ describe(JobRepository.name, () => {
       .returning('id')
       .execute();
 
-    await expect(jobs.getLastSnapshotId(repositoryId)).resolves.toBe('snapshot-new');
+    await expect(jobs.getLastBackup(repositoryId)).resolves.toEqual({
+      snapshotId: 'snapshot-new',
+      totalBytes: 5_000_000,
+    });
 
     await ctx.db
       .deleteFrom('futo_backups_jobs')
@@ -478,6 +489,222 @@ describe(JobRepository.name, () => {
     const settled = await settling;
     expect(settled.map((result) => result.status)).toEqual(['rejected', 'rejected']);
     expect(await jobs.getAll(repository.id)).toEqual([]);
+  });
+});
+
+const restorePoint = async (failStateRestore = false) => {
+  ctx.module.get(ModuleConfigRepository).update({
+    databaseHooks: {
+      tagName: 'yucca.v1.stateDumpFileName',
+      dump: () => Promise.resolve('state.dump'),
+      restore: async () => {
+        await ctx.db.deleteFrom('futo_backups_jobs').where('name', '=', JobName.RepositoryRestoreFromPoint).execute();
+        await ctx.module.get(ConfigRepository).skipExtraConfig();
+      },
+    },
+  });
+  ctx.resticMock.snapshot.mockResolvedValue([
+    { id: 'snapshot-1', time: new Date(), tags: ['yucca.v1.stateDumpFileName=state.dump'] },
+  ] as never);
+  ctx.resticMock.restore.mockImplementation((async (...args: unknown[]) => {
+    const { target } = args[4] as { target?: string };
+    if (!target) {
+      return;
+    }
+
+    if (failStateRestore) {
+      throw new Error('restic restore failed');
+    }
+
+    await mkdir(join(target, 'state'), { recursive: true });
+  }) as never);
+
+  const { jobId } = await ctx.module
+    .get(RepositoryService)
+    .restoreFromPoint('remote-repository', 'snapshot-1', ctx.backendId, {
+      include: ['/photos'],
+      yuccaConfig: 'state',
+    });
+
+  return jobId;
+};
+
+const marker = () =>
+  ctx.db
+    .selectFrom('futo_backups_config')
+    .select('value')
+    .where('key', '=', ConfigurationKey.SkippedOnboardingExtraConfig)
+    .executeTakeFirst();
+
+const restoreJobId = async () => (await ctx.module.get(OnboardingService).onboardingStatus()).restoreJobId;
+
+describe('restore from point', () => {
+  afterEach(async () => {
+    ctx.resticMock.restore.mockReset();
+    ctx.resticMock.snapshot.mockResolvedValue([] as never);
+    ctx.module.get(ModuleConfigRepository).update({ databaseHooks: undefined });
+    await ctx.db
+      .deleteFrom('futo_backups_config')
+      .where('key', 'in', [ConfigurationKey.SkippedOnboardingExtraConfig, ConfigurationKey.RestoreAwaitingContinue])
+      .execute();
+  });
+
+  it('restores the files and the previous install state for a repository not yet known locally', async () => {
+    const jobs = ctx.module.get(JobRepository);
+
+    const jobId = await restorePoint();
+    await expect(jobs.wait(jobId)).resolves.toMatchObject({ id: jobId, status: JobStatus.Complete });
+
+    expect(ctx.resticMock.restore).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.anything(),
+      expect.anything(),
+      'snapshot-1',
+      { include: ['/photos'] },
+      expect.anything(),
+      expect.any(AbortSignal),
+    );
+    await expect(marker()).resolves.toEqual({ value: { isSkipped: true } });
+    await expect(getJob(jobId)).resolves.toMatchObject({ status: JobStatus.Complete });
+  });
+
+  it('fails without touching the current state when the state restore fails', async () => {
+    const jobs = ctx.module.get(JobRepository);
+
+    const jobId = await restorePoint(true);
+    await expect(jobs.wait(jobId)).rejects.toThrow('restic restore failed');
+
+    await expect(marker()).resolves.toBeUndefined();
+    await expect(getJob(jobId)).resolves.toMatchObject({ status: JobStatus.Failed });
+    await expect(restoreJobId()).resolves.toBeUndefined();
+  });
+
+  it('keeps offering a finished restore after a job queued behind it runs', async () => {
+    const jobs = ctx.module.get(JobRepository);
+    const started = Promise.withResolvers<void>();
+    const released = Promise.withResolvers<void>();
+    ctx.resticMock.restore.mockImplementationOnce(() => {
+      started.resolve();
+      return released.promise as never;
+    });
+
+    const { jobId } = await ctx.module
+      .get(RepositoryService)
+      .restoreFromPoint('remote-repository', 'snapshot-1', ctx.backendId, { include: ['/photos'] });
+    await started.promise;
+    const laterId = await jobs.queue(forget('snapshot-1'));
+
+    released.resolve();
+    await jobs.wait(jobId);
+    await jobs.wait(laterId);
+
+    await expect(restoreJobId()).resolves.toBe(jobId);
+  });
+
+  it('keeps the restore visible to every worker once the previous install state replaces the database', async () => {
+    const jobs = ctx.module.get(JobRepository);
+    const bootstrapService = ctx.module.get(BootstrapService);
+    const runBootstrap = bootstrapService.onApplicationBootstrap.bind(bootstrapService);
+    const swapped = Promise.withResolvers<void>();
+    const released = Promise.withResolvers<void>();
+    const bootstrap = jest.spyOn(bootstrapService, 'onApplicationBootstrap').mockImplementationOnce(async () => {
+      await runBootstrap();
+      swapped.resolve();
+      await released.promise;
+    });
+
+    try {
+      const jobId = await restorePoint();
+      await swapped.promise;
+
+      await expect(marker()).resolves.toEqual({ value: { isSkipped: true } });
+      await expect(getJob(jobId)).resolves.toMatchObject({ status: JobStatus.Running });
+      await expect(jobs.get(jobId)).resolves.toMatchObject({ id: jobId, status: JobStatus.Running });
+      await expect(restoreJobId()).resolves.toBe(jobId);
+
+      released.resolve();
+      await jobs.wait(jobId);
+
+      await expect(restoreJobId()).resolves.toBe(jobId);
+
+      await jobs.wait(await jobs.queue(forget('snapshot-1')));
+
+      await expect(restoreJobId()).resolves.toBe(jobId);
+
+      await ctx.module.get(OnboardingService).continueAfterRestore();
+
+      await expect(restoreJobId()).resolves.toBeUndefined();
+    } finally {
+      bootstrap.mockRestore();
+    }
+  });
+
+  it('rejects a second restore while one is running', async () => {
+    const jobs = ctx.module.get(JobRepository);
+    const repositoryService = ctx.module.get(RepositoryService);
+    const started = Promise.withResolvers<void>();
+    const released = Promise.withResolvers<void>();
+    ctx.resticMock.restore.mockImplementationOnce(() => {
+      started.resolve();
+      return released.promise as never;
+    });
+
+    const { jobId } = await repositoryService.restoreFromPoint('remote-repository', 'snapshot-1', ctx.backendId, {
+      include: ['/photos'],
+    });
+    await started.promise;
+
+    await expect(
+      repositoryService.restoreFromPoint('remote-repository', 'snapshot-2', ctx.backendId, { include: ['/photos'] }),
+    ).rejects.toThrow('A restore is already in progress');
+
+    released.resolve();
+    await jobs.wait(jobId);
+  });
+
+  it('rejects a second restore while one is queued', async () => {
+    const jobs = ctx.module.get(JobRepository);
+    const repositoryService = ctx.module.get(RepositoryService);
+    const started = blockForgetUntilAborted();
+
+    const forgetId = await jobs.queue(forget('snapshot-1'));
+    await started;
+    const { jobId } = await repositoryService.restoreFromPoint('remote-repository', 'snapshot-1', ctx.backendId, {
+      include: ['/photos'],
+    });
+    const laterId = await jobs.queue(forget('snapshot-2'));
+
+    await expect(restoreJobId()).resolves.toBe(jobId);
+    await expect(
+      repositoryService.restoreFromPoint('remote-repository', 'snapshot-2', ctx.backendId, { include: ['/photos'] }),
+    ).rejects.toThrow('A restore is already in progress');
+
+    await jobs.cancel(forgetId);
+    await jobs.wait(jobId);
+    await jobs.wait(laterId);
+  });
+
+  it('queues only one of two restores requested at the same time', async () => {
+    const jobs = ctx.module.get(JobRepository);
+    const repositoryService = ctx.module.get(RepositoryService);
+    const started = blockForgetUntilAborted();
+
+    const forgetId = await jobs.queue(forget('snapshot-1'));
+    await started;
+    const results = await Promise.allSettled(
+      ['snapshot-1', 'snapshot-2'].map((snapshotId) =>
+        repositoryService.restoreFromPoint('remote-repository', snapshotId, ctx.backendId, { include: ['/photos'] }),
+      ),
+    );
+
+    expect(results.map((result) => result.status).toSorted()).toEqual(['fulfilled', 'rejected']);
+
+    await jobs.cancel(forgetId);
+    for (const result of results) {
+      if (result.status === 'fulfilled') {
+        await jobs.wait(result.value.jobId);
+      }
+    }
   });
 });
 

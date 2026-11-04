@@ -22,6 +22,7 @@ export type SupportLogEndpoint = {
 
 export type SupportLogShipperOptions = {
   maxBufferBytes: number;
+  essentialReserveBytes: number;
   batchBytes: number;
   maxInFlight: number;
   flushIntervalMs: number;
@@ -31,6 +32,7 @@ export type SupportLogShipperOptions = {
 
 const DEFAULT_OPTIONS: SupportLogShipperOptions = {
   maxBufferBytes: 64 * 1024 * 1024,
+  essentialReserveBytes: 8 * 1024 * 1024,
   batchBytes: 4 * 1024 * 1024,
   maxInFlight: 4,
   flushIntervalMs: 2000,
@@ -45,6 +47,8 @@ const ABORT_GRACE_MS = 1000;
 
 type Batch = { lines: string[]; bytes: number };
 
+type Lane = 'essential' | 'expendable';
+
 type InFlight = { lines: number; settled: boolean };
 
 class PermanentError extends Error {}
@@ -53,8 +57,8 @@ export class SupportLogShipper {
   private readonly logger = LoggingRepository.create(SupportLogShipper.name);
   private readonly options: SupportLogShipperOptions;
 
-  private current: Batch = { lines: [], bytes: 0 };
-  private sealed: Batch[] = [];
+  private current: Record<Lane, Batch> = { essential: { lines: [], bytes: 0 }, expendable: { lines: [], bytes: 0 } };
+  private sealed: Record<Lane, Batch[]> = { essential: [], expendable: [] };
   private bufferedBytes = 0;
   private droppedSinceLastBatch = 0;
   private seq = 0;
@@ -76,19 +80,21 @@ export class SupportLogShipper {
     this.timer.unref();
   }
 
-  push(line: SupportLogLine) {
+  push(line: SupportLogLine, { expendable = false }: { expendable?: boolean } = {}) {
     const json = JSON.stringify(line);
     const bytes = Buffer.byteLength(json, 'utf8') + 1;
-    if (this.stopped || this.bufferedBytes + bytes > this.options.maxBufferBytes) {
+    const limit = this.options.maxBufferBytes + (expendable ? 0 : this.options.essentialReserveBytes);
+    if (this.stopped || this.bufferedBytes + bytes > limit) {
       this.drop(1);
       return;
     }
 
-    this.current.lines.push(json);
-    this.current.bytes += bytes;
+    const current = this.current[expendable ? 'expendable' : 'essential'];
+    current.lines.push(json);
+    current.bytes += bytes;
     this.bufferedBytes += bytes;
 
-    if (this.current.bytes >= this.options.batchBytes) {
+    if (current.bytes >= this.options.batchBytes) {
       this.seal();
     }
   }
@@ -110,8 +116,10 @@ export class SupportLogShipper {
       }
     }
 
-    this.drop(this.sealed.reduce((total, batch) => total + batch.lines.length, 0));
-    this.sealed = [];
+    this.drop(
+      [...this.sealed.essential, ...this.sealed.expendable].reduce((total, batch) => total + batch.lines.length, 0),
+    );
+    this.sealed = { essential: [], expendable: [] };
   }
 
   private settle(inFlight: InFlight, delivered: boolean) {
@@ -131,18 +139,28 @@ export class SupportLogShipper {
   }
 
   private seal() {
-    if (this.current.lines.length > 0) {
-      this.sealed.push(this.current);
-      this.current = { lines: [], bytes: 0 };
+    for (const lane of ['essential', 'expendable'] as const) {
+      if (this.current[lane].lines.length > 0) {
+        this.sealed[lane].push(this.current[lane]);
+        this.current[lane] = { lines: [], bytes: 0 };
+      }
     }
 
     this.dispatchSealed();
   }
 
+  private get sealedCount() {
+    return this.sealed.essential.length + this.sealed.expendable.length;
+  }
+
+  private nextSealed() {
+    return this.sealed.essential.shift() ?? this.sealed.expendable.shift();
+  }
+
   private dispatchSealed() {
     const heldForFinal = this.finishing ? 1 : 0;
-    while (!this.stopped && this.inFlight.size < this.options.maxInFlight && this.sealed.length > heldForFinal) {
-      void this.dispatch(this.sealed.shift()!, false);
+    while (!this.stopped && this.inFlight.size < this.options.maxInFlight && this.sealedCount > heldForFinal) {
+      void this.dispatch(this.nextSealed()!, false);
     }
   }
 
@@ -166,7 +184,7 @@ export class SupportLogShipper {
       return;
     }
 
-    const last = this.sealed.shift();
+    const last = this.nextSealed();
     const finalSent = last !== undefined && (await this.dispatch(last, true));
     if (!finalSent && !this.stopped) {
       await this.dispatch({ lines: [], bytes: 0 }, true);

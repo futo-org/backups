@@ -334,4 +334,58 @@ describe(DiscordService.name, () => {
       await expect(sut.updateTicket('ticket-id', { closed: true })).rejects.toBeInstanceOf(NotFoundException);
     });
   });
+
+  describe('support mode', () => {
+    const link = {
+      id: 'link-id',
+      userId: 'user-id',
+      discordUserId: '123456789',
+      discordUsername: 'someone',
+      createdAt: new Date(),
+    };
+
+    it('grants support log streaming to the linked user on behalf of the ticket', async () => {
+      mocks.discord.getLinkByDiscordUserId.mockResolvedValue(link);
+      mocks.discord.grantTicketFeature.mockResolvedValue(true);
+
+      await expect(sut.enableSupportMode('thread-1', { discordUserId: '123456789' })).resolves.toEqual({
+        status: 'enabled',
+      });
+
+      expect(mocks.discord.grantTicketFeature).toHaveBeenCalledWith('thread-1', 'user-id', 'support-log-streaming');
+    });
+
+    it('reports a grant an admin already made', async () => {
+      mocks.discord.getLinkByDiscordUserId.mockResolvedValue(link);
+      mocks.discord.grantTicketFeature.mockResolvedValue(false);
+
+      await expect(sut.enableSupportMode('thread-1', { discordUserId: '123456789' })).resolves.toEqual({
+        status: 'already-enabled',
+      });
+    });
+
+    it('rejects a ticket owner without a linked account', async () => {
+      mocks.discord.getLinkByDiscordUserId.mockResolvedValue(void 0);
+
+      await expect(sut.enableSupportMode('thread-1', { discordUserId: '123456789' })).rejects.toBeInstanceOf(
+        NotFoundException,
+      );
+      expect(mocks.discord.grantTicketFeature).not.toHaveBeenCalled();
+    });
+
+    it('lists the tickets holding a grant', async () => {
+      mocks.discord.listTicketFeatureGrants.mockResolvedValue(['thread-1', 'thread-2']);
+
+      await expect(sut.listSupportModeTickets()).resolves.toEqual({
+        items: [{ threadId: 'thread-1' }, { threadId: 'thread-2' }],
+      });
+      expect(mocks.discord.listTicketFeatureGrants).toHaveBeenCalledWith('support-log-streaming');
+    });
+
+    it('revokes only the grant the ticket made', async () => {
+      await sut.disableSupportMode('thread-1');
+
+      expect(mocks.discord.revokeTicketFeature).toHaveBeenCalledWith('thread-1', 'support-log-streaming');
+    });
+  });
 });

@@ -28,6 +28,7 @@ export enum ConfigurationKey {
   StatePath = 'state-path',
   Throttle = 'throttle',
   SupportMode = 'support-mode',
+  RestoreAwaitingContinue = 'restore-awaiting-continue',
 }
 
 export enum MetadataKey {

@@ -1,7 +1,7 @@
 import { jest } from '@jest/globals';
 import { type ChildProcess, execFile, spawn } from 'node:child_process';
 import { once } from 'node:events';
-import { mkdir, mkdtemp, readdir, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, readdir, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { PassThrough } from 'node:stream';
@@ -15,6 +15,23 @@ import { SupportContextRepository } from './supportContext.repository.js';
 const key = new Uint8Array(32).fill(7);
 const placement = { siteCode: null, storageClusterCode: null };
 const DAY = 24 * 60 * 60 * 1000;
+
+const withRestic = async <T>(resticVersion: string, run: () => Promise<T>) => {
+  const bin = await mkdtemp(join(tmpdir(), 'restic-version-'));
+  await writeFile(
+    join(bin, 'restic'),
+    `#!/bin/sh\n[ "$1" = version ] && echo '{"message_type":"version","version":"${resticVersion}","go_version":"go","go_os":"linux","go_arch":"amd64"}' && exit 0\nexit 1\n`,
+    { mode: 0o755 },
+  );
+  const path = process.env.PATH;
+  process.env.PATH = `${bin}:${path}`;
+  try {
+    return await run();
+  } finally {
+    process.env.PATH = path;
+    await rm(bin, { recursive: true, force: true });
+  }
+};
 
 describe(ResticRepository.name, () => {
   let dir: string;
@@ -123,7 +140,7 @@ describe(ResticRepository.name, () => {
     expect(attach).not.toHaveBeenCalled();
   }, 30_000);
 
-  const backupCommandLine = async (resticWalkConcurrency?: number) => {
+  const backupCommandLine = async (resticWalkConcurrency?: number, totalKnown = false) => {
     const attach = jest.spyOn(SupportSession.prototype, 'attach');
     const configured = new ResticRepository(
       { getResticOptions: () => Promise.resolve({ connections: 2, packSizeMib: undefined }) } as never,
@@ -132,7 +149,11 @@ describe(ResticRepository.name, () => {
     );
 
     // Only the command line matters here; the restic on PATH may not know the flag.
-    await recordedLines(() => configured.backup(repository, key, placement, [source]).catch(() => null));
+    await recordedLines(() =>
+      configured
+        .backup(repository, key, placement, [source], undefined, undefined, [], undefined, totalKnown)
+        .catch(() => null),
+    );
 
     const child = attach.mock.calls.find(([, command]) => command === 'backup')?.[0];
     attach.mockRestore();
@@ -147,8 +168,33 @@ describe(ResticRepository.name, () => {
     expect(args[args.indexOf('--walk-concurrency') + 1]).toBe('8');
   }, 30_000);
 
-  it('leaves the walk concurrency to restic when it is not configured', async () => {
-    await expect(backupCommandLine()).resolves.not.toContain('--walk-concurrency');
+  it('keeps the walk serial with an upstream restic', async () => {
+    await expect(withRestic('0.19.1', () => backupCommandLine())).resolves.not.toContain('--walk-concurrency');
+  }, 30_000);
+
+  it("walks 64 entries at a time with FUTO's restic", async () => {
+    const args = await withRestic('0.19.1+futo.test', () => backupCommandLine());
+
+    expect(args[args.indexOf('--walk-concurrency') + 1]).toBe('64');
+  }, 30_000);
+
+  it('skips the scan of a parallel walk when the size of the backup is already known', async () => {
+    await expect(backupCommandLine(8, true)).resolves.toContain('--no-scan');
+  }, 30_000);
+
+  it('keeps the scan when the size of the backup is unknown', async () => {
+    await expect(backupCommandLine(8)).resolves.not.toContain('--no-scan');
+  }, 30_000);
+
+  it('keeps the scan of a serial walk', async () => {
+    await expect(backupCommandLine(1, true)).resolves.not.toContain('--no-scan');
+    await expect(withRestic('0.19.1', () => backupCommandLine(undefined, true))).resolves.not.toContain('--no-scan');
+  }, 30_000);
+
+  it("skips the scan of FUTO's restic walking in parallel by default", async () => {
+    await expect(withRestic('0.19.1+futo.test', () => backupCommandLine(undefined, true))).resolves.toContain(
+      '--no-scan',
+    );
   }, 30_000);
 
   it('finds the parent snapshot after the hostname changes', async () => {

@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 #MISE description="Run all e2e tests against the local k3d/Tilt stack (orchestration-api runs separately)"
+#MISE depends=["//:restic:install"]
 #MISE dir="{{config_root}}"
 set -euo pipefail
 exec ./packages/e2e/k3d/run.sh

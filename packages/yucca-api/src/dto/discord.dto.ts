@@ -130,6 +130,18 @@ const DiscordTicketSchema = z
 
 const DiscordTicketListSchema = z.object({ items: z.array(DiscordTicketSchema) }).meta({ id: 'DiscordTicketListDto' });
 
+const DiscordSupportModeEnableSchema = z
+  .object({ discordUserId: z.string().max(64) })
+  .meta({ id: 'DiscordSupportModeEnableDto' });
+
+const DiscordSupportModeSchema = z
+  .object({ status: z.enum(['enabled', 'already-enabled']) })
+  .meta({ id: 'DiscordSupportModeDto' });
+
+const DiscordSupportModeTicketListSchema = z
+  .object({ items: z.array(z.object({ threadId: z.string() })) })
+  .meta({ id: 'DiscordSupportModeTicketListDto' });
+
 const DiscordUserSummarySchema = z
   .object({
     id: z.string(),
@@ -159,4 +171,7 @@ export class DiscordTicketCreateDto extends createZodDto(DiscordTicketCreateSche
 export class DiscordTicketUpdateDto extends createZodDto(DiscordTicketUpdateSchema) {}
 export class DiscordTicketDto extends createZodDto(DiscordTicketSchema) {}
 export class DiscordTicketListDto extends createZodDto(DiscordTicketListSchema) {}
+export class DiscordSupportModeEnableDto extends createZodDto(DiscordSupportModeEnableSchema) {}
+export class DiscordSupportModeDto extends createZodDto(DiscordSupportModeSchema) {}
+export class DiscordSupportModeTicketListDto extends createZodDto(DiscordSupportModeTicketListSchema) {}
 export class DiscordUserSummaryDto extends createZodDto(DiscordUserSummarySchema) {}

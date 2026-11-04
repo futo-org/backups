@@ -21,12 +21,12 @@
 
   type Props = {
     onBack: () => void;
-    onFinish: () => void;
+    onRestore: (jobId: string) => void;
 
     repository: InspectedLocalRepositoryDto;
   };
 
-  const { onBack, onFinish, repository }: Props = $props();
+  const { onBack, onRestore, repository }: Props = $props();
   const id = $props.id();
 
   let selectedSnapshot: SnapshotDto | undefined = $state();
@@ -37,7 +37,7 @@
 {#if selectedSnapshot}
   <RestorePointFlow3ConfirmRestore
     onBack={() => (selectedSnapshot = undefined)}
-    {onFinish}
+    {onRestore}
     {repository}
     snapshot={selectedSnapshot}
   />

@@ -87,12 +87,16 @@ export const handleRestoreFromPoint = async (
   backendId: string,
   options: RepositorySnapshotRestoreFromPointRequestDto,
 ) => {
-  return await sdk.futoBackupsRestoreFromPoint(
-    repositoryId,
-    snapshotId,
-    backendId,
-    options,
-  );
+  try {
+    return await sdk.futoBackupsRestoreFromPoint(
+      repositoryId,
+      snapshotId,
+      backendId,
+      options,
+    );
+  } catch (error) {
+    handleError(error, gt`Failed to start restore`);
+  }
 };
 
 export const handleForgetSnapshot = async (

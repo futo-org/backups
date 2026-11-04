@@ -66,6 +66,41 @@ describe(SupportSession.name, () => {
     expect(shipper.finish).toHaveBeenCalled();
   });
 
+  it('marks unchanged items from restic as expendable and every other line as essential', async () => {
+    const pushed: [string, string, boolean][] = [];
+    const shipper = {
+      push: (line: SupportLogLine, { expendable = false }: { expendable?: boolean } = {}) =>
+        pushed.push([line.stream, line.message, expendable]),
+      finish: jest.fn(),
+      droppedLines: 0,
+    };
+    const local = new PassThrough();
+    collect(local);
+    const session = new SupportSession(local, {
+      sessionId: 'session-1',
+      shipper: shipper as unknown as SupportLogShipper,
+    });
+    const unchanged = '{"message_type":"verbose_status","action":"unchanged","item":"/a"}';
+    const modified = '{"message_type":"verbose_status","action":"modified","item":"/b"}';
+    const summary = '{"message_type":"summary"}';
+
+    await runChild(
+      session,
+      `console.log(${JSON.stringify([unchanged, modified, summary].join('\n'))}); console.error(${JSON.stringify(unchanged)});`,
+    );
+    await session.finish();
+
+    expect(pushed).toHaveLength(4);
+    expect(pushed).toEqual(
+      expect.arrayContaining([
+        ['stdout', unchanged, true],
+        ['stdout', modified, false],
+        ['stdout', summary, false],
+        ['stderr', unchanged, false],
+      ]),
+    );
+  });
+
   it('keeps recording when the local support log cannot be opened', async () => {
     const directory = await mkdtemp(`${tmpdir()}/yucca-support-`);
     const session = new SupportSession(createWriteStream(directory));

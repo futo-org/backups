@@ -6,6 +6,7 @@ import type {
   YuccaJobStatus,
 } from '$lib/fetch-client';
 import {
+  getJobProgress,
   getRemainingText,
   useBackupJobMonitor,
 } from '$lib/services/job.service';
@@ -90,6 +91,30 @@ const progress = (overrides: Partial<JobProgressDto> = {}): JobProgressDto => ({
 
 const endingIn = (milliseconds: number) =>
   new Date(now + milliseconds).toISOString();
+
+const job = (overrides: Partial<JobDto>) =>
+  ({ id: 'job-1', status: 'running', ...overrides }) as JobDto;
+
+describe('getJobProgress', () => {
+  it('reports the progress of a running job', () => {
+    expect(
+      getJobProgress(
+        job({
+          progress: { percentDone: 0.25, scanning: false, currentFiles: [] },
+        }),
+      ),
+    ).toBe(0.25);
+  });
+
+  it('reports a job that finished successfully as fully done without progress', () => {
+    expect(getJobProgress(job({ status: 'complete' }))).toBe(1);
+    expect(getJobProgress(job({ status: 'warn' }))).toBe(1);
+  });
+
+  it('reports nothing done before the job loads', () => {
+    expect(getJobProgress(undefined)).toBe(0);
+  });
+});
 
 describe('getRemainingText', () => {
   it('says nothing without progress', () => {

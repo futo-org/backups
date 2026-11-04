@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 #MISE description="Start yucca-sdk/orchestration-api test server"
+#MISE depends=["//:restic:install"]
 set -e
 
 pnpm --filter @futo-org/backups-orchestrator-api start

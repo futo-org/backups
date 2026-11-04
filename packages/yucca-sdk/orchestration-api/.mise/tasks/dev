@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #MISE description="Run yucca-sdk/orchestration-api in development mode"
-#MISE depends=["//packages/yucca-sdk/orchestration-ui:generate-fetch-client"]
+#MISE depends=["//packages/yucca-sdk/orchestration-ui:generate-fetch-client", "//:restic:install"]
 set -e
 
 pnpm --filter @futo-org/backups-orchestrator-api dev

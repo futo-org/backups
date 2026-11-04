@@ -41,6 +41,7 @@ describe(SupportLogShipper.name, () => {
     open = 0;
     maxOpen = 0;
     server = createServer((request, response) => {
+      const sink = received;
       open++;
       maxOpen = Math.max(maxOpen, open);
       const chunks: Buffer[] = [];
@@ -49,7 +50,7 @@ describe(SupportLogShipper.name, () => {
         void Promise.resolve(respond(request)).then((status) => {
           if (status === 204) {
             const body = gunzipSync(Buffer.concat(chunks)).toString('utf8');
-            received.push({
+            sink.push({
               headers: request.headers,
               lines: body
                 .split('\n')
@@ -156,6 +157,64 @@ describe(SupportLogShipper.name, () => {
     expect(messagesBySeq(received)).toEqual(Array.from({ length: 10 }, (_, index) => `line ${index}`));
   });
 
+  it('keeps essential lines when expendable ones fill the buffer', async () => {
+    const shipper = new SupportLogShipper(
+      { url, credentials: { token: 'token', expiresAt: hourFromNow() }, refresh: jest.fn<() => Promise<never>>() },
+      { maxBufferBytes: 1000, essentialReserveBytes: 1000, batchBytes: 100_000, flushIntervalMs: 60_000 },
+    );
+
+    for (let index = 0; index < 100; index++) {
+      shipper.push(line(`unchanged ${index}`), { expendable: true });
+    }
+    shipper.push(line('summary'));
+    await shipper.finish();
+
+    const messages = messagesBySeq(received);
+    expect(messages).toContain('summary');
+    expect(messages.length + shipper.droppedLines).toBe(101);
+  });
+
+  it('sends essential lines ahead of an expendable backlog', async () => {
+    respond = async () => {
+      await sleep(50);
+      return 204;
+    };
+    const shipper = new SupportLogShipper(
+      { url, credentials: { token: 'token', expiresAt: hourFromNow() }, refresh: jest.fn<() => Promise<never>>() },
+      { batchBytes: 50, maxInFlight: 1, flushIntervalMs: 60_000 },
+    );
+
+    for (let index = 0; index < 6; index++) {
+      shipper.push(line(`unchanged ${index}`), { expendable: true });
+    }
+    shipper.push(line('status'));
+    await shipper.finish();
+
+    const messages = messagesBySeq(received);
+    expect(messages.indexOf('status')).toBeLessThan(messages.indexOf('unchanged 1'));
+    expect(messages).toHaveLength(7);
+  });
+
+  it('delivers essential lines before the finish deadline cuts an expendable backlog', async () => {
+    respond = async () => {
+      await sleep(100);
+      return 204;
+    };
+    const shipper = new SupportLogShipper(
+      { url, credentials: { token: 'token', expiresAt: hourFromNow() }, refresh: jest.fn<() => Promise<never>>() },
+      { batchBytes: 50, maxInFlight: 1, flushIntervalMs: 60_000, finishTimeoutMs: 450 },
+    );
+
+    for (let index = 0; index < 20; index++) {
+      shipper.push(line(`unchanged ${index}`), { expendable: true });
+    }
+    shipper.push(line('summary'));
+    await shipper.finish();
+
+    expect(messagesBySeq(received)).toContain('summary');
+    expect(shipper.droppedLines).toBeGreaterThan(0);
+  });
+
   it('marks exactly one batch final when the remainder is still queued at finish', async () => {
     const shipper = new SupportLogShipper(
       { url, credentials: { token: 'token', expiresAt: hourFromNow() }, refresh: jest.fn<() => Promise<never>>() },
@@ -172,7 +231,7 @@ describe(SupportLogShipper.name, () => {
   it('drops lines instead of buffering past its limit and reports how many', async () => {
     const shipper = new SupportLogShipper(
       { url, credentials: { token: 'token', expiresAt: hourFromNow() }, refresh: jest.fn<() => Promise<never>>() },
-      { maxBufferBytes: 1000, batchBytes: 100_000, flushIntervalMs: 60_000 },
+      { maxBufferBytes: 1000, essentialReserveBytes: 0, batchBytes: 100_000, flushIntervalMs: 60_000 },
     );
 
     for (let index = 0; index < 100; index++) {
@@ -289,7 +348,7 @@ describe(SupportLogShipper.name, () => {
   it('enforces its buffer limit in encoded bytes for multibyte lines', async () => {
     const shipper = new SupportLogShipper(
       { url, credentials: { token: 'token', expiresAt: hourFromNow() }, refresh: jest.fn<() => Promise<never>>() },
-      { maxBufferBytes: 4096, batchBytes: 1_000_000, flushIntervalMs: 60_000 },
+      { maxBufferBytes: 4096, essentialReserveBytes: 0, batchBytes: 1_000_000, flushIntervalMs: 60_000 },
     );
     const message = '写真'.repeat(100);
     const encoded = Buffer.byteLength(JSON.stringify(line(message)), 'utf8') + 1;

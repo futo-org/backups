@@ -727,17 +727,20 @@ export class RepositoryService {
     backendId: string,
     dto: RepositorySnapshotRestoreFromPointRequestDto,
   ): Promise<JobResponseDto> {
-    return {
-      jobId: await this.jobs.queue({
-        name: JobName.RepositoryRestoreFromPoint,
-        data: {
-          repositoryId,
-          snapshotId,
-          backendId,
-          options: dto,
-        },
-      }),
-    };
+    const jobId = await this.jobs.queueUnlessActive({
+      name: JobName.RepositoryRestoreFromPoint,
+      data: {
+        repositoryId,
+        snapshotId,
+        backendId,
+        options: dto,
+      },
+    });
+    if (!jobId) {
+      throw new BadRequestException('A restore is already in progress');
+    }
+
+    return { jobId };
   }
 
   async forgetSnapshot(id: string, snapshotId: string): Promise<void> {

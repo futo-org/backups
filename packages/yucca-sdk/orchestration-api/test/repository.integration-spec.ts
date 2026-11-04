@@ -255,6 +255,7 @@ describe('Repository', () => {
         expect.any(AbortSignal),
         ['yucca.v1.immichBackupFileName=dump.sql.gz'],
         undefined,
+        false,
       );
     });
 
@@ -309,6 +310,7 @@ describe('Repository', () => {
         expect.any(AbortSignal),
         [],
         undefined,
+        false,
       );
     });
 

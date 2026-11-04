@@ -76,7 +76,7 @@ If you would rather keep the app's state in a named volume than a folder in your
 
 ## Folders on a network share
 
-If the folders you mount live on an NFS or SMB share, most of a backup is spent waiting on the network while the app checks each file for changes. Set `RESTIC_WALK_CONCURRENCY` to have it check several files at once:
+If the folders you mount live on an NFS or SMB share, most of a backup is spent waiting on the network while the app checks each file for changes. To hide that wait, the app checks up to 64 files at once. If your file server struggles while a backup runs, set `RESTIC_WALK_CONCURRENCY` lower:
 
 ```yaml
 services:
@@ -85,7 +85,7 @@ services:
       RESTIC_WALK_CONCURRENCY: 16
 ```
 
-With `docker run`, add `-e RESTIC_WALK_CONCURRENCY=16`. The default is 1. Higher values finish sooner but put more load on the file server.
+With `docker run`, add `-e RESTIC_WALK_CONCURRENCY=16`. Lower values put less load on the file server but take longer; `1` checks one file at a time.
 
 ## Ports and access
 

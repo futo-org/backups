@@ -36,3 +36,4 @@ env.local.sh
 
 packages/columbo/internal/source/embedded/*
 !packages/columbo/internal/source/embedded/README.txt
+.mise/bin/

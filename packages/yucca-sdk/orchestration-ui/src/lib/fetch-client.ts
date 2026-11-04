@@ -256,6 +256,7 @@ export type OnboardingStatusResponseDto = {
     hasBackup: boolean;
     hasSchedule: boolean;
     hasSkippedExtraConfig: boolean;
+    restoreJobId?: string;
 };
 export type CurrentRecoveryKeyResponse = {
     recoveryKey: string;
@@ -670,6 +671,15 @@ export function futoBackupsSkipOnboardingExtraConfig(opts?: Oazapfts.RequestOpts
  */
 export function futoBackupsEnableTelemetry(opts?: Oazapfts.RequestOpts) {
     return oazapfts.ok(oazapfts.fetchText("/api/futo-backups/onboarding/telemetry", {
+        ...opts,
+        method: "POST"
+    }));
+}
+/**
+ * Continue after a restore
+ */
+export function futoBackupsContinueAfterRestore(opts?: Oazapfts.RequestOpts) {
+    return oazapfts.ok(oazapfts.fetchText("/api/futo-backups/onboarding/restore/continue", {
         ...opts,
         method: "POST"
     }));

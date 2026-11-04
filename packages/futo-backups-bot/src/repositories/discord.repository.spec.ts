@@ -596,6 +596,42 @@ describe(DiscordRepository.name, () => {
     });
   });
 
+  describe('isTicketClosed', () => {
+    it.each([
+      [false, false],
+      [true, true],
+    ])('reads a locked=%s ticket as closed=%s', async (locked, closed) => {
+      jest.mocked(sut.getThreadById).mockResolvedValue(newThread({ locked }) as never);
+
+      await expect(sut.isTicketClosed('ticket-thread')).resolves.toBe(closed);
+
+      expect(sut.getThreadById).toHaveBeenCalledWith('ticket-thread', true);
+    });
+
+    it.each([
+      new TypeError('Channel is not a thread'),
+      new DiscordAPIError({ message: 'Unknown Channel', code: 10_003 }, 10_003, 404, 'GET', '/channels', {}),
+    ])('reads a deleted ticket as closed', async (error) => {
+      jest.mocked(sut.getThreadById).mockRejectedValueOnce(error);
+
+      await expect(sut.isTicketClosed('ticket-thread')).resolves.toBe(true);
+    });
+
+    it('propagates access and transient failures so an open ticket keeps support mode', async () => {
+      const error = new DiscordAPIError(
+        { message: 'Missing Access', code: 50_001 },
+        50_001,
+        403,
+        'GET',
+        '/channels',
+        {},
+      );
+      jest.mocked(sut.getThreadById).mockRejectedValueOnce(error);
+
+      await expect(sut.isTicketClosed('ticket-thread')).rejects.toBe(error);
+    });
+  });
+
   describe('listThreadMessages', () => {
     it.each([undefined, 25])('returns recent messages chronologically with limit %s', async (limit) => {
       const ctx = {

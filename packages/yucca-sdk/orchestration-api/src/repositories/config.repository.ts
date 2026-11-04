@@ -202,6 +202,21 @@ export class ConfigRepository {
     return this.set(ConfigurationKey.IgnoredImmichDatabaseDumpWarning, { isIgnored: true });
   }
 
+  async hasRestoreAwaitingContinue() {
+    return this.has(ConfigurationKey.RestoreAwaitingContinue);
+  }
+
+  async setRestoreAwaitingContinue() {
+    return this.set(ConfigurationKey.RestoreAwaitingContinue, { isAwaiting: true });
+  }
+
+  async clearRestoreAwaitingContinue() {
+    await this.db
+      .deleteFrom('futo_backups_config')
+      .where('key', '=', ConfigurationKey.RestoreAwaitingContinue)
+      .execute();
+  }
+
   async hasSessionSecret() {
     return this.has(ConfigurationKey.SessionSecret);
   }
