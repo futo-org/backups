@@ -16,6 +16,8 @@ export type PostgresClient = {
   conninfo: string;
 };
 
+const QUERY_TIMEOUT_MS = 60_000;
+
 const quoteConninfoValue = (value: string | number) => `'${String(value).replaceAll(/['\\]/g, String.raw`\$&`)}'`;
 
 const escapePassfileField = (value: string | number) => String(value).replaceAll(/[:\\]/g, String.raw`\$&`);
@@ -39,14 +41,23 @@ export class PostgresRepository {
     return { binDir, conninfo };
   }
 
-  async query(client: PostgresClient, sql: string, variables: Record<string, string> = {}): Promise<string[][]> {
+  async query(
+    client: PostgresClient,
+    sql: string,
+    variables: Record<string, string> = {},
+    signal?: AbortSignal,
+  ): Promise<string[][]> {
     const args = ['-X', '-q', '-A', '-t', '-F', '\t', '-v', 'ON_ERROR_STOP=1', '-d', client.conninfo, '-f', '-'];
     for (const [name, value] of Object.entries(variables)) {
       args.push('-v', `${name}=${value}`);
     }
 
-    const psql = spawn(join(client.binDir, 'psql'), args, { stdio: ['pipe', 'pipe', 'pipe'] });
-    const stdout = await this.collect(psql, sql);
+    const timeout = AbortSignal.timeout(QUERY_TIMEOUT_MS);
+    const abort = signal ? AbortSignal.any([signal, timeout]) : timeout;
+    abort.throwIfAborted();
+
+    const psql = spawn(join(client.binDir, 'psql'), args, { stdio: ['pipe', 'pipe', 'pipe'], signal: abort });
+    const stdout = await this.collect(psql, sql, abort);
 
     return stdout
       .split('\n')
@@ -74,16 +85,23 @@ export class PostgresRepository {
     ];
   }
 
-  private collect(child: ChildProcess, input: string): Promise<string> {
+  private collect(child: ChildProcess, input: string, signal: AbortSignal): Promise<string> {
     return new Promise((resolve, reject) => {
       let stdout = '';
       let stderr = '';
       child.stdout?.on('data', (data) => (stdout += data));
       child.stderr?.on('data', (data) => (stderr += data));
-      child.once('error', reject);
-      child.once('close', (code) =>
-        code === 0 ? resolve(stdout) : reject(new Error(`psql exited with ${code}: ${stderr.trim()}`)),
-      );
+      child.once('error', (error) => reject(signal.aborted ? signal.reason : error));
+      child.once('close', (code) => {
+        if (signal.aborted) {
+          reject(signal.reason);
+        } else if (code === 0) {
+          resolve(stdout);
+        } else {
+          reject(new Error(`psql exited with ${code}: ${stderr.trim()}`));
+        }
+      });
+      child.stdin?.on('error', () => {});
       child.stdin?.end(input);
     });
   }

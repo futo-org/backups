@@ -1,4 +1,5 @@
 import { spawn, spawnSync } from 'node:child_process';
+import { createWriteStream } from 'node:fs';
 import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
@@ -118,14 +119,38 @@ const waitForPromotion = async (container) => {
   throw new Error('Scratch Postgres did not finish recovery in time');
 };
 
-const pipeDump = (container) =>
+const waitForExit = (child, name) =>
   new Promise((resolvePromise, reject) => {
-    const dump = `docker exec ${container} pg_dump -U ${options['db-user']} --clean --if-exists ${options['db-name']}`;
-    const sink = options['dump-to'] ? `gzip --rsyncable > '${options['dump-to']}'` : options['load-cmd'];
-    const child = spawn('bash', ['-o', 'pipefail', '-c', `${dump} | ${sink}`], { stdio: ['ignore', 'inherit', 'inherit'] });
     child.once('error', reject);
-    child.once('exit', (code) => (code === 0 ? resolvePromise() : reject(new Error(`dump pipeline exited with ${code}`))));
+    child.once('close', (code) => (code === 0 ? resolvePromise() : reject(new Error(`${name} exited with ${code}`))));
   });
+
+const openSink = () => {
+  if (options['dump-to']) {
+    const output = createWriteStream(options['dump-to']);
+    const gzip = spawn('gzip', ['--rsyncable'], { stdio: ['pipe', 'pipe', 'inherit'] });
+    gzip.stdout.pipe(output);
+    const written = new Promise((resolvePromise, reject) => {
+      output.once('error', reject);
+      output.once('finish', resolvePromise);
+    });
+    return { stdin: gzip.stdin, done: Promise.all([waitForExit(gzip, 'gzip'), written]) };
+  }
+
+  const load = spawn('bash', ['-c', options['load-cmd']], { stdio: ['pipe', 'inherit', 'inherit'] });
+  return { stdin: load.stdin, done: waitForExit(load, '--load-cmd') };
+};
+
+const pipeDump = async (container) => {
+  const dump = spawn(
+    'docker',
+    ['exec', container, 'pg_dump', '-U', options['db-user'], '--clean', '--if-exists', '--', options['db-name']],
+    { stdio: ['ignore', 'pipe', 'inherit'] },
+  );
+  const sink = openSink();
+  dump.stdout.pipe(sink.stdin);
+  await Promise.all([waitForExit(dump, 'pg_dump'), sink.done]);
+};
 
 const main = async () => {
   if (!options['load-cmd'] && !options['dump-to']) {

@@ -61,7 +61,8 @@ const service = new ImmichWalService(
 const snapshotLibrary = async () => {
   const lsn = await service.prepareSnapshot(`futo-backups-e2e-${Date.now()}`);
   const { endpoint, key, placement } = resticParameters;
-  const summary = await restic.backup(endpoint, key, placement, [env('LIBRARY_DIR')], undefined, undefined, [
+  const paths = [env('LIBRARY_DIR'), walArchiving.stagingPath];
+  const summary = await restic.backup(endpoint, key, placement, paths, undefined, undefined, [
     `${ResticTagPrefix.ImmichWalLsn}=${lsn}`,
   ]);
   return { lsn, snapshotId: summary.snapshot_id };

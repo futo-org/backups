@@ -1,6 +1,6 @@
 import { jest } from '@jest/globals';
 import { EventEmitter } from 'node:events';
-import { mkdir, mkdtemp, readdir, rm, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, readdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { newResticRepositoryMock } from '../../test/mocks.js';
@@ -29,7 +29,7 @@ describe(ImmichWalService.name, () => {
     }
   };
 
-  const makeService = (slotStatus?: string) => {
+  const makeService = (slotStatus?: string, createClient = jest.fn<() => Promise<object>>().mockResolvedValue({})) => {
     const walArchiving: ImmichWalArchiving = {
       binDir: '/usr/lib/postgresql/14/bin',
       stagingPath,
@@ -47,15 +47,18 @@ describe(ImmichWalService.name, () => {
     const restic = newResticRepositoryMock();
     const receiver = Object.assign(new EventEmitter(), { stderr: new EventEmitter(), kill: jest.fn() });
     const postgres = {
-      createClient: jest.fn<() => Promise<object>>().mockResolvedValue({ binDir: '', conninfo: '' }),
+      createClient,
       receiveWal: jest.fn().mockReturnValue(receiver),
       baseBackupCommand: jest.fn().mockReturnValue(['pg_basebackup']),
       query: jest.fn(async (_client: unknown, sql: string): Promise<string[][]> => {
+        if (sql.includes('wal_segment_size')) {
+          return [['16MB']];
+        }
         if (sql.includes('pg_replication_slots')) {
           return slotStatus ? [[slotStatus]] : [];
         }
         if (sql.includes('pg_current_wal_lsn')) {
-          return [['0/1000028']];
+          return [['0/1000028', SEGMENT_1]];
         }
         if (sql.includes('pg_create_restore_point')) {
           await stage(SEGMENT_2);
@@ -93,7 +96,7 @@ describe(ImmichWalService.name, () => {
     await service.tick();
 
     const statements = postgres.query.mock.calls.map(([, sql]) => sql);
-    expect(statements[0]).toContain('ALTER SYSTEM SET max_slot_wal_keep_size');
+    expect(statements).toContain(`ALTER SYSTEM SET max_slot_wal_keep_size = :'size'`);
     expect(statements).toContain(`SELECT pg_create_physical_replication_slot(:'slot', true)`);
     expect(postgres.receiveWal).toHaveBeenCalledWith(expect.anything(), receiveDirectory, 'futo_backups');
   });
@@ -137,7 +140,8 @@ describe(ImmichWalService.name, () => {
       [
         ResticArchiveTag.ImmichWal,
         `${ResticTagPrefix.ImmichWalFirstSegment}=${SEGMENT_1}`,
-        `${ResticTagPrefix.ImmichWalLastSegment}=${SEGMENT_3}`,
+        `${ResticTagPrefix.ImmichWalLastSegment}=${SEGMENT_2}`,
+        `${ResticTagPrefix.ImmichWalPartialSegment}=${SEGMENT_3}`,
       ],
     );
     const staged = await readdir(receiveDirectory);
@@ -169,7 +173,91 @@ describe(ImmichWalService.name, () => {
     const lsn = await service.prepareSnapshot('futo-backups-1');
 
     expect(lsn).toBe('0/2000090');
-    expect(postgres.query).toHaveBeenCalledWith(expect.anything(), 'SELECT pg_switch_wal()');
+    expect(postgres.query).toHaveBeenCalledWith(expect.anything(), 'SELECT pg_switch_wal()', {}, undefined);
     expect(restic.backupFiles.mock.calls.at(-1)?.[3]).toContain(join(receiveDirectory, SEGMENT_2));
+  });
+
+  it('keeps the passfile outside staging and marks staging as a cache directory', async () => {
+    const { service, postgres } = makeService('reserved');
+
+    await service.tick();
+
+    const passfile = postgres.createClient.mock.calls[0] as unknown[];
+    expect(passfile[2]).not.toContain(stagingPath);
+    expect(await readFile(join(stagingPath, 'CACHEDIR.TAG'), 'utf8')).toMatch(
+      /^Signature: 8a477f597d28d172789f06886806bc55/,
+    );
+    await service.onApplicationShutdown();
+  });
+
+  it('retries client initialisation after it failed', async () => {
+    const createClient = jest
+      .fn<() => Promise<object>>()
+      .mockRejectedValueOnce(new Error('disk full'))
+      .mockResolvedValue({});
+    const { service, postgres } = makeService('reserved', createClient);
+
+    await service.tick();
+    expect(postgres.receiveWal).not.toHaveBeenCalled();
+
+    await service.tick();
+    expect(createClient).toHaveBeenCalledTimes(2);
+    expect(postgres.receiveWal).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not start the receiver when shut down while the slot is being prepared', async () => {
+    const { service, postgres } = makeService('reserved');
+    const slotQuery = Promise.withResolvers<string[][]>();
+    const slotQueried = Promise.withResolvers<void>();
+    const query = postgres.query.getMockImplementation()!;
+    postgres.query.mockImplementation((client, sql, ...rest) => {
+      if (!sql.includes('pg_replication_slots')) {
+        return query(client, sql, ...rest);
+      }
+      slotQueried.resolve();
+      return slotQuery.promise;
+    });
+
+    const tick = service.tick();
+    await slotQueried.promise;
+    await service.onApplicationShutdown();
+    slotQuery.resolve([['reserved']]);
+    await tick;
+
+    expect(postgres.receiveWal).not.toHaveBeenCalled();
+  });
+
+  it('still requires a new base backup after a restart that followed slot recreation', async () => {
+    const { service: before } = makeService('lost');
+    await before.tick();
+
+    const { service: after, restic } = makeService('reserved');
+    restic.snapshots.mockResolvedValue([
+      { time: new Date(), tags: [ResticArchiveTag.ImmichBase, `${ResticTagPrefix.ImmichWalBaseStop}=0/1`] },
+    ] as never);
+    restic.backupCommandOutput.mockResolvedValue({ snapshot_id: 'base-2' } as never);
+
+    expect(await after.backupBaseIfDue()).toBeDefined();
+    expect(await after.backupBaseIfDue()).toBeUndefined();
+  });
+
+  it('ships each contiguous run of segments as its own snapshot', async () => {
+    const { service, restic } = makeService('reserved');
+    await stage(SEGMENT_1, SEGMENT_3);
+
+    await service.tick();
+
+    expect(restic.backupFiles.mock.calls.map((call) => call[4])).toEqual([
+      [
+        ResticArchiveTag.ImmichWal,
+        `${ResticTagPrefix.ImmichWalFirstSegment}=${SEGMENT_1}`,
+        `${ResticTagPrefix.ImmichWalLastSegment}=${SEGMENT_1}`,
+      ],
+      [
+        ResticArchiveTag.ImmichWal,
+        `${ResticTagPrefix.ImmichWalFirstSegment}=${SEGMENT_3}`,
+        `${ResticTagPrefix.ImmichWalLastSegment}=${SEGMENT_3}`,
+      ],
+    ]);
   });
 });

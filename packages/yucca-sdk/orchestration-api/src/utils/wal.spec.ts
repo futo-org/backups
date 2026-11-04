@@ -2,10 +2,13 @@ import { ResticArchiveTag, ResticTagPrefix } from '../enum.js';
 import {
   compareLsn,
   isWalArchiveSnapshot,
+  nextSegment,
   parseLsn,
   planWalRestore,
+  segmentContainingLsn,
   selectWalFilesToPrune,
   selectWalFilesToShip,
+  splitContiguousSegments,
   type WalArchiveSnapshot,
 } from './wal.js';
 
@@ -15,19 +18,32 @@ const SEGMENT_3 = '000000010000000000000003';
 
 const file = (name: string, size = 16, mtimeMs = 1) => ({ name, size, mtimeMs });
 
-const base = (id: string, time: string, stop?: string, end = time): WalArchiveSnapshot => ({
+const SEGMENT_4 = '000000010000000000000004';
+const SEGMENT_5 = '000000010000000000000005';
+
+const base = (id: string, time: string, start: string, stop?: string, end = time): WalArchiveSnapshot => ({
   id,
   time: new Date(time),
   paths: ['/immich-base.tar'],
-  tags: [ResticArchiveTag.ImmichBase, ...(stop ? [`${ResticTagPrefix.ImmichWalBaseStop}=${stop}`] : [])],
+  tags: [
+    ResticArchiveTag.ImmichBase,
+    `${ResticTagPrefix.ImmichWalBaseStartSegment}=${start}`,
+    ...(stop ? [`${ResticTagPrefix.ImmichWalBaseStop}=${stop}`] : []),
+  ],
   summary: { backup_end: new Date(end) },
 });
 
-const wal = (id: string, time: string): WalArchiveSnapshot => ({
+const wal = (id: string, time: string, first?: string, last = first, partial?: string): WalArchiveSnapshot => ({
   id,
   time: new Date(time),
-  paths: [`/wal/receive/${SEGMENT_1}`],
-  tags: [ResticArchiveTag.ImmichWal],
+  paths: [`/wal/receive/${first ?? partial}`],
+  tags: [
+    ResticArchiveTag.ImmichWal,
+    ...(first
+      ? [`${ResticTagPrefix.ImmichWalFirstSegment}=${first}`, `${ResticTagPrefix.ImmichWalLastSegment}=${last}`]
+      : []),
+    ...(partial ? [`${ResticTagPrefix.ImmichWalPartialSegment}=${partial}`] : []),
+  ],
 });
 
 describe(parseLsn.name, () => {
@@ -90,26 +106,28 @@ describe(selectWalFilesToPrune.name, () => {
 
 describe(planWalRestore.name, () => {
   const snapshots = [
-    base('base-1', '2026-11-01T00:00:00Z', '0/2000100'),
-    wal('wal-1', '2026-11-01T00:05:00Z'),
-    base('base-incomplete', '2026-11-01T12:00:00Z'),
-    base('base-2', '2026-11-02T00:00:00Z', '0/5000100', '2026-11-02T00:10:00Z'),
-    wal('wal-2', '2026-11-02T00:20:00Z'),
-    wal('wal-0', '2026-10-31T00:00:00Z'),
+    base('base-1', '2026-11-01T00:00:00Z', SEGMENT_1, '0/1000100'),
+    wal('wal-1', '2026-11-01T00:05:00Z', SEGMENT_1, SEGMENT_2),
+    base('base-incomplete', '2026-11-01T12:00:00Z', SEGMENT_3),
+    base('base-2', '2026-11-02T00:00:00Z', SEGMENT_3, '0/3000100', '2026-11-02T00:10:00Z'),
+    wal('wal-2', '2026-11-02T00:20:00Z', SEGMENT_3, SEGMENT_4),
+    wal('wal-partial-old', '2026-11-02T00:21:00Z', undefined, undefined, SEGMENT_4),
+    wal('wal-partial', '2026-11-02T00:25:00Z', undefined, undefined, SEGMENT_5),
+    wal('wal-0', '2026-10-31T00:00:00Z', '000000010000000000000000'),
   ];
 
-  it('picks the newest completed base at or before the target LSN and every WAL snapshot after it', () => {
-    const { base, wal } = planWalRestore(snapshots, { lsn: '0/4000000' });
+  it('picks the newest completed base at or before the target LSN and the WAL that follows it', () => {
+    const { base, wal } = planWalRestore(snapshots, { lsn: '0/2800000' });
 
     expect(base.id).toBe('base-1');
-    expect(wal.map(({ id }) => id)).toEqual(['wal-1', 'wal-2']);
+    expect(wal.map(({ id }) => id)).toEqual(['wal-1', 'wal-2', 'wal-partial']);
   });
 
-  it('uses the newest base for the latest state', () => {
+  it('uses the newest base and the trailing partial segment for the latest state', () => {
     const { base, wal } = planWalRestore(snapshots, 'latest');
 
     expect(base.id).toBe('base-2');
-    expect(wal.map(({ id }) => id)).toEqual(['wal-2']);
+    expect(wal.map(({ id }) => id)).toEqual(['wal-2', 'wal-partial']);
   });
 
   it('only accepts a base that finished before the target time', () => {
@@ -119,6 +137,53 @@ describe(planWalRestore.name, () => {
 
   it('fails when no base precedes the target', () => {
     expect(() => planWalRestore(snapshots, { lsn: '0/1000000' })).toThrow('No completed base backup');
+  });
+
+  describe('with a gap in the archived WAL', () => {
+    const gapped = [
+      base('base-1', '2026-11-01T00:00:00Z', SEGMENT_1, '0/1000100'),
+      wal('wal-1', '2026-11-01T00:05:00Z', SEGMENT_1, SEGMENT_2),
+      wal('wal-after-gap', '2026-11-01T01:00:00Z', SEGMENT_4, SEGMENT_5),
+    ];
+
+    it('still restores targets before the gap', () => {
+      expect(planWalRestore(gapped, { lsn: '0/2800000' }).wal.map(({ id }) => id)).toEqual(['wal-1']);
+      expect(planWalRestore(gapped, { time: new Date('2026-11-01T00:04:00Z') }).wal.map(({ id }) => id)).toEqual([
+        'wal-1',
+      ]);
+    });
+
+    it('rejects targets past the gap', () => {
+      expect(() => planWalRestore(gapped, { lsn: '0/4800000' })).toThrow(`missing from segment ${SEGMENT_3}`);
+      expect(() => planWalRestore(gapped, 'latest')).toThrow(`gap at segment ${SEGMENT_3}`);
+      expect(() => planWalRestore(gapped, { time: new Date('2026-11-01T02:00:00Z') })).toThrow('gap');
+    });
+
+    it('rejects a target in the trailing segment when only its partial is missing', () => {
+      expect(() => planWalRestore(gapped.slice(0, 2), { lsn: '0/3000010' })).toThrow('missing');
+    });
+  });
+});
+
+describe(nextSegment.name, () => {
+  it('rolls over into the next log id', () => {
+    expect(nextSegment('0000000100000000000000FF')).toBe('000000010000000100000000');
+  });
+});
+
+describe(segmentContainingLsn.name, () => {
+  it('maps an LSN to the segment holding the record that ends there', () => {
+    expect(segmentContainingLsn('00000001', '0/3596250')).toBe(SEGMENT_3);
+    expect(segmentContainingLsn('00000001', '1/0')).toBe('0000000100000000000000FF');
+  });
+});
+
+describe(splitContiguousSegments.name, () => {
+  it('splits at every missing segment', () => {
+    expect(splitContiguousSegments([SEGMENT_3, SEGMENT_1, SEGMENT_2, SEGMENT_5])).toEqual([
+      [SEGMENT_1, SEGMENT_2, SEGMENT_3],
+      [SEGMENT_5],
+    ]);
   });
 });
 

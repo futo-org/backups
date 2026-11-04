@@ -52,7 +52,8 @@ immich() { sql -d immich "$@"; }
   fail 'build the orchestrator first: mise //packages/yucca-sdk/orchestration-api:build'
 command -v restic >/dev/null || fail 'restic must be on PATH (run through mise exec)'
 
-mkdir -p "$PG_BIN_DIR" "$LIBRARY_DIR"
+# The driver's passfile lands in its TMPDIR, outside staging but inside the dir the pg-shim containers mount.
+mkdir -p "$PG_BIN_DIR" "$LIBRARY_DIR" "$WAL_E2E_DIR/tmp"
 cp "$HERE/pg-shim.sh" "$PG_BIN_DIR/pg-shim"
 printf 'WAL_E2E_DIR=%q\nPG_IMAGE=%q\n' "$WAL_E2E_DIR" "$PG_IMAGE" >"$PG_BIN_DIR/pg-shim.env"
 for bin in psql pg_receivewal pg_basebackup; do ln -s pg-shim "$PG_BIN_DIR/$bin"; done
@@ -103,7 +104,7 @@ immich -c 'SELECT pg_reload_conf()' >/dev/null
 immich -c "SELECT line_number, type, database, user_name, address, auth_method FROM pg_hba_file_rules WHERE 'replication' = ANY(database) AND address = 'all'"
 
 step 'Start the orchestrator WAL module (driver around ImmichWalService)'
-coproc DRIVER { exec node "$HERE/driver.mjs" 2>>"$DRIVER_LOG"; }
+coproc DRIVER { TMPDIR=$WAL_E2E_DIR/tmp exec node "$HERE/driver.mjs" 2>>"$DRIVER_LOG"; }
 driver() {
   echo "$1" >&"${DRIVER[1]}"
   local line
@@ -148,6 +149,15 @@ LSN1=$(jq -r .lsn <<<"$SNAPSHOT")
 SNAP1=$(jq -r .snapshotId <<<"$SNAPSHOT")
 echo "LSN1=$LSN1 library snapshot=$SNAP1"
 restic snapshots --no-lock "$SNAP1" --json | jq -r '.[0].tags[]'
+restic ls --no-lock --json "$SNAP1" | jq -r 'select(.path) | .path' >"$WAL_E2E_DIR/snap1.ls"
+grep -q '/staging/CACHEDIR.TAG$' "$WAL_E2E_DIR/snap1.ls" || fail 'library snapshot did not walk the staging dir'
+if grep -E '\.pgpass|/receive/|state\.json' "$WAL_E2E_DIR/snap1.ls"; then
+  fail 'library snapshot picked up the passfile or staged WAL'
+fi
+if find "$WAL_E2E_DIR/staging" -name .pgpass | grep -q .; then
+  fail 'passfile written under the staging tree'
+fi
+echo 'library snapshot walks staging but holds only CACHEDIR.TAG; no .pgpass under staging'
 sleep 2
 T1=$(immich -c "SELECT to_char(clock_timestamp() AT TIME ZONE 'UTC', 'YYYY-MM-DD\"T\"HH24:MI:SS.MS\"Z\"')")
 sleep 2
@@ -196,6 +206,12 @@ step 'Restore to the latest archived WAL'
 restore_into restored_latest --latest
 expect_counts restored_latest "$ROWS" "$ROWS"
 
+step 'Restore to a gzipped dump whose path needs quoting'
+DUMP="$WAL_E2E_DIR/Alice's backup \$HOME.sql.gz"
+node "$HERE/restore.mjs" --latest --dump-to "$DUMP"
+gzip -t "$DUMP" && zgrep -c 'CREATE TABLE public.asset' "$DUMP" >/dev/null || fail 'dump-to output is not a valid dump'
+echo "wrote $(du -h "$DUMP" | cut -f1) to $(basename "$DUMP")"
+
 step "Slot cap: stop the streamer and write well past max_slot_wal_keep_size=$MAX_SLOT_WAL_KEEP_SIZE"
 driver stop >/dev/null
 wait "$DRIVER_PID" 2>/dev/null || true
@@ -215,10 +231,21 @@ immich -c "SELECT 'pg_wal: ' || count(*) || ' files, ' || pg_size_pretty(sum(siz
 [[ $(immich -c "SELECT wal_status FROM pg_replication_slots") == lost ]] || fail 'expected the capped slot to be lost'
 
 step 'Restarting the module recreates the lost slot and forces a new base backup'
-coproc DRIVER { exec node "$HERE/driver.mjs" 2>>"$DRIVER_LOG"; }
-driver 'base-if-due'
+coproc DRIVER { TMPDIR=$WAL_E2E_DIR/tmp exec node "$HERE/driver.mjs" 2>>"$DRIVER_LOG"; }
+completed_bases() {
+  restic snapshots --no-lock --json --tag immich-base |
+    jq '[.[] | select(.tags | any(startswith("yucca.v1.immichWalBaseStop=")))] | length'
+}
+bases_before=$(completed_bases)
+RECOVERY=$(driver 'base-if-due')
+echo "$RECOVERY"
+jq -e '.base.startLsn and .base.stopLsn' <<<"$RECOVERY" >/dev/null || fail 'slot recovery did not take a new base backup'
+bases_after=$(completed_bases)
+((bases_after == bases_before + 1)) || fail "expected one more completed base, got $bases_before -> $bases_after"
+echo "completed base backups: $bases_before -> $bases_after"
 sed 's/\x1b\[[0-9;]*m//g' "$DRIVER_LOG" | grep -o 'Replication slot .*' | head -n1 || true
 immich -c "SELECT 'slot: active=' || active || ' wal_status=' || wal_status FROM pg_replication_slots"
+[[ $(immich -c 'SELECT wal_status FROM pg_replication_slots') != lost ]] || fail 'slot is still lost after recovery'
 driver stop >/dev/null
 
 step 'PASS'

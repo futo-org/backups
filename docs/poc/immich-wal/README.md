@@ -14,8 +14,8 @@ can reuse it later.
 | Path                                                                                 | What                                                                                                                                                                                                                                                                                                                                                       |
 | ------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `packages/yucca-sdk/orchestration-api/src/services/immichWal.service.ts`             | Manages the physical slot (`futo_backups`) and sets `max_slot_wal_keep_size` with `ALTER SYSTEM` plus `pg_reload_conf()`. Supervises `pg_receivewal` into `<stagingPath>/receive`, ships completed segments, timeline histories and (when changed) the `.partial` segment as `immich-wal` snapshots, and prunes what restic holds. Takes base backups and prepares snapshots. |
-| `packages/yucca-sdk/orchestration-api/src/repositories/postgres.repository.ts`       | Runs `psql`, `pg_receivewal` and `pg_basebackup`. The password goes in a 0600 passfile referenced from the conninfo, never in argv or env (restic runs `--stdin-from-command` with only `PATH` and `HOME`).                                                                                                                                                  |
-| `packages/yucca-sdk/orchestration-api/src/utils/wal.ts`                              | Pure helpers: LSN parsing and comparison, ship and prune selection, and `planWalRestore` (newest completed base at or before the target, plus every WAL snapshot taken after it).                                                                                                                                                                          |
+| `packages/yucca-sdk/orchestration-api/src/repositories/postgres.repository.ts`       | Runs `psql`, `pg_receivewal` and `pg_basebackup`. The password goes in a 0600 passfile in a private temp dir outside every backed-up path, referenced from the conninfo, never in argv or env (restic runs `--stdin-from-command` with only `PATH` and `HOME`). Queries take an AbortSignal plus a 60 s timeout.                                                                                                                                                  |
+| `packages/yucca-sdk/orchestration-api/src/utils/wal.ts`                              | Pure helpers: LSN parsing and comparison, ship and prune selection, and `planWalRestore`: the newest completed base at or before the target, plus the WAL snapshots that continue its segment chain from the base's start segment. It rejects any target that lies past a missing segment.                                                                                                                                                                          |
 | `packages/yucca-sdk/orchestration-api/src/repositories/restic.repository.ts`         | `backupFiles`, `backupCommandOutput` (`--stdin-from-command`), `addTags`, and a tag filter on `snapshots`.                                                                                                                                                                                                                                                 |
 | `packages/yucca-sdk/orchestration-api/src/jobs/repositoryBackup.job.ts`              | When enabled, after the existing dump it takes a base backup if one is due, then calls `prepareSnapshot`: `pg_create_restore_point`, `pg_switch_wal()`, and a wait until that segment is in restic. It then tags the snapshot `yucca.v1.immichWalLsn=<lsn>`. Failures are warnings, as for the dump.                                                       |
 | `packages/yucca-sdk/orchestration-api/src/services/repository.service.ts`            | Hides `immich-wal` and `immich-base` snapshots from snapshot listings and repository import.                                                                                                                                                                                                                                                               |
@@ -34,11 +34,16 @@ alongside the new one.
 
 | Snapshot        | Tags                                                                                     | Content                                                     |
 | --------------- | ---------------------------------------------------------------------------------------- | ----------------------------------------------------------- |
-| base backup     | `immich-base`, `yucca.v1.immichWalBaseStart=<lsn>`, `yucca.v1.immichWalBaseStop=<lsn>`   | `/immich-base.tar` (the `pg_basebackup -Ft -D - -X none` stream) |
-| WAL             | `immich-wal`, `yucca.v1.immichWalFirstSegment=…`, `yucca.v1.immichWalLastSegment=…`     | segment files at their staging paths                        |
+| base backup     | `immich-base`, `yucca.v1.immichWalBaseStart=<lsn>`, `yucca.v1.immichWalBaseStartSegment=<segment>`, `yucca.v1.immichWalBaseStop=<lsn>` | `/immich-base.tar` (the `pg_basebackup -Ft -D - -X none` stream) |
+| WAL             | `immich-wal`, `yucca.v1.immichWalFirstSegment=…`, `yucca.v1.immichWalLastSegment=…`, `yucca.v1.immichWalPartialSegment=…` | one contiguous run of segment files (plus the `.partial`) at their staging paths |
 | library         | existing tags, plus `yucca.v1.immichWalLsn=<lsn>`                                        | unchanged                                                   |
 
 The stop tag is added with `restic tag` after the stream finishes. A base without it never completed and is ignored.
+
+The staging dir holds a `CACHEDIR.TAG`, so the library backups' existing `--exclude-caches` skips the staged WAL and
+`state.json`. `state.json` also records when a new base backup became required (first slot, or a lost slot was
+recreated). That requirement survives restarts and clears only once a base that started afterwards has its stop tag.
+Only 16 MB WAL segments are supported; the module refuses to start on anything else.
 
 ## Running the e2e
 
@@ -55,10 +60,11 @@ pg_hba rejects replication, appends `host replication postgres all scram-sha-256
 
 1. Starts the module (slot plus `pg_receivewal`) and takes a base backup.
 2. Writes rows A: 2000 `asset` rows plus 512-d `vector` embeddings, with vchord loaded.
-3. Takes a library snapshot. This creates the restore point, switches WAL, waits for shipping, runs the file walk and tags it with LSN1.
+3. Takes a library snapshot. This creates the restore point, switches WAL, waits for shipping, runs the file walk (which includes the staging dir) and tags it with LSN1. It checks that the snapshot holds only staging's `CACHEDIR.TAG`, with no `.pgpass` or WAL.
 4. Records T1, then writes rows B. B reaches the repository only through the `.partial` segment.
 5. Restores to LSN1, to T1 and to latest, each into a fresh database through a scratch Postgres plus `pg_dump`/`psql`.
-6. Kills the streamer, writes about 170 MB of WAL past the 64 MB cap and checks that the slot is `lost`. It then restarts the module and checks that it recreates the slot and forces a new base backup.
+6. Writes a `--dump-to` restore to a path with an apostrophe, a space and `$HOME` in it.
+7. Kills the streamer, writes about 170 MB of WAL past the 64 MB cap and checks that the slot is `lost`. It then restarts the module and checks that it recreates the slot and that one more completed base backup appears in the repo.
 
 It removes every container and anonymous volume it created (label `futo-wal-e2e`) and the temp dir, including on failure. A run takes about 70 seconds.
 
@@ -139,13 +145,10 @@ telemetry (`pg_stat_wal.wal_bytes`), as #168 proposes.
   repository index and snapshot-listing cost grow. Batch less often, or use `restic rewrite`/forget to merge.
 - **PG14 resume gotcha.** On PG14, when its directory is empty, `pg_receivewal` starts from the server's *current*
   position, not the slot's `restart_lsn` (PG15 fixed this). The module therefore always keeps the newest shipped segment
-  and the `.partial` in staging. Deleting the staging dir by hand creates a silent WAL gap. A continuity check (segments
-  contiguous from base start) belongs in the restore planner and a health check.
-- **WAL selection is time-based.** `planWalRestore` takes every WAL snapshot newer than the base snapshot. That is
-  correct (a segment shipped before the base started precedes its redo point) but can over-fetch. Segment-range tags
-  are already written for a tighter selection later.
-- **Staging is inside the walked tree.** `UPLOAD_LOCATION/backups/yucca-wal` is under `dataFolders`, so library
-  snapshots also pick up the staged WAL. It needs an exclude.
+  and the `.partial` in staging. Deleting the staging dir by hand creates a WAL gap. The restore planner now refuses
+  targets past a gap, but nothing alerts on it yet; that belongs in a health check.
+- **Timeline changes.** The planner follows the base's timeline only. A source that was itself promoted to a new
+  timeline needs `.history`-aware chaining.
 - **Single-worker only.** The streamer runs only where `moduleConfig.hasLock()` holds. A lock handover between Immich
   API workers was not exercised.
 - **Not covered:** the Immich patch is not compiled or tested against Immich's suite, and the yucca proxy/michael path
