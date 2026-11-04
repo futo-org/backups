@@ -1,10 +1,18 @@
 import { Kysely, sql } from 'kysely';
 
 export async function up(db: Kysely<any>): Promise<void> {
-  await sql`CREATE TYPE "futo_backups_job_name_enum" AS ENUM ('repository-backup','repository-prune','repository-restore','repository-restore-from-point','repository-snapshot-forget','repository-sync-metrics');`.execute(db);
-  await sql`CREATE TYPE "futo_backups_job_status_enum" AS ENUM ('queued','running','complete','warn','failed','cancelled','incomplete');`.execute(db);
-  await sql`CREATE TYPE "futo_backups_configuration_key_enum" AS ENUM ('encryption-key','onboarded-key','telemetry','skipped-onboarding-extra-config','ignored-immich-database-dump-warning','restic-o-rest-connections','session-secret','state-path','throttle','support-mode','restore-awaiting-continue');`.execute(db);
-  await sql`CREATE TYPE "futo_backups_last_backup_status_enum" AS ENUM ('incomplete','complete','warn','failed','cancelled');`.execute(db);
+  await sql`CREATE TYPE "futo_backups_job_name_enum" AS ENUM ('repository-backup','repository-prune','repository-restore','repository-restore-from-point','repository-snapshot-forget','repository-sync-metrics');`.execute(
+    db,
+  );
+  await sql`CREATE TYPE "futo_backups_job_status_enum" AS ENUM ('queued','running','complete','warn','failed','cancelled','incomplete');`.execute(
+    db,
+  );
+  await sql`CREATE TYPE "futo_backups_configuration_key_enum" AS ENUM ('encryption-key','onboarded-key','telemetry','skipped-onboarding-extra-config','ignored-immich-database-dump-warning','restic-o-rest-connections','session-secret','state-path','throttle','support-mode','restore-awaiting-continue');`.execute(
+    db,
+  );
+  await sql`CREATE TYPE "futo_backups_last_backup_status_enum" AS ENUM ('incomplete','complete','warn','failed','cancelled');`.execute(
+    db,
+  );
   await sql`CREATE TABLE "futo_backups_backends" (
   "id" uuid NOT NULL DEFAULT gen_random_uuid(),
   "configuration" jsonb NOT NULL,
@@ -30,9 +38,15 @@ export async function up(db: Kysely<any>): Promise<void> {
   CONSTRAINT "futo_backups_jobs_sequence_uq" UNIQUE ("sequence"),
   CONSTRAINT "futo_backups_jobs_pkey" PRIMARY KEY ("id")
 );`.execute(db);
-  await sql`CREATE INDEX "futo_backups_jobs_repository_name_history_idx" ON "futo_backups_jobs" ("repositoryId", "name", "queuedAt", "sequence");`.execute(db);
-  await sql`CREATE INDEX "futo_backups_jobs_repository_history_idx" ON "futo_backups_jobs" ("repositoryId", "queuedAt", "sequence");`.execute(db);
-  await sql`CREATE INDEX "futo_backups_jobs_status_sequence_idx" ON "futo_backups_jobs" ("status", "sequence");`.execute(db);
+  await sql`CREATE INDEX "futo_backups_jobs_repository_name_history_idx" ON "futo_backups_jobs" ("repositoryId", "name", "queuedAt", "sequence");`.execute(
+    db,
+  );
+  await sql`CREATE INDEX "futo_backups_jobs_repository_history_idx" ON "futo_backups_jobs" ("repositoryId", "queuedAt", "sequence");`.execute(
+    db,
+  );
+  await sql`CREATE INDEX "futo_backups_jobs_status_sequence_idx" ON "futo_backups_jobs" ("status", "sequence");`.execute(
+    db,
+  );
   await sql`CREATE TABLE "futo_backups_repositories" (
   "id" uuid NOT NULL DEFAULT gen_random_uuid(),
   "remoteId" text NOT NULL,
@@ -43,7 +57,9 @@ export async function up(db: Kysely<any>): Promise<void> {
   CONSTRAINT "futo_backups_repositories_backendId_fkey" FOREIGN KEY ("backendId") REFERENCES "futo_backups_backends" ("id") ON UPDATE CASCADE ON DELETE RESTRICT,
   CONSTRAINT "futo_backups_repositories_pkey" PRIMARY KEY ("id")
 );`.execute(db);
-  await sql`CREATE INDEX "futo_backups_repositories_backendId_idx" ON "futo_backups_repositories" ("backendId");`.execute(db);
+  await sql`CREATE INDEX "futo_backups_repositories_backendId_idx" ON "futo_backups_repositories" ("backendId");`.execute(
+    db,
+  );
   await sql`CREATE TABLE "futo_backups_schedule" (
   "id" uuid NOT NULL DEFAULT gen_random_uuid(),
   "name" text NOT NULL,
@@ -62,7 +78,9 @@ export async function up(db: Kysely<any>): Promise<void> {
   CONSTRAINT "futo_backups_integrations_immich_config_scheduleId_fkey" FOREIGN KEY ("scheduleId") REFERENCES "futo_backups_schedule" ("id") ON UPDATE CASCADE ON DELETE RESTRICT,
   CONSTRAINT "futo_backups_integrations_immich_config_pkey" PRIMARY KEY ("repositoryId")
 );`.execute(db);
-  await sql`CREATE INDEX "futo_backups_integrations_immich_config_scheduleId_idx" ON "futo_backups_integrations_immich_config" ("scheduleId");`.execute(db);
+  await sql`CREATE INDEX "futo_backups_integrations_immich_config_scheduleId_idx" ON "futo_backups_integrations_immich_config" ("scheduleId");`.execute(
+    db,
+  );
   await sql`CREATE TABLE "futo_backups_local_metrics" (
   "repositoryId" uuid NOT NULL,
   "sizeBytes" bigint NOT NULL DEFAULT 0,
@@ -78,7 +96,9 @@ export async function up(db: Kysely<any>): Promise<void> {
   CONSTRAINT "futo_backups_repository_path_repositoryId_fkey" FOREIGN KEY ("repositoryId") REFERENCES "futo_backups_repositories" ("id") ON UPDATE CASCADE ON DELETE CASCADE,
   CONSTRAINT "futo_backups_repository_path_pkey" PRIMARY KEY ("repositoryId", "path")
 );`.execute(db);
-  await sql`CREATE INDEX "futo_backups_repository_path_repositoryId_idx" ON "futo_backups_repository_path" ("repositoryId");`.execute(db);
+  await sql`CREATE INDEX "futo_backups_repository_path_repositoryId_idx" ON "futo_backups_repository_path" ("repositoryId");`.execute(
+    db,
+  );
   await sql`CREATE TABLE "futo_backups_repository_schedule" (
   "scheduleId" uuid NOT NULL,
   "repositoryId" uuid NOT NULL,
@@ -86,8 +106,12 @@ export async function up(db: Kysely<any>): Promise<void> {
   CONSTRAINT "futo_backups_repository_schedule_repositoryId_fkey" FOREIGN KEY ("repositoryId") REFERENCES "futo_backups_repositories" ("id") ON UPDATE CASCADE ON DELETE CASCADE,
   CONSTRAINT "futo_backups_repository_schedule_pkey" PRIMARY KEY ("scheduleId", "repositoryId")
 );`.execute(db);
-  await sql`CREATE INDEX "futo_backups_repository_schedule_scheduleId_idx" ON "futo_backups_repository_schedule" ("scheduleId");`.execute(db);
-  await sql`CREATE INDEX "futo_backups_repository_schedule_repositoryId_idx" ON "futo_backups_repository_schedule" ("repositoryId");`.execute(db);
+  await sql`CREATE INDEX "futo_backups_repository_schedule_scheduleId_idx" ON "futo_backups_repository_schedule" ("scheduleId");`.execute(
+    db,
+  );
+  await sql`CREATE INDEX "futo_backups_repository_schedule_repositoryId_idx" ON "futo_backups_repository_schedule" ("repositoryId");`.execute(
+    db,
+  );
 }
 
 export async function down(db: Kysely<any>): Promise<void> {
