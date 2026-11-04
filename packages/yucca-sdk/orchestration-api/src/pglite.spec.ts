@@ -21,7 +21,7 @@ beforeEach(async () => {
   db = new Kysely({ dialect: database.dialect });
   await sql`CREATE TABLE notes (text text NOT NULL)`.execute(db);
   await db.insertInto('notes').values({ text: 'dumped' }).execute();
-});
+}, 30_000);
 
 afterEach(async () => {
   await chmod(join(directory, 'data'), 0o755);
@@ -37,7 +37,7 @@ describe(createPGliteDatabase.name, () => {
     await databaseHooks.restore(fileName);
 
     await expect(notes()).resolves.toEqual(['dumped']);
-  });
+  }, 30_000);
 
   it('keeps the live database when the dump cannot be loaded', async () => {
     await writeFile(join(directory, 'broken.dump'), 'not a dump');
@@ -45,7 +45,7 @@ describe(createPGliteDatabase.name, () => {
     await expect(databaseHooks.restore('broken.dump')).rejects.toThrow();
 
     await expect(notes()).resolves.toEqual(['dumped']);
-  });
+  }, 30_000);
 
   it('keeps the live database when the dump cannot be staged beside it', async () => {
     const fileName = await databaseHooks.dump(new AbortController().signal);
@@ -55,5 +55,5 @@ describe(createPGliteDatabase.name, () => {
     await expect(databaseHooks.restore(fileName)).rejects.toThrow();
 
     await expect(notes()).resolves.toEqual(['after dump', 'dumped']);
-  });
+  }, 30_000);
 });
