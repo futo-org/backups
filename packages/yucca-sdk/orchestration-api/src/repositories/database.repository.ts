@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { Kysely, sql } from 'kysely';
+import { Kysely, sql, Transaction } from 'kysely';
 import { FileMigrationProvider, Migrator, NO_MIGRATIONS } from 'kysely/migration';
 import { InjectKysely } from 'nestjs-kysely';
 import { join } from 'node:path';
@@ -15,6 +15,13 @@ export class DatabaseRepository {
     private readonly logger: LoggingRepository,
   ) {
     this.logger.setContext(DatabaseRepository.name);
+  }
+
+  withLock<R>(key: string, callback: (trx: Transaction<DB>) => Promise<R>): Promise<R> {
+    return this.db.transaction().execute(async (trx) => {
+      await sql`SELECT pg_advisory_xact_lock(hashtext(${key}))`.execute(trx);
+      return callback(trx);
+    });
   }
 
   async runMigrations(): Promise<void> {

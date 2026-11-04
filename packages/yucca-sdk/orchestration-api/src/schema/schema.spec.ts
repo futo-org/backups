@@ -11,6 +11,7 @@ import { Job } from '../decorators.js';
 import { BackendType, ConfigurationKey, JobName, JobStatus } from '../enum.js';
 import { BackendRepository } from '../repositories/backend.repository.js';
 import { ConfigRepository } from '../repositories/config.repository.js';
+import { DatabaseRepository } from '../repositories/database.repository.js';
 import { JobRepository } from '../repositories/job.repository.js';
 import { LoggingRepository } from '../repositories/logging.repository.js';
 import { RepositoryRepository } from '../repositories/repository.repository.js';
@@ -295,6 +296,7 @@ describe('Postgres orchestration schema', () => {
       {} as never,
       { begin: () => Promise.resolve() } as never,
       new SupportContextRepository(),
+      new DatabaseRepository(db, new StorageRepository(), LoggingRepository.create()),
     );
     jobs.onModuleInit();
 

@@ -19,6 +19,7 @@ import { TelemetryService } from '../services/telemetry.service.js';
 import { explainConnectivityFailure } from '../utils/connectivity.js';
 import { getJobStatus, TaskCancelledError, writeError } from '../utils/errors.js';
 import type { JobHandler, JobItem } from '../utils/types.js';
+import { DatabaseRepository } from './database.repository.js';
 import { LoggingRepository } from './logging.repository.js';
 import { ModuleConfigRepository } from './moduleConfig.repository.js';
 import { StorageRepository } from './storage.repository.js';
@@ -84,6 +85,7 @@ export class JobRepository implements OnModuleInit, BeforeApplicationShutdown {
     private readonly telemetry: TelemetryService,
     private readonly supportMode: SupportModeService,
     private readonly supportContext: SupportContextRepository,
+    private readonly database: DatabaseRepository,
   ) {
     this.logger.setContext(JobRepository.name);
   }
@@ -193,33 +195,35 @@ export class JobRepository implements OnModuleInit, BeforeApplicationShutdown {
     }
 
     const queued = toQueuedJob(item);
-    const job = await this.db
-      .insertInto('futo_backups_jobs')
-      .columns(['id', 'name', 'repositoryId', 'data', 'status', 'logFilePath'])
-      .expression(
-        this.db
-          .selectNoFrom((eb) => [
-            eb.cast<string>(eb.val(queued.id), 'uuid').as('id'),
-            eb.cast<JobName>(eb.val(queued.name), sql.raw(job_name_enum.name)).as('name'),
-            eb.val(queued.repositoryId).as('repositoryId'),
-            eb.cast<JobItem['data']>(eb.val(JSON.stringify(queued.data)), 'jsonb').as('data'),
-            eb.cast<JobStatus>(eb.val(queued.status), sql.raw(job_status_enum.name)).as('status'),
-            eb.val(queued.logFilePath).as('logFilePath'),
-          ])
-          .where((eb) =>
-            eb.not(
-              eb.exists(
-                eb
-                  .selectFrom('futo_backups_jobs')
-                  .select('id')
-                  .where('name', '=', item.name)
-                  .where('status', 'in', activeStatuses),
+    const job = await this.database.withLock(`futo_backups_jobs:${item.name}`, (trx) =>
+      trx
+        .insertInto('futo_backups_jobs')
+        .columns(['id', 'name', 'repositoryId', 'data', 'status', 'logFilePath'])
+        .expression(
+          trx
+            .selectNoFrom((eb) => [
+              eb.cast<string>(eb.val(queued.id), 'uuid').as('id'),
+              eb.cast<JobName>(eb.val(queued.name), sql.raw(job_name_enum.name)).as('name'),
+              eb.val(queued.repositoryId).as('repositoryId'),
+              eb.cast<JobItem['data']>(eb.val(JSON.stringify(queued.data)), 'jsonb').as('data'),
+              eb.cast<JobStatus>(eb.val(queued.status), sql.raw(job_status_enum.name)).as('status'),
+              eb.val(queued.logFilePath).as('logFilePath'),
+            ])
+            .where((eb) =>
+              eb.not(
+                eb.exists(
+                  eb
+                    .selectFrom('futo_backups_jobs')
+                    .select('id')
+                    .where('name', '=', item.name)
+                    .where('status', 'in', activeStatuses),
+                ),
               ),
             ),
-          ),
-      )
-      .returningAll()
-      .executeTakeFirst();
+        )
+        .returningAll()
+        .executeTakeFirst(),
+    );
 
     if (!job) {
       return;
