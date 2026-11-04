@@ -505,13 +505,16 @@ export class JobRepository implements OnModuleInit, BeforeApplicationShutdown {
     const job = await this.db
       .updateTable('futo_backups_jobs')
       .set({ status: JobStatus.Running, start: new Date() })
+      .where('status', '=', JobStatus.Queued)
       .where('id', '=', (eb) =>
         eb
           .selectFrom('futo_backups_jobs')
           .select('id')
           .where('status', '=', JobStatus.Queued)
           .orderBy('sequence')
-          .limit(1),
+          .limit(1)
+          .forUpdate()
+          .skipLocked(),
       )
       .returningAll()
       .executeTakeFirst();
