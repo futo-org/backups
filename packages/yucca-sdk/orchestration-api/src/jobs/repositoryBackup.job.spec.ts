@@ -1,9 +1,16 @@
 import { jest } from '@jest/globals';
 import { PassThrough } from 'node:stream';
-import { newResticRepositoryMock } from '../../test/mocks.js';
-import { TaskCancelledError } from '../utils/errors.js';
+import { newImmichHooksMock, newResticRepositoryMock } from '../../test/mocks.js';
+import { ResticTagPrefix } from '../enum.js';
+import { TaskCancelledError, TaskWarningsError } from '../utils/errors.js';
 import { JobContext } from './jobContext.js';
 import { RepositoryBackupJob } from './repositoryBackup.job.js';
+
+const makeImmichWal = () => ({
+  isEnabledFor: jest.fn<() => Promise<boolean>>().mockResolvedValue(true),
+  backupBaseIfDue: jest.fn<() => Promise<object | undefined>>().mockResolvedValue(undefined),
+  prepareSnapshot: jest.fn<() => Promise<string>>().mockResolvedValue('0/3000060'),
+});
 
 describe(RepositoryBackupJob.name, () => {
   const resticParameters = {
@@ -12,7 +19,12 @@ describe(RepositoryBackupJob.name, () => {
     placement: { siteCode: null, storageClusterCode: null },
   };
 
-  const makeJob = (lastSnapshotId?: string, signal = new AbortController().signal, lastTotalBytes?: number) => {
+  const makeJob = (
+    lastSnapshotId?: string,
+    signal = new AbortController().signal,
+    lastTotalBytes?: number,
+    immichWal?: object,
+  ) => {
     const repositoryService = {
       getBackendOrThrow: jest.fn<() => Promise<object>>().mockResolvedValue({
         backend: { isMetricsCapable: () => false },
@@ -29,8 +41,8 @@ describe(RepositoryBackupJob.name, () => {
       }),
     };
     const repositoryPaths = { get: jest.fn<() => Promise<string[]>>().mockResolvedValue(['/data']) };
-    const immichIntegration = { get: jest.fn<() => Promise<undefined>>().mockResolvedValue(undefined) };
-    const moduleConfig = { get: () => ({}) };
+    const immichIntegration = { get: jest.fn<() => Promise<object>>().mockResolvedValue({ id: 'repository-1' }) };
+    const moduleConfig = { get: () => ({ immichIntegration: { hooks: newImmichHooksMock() } }) };
     const restic = newResticRepositoryMock();
     const jobs = {
       queue: jest.fn(),
@@ -51,6 +63,7 @@ describe(RepositoryBackupJob.name, () => {
         restic as never,
         jobs as never,
         telemetry as never,
+        (immichWal ?? { isEnabledFor: jest.fn<() => Promise<boolean>>().mockResolvedValue(false) }) as never,
       ),
       restic,
       context,
@@ -154,5 +167,48 @@ describe(RepositoryBackupJob.name, () => {
 
     expect(restic.snapshot).not.toHaveBeenCalled();
     expect(restic.backup.mock.calls[0][7]).toBeUndefined();
+  });
+
+  describe('with Immich WAL archiving', () => {
+    it('tags the snapshot with the LSN archived before the file walk', async () => {
+      const immichWal = makeImmichWal();
+      const { job, restic, context } = makeJob(undefined, undefined, undefined, immichWal);
+      restic.backup.mockImplementation(() => {
+        expect(immichWal.prepareSnapshot).toHaveBeenCalled();
+        return Promise.resolve({} as never);
+      });
+
+      await job.run({ repositoryId: 'repository-1' }, context);
+
+      expect(immichWal.backupBaseIfDue).toHaveBeenCalledWith(context.signal);
+      expect(restic.backup.mock.calls[0][6]).toEqual([
+        `${ResticTagPrefix.ImmichBackupFileName}=dump.sql.gz`,
+        `${ResticTagPrefix.ImmichWalLsn}=0/3000060`,
+      ]);
+    });
+
+    it('still backs up the files with a warning when the WAL cannot be archived', async () => {
+      const immichWal = makeImmichWal();
+      immichWal.prepareSnapshot.mockRejectedValue(new Error('slot missing'));
+      const { job, restic, context } = makeJob(undefined, undefined, undefined, immichWal);
+
+      await expect(job.run({ repositoryId: 'repository-1' }, context)).rejects.toBeInstanceOf(TaskWarningsError);
+
+      expect(restic.backup).toHaveBeenCalledTimes(1);
+      expect(restic.backup.mock.calls[0][6]).toEqual([`${ResticTagPrefix.ImmichBackupFileName}=dump.sql.gz`]);
+    });
+
+    it('leaves the dump flow alone when WAL archiving is off', async () => {
+      const immichWal = {
+        ...makeImmichWal(),
+        isEnabledFor: jest.fn<() => Promise<boolean>>().mockResolvedValue(false),
+      };
+      const { job, context } = makeJob(undefined, undefined, undefined, immichWal);
+
+      await job.run({ repositoryId: 'repository-1' }, context);
+
+      expect(immichWal.backupBaseIfDue).not.toHaveBeenCalled();
+      expect(immichWal.prepareSnapshot).not.toHaveBeenCalled();
+    });
   });
 });

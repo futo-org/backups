@@ -36,6 +36,7 @@ import { ResticRepository } from '../repositories/restic.repository.js';
 import { RepositoryLocalMetricsTable } from '../schema/tables/repositoryLocalMetrics.table.js';
 import { isNotFoundError } from '../utils/errors.js';
 import { DEFAULT_RETENTION_POLICY } from '../utils/restic.js';
+import { isWalArchiveSnapshot } from '../utils/wal.js';
 import { TelemetryService } from './telemetry.service.js';
 
 @Injectable()
@@ -259,7 +260,8 @@ export class RepositoryService {
           backendId: repository.backends!.primary.id,
           remoteId: repository.id,
         });
-        return this.restic.snapshots(endpoint, key, placement);
+        const snapshots = await this.restic.snapshots(endpoint, key, placement);
+        return snapshots.filter((snapshot) => !isWalArchiveSnapshot(snapshot));
       }),
     );
 
@@ -567,7 +569,8 @@ export class RepositoryService {
 
       let paths: string[] = [];
       try {
-        const snapshots = await this.restic.snapshots(endpoint, key, placement);
+        const all = await this.restic.snapshots(endpoint, key, placement);
+        const snapshots = all.filter((snapshot) => !isWalArchiveSnapshot(snapshot));
         snapshots.sort((a, b) => +b.time - +a.time);
         paths = snapshots[0].paths;
       } catch (error) {
@@ -697,7 +700,9 @@ export class RepositoryService {
     const snapshots = await this.restic.snapshots(endpoint, key, placement);
 
     return {
-      snapshots: snapshots.map((snapshot) => this.mapSnapshot(snapshot)),
+      snapshots: snapshots
+        .filter((snapshot) => !isWalArchiveSnapshot(snapshot))
+        .map((snapshot) => this.mapSnapshot(snapshot)),
     };
   }
 

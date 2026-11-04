@@ -1,6 +1,7 @@
 import type { Socket } from 'socket.io';
 import { GatewayEvent } from './events/events.gateway.js';
 import type { ResticProxyThrottle } from './proxy/resticProxy.js';
+import type { PostgresConnection } from './repositories/postgres.repository.js';
 
 export const ModuleConfigProvider = Symbol('ModuleConfig');
 
@@ -10,6 +11,18 @@ export type AuthenticateFn = (client: Socket) => Promise<AuthenticatedUser>;
 export type ImmichDatabaseDumpConfig = {
   enabled: boolean;
   keepLastAmount: number;
+};
+
+export type ImmichWalArchiving = {
+  binDir: string;
+  stagingPath: string;
+  connection: PostgresConnection;
+  slotName?: string;
+  maxSlotWalKeepSize?: string;
+  shipIntervalMs?: number;
+  shipPartial?: boolean;
+  baseBackupIntervalMs?: number;
+  segmentShippedTimeoutMs?: number;
 };
 
 export type ImmichIntegration = {
@@ -32,6 +45,7 @@ export type ImmichIntegration = {
       backupFileName?: string,
     ): Promise<{ jwt: string }>;
   };
+  walArchiving?: ImmichWalArchiving;
 };
 
 export type ModuleConfig = {
