@@ -1,6 +1,6 @@
 import { Kysely, sql } from 'kysely';
 import { existsSync } from 'node:fs';
-import { chmod, mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { chmod, mkdir, mkdtemp, rename, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { createPGliteDatabase } from './pglite.js';
@@ -47,6 +47,16 @@ describe(createPGliteDatabase.name, () => {
     await databaseHooks.cleanup!();
 
     expect(existsSync(join(directory, fileName))).toBe(false);
+  }, 30_000);
+
+  it('reopens the previous database after a restore was interrupted between its renames', async () => {
+    await db.destroy();
+    await rename(join(directory, 'data', 'state-pglite'), join(directory, 'data', 'state-pglite.previous'));
+
+    const reopened = await createPGliteDatabase(join(directory, 'data', 'state-pglite'), directory);
+    db = new Kysely({ dialect: reopened.dialect });
+
+    await expect(notes()).resolves.toEqual(['dumped']);
   }, 30_000);
 
   it('keeps the live database when the dump cannot be loaded', async () => {

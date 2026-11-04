@@ -11,6 +11,12 @@ const STATE_DUMP_FILE_NAME = 'state.dump';
 export async function createPGliteDatabase(databasePath: string, statePath: string) {
   const { PGlite } = await import('@electric-sql/pglite');
   const { PGliteDialect } = await import('kysely-pglite-dialect');
+  const nextDatabasePath = `${databasePath}.next`;
+  const previousDatabasePath = `${databasePath}.previous`;
+
+  if (!existsSync(databasePath) && existsSync(previousDatabasePath)) {
+    await rename(previousDatabasePath, databasePath);
+  }
 
   let loadDataDir: Blob | undefined;
   if (!existsSync(resolve(databasePath, 'PG_VERSION'))) {
@@ -37,8 +43,6 @@ export async function createPGliteDatabase(databasePath: string, statePath: stri
       await rm(resolve(statePath, STATE_DUMP_FILE_NAME), { force: true });
     },
     async restore(fileName) {
-      const nextDatabasePath = `${databasePath}.next`;
-      const previousDatabasePath = `${databasePath}.previous`;
       await rm(nextDatabasePath, { recursive: true, force: true });
       await rm(previousDatabasePath, { recursive: true, force: true });
 
