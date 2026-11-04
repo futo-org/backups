@@ -867,7 +867,9 @@ describe('Reset & Restore', () => {
     const restore = repositories.find((repository) => repository.name === 'My Restore')!;
     const [{ id: snapshotId }] = restore.snapshots!;
 
-    const { jobId } = await sdk.futoBackupsRestoreFromPoint(restore.id, snapshotId, restore.backends!.primary.id, {});
+    const { jobId } = await sdk.futoBackupsRestoreFromPoint(restore.id, snapshotId, restore.backends!.primary.id, {
+      yuccaConfig: resolve(homedir(), '.yucca'),
+    });
 
     await expect(jobFinished(jobId)).resolves.toMatchObject({ job: { status: 'complete' } });
 

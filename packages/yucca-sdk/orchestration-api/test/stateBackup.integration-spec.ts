@@ -1,5 +1,6 @@
 import { jest } from '@jest/globals';
-import { dirname } from 'node:path';
+import { mkdir } from 'node:fs/promises';
+import { dirname, join } from 'node:path';
 import { ConfigurationKey, JobStatus } from '../src/enum.js';
 import type { DatabaseHooks } from '../src/moduleConfig.js';
 import { JobRepository } from '../src/repositories/job.repository.js';
@@ -19,12 +20,18 @@ const dumpTag = `${tagName}=state.dump`;
 const useDatabaseHooks = (databaseHooks?: DatabaseHooks) =>
   ctx.module.get(ModuleConfigRepository).update({ databaseHooks });
 
-const restorePoint = async (tags: string[]) => {
+const restorePoint = async (tags: string[], yuccaConfig?: string) => {
   ctx.resticMock.snapshot.mockResolvedValue([{ id: 'snapshot-1', time: new Date(), tags }] as never);
+  ctx.resticMock.restore.mockImplementation((async (...args: unknown[]) => {
+    const { target } = args[4] as { target?: string };
+    if (target) {
+      await mkdir(join(target, 'state'), { recursive: true });
+    }
+  }) as never);
 
   const { jobId } = await ctx.module
     .get(RepositoryService)
-    .restoreFromPoint('remote-repository', 'snapshot-1', ctx.backendId, { include: ['/photos'] });
+    .restoreFromPoint('remote-repository', 'snapshot-1', ctx.backendId, { include: ['/photos'], yuccaConfig });
 
   return ctx.module.get(JobRepository).wait(jobId);
 };
@@ -86,9 +93,18 @@ describe('restore from point', () => {
     const restore = jest.fn(() => Promise.resolve());
     useDatabaseHooks({ tagName, dump: () => Promise.resolve('state.dump'), restore });
 
-    await expect(restorePoint([dumpTag])).resolves.toMatchObject({ status: JobStatus.Complete });
+    await expect(restorePoint([dumpTag], 'state')).resolves.toMatchObject({ status: JobStatus.Complete });
 
     expect(restore).toHaveBeenCalledWith('state.dump');
+  });
+
+  it('leaves the current state alone when the configuration is not selected for restore', async () => {
+    const restore = jest.fn(() => Promise.resolve());
+    useDatabaseHooks({ tagName, dump: () => Promise.resolve('state.dump'), restore });
+
+    await expect(restorePoint([dumpTag])).resolves.toMatchObject({ status: JobStatus.Complete });
+
+    expect(restore).not.toHaveBeenCalled();
   });
 
   it('boots again against the database the host restored', async () => {
@@ -100,7 +116,7 @@ describe('restore from point', () => {
       },
     });
 
-    await expect(restorePoint([dumpTag])).resolves.toMatchObject({ status: JobStatus.Complete });
+    await expect(restorePoint([dumpTag], 'state')).resolves.toMatchObject({ status: JobStatus.Complete });
 
     await expect(getConfig(ConfigurationKey.StatePath)).resolves.toEqual({ value: { path: ctx.statePath } });
   });
@@ -108,7 +124,7 @@ describe('restore from point', () => {
   it('leaves the current state alone when the host has no database hooks', async () => {
     const before = await ctx.db.selectFrom('futo_backups_config').selectAll().orderBy('key').execute();
 
-    await expect(restorePoint([dumpTag])).resolves.toMatchObject({ status: JobStatus.Complete });
+    await expect(restorePoint([dumpTag], 'state')).resolves.toMatchObject({ status: JobStatus.Complete });
 
     await expect(ctx.db.selectFrom('futo_backups_config').selectAll().orderBy('key').execute()).resolves.toEqual(
       before,

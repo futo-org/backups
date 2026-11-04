@@ -82,16 +82,16 @@ export class RepositoryRestoreFromPointJob implements JobHandler<RepositoryResto
           recursive: true,
           filter: (src) => !src.endsWith('.sqlite3'),
         });
-      }
 
-      const { databaseHooks } = this.moduleConfig.get();
-      if (databaseHooks) {
-        const [snapshot] = await this.restic.snapshot(endpoint, key, placement, snapshotId, ctx.signal);
-        const backupFileName = getDatabaseBackupFileName(snapshot?.tags, databaseHooks.tagName);
-        if (backupFileName) {
-          await databaseHooks.restore(backupFileName);
-          await this.jobs.persistRunning();
-          await this.bootstrap.onApplicationBootstrap();
+        const { databaseHooks } = this.moduleConfig.get();
+        if (databaseHooks) {
+          const [snapshot] = await this.restic.snapshot(endpoint, key, placement, snapshotId, ctx.signal);
+          const backupFileName = getDatabaseBackupFileName(snapshot?.tags, databaseHooks.tagName);
+          if (backupFileName) {
+            await databaseHooks.restore(backupFileName);
+            await this.jobs.persistRunning();
+            await this.bootstrap.onApplicationBootstrap();
+          }
         }
       }
 
