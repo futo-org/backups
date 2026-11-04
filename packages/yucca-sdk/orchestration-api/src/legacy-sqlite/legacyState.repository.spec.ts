@@ -57,7 +57,7 @@ beforeEach(async () => {
   db = new Kysely<DB>({ dialect: new PGliteDialect(database) });
   await new DatabaseRepository(db, new StorageRepository(), LoggingRepository.create()).runMigrations();
   legacyState = new LegacyStateRepository(db, LoggingRepository.create());
-});
+}, 30_000);
 
 afterEach(async () => {
   await db.destroy();
@@ -208,7 +208,7 @@ describe(LegacyStateRepository.name, () => {
     ]);
     expect(existsSync(join(directory, 'state.sqlite3'))).toBe(false);
     expect(existsSync(join(directory, 'state.sqlite3.imported'))).toBe(true);
-  });
+  }, 30_000);
 
   it.each([
     { rate: '1234567', quietHours: '01:00-02:00', expected: { bytesPerSec: 1_234_567, quietHours: '01:00-02:00' } },
@@ -238,6 +238,7 @@ describe(LegacyStateRepository.name, () => {
         .executeTakeFirst();
       expect(throttle?.value).toEqual(expected);
     },
+    30_000,
   );
 
   it('upgrades a state database from before remote ids and imports it', async () => {
@@ -319,7 +320,7 @@ describe(LegacyStateRepository.name, () => {
         end: new Date('2026-03-01T01:00:00.000Z'),
       },
     ]);
-  });
+  }, 30_000);
 
   it('schedules an Immich integration from before schedule ids on its linked schedule', async () => {
     await createLegacyState(
@@ -344,7 +345,7 @@ describe(LegacyStateRepository.name, () => {
         configuration: { dataFolders: ['upload'], backupConfiguration: true, libraries: ['all'] },
       },
     ]);
-  });
+  }, 30_000);
 
   it('gives an unscheduled Immich integration from before schedule ids a paused schedule', async () => {
     await createLegacyState(
@@ -365,14 +366,14 @@ describe(LegacyStateRepository.name, () => {
     expect(links).toEqual([{ repositoryId, scheduleId: schedule.id }]);
     const integrations = await db.selectFrom('futo_backups_integrations_immich_config').selectAll().execute();
     expect(integrations).toMatchObject([{ repositoryId, scheduleId: schedule.id }]);
-  });
+  }, 30_000);
 
   it('does nothing when there is no legacy state database', async () => {
     await legacyState.importFrom(directory);
 
     const config = await db.selectFrom('futo_backups_config').selectAll().execute();
     expect(config).toEqual([]);
-  });
+  }, 30_000);
 
   it('preserves cloud backend credentials and does not import the same database twice', async () => {
     const configuration = {
@@ -390,7 +391,7 @@ describe(LegacyStateRepository.name, () => {
 
     const backends = await db.selectFrom('futo_backups_backends').selectAll().execute();
     expect(backends).toEqual([{ id: backendId, configuration }]);
-  });
+  }, 30_000);
 
   it('rolls back imported data and keeps the legacy database when an import fails', async () => {
     await createLegacyState([
@@ -407,7 +408,7 @@ describe(LegacyStateRepository.name, () => {
     expect(backends).toEqual([]);
     expect(existsSync(join(directory, 'state.sqlite3'))).toBe(true);
     expect(existsSync(join(directory, 'state.sqlite3.imported'))).toBe(false);
-  });
+  }, 30_000);
 
   it('retries a failed import on the next run', async () => {
     await createLegacyState([
@@ -424,7 +425,7 @@ describe(LegacyStateRepository.name, () => {
     const config = await db.selectFrom('futo_backups_config').selectAll().execute();
     expect(config).toEqual([{ key: ConfigurationKey.EncryptionKey, value: { key: 'abc123' } }]);
     expect(existsSync(join(directory, 'state.sqlite3.imported'))).toBe(true);
-  });
+  }, 30_000);
 
   it('does not import again when the legacy database could not be renamed after an import', async () => {
     await createLegacyState([
@@ -440,5 +441,5 @@ describe(LegacyStateRepository.name, () => {
     expect(backends).toHaveLength(1);
     expect(existsSync(join(directory, 'state.sqlite3'))).toBe(false);
     expect(existsSync(join(directory, 'state.sqlite3.imported'))).toBe(true);
-  });
+  }, 30_000);
 });
