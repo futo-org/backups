@@ -121,10 +121,9 @@ telemetry (`pg_stat_wal.wal_bytes`), as #168 proposes.
 ## Known gaps
 
 - **The WAL cap is server-wide.** `max_slot_wal_keep_size` applies to every slot, so the module only sets it when
-  `futo_backups` is the only replication slot. If other slots exist (a user's standby, CNPG and so on), it leaves the
-  setting alone and logs a warning, and a stalled stream can then grow pg_wal without bound. Production needs a
-  per-slot answer: monitor `pg_replication_slots` lag and drop our own slot past a budget, or ask the user.
-
+  `futo_backups` is the only replication slot. If other slots exist (a user's standby, CNPG and so on), it never
+  changes the setting. It archives under an existing finite cap. If the cap is unlimited, it refuses to archive and
+  drops its own slot, so it can never pin WAL without bound; the administrator has to set a finite budget first.
 - **pg_hba opt-in.** Immich's image only adds `host all all all <auth>`, which does not match replication connections.
   The PoC appends a line with `docker exec` and reloads. The production path is a base-images env
   (`DB_ALLOW_REPLICATION=true`, appending `host replication <POSTGRES_USER> all <auth>` in the entrypoint). New compose
@@ -137,6 +136,10 @@ telemetry (`pg_stat_wal.wal_bytes`), as #168 proposes.
   recover, `--dump-to` an `immich-db-backup-<ts>-v<ver>-pg<ver>.sql.gz` in `UPLOAD_LOCATION/backups`, and hand that
   file name to the existing maintenance rollback (`enterMaintenanceRollback(repo, snapshot, backupFileName)`), so
   Immich's existing reset-schema plus `psql` restore runs unchanged. A time slider comes almost free (`--time` works).
+- **Base retention vs. library retention.** Bases are still forgotten by the library policy, so a retained library
+  snapshot can outlive every base at or before its LSN. It then has no PITR restore (the planner says so and refuses),
+  but its `pg_dump` still restores it. Retention has to keep, for every retained library snapshot, the newest base at
+  or before its LSN plus the WAL chain up to it.
 - **Retention policy for WAL snapshots.** The prune job's `forgetByPolicy` groups by paths. Base snapshots
   (`/immich-base.tar`) form one group and follow the library policy, which is roughly right. WAL snapshots have unique
   paths, so `keep-last` never expires them: they grow without bound. A WAL-aware forget is needed that keeps every WAL

@@ -25,6 +25,7 @@ import { RepositoryService } from './repository.service.js';
 
 const DEFAULT_SLOT_NAME = 'futo_backups';
 const DEFAULT_MAX_SLOT_WAL_KEEP_SIZE = '8GB';
+const UNLIMITED_SLOT_WAL_KEEP_SIZE = '-1';
 const DEFAULT_SHIP_INTERVAL_MS = 60_000;
 const DEFAULT_BASE_BACKUP_INTERVAL_MS = 24 * 60 * 60 * 1000;
 const DEFAULT_SEGMENT_SHIPPED_TIMEOUT_MS = 5 * 60 * 1000;
@@ -252,9 +253,15 @@ export class ImmichWalService implements OnApplicationBootstrap, OnApplicationSh
       });
       await query('SELECT pg_reload_conf()');
     } else {
-      this.logger.warn(
-        `Leaving max_slot_wal_keep_size unchanged because it would also cap other replication slots (${otherSlots.map(([name]) => name).join(', ')}); a stalled WAL stream can grow pg_wal without bound`,
-      );
+      const [[keepSize]] = await query(`SELECT current_setting('max_slot_wal_keep_size')`);
+      if (keepSize === UNLIMITED_SLOT_WAL_KEEP_SIZE) {
+        await query(`SELECT pg_drop_replication_slot(slot_name) FROM pg_replication_slots WHERE slot_name = :'slot'`, {
+          slot,
+        });
+        throw new Error(
+          `Refusing to archive WAL: max_slot_wal_keep_size is unlimited and other replication slots exist (${otherSlots.map(([name]) => name).join(', ')}). Set a finite server-wide max_slot_wal_keep_size so a stalled stream cannot fill the database disk.`,
+        );
+      }
     }
 
     const [existing] = await query(`SELECT wal_status FROM pg_replication_slots WHERE slot_name = :'slot'`, { slot });

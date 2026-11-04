@@ -33,6 +33,7 @@ describe(ImmichWalService.name, () => {
     slotStatus?: string,
     createClient = jest.fn<() => Promise<object>>().mockResolvedValue({}),
     otherSlots: string[] = [],
+    keepSize = '-1',
   ) => {
     const walArchiving: ImmichWalArchiving = {
       binDir: '/usr/lib/postgresql/14/bin',
@@ -55,6 +56,9 @@ describe(ImmichWalService.name, () => {
       receiveWal: jest.fn().mockReturnValue(receiver),
       baseBackupCommand: jest.fn().mockReturnValue(['pg_basebackup']),
       query: jest.fn(async (_client: unknown, sql: string): Promise<string[][]> => {
+        if (sql.includes(`current_setting('max_slot_wal_keep_size')`)) {
+          return [[keepSize]];
+        }
         if (sql.includes('wal_segment_size')) {
           return [['16MB']];
         }
@@ -268,13 +272,25 @@ describe(ImmichWalService.name, () => {
     ]);
   });
 
-  it('leaves the server-wide WAL cap alone when other replication slots exist', async () => {
-    const { service, postgres } = makeService('reserved', undefined, ['standby_1']);
+  it('archives under an existing finite cap without changing it when other replication slots exist', async () => {
+    const { service, postgres } = makeService('reserved', undefined, ['standby_1'], '10GB');
 
     await service.tick();
 
     const statements = postgres.query.mock.calls.map(([, sql]) => sql);
     expect(statements.some((sql) => sql.includes('ALTER SYSTEM'))).toBe(false);
     expect(postgres.receiveWal).toHaveBeenCalled();
+  });
+
+  it('refuses to hold a slot when other replication slots exist and WAL retention is unlimited', async () => {
+    const { service, postgres } = makeService('reserved', undefined, ['standby_1'], '-1');
+
+    await service.tick();
+
+    const statements = postgres.query.mock.calls.map(([, sql]) => sql);
+    expect(statements.some((sql) => sql.includes('ALTER SYSTEM'))).toBe(false);
+    expect(statements.some((sql) => sql.includes('pg_create_physical_replication_slot'))).toBe(false);
+    expect(statements.some((sql) => sql.includes('pg_drop_replication_slot(slot_name)'))).toBe(true);
+    expect(postgres.receiveWal).not.toHaveBeenCalled();
   });
 });
