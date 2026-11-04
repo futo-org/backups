@@ -1,4 +1,5 @@
 import { Kysely, sql } from 'kysely';
+import { existsSync } from 'node:fs';
 import { chmod, mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -37,6 +38,15 @@ describe(createPGliteDatabase.name, () => {
     await databaseHooks.restore(fileName);
 
     await expect(notes()).resolves.toEqual(['dumped']);
+    expect(existsSync(join(directory, fileName))).toBe(false);
+  }, 30_000);
+
+  it('removes the dump once the backup has taken it', async () => {
+    const fileName = await databaseHooks.dump(new AbortController().signal);
+
+    await databaseHooks.cleanup!();
+
+    expect(existsSync(join(directory, fileName))).toBe(false);
   }, 30_000);
 
   it('keeps the live database when the dump cannot be loaded', async () => {

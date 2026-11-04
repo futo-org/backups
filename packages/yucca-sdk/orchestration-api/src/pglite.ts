@@ -33,6 +33,9 @@ export async function createPGliteDatabase(databasePath: string, statePath: stri
       await writeFile(resolve(statePath, STATE_DUMP_FILE_NAME), Buffer.from(await dump.arrayBuffer()));
       return STATE_DUMP_FILE_NAME;
     },
+    async cleanup() {
+      await rm(resolve(statePath, STATE_DUMP_FILE_NAME), { force: true });
+    },
     async restore(fileName) {
       const nextDatabasePath = `${databasePath}.next`;
       const previousDatabasePath = `${databasePath}.previous`;
@@ -56,6 +59,7 @@ export async function createPGliteDatabase(databasePath: string, statePath: stri
       }
 
       await writeFile(resolve(databasePath, CACHEDIR_TAG_FILE_NAME), CACHEDIR_TAG_CONTENTS);
+      await rm(resolve(statePath, fileName), { force: true });
     },
   };
 
