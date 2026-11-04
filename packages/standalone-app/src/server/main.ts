@@ -1,15 +1,11 @@
-import { PGlite } from '@electric-sql/pglite';
-import { dataDir } from '@electric-sql/pglite-prepopulatedfs';
-import { type DatabaseHooks, LoggingRepository, OrchestrationApiModule } from '@futo-org/backups-orchestrator-api';
+import { LoggingRepository, OrchestrationApiModule } from '@futo-org/backups-orchestrator-api';
+import { createPGliteDatabase } from '@futo-org/backups-orchestrator-api/pglite';
 import { NestFactory } from '@nestjs/core';
 import type { NestExpressApplication } from '@nestjs/platform-express';
 import express from 'express';
-import { PGliteDialect } from 'kysely-pglite-dialect';
 import { ZodValidationPipe } from 'nestjs-zod';
-import { existsSync, openAsBlob } from 'node:fs';
-import { mkdir, rename, rm, stat, writeFile } from 'node:fs/promises';
+import { mkdir, stat } from 'node:fs/promises';
 import { resolve } from 'node:path';
-import { CACHEDIR_TAG_CONTENTS, CACHEDIR_TAG_FILE_NAME, STATE_DUMP_FILE_NAME } from './consts.js';
 import { readEnv } from './env.js';
 
 async function bootstrap() {
@@ -25,52 +21,12 @@ async function bootstrap() {
     await mkdir(env.cachePath, { recursive: true });
   }
 
-  const databasePath = resolve(env.statePath, 'state-pglite');
-
-  let loadDataDir: Blob | undefined;
-  if (!existsSync(resolve(databasePath, 'PG_VERSION'))) {
-    loadDataDir = await dataDir();
-  }
-
-  let database = await PGlite.create({ dataDir: databasePath, loadDataDir });
-  await writeFile(resolve(databasePath, CACHEDIR_TAG_FILE_NAME), CACHEDIR_TAG_CONTENTS);
-
-  const client = {
-    query: (...args: Parameters<PGlite['query']>) => database.query(...args),
-    close: () => database.close(),
-  } as unknown as PGlite;
-
-  const databaseHooks: DatabaseHooks = {
-    tagName: 'yucca.v1.stateDumpFileName',
-    async dump() {
-      const dump = await database.dumpDataDir('gzip');
-      await writeFile(resolve(env.statePath, STATE_DUMP_FILE_NAME), Buffer.from(await dump.arrayBuffer()));
-      return STATE_DUMP_FILE_NAME;
-    },
-    async restore(fileName) {
-      const previousDatabasePath = `${databasePath}.previous`;
-      const dump = await openAsBlob(resolve(env.statePath, fileName));
-      await database.close();
-      await rm(previousDatabasePath, { recursive: true, force: true });
-      await rename(databasePath, previousDatabasePath);
-
-      try {
-        database = await PGlite.create({ dataDir: databasePath, loadDataDir: dump });
-      } catch (error) {
-        await rm(databasePath, { recursive: true, force: true });
-        await rename(previousDatabasePath, databasePath);
-        database = await PGlite.create({ dataDir: databasePath });
-        throw error;
-      }
-
-      await writeFile(resolve(databasePath, CACHEDIR_TAG_FILE_NAME), CACHEDIR_TAG_CONTENTS);
-    },
-  };
+  const { dialect, databaseHooks } = await createPGliteDatabase(resolve(env.statePath, 'state-pglite'), env.statePath);
 
   const app = await NestFactory.create<NestExpressApplication>(
     OrchestrationApiModule.forRootAsync({
       useFactory: () => ({
-        dialect: new PGliteDialect(client),
+        dialect,
         statePath: env.statePath,
         cachePath: env.cachePath,
         wellKnownUrl: env.wellKnownUrl,

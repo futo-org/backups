@@ -1,31 +1,24 @@
 import { NestFactory } from '@nestjs/core';
-import { PGliteDialect } from 'kysely-pglite-dialect';
 import { ZodValidationPipe } from 'nestjs-zod';
 import { homedir } from 'node:os';
 import { resolve } from 'node:path';
 import { LoggingRepository, ORCHESTRATION_PORT, OrchestrationApiModule } from '../index.js';
-import { createPGlite } from './pglite.js';
+import { createPGliteDatabase } from '../pglite.js';
 
 async function bootstrap() {
   const databaseDumpConfig = { enabled: true, keepLastAmount: 14 };
-  const database = await createPGlite(resolve(homedir(), '.yucca-pglite'));
+  const { dialect, databaseHooks } = await createPGliteDatabase(
+    resolve(homedir(), '.yucca-pglite'),
+    resolve(homedir(), '.yucca'),
+  );
 
   const app = await NestFactory.create(
     OrchestrationApiModule.forRootAsync({
       useFactory: () => ({
-        dialect: new PGliteDialect(database),
+        dialect,
         wellKnownUrl: process.env.FUTO_BACKUPS_WELL_KNOWN_URL,
         developmentMode: true,
-        databaseHooks: {
-          tagName: 'yucca.v1.immichBackupFileName',
-          dump() {
-            return Promise.resolve('dev-database-backup.sql');
-          },
-          async cleanup() {},
-          restore() {
-            return Promise.resolve();
-          },
-        },
+        databaseHooks,
         immichIntegration: {
           dataFolders: ['upload', 'profile', 'library', 'backups', 'thumbs', 'encoded-video'],
           dataPath: '/immich_data',

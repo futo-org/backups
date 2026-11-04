@@ -18,13 +18,27 @@
   "license": "Source First License 1.1",
   "packageManager": "pnpm@10.28.1",
   "peerDependencies": {
+    "@electric-sql/pglite": "catalog:",
+    "@electric-sql/pglite-prepopulatedfs": "catalog:",
     "@nestjs/common": "^12.0.0",
     "@nestjs/core": "^12.0.0",
     "@nestjs/platform-socket.io": "^12.0.0",
     "@nestjs/schedule": "^12.0.0",
     "@nestjs/swagger": "^12.0.0",
     "@nestjs/websockets": "^12.0.0",
-    "kysely": "^0.29.5"
+    "kysely": "^0.29.5",
+    "kysely-pglite-dialect": "catalog:"
+  },
+  "peerDependenciesMeta": {
+    "@electric-sql/pglite": {
+      "optional": true
+    },
+    "@electric-sql/pglite-prepopulatedfs": {
+      "optional": true
+    },
+    "kysely-pglite-dialect": {
+      "optional": true
+    }
   },
   "dependencies": {
     "@futo-org/restic-wrapper": "catalog:",
@@ -106,6 +120,10 @@
     ".": {
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
+    },
+    "./pglite": {
+      "types": "./dist/pglite.d.ts",
+      "default": "./dist/pglite.js"
     }
   }
 }
