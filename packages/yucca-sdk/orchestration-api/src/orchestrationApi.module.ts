@@ -123,9 +123,11 @@ export const jobs = [
   RepositorySyncMetricsJob,
 ];
 
+type OrchestrationApiModuleConfig = Pick<ModuleConfig, 'dialect'> & Partial<Omit<ModuleConfig, 'dialect'>>;
+
 export interface OrchestrationApiModuleAsyncOptions extends Pick<ModuleMetadata, 'imports'> {
   inject?: FactoryProvider['inject'];
-  useFactory: (...args: any[]) => Promise<Partial<ModuleConfig>> | Partial<ModuleConfig>;
+  useFactory: (...args: any[]) => Promise<OrchestrationApiModuleConfig> | OrchestrationApiModuleConfig;
 }
 
 @Module({})
