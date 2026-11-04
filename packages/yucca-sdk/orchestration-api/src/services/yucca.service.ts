@@ -27,10 +27,6 @@ export class YuccaService {
     this.moduleConfig.update({ immichIntegration });
   }
 
-  acquireLock() {
-    this.moduleConfig.acquireLock();
-  }
-
   emit(event: GatewayEvent) {
     this.events.emit(event);
     void this.jobs.onEvent(event);

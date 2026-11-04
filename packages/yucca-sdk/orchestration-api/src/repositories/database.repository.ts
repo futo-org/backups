@@ -17,6 +17,13 @@ export class DatabaseRepository {
     this.logger.setContext(DatabaseRepository.name);
   }
 
+  async tryLock(key: string): Promise<boolean> {
+    const {
+      rows: [{ locked }],
+    } = await sql<{ locked: boolean }>`SELECT pg_try_advisory_lock(hashtext(${key})) AS locked`.execute(this.db);
+    return locked;
+  }
+
   withLock<R>(key: string, callback: (trx: Transaction<DB>) => Promise<R>): Promise<R> {
     return this.db.transaction().execute(async (trx) => {
       await sql`SELECT pg_advisory_xact_lock(hashtext(${key}))`.execute(trx);
