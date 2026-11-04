@@ -122,13 +122,23 @@ describe('restore from point', () => {
   });
 
   it('leaves the current state alone when the host has no database hooks', async () => {
-    const before = await ctx.db.selectFrom('futo_backups_config').selectAll().orderBy('key').execute();
+    const configWithoutRestoreFlag = () =>
+      ctx.db
+        .selectFrom('futo_backups_config')
+        .selectAll()
+        .where('key', '!=', ConfigurationKey.RestoreAwaitingContinue)
+        .orderBy('key')
+        .execute();
+    await ctx.db
+      .deleteFrom('futo_backups_config')
+      .where('key', '=', ConfigurationKey.RestoreAwaitingContinue)
+      .execute();
+    const before = await configWithoutRestoreFlag();
 
     await expect(restorePoint([dumpTag], 'state')).resolves.toMatchObject({ status: JobStatus.Complete });
 
-    await expect(ctx.db.selectFrom('futo_backups_config').selectAll().orderBy('key').execute()).resolves.toEqual(
-      before,
-    );
+    await expect(configWithoutRestoreFlag()).resolves.toEqual(before);
+    await expect(getConfig(ConfigurationKey.RestoreAwaitingContinue)).resolves.toEqual({ value: { isAwaiting: true } });
   });
 
   it('fails without touching the current state when restoring the state files fails', async () => {
