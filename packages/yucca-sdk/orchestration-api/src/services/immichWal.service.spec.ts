@@ -29,7 +29,11 @@ describe(ImmichWalService.name, () => {
     }
   };
 
-  const makeService = (slotStatus?: string, createClient = jest.fn<() => Promise<object>>().mockResolvedValue({})) => {
+  const makeService = (
+    slotStatus?: string,
+    createClient = jest.fn<() => Promise<object>>().mockResolvedValue({}),
+    otherSlots: string[] = [],
+  ) => {
     const walArchiving: ImmichWalArchiving = {
       binDir: '/usr/lib/postgresql/14/bin',
       stagingPath,
@@ -53,6 +57,9 @@ describe(ImmichWalService.name, () => {
       query: jest.fn(async (_client: unknown, sql: string): Promise<string[][]> => {
         if (sql.includes('wal_segment_size')) {
           return [['16MB']];
+        }
+        if (sql.includes('slot_name <>')) {
+          return otherSlots.map((name) => [name]);
         }
         if (sql.includes('pg_replication_slots')) {
           return slotStatus ? [[slotStatus]] : [];
@@ -259,5 +266,15 @@ describe(ImmichWalService.name, () => {
         `${ResticTagPrefix.ImmichWalLastSegment}=${SEGMENT_3}`,
       ],
     ]);
+  });
+
+  it('leaves the server-wide WAL cap alone when other replication slots exist', async () => {
+    const { service, postgres } = makeService('reserved', undefined, ['standby_1']);
+
+    await service.tick();
+
+    const statements = postgres.query.mock.calls.map(([, sql]) => sql);
+    expect(statements.some((sql) => sql.includes('ALTER SYSTEM'))).toBe(false);
+    expect(postgres.receiveWal).toHaveBeenCalled();
   });
 });

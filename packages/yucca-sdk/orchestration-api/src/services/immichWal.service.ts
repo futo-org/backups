@@ -245,10 +245,17 @@ export class ImmichWalService implements OnApplicationBootstrap, OnApplicationSh
       throw new Error(`Unsupported wal_segment_size ${segmentSize}, expected ${SUPPORTED_WAL_SEGMENT_SIZE}`);
     }
 
-    await query(`ALTER SYSTEM SET max_slot_wal_keep_size = :'size'`, {
-      size: config.maxSlotWalKeepSize ?? DEFAULT_MAX_SLOT_WAL_KEEP_SIZE,
-    });
-    await query('SELECT pg_reload_conf()');
+    const otherSlots = await query(`SELECT slot_name FROM pg_replication_slots WHERE slot_name <> :'slot'`, { slot });
+    if (otherSlots.length === 0) {
+      await query(`ALTER SYSTEM SET max_slot_wal_keep_size = :'size'`, {
+        size: config.maxSlotWalKeepSize ?? DEFAULT_MAX_SLOT_WAL_KEEP_SIZE,
+      });
+      await query('SELECT pg_reload_conf()');
+    } else {
+      this.logger.warn(
+        `Leaving max_slot_wal_keep_size unchanged because it would also cap other replication slots (${otherSlots.map(([name]) => name).join(', ')}); a stalled WAL stream can grow pg_wal without bound`,
+      );
+    }
 
     const [existing] = await query(`SELECT wal_status FROM pg_replication_slots WHERE slot_name = :'slot'`, { slot });
     if (existing && existing[0] !== 'lost') {
