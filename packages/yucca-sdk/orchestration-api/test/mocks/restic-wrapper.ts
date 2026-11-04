@@ -9,6 +9,7 @@ export const ls = jest.fn();
 export const keyList = jest.fn();
 export const prune = jest.fn();
 export const unlock = jest.fn();
+export const tag = jest.fn();
 export const version = Promise.resolve({ version: '0.0.0' });
 
 export class TryParseError extends Error {
