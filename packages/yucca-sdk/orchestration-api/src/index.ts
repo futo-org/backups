@@ -1,6 +1,6 @@
 export * from './const.js';
 export { EventsGateway, type GatewayEvent } from './events/events.gateway.js';
-export type { DatabaseHooks, ImmichDatabaseDumpConfig } from './moduleConfig.js';
+export type { DatabaseDumpTagName, DatabaseHooks, ImmichDatabaseDumpConfig } from './moduleConfig.js';
 export * from './orchestrationApi.module.js';
 export { LoggingRepository } from './repositories/logging.repository.js';
 export { ModuleConfigRepository } from './repositories/moduleConfig.repository.js';

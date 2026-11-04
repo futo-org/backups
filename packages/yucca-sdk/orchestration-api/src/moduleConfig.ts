@@ -13,8 +13,10 @@ export type ImmichDatabaseDumpConfig = {
   keepLastAmount: number;
 };
 
+export type DatabaseDumpTagName = 'yucca.v1.immichBackupFileName' | 'yucca.v1.stateDumpFileName';
+
 export type DatabaseHooks = {
-  tagName: string;
+  tagName: DatabaseDumpTagName;
   dump(signal: AbortSignal): Promise<string>;
   cleanup?(): Promise<void>;
   restore(fileName: string): Promise<void>;
