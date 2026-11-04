@@ -17,6 +17,7 @@ export type DatabaseHooks = {
   tagName: string;
   dump(signal: AbortSignal): Promise<string>;
   cleanup?(): Promise<void>;
+  restore(fileName: string): Promise<void>;
 };
 
 export type ImmichIntegration = {

@@ -22,6 +22,9 @@ async function bootstrap() {
             return Promise.resolve('dev-database-backup.sql');
           },
           async cleanup() {},
+          restore() {
+            return Promise.resolve();
+          },
         },
         immichIntegration: {
           dataFolders: ['upload', 'profile', 'library', 'backups', 'thumbs', 'encoded-video'],
