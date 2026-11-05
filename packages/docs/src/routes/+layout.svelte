@@ -71,7 +71,7 @@
             class="md:hidden"
           />
           <a href="/" class="flex items-center gap-2 px-2">
-            <img src="/favicon.svg" alt="" class="size-7" />
+            <img src="/favicon.png" alt="" class="size-7" />
             <Text fontWeight="bold" size="large">FUTO Backups</Text>
             <Text color="muted" size="large" class="hidden sm:block">Docs</Text>
           </a>
