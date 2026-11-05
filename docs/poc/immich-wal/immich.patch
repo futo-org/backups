@@ -1,0 +1,75 @@
+diff --git a/server/src/services/yucca.service.ts b/server/src/services/yucca.service.ts
+index 8833ea1..1f815b9 100644
+--- a/server/src/services/yucca.service.ts
++++ b/server/src/services/yucca.service.ts
+@@ -1,13 +1,17 @@
+ import {
+   type ImmichDatabaseDumpConfig,
++  type ImmichWalArchiving,
+   YuccaService as YuccaOrchestratorService,
+ } from '@futo-org/backups-orchestrator-api';
+ import { Injectable, Optional } from '@nestjs/common';
++import { join } from 'node:path';
++import { coerce } from 'semver';
+ import type { SystemConfig } from 'src/dtos/config.dto.js';
+ import type { ArgOf } from 'src/repositories/event.repository.js';
+ import { StorageCore } from 'src/cores/storage.core.js';
+ import { OnEvent } from 'src/decorators.js';
+ import { DatabaseLock, ImmichWorker, MaintenanceAction, StorageFolder } from 'src/enum.js';
++import { ConfigRepository } from 'src/repositories/config.repository.js';
+ import { DatabaseRepository } from 'src/repositories/database.repository.js';
+ import { LibraryRepository } from 'src/repositories/library.repository.js';
+ import { DatabaseBackupService } from 'src/services/database-backup.service.js';
+@@ -18,6 +22,7 @@ import { getExternalDomain } from 'src/utils/misc.js';
+ @Injectable()
+ export class YuccaService {
+   constructor(
++    private readonly configRepository: ConfigRepository,
+     private readonly databaseRepository: DatabaseRepository,
+     private readonly libraryRepository: LibraryRepository,
+     private readonly databaseBackupService: DatabaseBackupService,
+@@ -52,9 +57,44 @@ export class YuccaService {
+         configureImmichDatabaseDump: this.configureImmichDatabaseDump,
+         enterMaintenanceRollback: this.enterMaintenanceRollback,
+       },
++      walArchiving: await this.getWalArchiving(),
+     });
+   }
+ 
++  private async getWalArchiving(): Promise<ImmichWalArchiving | undefined> {
++    if (process.env.IMMICH_FUTO_BACKUPS_WAL_ARCHIVING !== 'true') {
++      return;
++    }
++
++    const major = coerce(await this.databaseRepository.getPostgresVersion())?.major;
++    if (!major) {
++      return;
++    }
++
++    return {
++      binDir: `/usr/lib/postgresql/${major}/bin`,
++      stagingPath: join(StorageCore.getBaseFolder(StorageFolder.Backups), 'yucca-wal'),
++      connection: this.getDatabaseConnection(),
++    };
++  }
++
++  private getDatabaseConnection(): ImmichWalArchiving['connection'] {
++    const { config } = this.configRepository.getEnv().database;
++    if (config.connectionType === 'parts') {
++      const { host, port, username, password, database } = config;
++      return { host, port, user: username, password, database };
++    }
++
++    const url = new URL(config.url);
++    return {
++      host: url.hostname,
++      port: Number(url.port || 5432),
++      user: decodeURIComponent(url.username || 'postgres'),
++      password: decodeURIComponent(url.password),
++      database: decodeURIComponent(url.pathname.slice(1)) || 'immich',
++    };
++  }
++
+   private createDatabaseBackup(signal?: AbortSignal) {
+     return this.databaseBackupService.createDatabaseBackup('', signal);
+   }

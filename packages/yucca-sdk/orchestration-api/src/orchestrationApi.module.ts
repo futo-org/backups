@@ -39,6 +39,7 @@ import { JobRepository } from './repositories/job.repository.js';
 import { LockRepository } from './repositories/lock.repository.js';
 import { LoggingRepository } from './repositories/logging.repository.js';
 import { ModuleConfigRepository } from './repositories/moduleConfig.repository.js';
+import { PostgresRepository } from './repositories/postgres.repository.js';
 import { RepositoryRepository } from './repositories/repository.repository.js';
 import { RepositoryIntegrationImmichRepository } from './repositories/repositoryIntegrationImmich.repository.js';
 import { RepositoryLocalMetricsRepository } from './repositories/repositoryLocalMetrics.repository.js';
@@ -53,6 +54,7 @@ import { BootstrapService } from './services/bootstrap.service.js';
 import { ConfigService } from './services/config.service.js';
 import { DevelopmentService } from './services/development.service.js';
 import { FilesystemService } from './services/filesystem.service.js';
+import { ImmichWalService } from './services/immichWal.service.js';
 import { IntegrationsService } from './services/integrations.service.js';
 import { JobService } from './services/job.service.js';
 import { OnboardingService } from './services/onboarding.service.js';
@@ -87,6 +89,7 @@ export const repositories = [
   LockRepository,
   LoggingRepository,
   ModuleConfigRepository,
+  PostgresRepository,
   RepositoryRepository,
   RepositoryIntegrationImmichRepository,
   RepositoryLocalMetricsRepository,
@@ -104,6 +107,7 @@ export const services = [
   ConfigService,
   DevelopmentService,
   FilesystemService,
+  ImmichWalService,
   IntegrationsService,
   JobService,
   OnboardingService,

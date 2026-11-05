@@ -10,6 +10,7 @@ import { RepositoryRepository } from '../repositories/repository.repository.js';
 import { RepositoryIntegrationImmichRepository } from '../repositories/repositoryIntegrationImmich.repository.js';
 import { RepositoryPathRepository } from '../repositories/repositoryPath.repository.js';
 import { ResticRepository } from '../repositories/restic.repository.js';
+import { ImmichWalService } from '../services/immichWal.service.js';
 import { RepositoryService } from '../services/repository.service.js';
 import { TelemetryService } from '../services/telemetry.service.js';
 import { getTaskStatus, TaskWarningsError } from '../utils/errors.js';
@@ -31,6 +32,7 @@ export class RepositoryBackupJob implements JobHandler<RepositoryBackupData> {
     private readonly restic: ResticRepository,
     private readonly jobs: JobRepository,
     private readonly telemetry: TelemetryService,
+    private readonly immichWal: ImmichWalService,
   ) {}
 
   async run({ repositoryId }: RepositoryBackupData, ctx: JobContext): Promise<void> {
@@ -89,6 +91,10 @@ export class RepositoryBackupJob implements JobHandler<RepositoryBackupData> {
             });
 
             warnings.push(new Error(`Database dump failed: ${error}`, { cause: error }));
+          }
+
+          if (await this.immichWal.isEnabledFor(repositoryId)) {
+            await this.archiveImmichWal(repositoryId, ctx, tags, warnings);
           }
         }
       }
@@ -185,6 +191,28 @@ export class RepositoryBackupJob implements JobHandler<RepositoryBackupData> {
 
     if (error) {
       throw error;
+    }
+  }
+
+  private async archiveImmichWal(repositoryId: string, ctx: JobContext, tags: string[], warnings: Error[]) {
+    try {
+      const base = await this.immichWal.backupBaseIfDue(ctx.signal);
+      if (base) {
+        this.telemetry.submitStructuredLog('Created Immich database base backup', { repositoryId, ...base });
+      }
+    } catch (error) {
+      ctx.signal.throwIfAborted();
+      this.telemetry.submitStructuredLog('Failed to create Immich database base backup', { repositoryId, error });
+      warnings.push(new Error(`Database base backup failed: ${error}`, { cause: error }));
+    }
+
+    try {
+      const lsn = await this.immichWal.prepareSnapshot(`futo-backups-${Date.now()}`, ctx.signal);
+      tags.push(`${ResticTagPrefix.ImmichWalLsn}=${lsn}`);
+    } catch (error) {
+      ctx.signal.throwIfAborted();
+      this.telemetry.submitStructuredLog('Failed to archive Immich database WAL', { repositoryId, error });
+      warnings.push(new Error(`Database WAL archiving failed: ${error}`, { cause: error }));
     }
   }
 

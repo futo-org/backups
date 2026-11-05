@@ -10,6 +10,7 @@ import {
   type RestoreMessage,
   snapshots,
   stats,
+  tag,
   unlock,
   version,
 } from '@futo-org/restic-wrapper';
@@ -98,6 +99,63 @@ export class ResticRepository {
       .run();
   }
 
+  async backupFiles(
+    repository: string,
+    key: Uint8Array,
+    placement: ResticPlacement,
+    paths: string[],
+    tags: string[],
+    signal?: AbortSignal,
+  ) {
+    const { connections, packSizeMib } = await this.config.getResticOptions(placement);
+    return await this.traced('backup', backup())
+      .option(`rest.connections=${connections}`)
+      .packSize(packSizeMib)
+      .repository(repository)
+      .cacheDir(this.cacheDir)
+      .password(Buffer.from(key).toString('hex'))
+      .tag(...tags)
+      .addFile(...paths)
+      .signal(signal)
+      .run();
+  }
+
+  async backupCommandOutput(
+    repository: string,
+    key: Uint8Array,
+    placement: ResticPlacement,
+    filename: string,
+    command: string[],
+    tags: string[],
+    signal?: AbortSignal,
+  ) {
+    const { connections, packSizeMib } = await this.config.getResticOptions(placement);
+    // restic-wrapper has no --stdin-from-command option; restic accepts the flag and command after the file list.
+    return await this.traced('backup', backup())
+      .option(`rest.connections=${connections}`)
+      .packSize(packSizeMib)
+      .repository(repository)
+      .cacheDir(this.cacheDir)
+      .password(Buffer.from(key).toString('hex'))
+      .tag(...tags)
+      .addFile('--stdin-from-command', '--stdin-filename', filename, '--', ...command)
+      .signal(signal)
+      .run();
+  }
+
+  async addTags(repository: string, key: Uint8Array, placement: ResticPlacement, snapshotId: string, tags: string[]) {
+    const { connections } = await this.config.getResticOptions(placement);
+    return await this.traced('tag', tag())
+      .option(`rest.connections=${connections}`)
+      .repository(repository)
+      .cacheDir(this.cacheDir)
+      .password(Buffer.from(key).toString('hex'))
+      .retryLock('5m')
+      .add(...tags)
+      .snapshot(snapshotId)
+      .run();
+  }
+
   private async walkConcurrency() {
     const configured = this.moduleConfig.get().resticWalkConcurrency;
     if (configured !== undefined) {
@@ -165,7 +223,7 @@ export class ResticRepository {
       .run();
   }
 
-  async snapshots(repository: string, key: Uint8Array, placement: ResticPlacement) {
+  async snapshots(repository: string, key: Uint8Array, placement: ResticPlacement, ...tags: string[]) {
     const { connections } = await this.config.getResticOptions(placement);
     return await this.traced('snapshots', snapshots())
       .option(`rest.connections=${connections}`)
@@ -173,6 +231,7 @@ export class ResticRepository {
       .repository(repository)
       .cacheDir(this.cacheDir)
       .password(Buffer.from(key).toString('hex'))
+      .tag(...tags)
       .run();
   }
 

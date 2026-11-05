@@ -8,6 +8,9 @@ export const newResticRepositoryMock = (): jest.Mocked<RepositoryInterface<Resti
   return {
     init: jest.fn(),
     backup: jest.fn(),
+    backupFiles: jest.fn(),
+    backupCommandOutput: jest.fn(),
+    addTags: jest.fn(),
     restore: jest.fn(),
     snapshots: jest.fn().mockResolvedValue([]),
     snapshot: jest.fn(),

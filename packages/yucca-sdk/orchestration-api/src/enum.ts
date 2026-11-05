@@ -100,4 +100,16 @@ export enum TelemetryLevel {
 
 export enum ResticTagPrefix {
   ImmichBackupFileName = 'yucca.v1.immichBackupFileName',
+  ImmichWalLsn = 'yucca.v1.immichWalLsn',
+  ImmichWalBaseStart = 'yucca.v1.immichWalBaseStart',
+  ImmichWalBaseStartSegment = 'yucca.v1.immichWalBaseStartSegment',
+  ImmichWalBaseStop = 'yucca.v1.immichWalBaseStop',
+  ImmichWalFirstSegment = 'yucca.v1.immichWalFirstSegment',
+  ImmichWalLastSegment = 'yucca.v1.immichWalLastSegment',
+  ImmichWalPartialSegment = 'yucca.v1.immichWalPartialSegment',
+}
+
+export enum ResticArchiveTag {
+  ImmichWal = 'immich-wal',
+  ImmichBase = 'immich-base',
 }
