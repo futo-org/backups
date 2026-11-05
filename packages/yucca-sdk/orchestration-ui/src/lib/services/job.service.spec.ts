@@ -160,8 +160,20 @@ describe('getRemainingText', () => {
         progress({ estimatedEndAt: endingIn(150_000 + 29_000) }),
         now,
       ),
-    ).toBe(
-      getRemainingText(progress({ estimatedEndAt: endingIn(180_000) }), now),
-    );
+    ).toBe('About 3m remaining');
+  });
+
+  it('spells months with a capital M and keeps at most three units', () => {
+    const day = 86_400_000;
+    expect(
+      getRemainingText(
+        progress({
+          estimatedEndAt: endingIn(
+            (4 * 30 + 1) * day + 21 * 3_600_000 + 9 * 60_000,
+          ),
+        }),
+        now,
+      ),
+    ).toBe('About 4M, 1d, 21h remaining');
   });
 });

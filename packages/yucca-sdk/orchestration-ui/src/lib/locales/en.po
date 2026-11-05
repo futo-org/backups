@@ -41,6 +41,41 @@ msgstr "{count} new items"
 msgid "{count} skipped"
 msgstr "{count} skipped"
 
+#. Abbreviated number of days
+#: src/lib/utils/format.ts
+msgid "{count}d"
+msgstr "{count}d"
+
+#. Abbreviated number of hours
+#: src/lib/utils/format.ts
+msgid "{count}h"
+msgstr "{count}h"
+
+#. Abbreviated number of minutes
+#: src/lib/utils/format.ts
+msgid "{count}m"
+msgstr "{count}m"
+
+#. Abbreviated number of months
+#: src/lib/utils/format.ts
+msgid "{count}M"
+msgstr "{count}M"
+
+#. Abbreviated number of seconds
+#: src/lib/utils/format.ts
+msgid "{count}s"
+msgstr "{count}s"
+
+#. Abbreviated number of weeks
+#: src/lib/utils/format.ts
+msgid "{count}w"
+msgstr "{count}w"
+
+#. Abbreviated number of years
+#: src/lib/utils/format.ts
+msgid "{count}y"
+msgstr "{count}y"
+
 #: ../../web/src/lib/components/onboarding/GetStartedChecklist.svelte
 msgid "{done} of {total} done"
 msgstr "{done} of {total} done"
