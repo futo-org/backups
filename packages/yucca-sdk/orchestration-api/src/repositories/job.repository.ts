@@ -11,7 +11,6 @@ import { JobDto, JobProgressDto } from '../dto/job.dto.js';
 import { JobName, JobStatus, MetadataKey } from '../enum.js';
 import { EventsGateway, GatewayEvent } from '../events/events.gateway.js';
 import { JobContext } from '../jobs/jobContext.js';
-import { job_name_enum, job_status_enum } from '../schema/enums.js';
 import { DB } from '../schema/index.js';
 import { JobTable } from '../schema/tables/job.table.js';
 import { SupportModeService } from '../services/supportMode.service.js';
@@ -194,36 +193,20 @@ export class JobRepository implements OnModuleInit, BeforeApplicationShutdown {
       return;
     }
 
-    const queued = toQueuedJob(item);
-    const job = await this.database.withLock(`futo_backups_jobs:${item.name}`, (trx) =>
-      trx
-        .insertInto('futo_backups_jobs')
-        .columns(['id', 'name', 'repositoryId', 'data', 'status', 'logFilePath'])
-        .expression(
-          trx
-            .selectNoFrom((eb) => [
-              eb.cast<string>(eb.val(queued.id), 'uuid').as('id'),
-              eb.cast<JobName>(eb.val(queued.name), sql.raw(job_name_enum.name)).as('name'),
-              eb.val(queued.repositoryId).as('repositoryId'),
-              eb.cast<JobItem['data']>(eb.val(JSON.stringify(queued.data)), 'jsonb').as('data'),
-              eb.cast<JobStatus>(eb.val(queued.status), sql.raw(job_status_enum.name)).as('status'),
-              eb.val(queued.logFilePath).as('logFilePath'),
-            ])
-            .where((eb) =>
-              eb.not(
-                eb.exists(
-                  eb
-                    .selectFrom('futo_backups_jobs')
-                    .select('id')
-                    .where('name', '=', item.name)
-                    .where('status', 'in', activeStatuses),
-                ),
-              ),
-            ),
-        )
-        .returningAll()
-        .executeTakeFirst(),
-    );
+    const job = await this.database.withLock(`futo_backups_jobs:${item.name}`, async (trx) => {
+      const active = await trx
+        .selectFrom('futo_backups_jobs')
+        .select('id')
+        .where('name', '=', item.name)
+        .where('status', 'in', activeStatuses)
+        .executeTakeFirst();
+
+      if (active) {
+        return;
+      }
+
+      return trx.insertInto('futo_backups_jobs').values(toQueuedJob(item)).returningAll().executeTakeFirst();
+    });
 
     if (!job) {
       return;
