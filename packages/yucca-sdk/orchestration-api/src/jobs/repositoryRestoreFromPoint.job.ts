@@ -51,6 +51,7 @@ export class RepositoryRestoreFromPointJob implements JobHandler<RepositoryResto
 
     let summary;
     let error;
+    let databaseRestored = false;
     try {
       summary = await this.restic.restore(
         endpoint,
@@ -89,13 +90,14 @@ export class RepositoryRestoreFromPointJob implements JobHandler<RepositoryResto
           const backupFileName = getDatabaseBackupFileName(snapshot?.tags, databaseHooks.tagName);
           if (backupFileName) {
             await databaseHooks.restore(backupFileName);
+            databaseRestored = true;
             await this.jobs.persistRunning();
             await this.bootstrap.onApplicationBootstrap();
           }
         }
       }
 
-      await this.config.setRestoreAwaitingContinue();
+      await this.config.setRestoreAwaitingContinue(databaseRestored);
     } catch (error_) {
       error = error_;
     }

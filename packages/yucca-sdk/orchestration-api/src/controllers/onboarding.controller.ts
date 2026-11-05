@@ -1,6 +1,7 @@
 import { Body, Controller, Get, Post, Put, Req } from '@nestjs/common';
 import { ApiBody, ApiCreatedResponse, ApiOkResponse, ApiOperation } from '@nestjs/swagger';
 import {
+  ContinueAfterRestoreResponse,
   CurrentRecoveryKeyResponse,
   ImportRecoveryKeyRequest,
   OnboardingStatusResponseDto,
@@ -86,9 +87,9 @@ export class OnboardingController {
     summary: 'Continue after a restore',
     description: 'Record that the user has moved on from a finished restore, so it is no longer offered on reload.',
   })
-  @ApiCreatedResponse()
-  async continueAfterRestore() {
-    await this.service.continueAfterRestore();
+  @ApiCreatedResponse({ type: ContinueAfterRestoreResponse })
+  async continueAfterRestore(): Promise<ContinueAfterRestoreResponse> {
+    return this.service.continueAfterRestore();
   }
 
   @Post('/report-error')

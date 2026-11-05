@@ -5,6 +5,7 @@ import { ConfigurationKey, JobStatus } from '../src/enum.js';
 import type { DatabaseHooks } from '../src/moduleConfig.js';
 import { JobRepository } from '../src/repositories/job.repository.js';
 import { ModuleConfigRepository } from '../src/repositories/moduleConfig.repository.js';
+import { OnboardingService } from '../src/services/onboarding.service.js';
 import { RepositoryService } from '../src/services/repository.service.js';
 import { YuccaService } from '../src/services/yucca.service.js';
 import { createTestingModule, TestContext } from './testUtils.js';
@@ -96,6 +97,7 @@ describe('restore from point', () => {
     await expect(restorePoint([dumpTag], 'state')).resolves.toMatchObject({ status: JobStatus.Complete });
 
     expect(restore).toHaveBeenCalledWith('state.dump');
+    await expect(ctx.module.get(OnboardingService).continueAfterRestore()).resolves.toEqual({ databaseRestored: true });
   });
 
   it('leaves the current state alone when the configuration is not selected for restore', async () => {
@@ -105,6 +107,9 @@ describe('restore from point', () => {
     await expect(restorePoint([dumpTag])).resolves.toMatchObject({ status: JobStatus.Complete });
 
     expect(restore).not.toHaveBeenCalled();
+    await expect(ctx.module.get(OnboardingService).continueAfterRestore()).resolves.toEqual({
+      databaseRestored: false,
+    });
   });
 
   it('boots again against the database the host restored', async () => {
@@ -138,7 +143,9 @@ describe('restore from point', () => {
     await expect(restorePoint([dumpTag], 'state')).resolves.toMatchObject({ status: JobStatus.Complete });
 
     await expect(configWithoutRestoreFlag()).resolves.toEqual(before);
-    await expect(getConfig(ConfigurationKey.RestoreAwaitingContinue)).resolves.toEqual({ value: { isAwaiting: true } });
+    await expect(getConfig(ConfigurationKey.RestoreAwaitingContinue)).resolves.toEqual({
+      value: { isAwaiting: true, databaseRestored: false },
+    });
   });
 
   it('fails without touching the current state when restoring the state files fails', async () => {

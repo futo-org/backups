@@ -15,7 +15,7 @@ export type ConfigurationValues = {
   [ConfigurationKey.StatePath]: { path: string };
   [ConfigurationKey.Throttle]: ResticProxyThrottle;
   [ConfigurationKey.SupportMode]: SupportModeSettings;
-  [ConfigurationKey.RestoreAwaitingContinue]: { isAwaiting: boolean };
+  [ConfigurationKey.RestoreAwaitingContinue]: { isAwaiting: boolean; databaseRestored?: boolean };
 };
 
 @Table({ name: 'futo_backups_config' })

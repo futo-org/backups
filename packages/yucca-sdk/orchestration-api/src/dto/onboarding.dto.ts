@@ -22,8 +22,13 @@ const CurrentRecoveryKeyResponseSchema = z
   .object({ recoveryKey: z.string() })
   .meta({ id: 'CurrentRecoveryKeyResponse' });
 
+const ContinueAfterRestoreResponseSchema = z
+  .object({ databaseRestored: z.boolean() })
+  .meta({ id: 'ContinueAfterRestoreResponse' });
+
 const ImportRecoveryKeyRequestSchema = z.object({ recoveryKey: z.string() }).meta({ id: 'ImportRecoveryKeyRequest' });
 
 export class OnboardingStatusResponseDto extends createZodDto(OnboardingStatusResponseSchema) {}
 export class CurrentRecoveryKeyResponse extends createZodDto(CurrentRecoveryKeyResponseSchema) {}
+export class ContinueAfterRestoreResponse extends createZodDto(ContinueAfterRestoreResponseSchema) {}
 export class ImportRecoveryKeyRequest extends createZodDto(ImportRecoveryKeyRequestSchema) {}

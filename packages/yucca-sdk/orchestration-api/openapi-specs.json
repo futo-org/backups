@@ -695,7 +695,14 @@
         "parameters": [],
         "responses": {
           "201": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ContinueAfterRestoreResponse"
+                }
+              }
+            }
           }
         },
         "summary": "Continue after a restore",
@@ -2577,6 +2584,17 @@
         },
         "required": [
           "recoveryKey"
+        ]
+      },
+      "ContinueAfterRestoreResponse": {
+        "type": "object",
+        "properties": {
+          "databaseRestored": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "databaseRestored"
         ]
       },
       "RepositoryCreateRequestDto": {

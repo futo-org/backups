@@ -206,8 +206,12 @@ export class ConfigRepository {
     return this.has(ConfigurationKey.RestoreAwaitingContinue);
   }
 
-  async setRestoreAwaitingContinue() {
-    return this.set(ConfigurationKey.RestoreAwaitingContinue, { isAwaiting: true });
+  async getRestoreAwaitingContinue() {
+    return this.getOptional(ConfigurationKey.RestoreAwaitingContinue);
+  }
+
+  async setRestoreAwaitingContinue(databaseRestored: boolean) {
+    return this.set(ConfigurationKey.RestoreAwaitingContinue, { isAwaiting: true, databaseRestored });
   }
 
   async clearRestoreAwaitingContinue() {
