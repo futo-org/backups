@@ -7,6 +7,7 @@ import { LoggingRepository } from '../repositories/logging.repository.js';
 import { ModuleConfigRepository } from '../repositories/moduleConfig.repository.js';
 import { discardStateCacheDirectory } from '../utils/cache.js';
 import { ConfigService } from './config.service.js';
+import { IntegrationsService } from './integrations.service.js';
 import { JobService } from './job.service.js';
 import { ScheduleService } from './schedule.service.js';
 
@@ -22,6 +23,7 @@ export class BootstrapService implements OnApplicationBootstrap {
     private readonly schedule: ScheduleService,
     private readonly bootstrap: BootstrapRepository,
     private readonly moduleConfig: ModuleConfigRepository,
+    private readonly integrations: IntegrationsService,
   ) {
     this.logger.setContext(BootstrapService.name);
   }
@@ -46,6 +48,7 @@ export class BootstrapService implements OnApplicationBootstrap {
       await this.configService.bootstrap();
       await this.schedule.bootstrap();
       await this.jobService.bootstrap();
+      await this.integrations.bootstrap();
 
       const { backends, repositories, activeSchedules } = await this.config.getStateSummary();
       this.logger.log('Successfully finished FUTO Backups bootstrap.');
