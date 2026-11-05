@@ -2099,6 +2099,10 @@ msgstr ""
 msgid "Restoring all files and folders."
 msgstr ""
 
+#: src/lib/components/onboarding/restore-point-flow/RestorePointFlow3ConfirmRestore.svelte
+msgid "Restoring replaces your current Immich database, files and backup settings with this snapshot."
+msgstr ""
+
 #: src/lib/components/backups/dialogs/ViewStatusModal.svelte
 msgid "Restoring your library"
 msgstr ""

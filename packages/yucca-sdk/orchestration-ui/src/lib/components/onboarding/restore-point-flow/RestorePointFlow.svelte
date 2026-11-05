@@ -9,9 +9,11 @@
     onCancel: () => void;
     onImportKey: () => void;
     onRestore: (jobId: string) => void;
+
+    restoreEverything?: boolean;
   };
 
-  const { onCancel, onImportKey, onRestore }: Props = $props();
+  const { onCancel, onImportKey, onRestore, restoreEverything = false }: Props = $props();
 
   const query = useInspectRepositories();
 
@@ -27,6 +29,7 @@
     onBack={() => (selectedRepository = undefined)}
     {repository}
     {onRestore}
+    {restoreEverything}
   />
 {:else}
   <SelectRepositoryModal

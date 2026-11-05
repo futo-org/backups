@@ -118,6 +118,7 @@
     onImportKey={() => (stage = "key-reimport")}
     onCancel={onExit}
     {onRestore}
+    restoreEverything
   />
 {:else if stage === "restoring" && restoreJobId}
   <RestorePointFlow4Restore jobId={restoreJobId} onFinish={onRestoreFinished} />
