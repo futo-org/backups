@@ -29,7 +29,6 @@ golangci-lint = "2.14.0"
 "aqua:google/go-containerregistry" = "0.22.1"
 
 gh = "2.102.0"
-"github:git-town/git-town" = "v24.1.0"
 
 k3d = "5.9.0"
 kubectl = "1.37.1"
