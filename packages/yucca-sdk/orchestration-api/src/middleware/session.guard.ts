@@ -18,6 +18,10 @@ export class SessionGuard implements CanActivate {
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
+    if (!this.session.isEnabled()) {
+      return true;
+    }
+
     const request = context.switchToHttp().getRequest<SessionRequest>();
     const configuration = await this.session.cloudConfiguration();
     request.session = await this.session.fromCookieHeader(request.headers.cookie, configuration);
