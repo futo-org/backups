@@ -105,7 +105,7 @@ export const handleForgetSnapshot = async (
 ) => {
   toastManager.info(gt`Deleting snapshot`, {
     id: snapshotId,
-    closable: false,
+    closable: true,
     timeout: null!,
   });
 
