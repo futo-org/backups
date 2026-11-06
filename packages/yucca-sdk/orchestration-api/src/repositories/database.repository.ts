@@ -63,7 +63,7 @@ export class DatabaseRepository {
     const { rows } = await sql<{ tablename: string }>`
       SELECT tablename FROM pg_tables
       WHERE schemaname = current_schema()
-        AND tablename LIKE 'futo\_backups\_%'
+        AND tablename LIKE 'futo\\_backups\\_%'
         AND tablename NOT IN ('futo_backups_kysely_migrations', 'futo_backups_kysely_migrations_lock')`.execute(
       this.db,
     );
@@ -73,7 +73,7 @@ export class DatabaseRepository {
     }
 
     const tables = sql.join(rows.map(({ tablename }) => sql.table(tablename)));
-    await sql`TRUNCATE ${tables} CASCADE`.execute(this.db);
+    await sql`TRUNCATE ${tables}`.execute(this.db);
   }
 
   private createMigrator(): Migrator {
