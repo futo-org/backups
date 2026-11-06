@@ -1,3 +1,4 @@
+import { ResticBackupCommandCouldNotReadSourceDataError } from '@futo-org/restic-wrapper';
 import { jest } from '@jest/globals';
 import { access, cp, mkdir, mkdtemp, readFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
@@ -95,6 +96,29 @@ describe(JobRepository.name, () => {
 
     const log = await readFile(join(ctx.statePath, 'logs', 'jobs', `${id}.jsonl`), 'utf8');
     expect(log).toContain('restic forget failed');
+  });
+
+  it('does not blame connectivity for a job that finished with warnings', async () => {
+    const jobs = ctx.module.get(JobRepository);
+    const fetch = jest.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(''));
+    const warning = new ResticBackupCommandCouldNotReadSourceDataError('at least one source file could not be read');
+    warning.error = [
+      {
+        message_type: 'error',
+        error: {
+          message: 'Save(<data/ae04524f63>) returned error, retrying after 575ms: unexpected HTTP response (502)',
+        },
+      },
+    ];
+    ctx.resticMock.forget.mockRejectedValueOnce(warning);
+
+    const id = await jobs.queue(forget('snapshot-1'));
+
+    await expect(jobs.wait(id)).rejects.toThrow('at least one source file could not be read');
+    expect(getJob(id).status).toBe(JobStatus.Warn);
+    expect(getJob(id).outcome).not.toContain('Could not reach FUTO Backups');
+    expect(fetch).not.toHaveBeenCalled();
+    fetch.mockRestore();
   });
 
   it('resolves a stored log path against the current state directory', async () => {
