@@ -62,13 +62,14 @@
 
   async function handleRestore() {
     starting = true;
+    const include = restoreEverything ? snapshot.paths : [...includePaths];
     const response = await handleRestoreFromPoint(
       repository.id,
       snapshot.id,
       repository.backends!.primary.id,
       {
         yuccaConfig,
-        include: [...includePaths].filter((path) => path !== yuccaConfig),
+        include: include.filter((path) => path !== yuccaConfig),
       },
     );
     starting = false;
