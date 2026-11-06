@@ -24,10 +24,9 @@
     onRestore: (jobId: string) => void;
 
     repository: InspectedLocalRepositoryDto;
-    restoreEverything: boolean;
   };
 
-  const { onBack, onRestore, repository, restoreEverything }: Props = $props();
+  const { onBack, onRestore, repository }: Props = $props();
   const id = $props.id();
 
   let selectedSnapshot: SnapshotDto | undefined = $state();
@@ -40,7 +39,6 @@
     onBack={() => (selectedSnapshot = undefined)}
     {onRestore}
     {repository}
-    {restoreEverything}
     snapshot={selectedSnapshot}
   />
 {:else}

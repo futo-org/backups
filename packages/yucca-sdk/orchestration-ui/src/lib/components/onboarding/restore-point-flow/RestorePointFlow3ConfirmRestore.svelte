@@ -25,11 +25,10 @@
     onRestore: (jobId: string) => void;
 
     repository: InspectedLocalRepositoryDto;
-    restoreEverything: boolean;
     snapshot: SnapshotDto;
   };
 
-  const { onBack, onRestore, repository, restoreEverything, snapshot }: Props = $props();
+  const { onBack, onRestore, repository, snapshot }: Props = $props();
   const backupIncludesId = $props.id();
   let yuccaConfigField: HTMLElement | undefined = $state();
 
@@ -62,14 +61,13 @@
 
   async function handleRestore() {
     starting = true;
-    const include = restoreEverything ? snapshot.paths : [...includePaths];
     const response = await handleRestoreFromPoint(
       repository.id,
       snapshot.id,
       repository.backends!.primary.id,
       {
         yuccaConfig,
-        include: include.filter((path) => path !== yuccaConfig),
+        include: [...includePaths].filter((path) => path !== yuccaConfig),
       },
     );
     starting = false;
@@ -83,46 +81,40 @@
 <Modal focusOnOpen title={$t`Confirm restore from snapshot`} size="small" onClose={onBack}>
   <ModalBody>
     <Stack>
-      {#if restoreEverything}
-        <Text>
-          {$t`Restoring replaces your current Immich database, files and backup settings with this snapshot.`}
-        </Text>
-      {:else}
-        <Field label={$t`Restore configuration`}>
-          <HStack class="items-end">
-            <div bind:this={yuccaConfigField} class="flex-1">
-              <Select
-                options={yuccaConfigOptions}
-                bind:value={yuccaConfig}
-                placeholder={$t`Not restoring backup configuration`}
-              />
-            </div>
-            {#if yuccaConfig}
-              <Button variant="ghost" onclick={clearYuccaConfig}>
-                {$t`Clear`}
-              </Button>
-            {/if}
-          </HStack>
-        </Field>
+      <Field label={$t`Restore configuration`}>
+        <HStack class="items-end">
+          <div bind:this={yuccaConfigField} class="flex-1">
+            <Select
+              options={yuccaConfigOptions}
+              bind:value={yuccaConfig}
+              placeholder={$t`Not restoring backup configuration`}
+            />
+          </div>
+          {#if yuccaConfig}
+            <Button variant="ghost" onclick={clearYuccaConfig}>
+              {$t`Clear`}
+            </Button>
+          {/if}
+        </HStack>
+      </Field>
 
-        <div role="group" aria-labelledby={backupIncludesId} class="flex flex-col gap-2">
-          <Text id={backupIncludesId} fontWeight="bold">{$t`Backup includes`}</Text>
-          {#each snapshot.paths as path}
-            {@const forced = path === yuccaConfig}
-            <label class="select-none flex gap-2 items-center">
-              <Checkbox
-                checked={forced || includePaths.has(path)}
-                disabled={forced}
-                onCheckedChange={() =>
-                  includePaths.has(path)
-                    ? includePaths.delete(path)
-                    : includePaths.add(path)}
-              />
-              {path}
-            </label>
-          {/each}
-        </div>
-      {/if}
+      <div role="group" aria-labelledby={backupIncludesId} class="flex flex-col gap-2">
+        <Text id={backupIncludesId} fontWeight="bold">{$t`Backup includes`}</Text>
+        {#each snapshot.paths as path}
+          {@const forced = path === yuccaConfig}
+          <label class="select-none flex gap-2 items-center">
+            <Checkbox
+              checked={forced || includePaths.has(path)}
+              disabled={forced}
+              onCheckedChange={() =>
+                includePaths.has(path)
+                  ? includePaths.delete(path)
+                  : includePaths.add(path)}
+            />
+            {path}
+          </label>
+        {/each}
+      </div>
 
       <Text size="small" color="muted">
         {$t`Files will be restored to their exact paths.`}
