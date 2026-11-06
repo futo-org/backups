@@ -42,6 +42,7 @@
 
 <FormModal
   disabled={name.length === 0 ||
+    (!!repository.configuration && paths.size === 0) ||
     updateMutation.isPending}
   title={$t({ message: "Configure {name}", values: { name } })}
   size="large"
