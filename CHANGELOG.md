@@ -1,5 +1,26 @@
 # Changelog
 
+## [1.13.0](https://github.com/futo-org/backups/compare/v1.12.1...v1.13.0) (2026-11-06)
+
+
+### Features
+
+* **futo-backups-bot:** turn on support mode from a ticket until it closes ([#162](https://github.com/futo-org/backups/issues/162)) ([925cd93](https://github.com/futo-org/backups/commit/925cd93df834b66e1f9aee4616ba80b6a3705894))
+* **yucca sdk:** swap SQLite for Postgres ([#137](https://github.com/futo-org/backups/issues/137)) ([1b24c5f](https://github.com/futo-org/backups/commit/1b24c5fafdce1de15e1fb4283da38a02d973cc91))
+
+
+### Bug Fixes
+
+* **docs:** use the FUTO Backups icon for docs.futo.cloud ([#171](https://github.com/futo-org/backups/issues/171)) ([5297b51](https://github.com/futo-org/backups/commit/5297b518a8d4e2ef12966cfdb6d76f11c975c138))
+* **orchestration-ui:** don't show "Yucca Server Error" for client-side fetch failures ([#159](https://github.com/futo-org/backups/issues/159)) ([bc3c566](https://github.com/futo-org/backups/commit/bc3c5663453747ac995b0b1b9933052f986f58f9))
+* **orchestration-ui:** unambiguous backup ETA (M for months, max three units) ([#174](https://github.com/futo-org/backups/issues/174)) ([c69fcb7](https://github.com/futo-org/backups/commit/c69fcb7da12e28f463c8ff82df711289cb4cb846))
+* **yucca-api:** fall back to given and family name when the name claim is missing ([#160](https://github.com/futo-org/backups/issues/160)) ([1dd0776](https://github.com/futo-org/backups/commit/1dd0776f37d2e4423d3b9e252a74be63883a381a))
+
+
+### Miscellaneous Chores
+
+* remove git-town ([#170](https://github.com/futo-org/backups/issues/170)) ([7d191c2](https://github.com/futo-org/backups/commit/7d191c2cccbea12ccf47111bdc727b5457a2f555))
+
 ## [1.12.1](https://github.com/futo-org/backups/compare/v1.12.0...v1.12.1) (2026-10-30)
 
 
