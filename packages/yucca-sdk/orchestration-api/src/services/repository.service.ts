@@ -473,6 +473,10 @@ export class RepositoryService {
         }
       }
 
+      if (Object.keys(metrics).length === 0) {
+        return;
+      }
+
       const updatedMetrics = await this.repositoryLocalMetrics.save(id, metrics);
 
       this.events.publish({
