@@ -3,6 +3,7 @@ import { Kysely, sql, Transaction } from 'kysely';
 import { FileMigrationProvider, Migrator } from 'kysely/migration';
 import { InjectKysely } from 'nestjs-kysely';
 import { join } from 'node:path';
+import { MIGRATION_LOCK_TABLE, MIGRATION_TABLE, TABLE_PREFIX } from '../const.js';
 import { DB } from '../schema/index.js';
 import { LoggingRepository } from './logging.repository.js';
 import { StorageRepository } from './storage.repository.js';
@@ -63,10 +64,8 @@ export class DatabaseRepository {
     const { rows } = await sql<{ tablename: string }>`
       SELECT tablename FROM pg_tables
       WHERE schemaname = current_schema()
-        AND tablename LIKE 'futo\\_backups\\_%'
-        AND tablename NOT IN ('futo_backups_kysely_migrations', 'futo_backups_kysely_migrations_lock')`.execute(
-      this.db,
-    );
+        AND starts_with(tablename, ${TABLE_PREFIX})
+        AND tablename NOT IN (${MIGRATION_TABLE}, ${MIGRATION_LOCK_TABLE})`.execute(this.db);
 
     if (rows.length === 0) {
       return;
@@ -79,8 +78,8 @@ export class DatabaseRepository {
   private createMigrator(): Migrator {
     return new Migrator({
       db: this.db,
-      migrationLockTableName: 'futo_backups_kysely_migrations_lock',
-      migrationTableName: 'futo_backups_kysely_migrations',
+      migrationLockTableName: MIGRATION_LOCK_TABLE,
+      migrationTableName: MIGRATION_TABLE,
       provider: new FileMigrationProvider({
         fs: {
           readdir: this.storage.readdir,
