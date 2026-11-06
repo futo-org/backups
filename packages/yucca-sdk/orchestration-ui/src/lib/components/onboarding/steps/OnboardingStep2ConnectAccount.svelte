@@ -14,7 +14,7 @@
   const { onConnect, onLocalStorage }: Props = $props();
 
   const outcomes = $derived([
-    $t`Link this Immich server to your FUTO account`,
+    $t`Link this server to your FUTO account`,
     $t`Set up FUTO Cloud as your backup storage`,
     $t`Return you here to finish setup`,
   ]);
