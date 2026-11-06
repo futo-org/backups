@@ -26,8 +26,7 @@ export enum ConfigurationKey {
   ResticOptionRestConnections = 'restic-o-rest-connections',
   SessionSecret = 'session-secret',
   StatePath = 'state-path',
-  ThrottleBytesPerSec = 'throttle-bytes-per-sec',
-  ThrottleQuietHours = 'throttle-quiet-hours',
+  Throttle = 'throttle',
   SupportMode = 'support-mode',
   RestoreAwaitingContinue = 'restore-awaiting-continue',
 }
@@ -96,8 +95,4 @@ export enum BootstrapStatus {
 export enum TelemetryLevel {
   Full = 'full',
   None = 'none',
-}
-
-export enum ResticTagPrefix {
-  ImmichBackupFileName = 'yucca.v1.immichBackupFileName',
 }

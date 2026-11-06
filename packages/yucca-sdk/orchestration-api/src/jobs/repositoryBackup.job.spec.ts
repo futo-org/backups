@@ -30,7 +30,7 @@ describe(RepositoryBackupJob.name, () => {
     };
     const repositoryPaths = { get: jest.fn<() => Promise<string[]>>().mockResolvedValue(['/data']) };
     const immichIntegration = { get: jest.fn<() => Promise<undefined>>().mockResolvedValue(undefined) };
-    const moduleConfig = { get: () => ({}) };
+    const moduleConfig = { get: () => ({ statePath: '/state' }) };
     const restic = newResticRepositoryMock();
     const jobs = {
       queue: jest.fn(),

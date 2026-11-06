@@ -24,22 +24,23 @@ import { AuthService } from '../src/services/auth.service.js';
 import { IntegrationsService } from '../src/services/integrations.service.js';
 import { RepositoryService } from '../src/services/repository.service.js';
 import { YuccaService } from '../src/services/yucca.service.js';
-import { newImmichHooksMock } from './mocks.js';
+import { newDatabaseHooksMock, newImmichHooksMock } from './mocks.js';
 import { createTestingModule, TestContext, waitFor, waitForEvent } from './testUtils.js';
 
 let ctx: TestContext;
 
-const configureImmich = async (hooks: Partial<ReturnType<typeof newImmichHooksMock>>) => {
+const configureImmich = async (databaseHooks: Partial<ReturnType<typeof newDatabaseHooksMock>>) => {
   const integrationsService = ctx.module.get(IntegrationsService);
   const moduleConfig = ctx.module.get(ModuleConfigRepository);
   const immichRepository = ctx.module.get(RepositoryIntegrationImmichRepository);
 
   moduleConfig.update({
+    databaseHooks: { ...newDatabaseHooksMock(), ...databaseHooks },
     immichIntegration: {
       dataPath: '/data/immich',
       dataFolders: ['upload'],
       libraries: [],
-      hooks: { ...newImmichHooksMock(), ...hooks },
+      hooks: newImmichHooksMock(),
     },
   });
 
@@ -58,14 +59,14 @@ const configureImmich = async (hooks: Partial<ReturnType<typeof newImmichHooksMo
     repositoryId: integration!.id,
     teardown: async () => {
       await immichRepository.delete();
-      moduleConfig.update({ immichIntegration: undefined });
+      moduleConfig.update({ databaseHooks: undefined, immichIntegration: undefined });
     },
   };
 };
 
-const backupWithHooks = async (hooks: Partial<ReturnType<typeof newImmichHooksMock>>) => {
+const backupWithHooks = async (databaseHooks: Partial<ReturnType<typeof newDatabaseHooksMock>>) => {
   const repositoryService = ctx.module.get(RepositoryService);
-  const { repositoryId, teardown } = await configureImmich(hooks);
+  const { repositoryId, teardown } = await configureImmich(databaseHooks);
 
   try {
     const { jobId } = await repositoryService.createBackup(repositoryId);
@@ -240,11 +241,11 @@ describe('Repository', () => {
 
   describe('Immich integration hooks', () => {
     it('passes the task abort signal to the database backup hook and tags the snapshot', async () => {
-      const createDatabaseBackup = jest.fn().mockResolvedValue('dump.sql.gz');
+      const dump = jest.fn().mockResolvedValue('dump.sql.gz');
 
-      await backupWithHooks({ createDatabaseBackup });
+      await backupWithHooks({ dump });
 
-      expect(createDatabaseBackup).toHaveBeenCalledWith(expect.any(AbortSignal));
+      expect(dump).toHaveBeenCalledWith(expect.any(AbortSignal));
       expect(ctx.resticMock.backup).toHaveBeenCalledWith(
         expect.anything(),
         expect.anything(),
@@ -259,26 +260,24 @@ describe('Repository', () => {
     });
 
     it('runs cleanup after the backup succeeds', async () => {
-      const cleanupDatabaseBackups = jest.fn();
+      const cleanup = jest.fn();
 
       await backupWithHooks({
-        createDatabaseBackup: jest.fn().mockResolvedValue('dump.sql.gz'),
-        cleanupDatabaseBackups,
+        dump: jest.fn().mockResolvedValue('dump.sql.gz'),
+        cleanup,
       });
 
-      expect(cleanupDatabaseBackups).toHaveBeenCalledTimes(1);
-      expect(cleanupDatabaseBackups.mock.invocationCallOrder[0]).toBeGreaterThan(
-        ctx.resticMock.backup.mock.invocationCallOrder[0],
-      );
+      expect(cleanup).toHaveBeenCalledTimes(1);
+      expect(cleanup.mock.invocationCallOrder[0]).toBeGreaterThan(ctx.resticMock.backup.mock.invocationCallOrder[0]);
     });
 
     it('skips cleanup when the backup fails', async () => {
-      const cleanupDatabaseBackups = jest.fn();
+      const cleanup = jest.fn();
       ctx.resticMock.backup.mockRejectedValue(new Error('Backup failed'));
 
-      await expect(backupWithHooks({ cleanupDatabaseBackups })).rejects.toThrow('Backup failed');
+      await expect(backupWithHooks({ cleanup })).rejects.toThrow('Backup failed');
 
-      expect(cleanupDatabaseBackups).not.toHaveBeenCalled();
+      expect(cleanup).not.toHaveBeenCalled();
     });
 
     it('still backs up without a tag and finishes with a warning when the database backup hook fails', async () => {
@@ -289,7 +288,7 @@ describe('Repository', () => {
       );
 
       await expect(
-        backupWithHooks({ createDatabaseBackup: jest.fn().mockRejectedValue(new Error('pg_dump failed')) }),
+        backupWithHooks({ dump: jest.fn().mockRejectedValue(new Error('pg_dump failed')) }),
       ).rejects.toMatchObject({
         message: 'Task finished with warnings',
         errors: [expect.objectContaining({ message: 'Database dump failed: Error: pg_dump failed' })],
@@ -317,7 +316,7 @@ describe('Repository', () => {
 
     it('finishes with a warning when cleanup rejects', async () => {
       await expect(
-        backupWithHooks({ cleanupDatabaseBackups: jest.fn().mockRejectedValue(new Error('locked')) }),
+        backupWithHooks({ cleanup: jest.fn().mockRejectedValue(new Error('locked')) }),
       ).rejects.toMatchObject({
         errors: [expect.objectContaining({ message: 'Database backup cleanup failed: Error: locked' })],
       });
@@ -326,8 +325,8 @@ describe('Repository', () => {
     it('collects every hook failure into one warning', async () => {
       await expect(
         backupWithHooks({
-          createDatabaseBackup: jest.fn().mockRejectedValue(new Error('pg_dump failed')),
-          cleanupDatabaseBackups: jest.fn().mockRejectedValue(new Error('locked')),
+          dump: jest.fn().mockRejectedValue(new Error('pg_dump failed')),
+          cleanup: jest.fn().mockRejectedValue(new Error('locked')),
         }),
       ).rejects.toMatchObject({
         errors: [
@@ -541,7 +540,7 @@ describe('Repository', () => {
     } finally {
       jest.restoreAllMocks();
       await repositoryService.deleteRepository(repository.id);
-      ctx.database.prepare('DELETE FROM backends WHERE id = ?').run(yuccaBackendId);
+      await ctx.db.deleteFrom('futo_backups_backends').where('id', '=', yuccaBackendId).execute();
     }
   });
 
@@ -614,7 +613,7 @@ describe('Repository', () => {
 
     afterEach(async () => {
       await ctx.module.get(RepositoryService).deleteRepository(repositoryId);
-      ctx.database.prepare('DELETE FROM backends WHERE id = ?').run(yuccaBackendId);
+      await ctx.db.deleteFrom('futo_backups_backends').where('id', '=', yuccaBackendId).execute();
     });
 
     const isKnownLocally = async () => Boolean(await ctx.module.get(RepositoryRepository).get(repositoryId));

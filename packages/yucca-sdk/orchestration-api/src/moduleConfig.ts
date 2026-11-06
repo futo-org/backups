@@ -1,3 +1,4 @@
+import type { Dialect } from 'kysely';
 import type { Socket } from 'socket.io';
 import { GatewayEvent } from './events/events.gateway.js';
 import type { ResticProxyThrottle } from './proxy/resticProxy.js';
@@ -12,6 +13,15 @@ export type ImmichDatabaseDumpConfig = {
   keepLastAmount: number;
 };
 
+export type DatabaseDumpTagName = 'yucca.v1.immichBackupFileName' | 'yucca.v1.stateDumpFileName';
+
+export type DatabaseHooks = {
+  tagName: DatabaseDumpTagName;
+  dump(signal: AbortSignal): Promise<string>;
+  cleanup?(): Promise<void>;
+  restore(fileName: string): Promise<void>;
+};
+
 export type ImmichIntegration = {
   dataPath: string;
   dataFolders: string[];
@@ -22,8 +32,6 @@ export type ImmichIntegration = {
     exclusionPatterns: string[];
   }[];
   hooks: {
-    createDatabaseBackup(signal: AbortSignal): Promise<string>;
-    cleanupDatabaseBackups(): Promise<void>;
     getImmichDatabaseDumpConfig(): Promise<ImmichDatabaseDumpConfig>;
     configureImmichDatabaseDump(config: Partial<ImmichDatabaseDumpConfig>): Promise<void>;
     enterMaintenanceRollback(
@@ -35,6 +43,8 @@ export type ImmichIntegration = {
 };
 
 export type ModuleConfig = {
+  dialect: Dialect;
+
   statePath: string;
   cachePath?: string;
   resticWalkConcurrency?: number;
@@ -48,6 +58,8 @@ export type ModuleConfig = {
 
   authenticate?: AuthenticateFn;
   onInternalEvent?: (event: GatewayEvent) => void;
+
+  databaseHooks?: DatabaseHooks;
 
   immichIntegration?: ImmichIntegration;
 };

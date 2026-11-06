@@ -8,9 +8,10 @@ import {
   ImmichRollbackRequestDto,
   IntegrationsResponseDto,
 } from '../dto/integrations.dto.js';
-import { InternalEvent, JobName } from '../enum.js';
+import { BootstrapStatus, InternalEvent, JobName } from '../enum.js';
 import { EventsGateway } from '../events/events.gateway.js';
-import type { ImmichIntegration, ModuleConfig } from '../moduleConfig.js';
+import type { ImmichIntegration } from '../moduleConfig.js';
+import { BootstrapRepository } from '../repositories/bootstrap.repository.js';
 import { ConfigRepository } from '../repositories/config.repository.js';
 import { JobRepository } from '../repositories/job.repository.js';
 import { LockRepository } from '../repositories/lock.repository.js';
@@ -41,18 +42,28 @@ export class IntegrationsService {
     private readonly scheduleService: ScheduleService,
     private readonly telemetry: TelemetryService,
     private readonly lock: LockRepository,
+    private readonly bootstrapRepository: BootstrapRepository,
   ) {}
 
   @OnEvent(InternalEvent.ModuleConfigUpdated)
-  async onModuleConfigUpdate(moduleConfig: ModuleConfig) {
-    if (moduleConfig.immichIntegration) {
-      const integration = await this.repositoryIntegrationImmich.get();
-      if (!integration) {
-        return;
-      }
-
-      await this.syncImmichRepositoryPaths(integration.id, integration.configuration, moduleConfig.immichIntegration);
+  async onModuleConfigUpdate() {
+    if (this.bootstrapRepository.getStatus() === BootstrapStatus.Ready) {
+      await this.bootstrap();
     }
+  }
+
+  async bootstrap() {
+    const { immichIntegration } = this.moduleConfig.get();
+    if (!immichIntegration) {
+      return;
+    }
+
+    const integration = await this.repositoryIntegrationImmich.get();
+    if (!integration) {
+      return;
+    }
+
+    await this.syncImmichRepositoryPaths(integration.id, integration.configuration, immichIntegration);
   }
 
   async getIntegrationsConfig(): Promise<IntegrationsResponseDto> {
@@ -213,7 +224,7 @@ export class IntegrationsService {
     }
 
     for (const path of toAdd) {
-      await this.repositoryPath.create({ id: repositoryId, path });
+      await this.repositoryPath.create({ repositoryId, path });
     }
   }
 

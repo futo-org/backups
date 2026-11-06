@@ -1,4 +1,5 @@
 import { LoggingRepository, OrchestrationApiModule } from '@futo-org/backups-orchestrator-api';
+import { createPGliteDatabase } from '@futo-org/backups-orchestrator-api/pglite';
 import { NestFactory } from '@nestjs/core';
 import type { NestExpressApplication } from '@nestjs/platform-express';
 import express from 'express';
@@ -20,14 +21,18 @@ async function bootstrap() {
     await mkdir(env.cachePath, { recursive: true });
   }
 
+  const { dialect, databaseHooks } = await createPGliteDatabase(resolve(env.statePath, 'state-pglite'), env.statePath);
+
   const app = await NestFactory.create<NestExpressApplication>(
     OrchestrationApiModule.forRootAsync({
       useFactory: () => ({
+        dialect,
         statePath: env.statePath,
         cachePath: env.cachePath,
         wellKnownUrl: env.wellKnownUrl,
         requireSession: !env.disableAuth,
         resticWalkConcurrency: env.resticWalkConcurrency,
+        databaseHooks,
       }),
     }),
     { forceCloseConnections: true },

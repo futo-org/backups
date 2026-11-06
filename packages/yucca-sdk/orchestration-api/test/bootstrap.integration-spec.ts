@@ -26,8 +26,8 @@ afterAll(async () => {
 
 beforeEach(async () => {
   jest.clearAllMocks();
-  ctx.database.prepare('DELETE FROM jobs').run();
-  ctx.database.prepare('DELETE FROM repositories').run();
+  await ctx.db.deleteFrom('futo_backups_jobs').execute();
+  await ctx.db.deleteFrom('futo_backups_repositories').execute();
 
   await ctx.module.get(BackendRepository).updateBackend(REPOSITORY_DEFAULT_CLOUD_UUID, {
     type: BackendType.Yucca,
@@ -41,7 +41,7 @@ describe('Bootstrap', () => {
   it('marks interrupted jobs as incomplete and reports only the backup to the backend', async () => {
     const repositoryId = randomUUID();
     const remoteId = `remote-${repositoryId}`;
-    const now = new Date().toISOString();
+    const now = new Date();
 
     await ctx.module.get(RepositoryRepository).create({
       id: repositoryId,
@@ -52,12 +52,22 @@ describe('Bootstrap', () => {
       storageClusterCode: null,
     });
 
-    const insertRunningJob = ctx.database.prepare(
-      `INSERT INTO jobs (id, name, repositoryId, data, status, logFilePath, queuedAt, start)
-        VALUES (?, ?, ?, '{}', 'running', 'logs/jobs/interrupted.jsonl', ?, ?)`,
-    );
-    insertRunningJob.run(randomUUID(), JobName.RepositoryBackup, repositoryId, now, now);
-    insertRunningJob.run(randomUUID(), JobName.RepositoryRestore, repositoryId, now, now);
+    await ctx.db
+      .insertInto('futo_backups_jobs')
+      .values(
+        [
+          { name: JobName.RepositoryBackup, data: { repositoryId } },
+          { name: JobName.RepositoryRestore, data: { repositoryId, snapshotId: 'snapshot-1', options: {} } },
+        ].map((job) => ({
+          ...job,
+          repositoryId,
+          status: JobStatus.Running,
+          logFilePath: 'logs/jobs/interrupted.jsonl',
+          queuedAt: now,
+          start: now,
+        })),
+      )
+      .execute();
 
     await ctx.module.get(BootstrapService).onApplicationBootstrap();
 

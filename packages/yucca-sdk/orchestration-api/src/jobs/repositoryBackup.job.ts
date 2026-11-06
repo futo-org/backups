@@ -1,8 +1,8 @@
 import { ResticBackupCommandCouldNotReadSourceDataError } from '@futo-org/restic-wrapper';
 import { NotFoundException } from '@nestjs/common';
+import { relative, resolve } from 'node:path';
 import { Job } from '../decorators.js';
-import { JobName, ResticTagPrefix, TaskStatus } from '../enum.js';
-import type { ImmichIntegration } from '../moduleConfig.js';
+import { JobName, TaskStatus } from '../enum.js';
 import type { ResticPlacement } from '../repositories/config.repository.js';
 import { JobRepository } from '../repositories/job.repository.js';
 import { ModuleConfigRepository } from '../repositories/moduleConfig.repository.js';
@@ -64,32 +64,29 @@ export class RepositoryBackupJob implements JobHandler<RepositoryBackupData> {
       const warnings: Error[] = [];
       const tags = [];
 
-      let immichHooks: ImmichIntegration['hooks'] | undefined;
+      const { databaseHooks, statePath } = this.moduleConfig.get();
+      const immichIntegration = await this.repositoryIntegrationImmich.get();
+      const pathsIncludeState = paths.some((path) => !relative(resolve(path), resolve(statePath)).startsWith('..'));
+      const dumpDatabase = repositoryId === immichIntegration?.id || pathsIncludeState;
+      if (databaseHooks && dumpDatabase) {
+        this.telemetry.submitStructuredLog('Creating database backup', {
+          repositoryId,
+        });
 
-      const config = this.moduleConfig.get();
-      if (config.immichIntegration) {
-        const immichIntegration = await this.repositoryIntegrationImmich.get();
-        if (repositoryId === immichIntegration?.id) {
-          immichHooks = config.immichIntegration.hooks;
-          this.telemetry.submitStructuredLog('Creating Immich database backup', {
+        try {
+          const backupFileName = await databaseHooks.dump(ctx.signal);
+          tags.push(`${databaseHooks.tagName}=${backupFileName}`);
+
+          this.telemetry.submitStructuredLog('Created database backup', {
             repositoryId,
           });
+        } catch (error) {
+          this.telemetry.submitStructuredLog('Failed to create database backup', {
+            repositoryId,
+            error,
+          });
 
-          try {
-            const backupFileName = await immichHooks.createDatabaseBackup(ctx.signal);
-            tags.push(`${ResticTagPrefix.ImmichBackupFileName}=${backupFileName}`);
-
-            this.telemetry.submitStructuredLog('Created Immich database backup', {
-              repositoryId,
-            });
-          } catch (error) {
-            this.telemetry.submitStructuredLog('Failed to create Immich database backup', {
-              repositoryId,
-              error,
-            });
-
-            warnings.push(new Error(`Database dump failed: ${error}`, { cause: error }));
-          }
+          warnings.push(new Error(`Database dump failed: ${error}`, { cause: error }));
         }
       }
 
@@ -126,11 +123,11 @@ export class RepositoryBackupJob implements JobHandler<RepositoryBackupData> {
         summary,
       });
 
-      if (immichHooks) {
+      if (databaseHooks?.cleanup && dumpDatabase) {
         try {
-          await immichHooks.cleanupDatabaseBackups();
+          await databaseHooks.cleanup();
         } catch (error) {
-          this.telemetry.submitStructuredLog('Failed to clean up Immich database backups', {
+          this.telemetry.submitStructuredLog('Failed to clean up database backups', {
             repositoryId,
             error,
           });
@@ -157,7 +154,7 @@ export class RepositoryBackupJob implements JobHandler<RepositoryBackupData> {
 
       await this.repositoryService.updateLocalMetrics(repositoryId, {
         additionalMetrics: {
-          lastBackup: new Date().toISOString(),
+          lastBackup: new Date(),
           lastBackupStatus,
           lastBackupDuration,
         },

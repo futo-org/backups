@@ -1,4 +1,5 @@
 import { Injectable, OnApplicationBootstrap } from '@nestjs/common';
+import { LegacyStateRepository } from '../legacy-sqlite/legacyState.repository.js';
 import { BootstrapRepository } from '../repositories/bootstrap.repository.js';
 import { ConfigRepository } from '../repositories/config.repository.js';
 import { DatabaseRepository } from '../repositories/database.repository.js';
@@ -6,6 +7,7 @@ import { LoggingRepository } from '../repositories/logging.repository.js';
 import { ModuleConfigRepository } from '../repositories/moduleConfig.repository.js';
 import { discardStateCacheDirectory } from '../utils/cache.js';
 import { ConfigService } from './config.service.js';
+import { IntegrationsService } from './integrations.service.js';
 import { JobService } from './job.service.js';
 import { ScheduleService } from './schedule.service.js';
 
@@ -14,27 +16,39 @@ export class BootstrapService implements OnApplicationBootstrap {
   constructor(
     private readonly logger: LoggingRepository,
     private readonly database: DatabaseRepository,
+    private readonly legacyState: LegacyStateRepository,
     private readonly jobService: JobService,
     private readonly config: ConfigRepository,
     private readonly configService: ConfigService,
     private readonly schedule: ScheduleService,
     private readonly bootstrap: BootstrapRepository,
     private readonly moduleConfig: ModuleConfigRepository,
+    private readonly integrations: IntegrationsService,
   ) {
     this.logger.setContext(BootstrapService.name);
   }
 
   async onApplicationBootstrap() {
     try {
+      if (this.moduleConfig.get().requireLock && !this.moduleConfig.hasLock()) {
+        const locked = await this.database.tryLock('futo_backups_module_config');
+        if (locked) {
+          this.moduleConfig.acquireLock();
+        }
+      }
+
       if (this.moduleConfig.hasLock()) {
         await discardStateCacheDirectory(this.moduleConfig.get());
       }
 
       await this.database.runMigrations();
+      await this.legacyState.importFrom(this.moduleConfig.get().statePath);
+
       await this.config.bootstrap();
       await this.configService.bootstrap();
       await this.schedule.bootstrap();
       await this.jobService.bootstrap();
+      await this.integrations.bootstrap();
 
       const { backends, repositories, activeSchedules } = await this.config.getStateSummary();
       this.logger.log('Successfully finished FUTO Backups bootstrap.');

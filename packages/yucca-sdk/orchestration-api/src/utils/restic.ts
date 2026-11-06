@@ -1,4 +1,5 @@
 import type { BackupMessage, RestoreMessage } from '@futo-org/restic-wrapper';
+import type { DatabaseDumpTagName } from '../moduleConfig.js';
 
 export type RetentionPolicy = {
   keepLast?: number;
@@ -38,3 +39,6 @@ export const createSampledLogWriter = <T extends BackupMessage | RestoreMessage>
     log(event);
   };
 };
+
+export const getDatabaseBackupFileName = (tags: string[] | undefined, tagName: DatabaseDumpTagName) =>
+  tags?.find((tag) => tag.startsWith(`${tagName}=`))?.slice(tagName.length + 1);

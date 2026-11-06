@@ -18,6 +18,7 @@ import { TelemetryService } from '../services/telemetry.service.js';
 import { explainConnectivityFailure } from '../utils/connectivity.js';
 import { getJobStatus, TaskCancelledError, writeError } from '../utils/errors.js';
 import type { JobHandler, JobItem } from '../utils/types.js';
+import { DatabaseRepository } from './database.repository.js';
 import { LoggingRepository } from './logging.repository.js';
 import { ModuleConfigRepository } from './moduleConfig.repository.js';
 import { StorageRepository } from './storage.repository.js';
@@ -25,25 +26,36 @@ import { SupportContextRepository } from './supportContext.repository.js';
 
 export type Job = Selectable<JobTable>;
 
-const toJobDto = ({ data: _data, logFilePath: _logFilePath, outcome, ...job }: Job): JobDto => ({
+const toJobDto = ({
+  data: _data,
+  logFilePath: _logFilePath,
+  sequence: _sequence,
+  queuedAt,
+  start,
+  end,
+  outcome,
+  ...job
+}: Job): JobDto => ({
   ...job,
-  outcome: outcome ? JSON.parse(outcome) : undefined,
+  queuedAt: queuedAt.toISOString(),
+  start: start?.toISOString(),
+  end: end?.toISOString(),
+  outcome: outcome ?? undefined,
 });
 
 const finishedStatuses = new Set([JobStatus.Complete, JobStatus.Warn, JobStatus.Failed, JobStatus.Cancelled]);
 const activeStatuses = [JobStatus.Queued, JobStatus.Running];
 
-const toQueuedJob = ({ name, data }: JobItem, queuedAt: string) => {
+const toQueuedJob = ({ name, data }: JobItem) => {
   const id = randomUUID();
 
   return {
     id,
     name,
     repositoryId: data.repositoryId,
-    data: JSON.stringify(data),
+    data,
     status: JobStatus.Queued,
     logFilePath: join('logs', 'jobs', `${id}.jsonl`),
-    queuedAt,
   };
 };
 
@@ -72,6 +84,7 @@ export class JobRepository implements OnModuleInit, BeforeApplicationShutdown {
     private readonly telemetry: TelemetryService,
     private readonly supportMode: SupportModeService,
     private readonly supportContext: SupportContextRepository,
+    private readonly database: DatabaseRepository,
   ) {
     this.logger.setContext(JobRepository.name);
   }
@@ -113,8 +126,8 @@ export class JobRepository implements OnModuleInit, BeforeApplicationShutdown {
     }
 
     return this.db
-      .updateTable('jobs')
-      .set({ status: JobStatus.Incomplete, end: new Date().toISOString() })
+      .updateTable('futo_backups_jobs')
+      .set({ status: JobStatus.Incomplete, end: new Date() })
       .where('status', 'in', activeStatuses)
       .$if(this.running !== undefined, (qb) => qb.where('id', '!=', this.running!.job.id))
       .returningAll()
@@ -164,10 +177,9 @@ export class JobRepository implements OnModuleInit, BeforeApplicationShutdown {
       return [];
     }
 
-    const queuedAt = new Date().toISOString();
     const jobs = await this.db
-      .insertInto('jobs')
-      .values(items.map((item) => toQueuedJob(item, queuedAt)))
+      .insertInto('futo_backups_jobs')
+      .values(items.map((item) => toQueuedJob(item)))
       .returningAll()
       .execute();
 
@@ -181,31 +193,20 @@ export class JobRepository implements OnModuleInit, BeforeApplicationShutdown {
       return;
     }
 
-    const queued = toQueuedJob(item, new Date().toISOString());
-    const job = await this.db
-      .insertInto('jobs')
-      .columns(['id', 'name', 'repositoryId', 'data', 'status', 'logFilePath', 'queuedAt'])
-      .expression(
-        this.db
-          .selectNoFrom((eb) => [
-            eb.val(queued.id).as('id'),
-            eb.val(queued.name).as('name'),
-            eb.val(queued.repositoryId).as('repositoryId'),
-            eb.val(queued.data).as('data'),
-            eb.val(queued.status).as('status'),
-            eb.val(queued.logFilePath).as('logFilePath'),
-            eb.val(queued.queuedAt).as('queuedAt'),
-          ])
-          .where((eb) =>
-            eb.not(
-              eb.exists(
-                eb.selectFrom('jobs').select('id').where('name', '=', item.name).where('status', 'in', activeStatuses),
-              ),
-            ),
-          ),
-      )
-      .returningAll()
-      .executeTakeFirst();
+    const job = await this.database.withLock(`futo_backups_jobs:${item.name}`, async (trx) => {
+      const active = await trx
+        .selectFrom('futo_backups_jobs')
+        .select('id')
+        .where('name', '=', item.name)
+        .where('status', 'in', activeStatuses)
+        .executeTakeFirst();
+
+      if (active) {
+        return;
+      }
+
+      return trx.insertInto('futo_backups_jobs').values(toQueuedJob(item)).returningAll().executeTakeFirst();
+    });
 
     if (!job) {
       return;
@@ -238,20 +239,21 @@ export class JobRepository implements OnModuleInit, BeforeApplicationShutdown {
       return;
     }
 
+    const { sequence: _sequence, ...row } = this.running.job;
     await this.db
-      .insertInto('jobs')
-      .values(this.running.job)
+      .insertInto('futo_backups_jobs')
+      .values(row)
       .onConflict((oc) => oc.column('id').doNothing())
       .execute();
   }
 
   async getLatestByName(name: JobName) {
     const job = await this.db
-      .selectFrom('jobs')
+      .selectFrom('futo_backups_jobs')
       .selectAll()
       .where('name', '=', name)
       .orderBy('queuedAt', 'desc')
-      .orderBy(sql`rowid`, 'desc')
+      .orderBy('sequence', 'desc')
       .limit(1)
       .executeTakeFirst();
 
@@ -264,11 +266,11 @@ export class JobRepository implements OnModuleInit, BeforeApplicationShutdown {
     }
 
     const job = await this.db
-      .selectFrom('jobs')
+      .selectFrom('futo_backups_jobs')
       .selectAll()
       .where('name', '=', name)
       .where('status', 'in', activeStatuses)
-      .orderBy(sql`rowid`)
+      .orderBy('sequence')
       .limit(1)
       .executeTakeFirst();
 
@@ -276,7 +278,7 @@ export class JobRepository implements OnModuleInit, BeforeApplicationShutdown {
   }
 
   private find(id: string) {
-    return this.db.selectFrom('jobs').selectAll().where('id', '=', id).executeTakeFirst();
+    return this.db.selectFrom('futo_backups_jobs').selectAll().where('id', '=', id).executeTakeFirst();
   }
 
   private async findIncludingRunning(id: string) {
@@ -288,11 +290,11 @@ export class JobRepository implements OnModuleInit, BeforeApplicationShutdown {
 
   async getAll(repositoryId: string) {
     const jobs = await this.db
-      .selectFrom('jobs')
+      .selectFrom('futo_backups_jobs')
       .selectAll()
       .where('repositoryId', '=', repositoryId)
       .orderBy('queuedAt', 'desc')
-      .orderBy(sql`rowid`, 'desc')
+      .orderBy('sequence', 'desc')
       .execute();
 
     return jobs.map((job) => toJobDto(job));
@@ -300,12 +302,12 @@ export class JobRepository implements OnModuleInit, BeforeApplicationShutdown {
 
   async getLatest(repositoryId: string, name: JobName) {
     const job = await this.db
-      .selectFrom('jobs')
+      .selectFrom('futo_backups_jobs')
       .selectAll()
       .where('repositoryId', '=', repositoryId)
       .where('name', '=', name)
       .orderBy('queuedAt', 'desc')
-      .orderBy(sql`rowid`, 'desc')
+      .orderBy('sequence', 'desc')
       .limit(1)
       .executeTakeFirst();
 
@@ -313,16 +315,16 @@ export class JobRepository implements OnModuleInit, BeforeApplicationShutdown {
   }
 
   async getLastBackup(repositoryId: string): Promise<{ snapshotId: string; totalBytes?: number } | undefined> {
-    const snapshotId = sql<string | null>`json_extract(outcome, '$.summary.snapshotId')`;
-    const totalBytes = sql<number | null>`json_extract(outcome, '$.summary.totalBytesProcessed')`;
+    const snapshotId = sql<string | null>`outcome -> 'summary' ->> 'snapshotId'`;
+    const totalBytes = sql<number | null>`(outcome -> 'summary' ->> 'totalBytesProcessed')::int8`;
     const job = await this.db
-      .selectFrom('jobs')
+      .selectFrom('futo_backups_jobs')
       .select([snapshotId.as('snapshotId'), totalBytes.as('totalBytes')])
       .where('repositoryId', '=', repositoryId)
       .where('name', '=', JobName.RepositoryBackup)
       .where(snapshotId, 'is not', null)
       .orderBy('queuedAt', 'desc')
-      .orderBy(sql`rowid`, 'desc')
+      .orderBy('sequence', 'desc')
       .limit(1)
       .executeTakeFirst();
 
@@ -373,7 +375,7 @@ export class JobRepository implements OnModuleInit, BeforeApplicationShutdown {
     await this.cancelQueued((eb) => eb('repositoryId', '=', repositoryId));
 
     const running = await this.db
-      .selectFrom('jobs')
+      .selectFrom('futo_backups_jobs')
       .select('id')
       .where('repositoryId', '=', repositoryId)
       .where('status', '=', JobStatus.Running)
@@ -390,10 +392,12 @@ export class JobRepository implements OnModuleInit, BeforeApplicationShutdown {
     }
   }
 
-  private async cancelQueued(where: Parameters<UpdateQueryBuilder<DB, 'jobs', 'jobs', UpdateResult>['where']>[0]) {
+  private async cancelQueued(
+    where: Parameters<UpdateQueryBuilder<DB, 'futo_backups_jobs', 'futo_backups_jobs', UpdateResult>['where']>[0],
+  ) {
     const cancelled = await this.db
-      .updateTable('jobs')
-      .set({ status: JobStatus.Cancelled, end: new Date().toISOString() })
+      .updateTable('futo_backups_jobs')
+      .set({ status: JobStatus.Cancelled, end: new Date() })
       .where('status', '=', JobStatus.Queued)
       .where(where)
       .returningAll()
@@ -404,7 +408,7 @@ export class JobRepository implements OnModuleInit, BeforeApplicationShutdown {
         type: 'JobUpdate',
         jobId: job.id,
         repositoryId: job.repositoryId,
-        job: { status: job.status, end: job.end },
+        job: { status: job.status, end: job.end?.toISOString() },
       });
 
       this.settle(job, new TaskCancelledError());
@@ -486,15 +490,18 @@ export class JobRepository implements OnModuleInit, BeforeApplicationShutdown {
 
   private async claim() {
     const job = await this.db
-      .updateTable('jobs')
-      .set({ status: JobStatus.Running, start: new Date().toISOString() })
+      .updateTable('futo_backups_jobs')
+      .set({ status: JobStatus.Running, start: new Date() })
+      .where('status', '=', JobStatus.Queued)
       .where('id', '=', (eb) =>
         eb
-          .selectFrom('jobs')
+          .selectFrom('futo_backups_jobs')
           .select('id')
           .where('status', '=', JobStatus.Queued)
-          .orderBy(sql`rowid`)
-          .limit(1),
+          .orderBy('sequence')
+          .limit(1)
+          .forUpdate()
+          .skipLocked(),
       )
       .returningAll()
       .executeTakeFirst();
@@ -504,7 +511,7 @@ export class JobRepository implements OnModuleInit, BeforeApplicationShutdown {
         type: 'JobUpdate',
         jobId: job.id,
         repositoryId: job.repositoryId,
-        job: { status: job.status, start: job.start },
+        job: { status: job.status, start: job.start?.toISOString() },
       });
     }
 
@@ -525,7 +532,7 @@ export class JobRepository implements OnModuleInit, BeforeApplicationShutdown {
     let error: unknown;
     try {
       try {
-        await this.supportContext.run(support, () => handler.run(JSON.parse(job.data), ctx));
+        await this.supportContext.run(support, () => handler.run(job.data, ctx));
       } catch (error_) {
         error = error_;
         writeError((event) => ctx.log(event), error);
@@ -540,14 +547,16 @@ export class JobRepository implements OnModuleInit, BeforeApplicationShutdown {
 
       const updateSet = {
         status: getJobStatus(error),
-        outcome: JSON.stringify(ctx.outcome),
-        end: new Date().toISOString(),
+        outcome: ctx.outcome,
+        end: new Date(),
       };
 
+      const { sequence: _sequence, ...row } = job;
+
       job = await this.db
-        .insertInto('jobs')
+        .insertInto('futo_backups_jobs')
         .values({
-          ...job,
+          ...row,
           ...updateSet,
         })
         .onConflict((oc) => oc.column('id').doUpdateSet(updateSet))
@@ -561,7 +570,7 @@ export class JobRepository implements OnModuleInit, BeforeApplicationShutdown {
       type: 'JobUpdate',
       jobId: job.id,
       repositoryId: job.repositoryId,
-      job: { status: job.status, outcome: ctx.outcome, end: job.end },
+      job: { status: job.status, outcome: ctx.outcome, end: job.end?.toISOString() },
     });
 
     this.settle(job, error);

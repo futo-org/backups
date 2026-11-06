@@ -1,5 +1,9 @@
 import { Injectable } from '@nestjs/common';
-import { CurrentRecoveryKeyResponse, OnboardingStatusResponseDto } from '../dto/onboarding.dto.js';
+import {
+  ContinueAfterRestoreResponse,
+  CurrentRecoveryKeyResponse,
+  OnboardingStatusResponseDto,
+} from '../dto/onboarding.dto.js';
 import { BootstrapStatus, JobName, JobStatus, TelemetryLevel } from '../enum.js';
 import { BackendRepository } from '../repositories/backend.repository.js';
 import { BootstrapRepository } from '../repositories/bootstrap.repository.js';
@@ -85,8 +89,11 @@ export class OnboardingService {
     return latest.id;
   }
 
-  async continueAfterRestore() {
+  async continueAfterRestore(): Promise<ContinueAfterRestoreResponse> {
+    const restore = await this.config.getRestoreAwaitingContinue();
     await this.config.clearRestoreAwaitingContinue();
+
+    return { databaseRestored: restore?.databaseRestored ?? false };
   }
 
   async currentRecoveryKey(): Promise<CurrentRecoveryKeyResponse> {

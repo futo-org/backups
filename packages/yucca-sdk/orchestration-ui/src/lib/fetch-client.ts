@@ -264,6 +264,9 @@ export type CurrentRecoveryKeyResponse = {
 export type ImportRecoveryKeyRequest = {
     recoveryKey: string;
 };
+export type ContinueAfterRestoreResponse = {
+    databaseRestored: boolean;
+};
 export type RepositoryCreateRequestDto = {
     name: string;
     worm: boolean;
@@ -679,7 +682,10 @@ export function futoBackupsEnableTelemetry(opts?: Oazapfts.RequestOpts) {
  * Continue after a restore
  */
 export function futoBackupsContinueAfterRestore(opts?: Oazapfts.RequestOpts) {
-    return oazapfts.ok(oazapfts.fetchText("/api/futo-backups/onboarding/restore/continue", {
+    return oazapfts.ok(oazapfts.fetchJson<{
+        status: 201;
+        data: ContinueAfterRestoreResponse;
+    }>("/api/futo-backups/onboarding/restore/continue", {
         ...opts,
         method: "POST"
     }));

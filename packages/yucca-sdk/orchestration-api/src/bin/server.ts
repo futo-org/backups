@@ -1,15 +1,24 @@
 import { NestFactory } from '@nestjs/core';
 import { ZodValidationPipe } from 'nestjs-zod';
+import { homedir } from 'node:os';
+import { resolve } from 'node:path';
 import { LoggingRepository, ORCHESTRATION_PORT, OrchestrationApiModule } from '../index.js';
+import { createPGliteDatabase } from '../pglite.js';
 
 async function bootstrap() {
   const databaseDumpConfig = { enabled: true, keepLastAmount: 14 };
+  const { dialect, databaseHooks } = await createPGliteDatabase(
+    resolve(homedir(), '.yucca-pglite'),
+    resolve(homedir(), '.yucca'),
+  );
 
   const app = await NestFactory.create(
     OrchestrationApiModule.forRootAsync({
       useFactory: () => ({
+        dialect,
         wellKnownUrl: process.env.FUTO_BACKUPS_WELL_KNOWN_URL,
         developmentMode: true,
+        databaseHooks,
         immichIntegration: {
           dataFolders: ['upload', 'profile', 'library', 'backups', 'thumbs', 'encoded-video'],
           dataPath: '/immich_data',
@@ -22,10 +31,6 @@ async function bootstrap() {
             },
           ],
           hooks: {
-            createDatabaseBackup() {
-              return Promise.resolve('dev-database-backup.sql');
-            },
-            async cleanupDatabaseBackups() {},
             getImmichDatabaseDumpConfig() {
               return Promise.resolve(databaseDumpConfig);
             },

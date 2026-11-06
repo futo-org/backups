@@ -1,8 +1,9 @@
 import { jest } from '@jest/globals';
-import { access, cp, mkdir, mkdtemp, readFile } from 'node:fs/promises';
+import { randomUUID } from 'node:crypto';
+import { access, mkdir, mkdtemp, readFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { JobName, JobStatus } from '../src/enum.js';
+import { ConfigurationKey, JobName, JobStatus } from '../src/enum.js';
 import { type GatewayEvent } from '../src/events/events.gateway.js';
 import { ConfigRepository } from '../src/repositories/config.repository.js';
 import { JobRepository } from '../src/repositories/job.repository.js';
@@ -20,10 +21,24 @@ const forget = (snapshotId: string) =>
   ({ name: JobName.RepositorySnapshotForget, data: { repositoryId, snapshotId } }) as const;
 
 const getJob = (id: string) =>
-  ctx.database.prepare('SELECT * FROM jobs WHERE id = ?').get(id) as { status: JobStatus; outcome: string | null };
+  ctx.db.selectFrom('futo_backups_jobs').selectAll().where('id', '=', id).executeTakeFirstOrThrow();
 
-const backupOutcome = (snapshotId?: string, totalBytesProcessed?: number) =>
-  JSON.stringify({ errors: [], summary: snapshotId ? { type: 'backup', snapshotId, totalBytesProcessed } : undefined });
+const insertJob = async (status: JobStatus, queuedAt: Date, logFilePath = `logs/jobs/${randomUUID()}.jsonl`) => {
+  const { id } = await ctx.db
+    .insertInto('futo_backups_jobs')
+    .values({
+      name: JobName.RepositorySnapshotForget,
+      repositoryId,
+      data: { repositoryId, snapshotId: 'snapshot-1' },
+      status,
+      logFilePath,
+      queuedAt,
+    })
+    .returning('id')
+    .executeTakeFirstOrThrow();
+
+  return id;
+};
 
 const blockForgetUntilAborted = () => {
   const started = Promise.withResolvers<void>();
@@ -90,8 +105,9 @@ describe(JobRepository.name, () => {
     const id = await jobs.queue(forget('snapshot-1'));
 
     await expect(jobs.wait(id)).rejects.toThrow('restic forget failed');
-    expect(getJob(id).status).toBe(JobStatus.Failed);
-    expect(JSON.parse(getJob(id).outcome!)).toEqual({ errors: ['Error: restic forget failed'] });
+    const job = await getJob(id);
+    expect(job.status).toBe(JobStatus.Failed);
+    expect(job.outcome).toEqual({ errors: ['Error: restic forget failed'] });
 
     const log = await readFile(join(ctx.statePath, 'logs', 'jobs', `${id}.jsonl`), 'utf8');
     expect(log).toContain('restic forget failed');
@@ -102,26 +118,24 @@ describe(JobRepository.name, () => {
     const moduleConfig = ctx.module.get(ModuleConfigRepository);
     const originalStatePath = ctx.statePath;
     const movedStatePath = await mkdtemp(join(tmpdir(), 'yucca-moved-'));
-    ctx.database
-      .prepare(
-        `INSERT INTO jobs (id, name, repositoryId, data, status, logFilePath, queuedAt)
-          VALUES ('custom-path', ?, ?, '{}', 'complete', 'logs/custom/elsewhere.jsonl', '2026-10-13T00:00:00.000Z')`,
-      )
-      .run(JobName.RepositorySnapshotForget, repositoryId);
+    const customPathId = await insertJob(
+      JobStatus.Complete,
+      new Date('2026-10-13T00:00:00.000Z'),
+      'logs/custom/elsewhere.jsonl',
+    );
 
     try {
-      await expect(jobs.getLogFilePath('custom-path')).resolves.toBe(
+      await expect(jobs.getLogFilePath(customPathId)).resolves.toBe(
         join(originalStatePath, 'logs', 'custom', 'elsewhere.jsonl'),
       );
 
       moduleConfig.update({ statePath: movedStatePath });
 
-      await expect(jobs.getLogFilePath('custom-path')).resolves.toBe(
+      await expect(jobs.getLogFilePath(customPathId)).resolves.toBe(
         join(movedStatePath, 'logs', 'custom', 'elsewhere.jsonl'),
       );
-      expect(ctx.database.prepare('SELECT logFilePath FROM jobs WHERE id = ?').get('custom-path')).toEqual({
-        logFilePath: 'logs/custom/elsewhere.jsonl',
-      });
+      const stored = await getJob(customPathId);
+      expect(stored.logFilePath).toBe('logs/custom/elsewhere.jsonl');
     } finally {
       moduleConfig.update({ statePath: originalStatePath });
     }
@@ -135,8 +149,8 @@ describe(JobRepository.name, () => {
     const firstId = await jobs.queue(forget('snapshot-1'));
     const secondId = await jobs.queue(forget('snapshot-2'));
 
-    expect(getJob(firstId).status).toBe(JobStatus.Running);
-    expect(getJob(secondId).status).toBe(JobStatus.Queued);
+    await expect(getJob(firstId)).resolves.toMatchObject({ status: JobStatus.Running });
+    await expect(getJob(secondId)).resolves.toMatchObject({ status: JobStatus.Queued });
 
     first.resolve();
     await jobs.wait(secondId);
@@ -152,7 +166,7 @@ describe(JobRepository.name, () => {
     try {
       const id = await jobs.queue(forget('snapshot-1'));
 
-      expect(getJob(id).status).toBe(JobStatus.Queued);
+      await expect(getJob(id)).resolves.toMatchObject({ status: JobStatus.Queued });
       expect(ctx.resticMock.forget).not.toHaveBeenCalled();
     } finally {
       moduleConfig.update({ requireLock: false });
@@ -161,18 +175,13 @@ describe(JobRepository.name, () => {
 
   it('marks jobs left queued or running as incomplete when the lock holder starts', async () => {
     const jobs = ctx.module.get(JobRepository);
-    ctx.database
-      .prepare(
-        `INSERT INTO jobs (id, name, repositoryId, data, status, logFilePath, queuedAt) VALUES
-          ('leftover-queued', ?, ?, '{}', 'queued', 'logs/jobs/leftover-queued.jsonl', '2026-10-13T00:00:00.000Z'),
-          ('leftover-running', ?, ?, '{}', 'running', 'logs/jobs/leftover-running.jsonl', '2026-10-13T00:00:00.000Z')`,
-      )
-      .run(JobName.RepositorySnapshotForget, repositoryId, JobName.RepositorySnapshotForget, repositoryId);
+    const queuedId = await insertJob(JobStatus.Queued, new Date('2026-10-13T00:00:00.000Z'));
+    const runningId = await insertJob(JobStatus.Running, new Date('2026-10-13T00:00:00.000Z'));
 
     await jobs.start();
 
-    expect(getJob('leftover-queued').status).toBe(JobStatus.Incomplete);
-    expect(getJob('leftover-running').status).toBe(JobStatus.Incomplete);
+    await expect(getJob(queuedId)).resolves.toMatchObject({ status: JobStatus.Incomplete });
+    await expect(getJob(runningId)).resolves.toMatchObject({ status: JobStatus.Incomplete });
   });
 
   it('publishes a job as it is queued, started and finished', async () => {
@@ -243,80 +252,85 @@ describe(JobRepository.name, () => {
 
     const newerId = await jobs.queue(forget('snapshot-1'));
     await jobs.wait(newerId);
-    ctx.database
-      .prepare(
-        `INSERT INTO jobs (id, name, repositoryId, data, status, logFilePath, queuedAt)
-          VALUES ('imported-history', ?, ?, '{}', 'complete', 'logs/jobs/imported-history.jsonl', '2000-01-01T00:00:00.000Z')`,
-      )
-      .run(JobName.RepositorySnapshotForget, repositoryId);
+    const importedId = await insertJob(JobStatus.Complete, new Date('2000-01-01T00:00:00.000Z'));
 
     const listed = await jobs.getAll(repositoryId);
     const latest = await jobs.getLatest(repositoryId, JobName.RepositorySnapshotForget);
 
-    expect(listed.at(-1)?.id).toBe('imported-history');
-    expect(latest?.id).not.toBe('imported-history');
+    expect(listed.at(-1)?.id).toBe(importedId);
+    expect(latest?.id).not.toBe(importedId);
   });
 
   it('finds the snapshot and size of the most recent backup that produced one', async () => {
     const jobs = ctx.module.get(JobRepository);
-    const insert = ctx.database.prepare(
-      `INSERT INTO jobs (id, name, repositoryId, data, status, outcome, logFilePath, queuedAt)
-        VALUES (?, ?, ?, '{}', ?, ?, 'logs/jobs/backup.jsonl', ?)`,
-    );
-
     await expect(jobs.getLastBackup(repositoryId)).resolves.toBeUndefined();
 
-    insert.run(
-      'backup-old',
-      JobName.RepositoryBackup,
-      repositoryId,
-      'complete',
-      backupOutcome('snapshot-old'),
-      '2100-01-01T00:00:00.000Z',
-    );
-    insert.run(
-      'backup-new',
-      JobName.RepositoryBackup,
-      repositoryId,
-      'warn',
-      backupOutcome('snapshot-new', 5_000_000),
-      '2100-01-02T00:00:00.000Z',
-    );
-    insert.run(
-      'backup-failed',
-      JobName.RepositoryBackup,
-      repositoryId,
-      'failed',
-      backupOutcome(),
-      '2100-01-03T00:00:00.000Z',
-    );
-    insert.run(
-      'backup-interrupted',
-      JobName.RepositoryBackup,
-      repositoryId,
-      'incomplete',
-      null,
-      '2100-01-04T00:00:00.000Z',
-    );
-    insert.run(
-      'restore',
-      JobName.RepositoryRestore,
-      repositoryId,
-      'complete',
-      backupOutcome('snapshot-restore'),
-      '2100-01-05T00:00:00.000Z',
-    );
+    const inserted = await ctx.db
+      .insertInto('futo_backups_jobs')
+      .values(
+        [
+          {
+            name: JobName.RepositoryBackup,
+            status: JobStatus.Complete,
+            snapshotId: 'snapshot-old',
+            date: '2100-01-01',
+          },
+          {
+            name: JobName.RepositoryBackup,
+            status: JobStatus.Warn,
+            snapshotId: 'snapshot-new',
+            totalBytes: 5_000_000,
+            date: '2100-01-02',
+          },
+          { name: JobName.RepositoryBackup, status: JobStatus.Failed, snapshotId: undefined, date: '2100-01-03' },
+          { name: JobName.RepositoryBackup, status: JobStatus.Incomplete, snapshotId: null, date: '2100-01-04' },
+          {
+            name: JobName.RepositoryRestore,
+            status: JobStatus.Complete,
+            snapshotId: 'snapshot-restore',
+            date: '2100-01-05',
+          },
+        ].map(({ name, status, snapshotId, totalBytes, date }) => ({
+          name,
+          repositoryId,
+          data: { repositoryId, snapshotId: 'snapshot-1' },
+          status,
+          outcome:
+            snapshotId === null
+              ? null
+              : {
+                  errors: [],
+                  summary: snapshotId
+                    ? {
+                        type: 'backup' as const,
+                        snapshotId,
+                        filesNew: 0,
+                        filesChanged: 0,
+                        totalFilesProcessed: 0,
+                        totalBytesProcessed: totalBytes ?? 0,
+                      }
+                    : undefined,
+                },
+          logFilePath: 'logs/jobs/backup.jsonl',
+          queuedAt: new Date(date + 'T00:00:00.000Z'),
+        })),
+      )
+      .returning('id')
+      .execute();
 
     await expect(jobs.getLastBackup(repositoryId)).resolves.toEqual({
       snapshotId: 'snapshot-new',
       totalBytes: 5_000_000,
     });
 
-    ctx.database
-      .prepare(
-        `DELETE FROM jobs WHERE id IN ('backup-old', 'backup-new', 'backup-failed', 'backup-interrupted', 'restore')`,
+    await ctx.db
+      .deleteFrom('futo_backups_jobs')
+      .where(
+        'id',
+        'in',
+        inserted.map(({ id }) => id),
       )
-      .run();
+      .execute();
   });
 
   it('lists the jobs of a repository newest first, without their data', async () => {
@@ -349,23 +363,22 @@ describe(JobRepository.name, () => {
 
   it('settles a waiter when another worker reports the job finished', async () => {
     const jobs = ctx.module.get(JobRepository);
-    ctx.database
-      .prepare(
-        `INSERT INTO jobs (id, name, repositoryId, data, status, logFilePath, queuedAt)
-          VALUES ('remote-job', ?, ?, '{}', 'running', 'logs/jobs/remote-job.jsonl', '2026-10-14T00:00:00.000Z')`,
-      )
-      .run(JobName.RepositorySnapshotForget, repositoryId);
+    const remoteId = await insertJob(JobStatus.Running, new Date('2026-10-14T00:00:00.000Z'));
 
-    const waiting = jobs.wait('remote-job');
-    ctx.database.prepare(`UPDATE jobs SET status = 'complete' WHERE id = 'remote-job'`).run();
+    const waiting = jobs.wait(remoteId);
+    await ctx.db
+      .updateTable('futo_backups_jobs')
+      .set({ status: JobStatus.Complete })
+      .where('id', '=', remoteId)
+      .execute();
     await jobs.onEvent({
       type: 'JobUpdate',
-      jobId: 'remote-job',
+      jobId: remoteId,
       repositoryId,
       job: { status: JobStatus.Complete },
     });
 
-    await expect(waiting).resolves.toMatchObject({ id: 'remote-job', status: JobStatus.Complete });
+    await expect(waiting).resolves.toMatchObject({ id: remoteId, status: JobStatus.Complete });
   });
 
   it('queues a batch in order and announces every job', async () => {
@@ -411,7 +424,7 @@ describe(JobRepository.name, () => {
     await jobs.cancel(queuedId);
 
     await expect(waiting).rejects.toThrow('Cancelled by user action');
-    expect(getJob(queuedId).status).toBe(JobStatus.Cancelled);
+    await expect(getJob(queuedId)).resolves.toMatchObject({ status: JobStatus.Cancelled });
 
     release.resolve();
     await jobs.wait(runningId);
@@ -429,7 +442,7 @@ describe(JobRepository.name, () => {
     await jobs.cancel(id);
 
     await expect(waiting).rejects.toThrow('Cancelled by user action');
-    expect(getJob(id).status).toBe(JobStatus.Cancelled);
+    await expect(getJob(id)).resolves.toMatchObject({ status: JobStatus.Cancelled });
   });
 
   it('stops a running job when another worker asks for the cancel', async () => {
@@ -448,7 +461,7 @@ describe(JobRepository.name, () => {
   it('rejects cancelling an unknown job', async () => {
     const jobs = ctx.module.get(JobRepository);
 
-    await expect(jobs.cancel('missing')).rejects.toThrow('Job not found');
+    await expect(jobs.cancel(randomUUID())).rejects.toThrow('Job not found');
   });
 
   it('cancels the jobs of a repository before it is deleted', async () => {
@@ -480,12 +493,19 @@ describe(JobRepository.name, () => {
 });
 
 const restorePoint = async (failStateRestore = false) => {
-  const previousInstall = await mkdtemp(join(tmpdir(), 'yucca-previous-'));
-  await mkdir(join(previousInstall, 'state'));
-  ctx.database.prepare(`INSERT INTO config (key, value) VALUES ('restored-marker', 'yes')`).run();
-  await ctx.database.backup(join(previousInstall, 'state', 'state.sqlite3'));
-  ctx.database.prepare(`DELETE FROM config WHERE key = 'restored-marker'`).run();
-
+  ctx.module.get(ModuleConfigRepository).update({
+    databaseHooks: {
+      tagName: 'yucca.v1.stateDumpFileName',
+      dump: () => Promise.resolve('state.dump'),
+      restore: async () => {
+        await ctx.db.deleteFrom('futo_backups_jobs').where('name', '=', JobName.RepositoryRestoreFromPoint).execute();
+        await ctx.module.get(ConfigRepository).skipExtraConfig();
+      },
+    },
+  });
+  ctx.resticMock.snapshot.mockResolvedValue([
+    { id: 'snapshot-1', time: new Date(), tags: ['yucca.v1.stateDumpFileName=state.dump'] },
+  ] as never);
   ctx.resticMock.restore.mockImplementation((async (...args: unknown[]) => {
     const { target } = args[4] as { target?: string };
     if (!target) {
@@ -496,7 +516,7 @@ const restorePoint = async (failStateRestore = false) => {
       throw new Error('restic restore failed');
     }
 
-    await cp(join(previousInstall, 'state'), join(target, 'state'), { recursive: true });
+    await mkdir(join(target, 'state'), { recursive: true });
   }) as never);
 
   const { jobId } = await ctx.module
@@ -509,15 +529,24 @@ const restorePoint = async (failStateRestore = false) => {
   return jobId;
 };
 
-const marker = () => ctx.database.prepare(`SELECT value FROM config WHERE key = 'restored-marker'`).get();
+const marker = () =>
+  ctx.db
+    .selectFrom('futo_backups_config')
+    .select('value')
+    .where('key', '=', ConfigurationKey.SkippedOnboardingExtraConfig)
+    .executeTakeFirst();
 
 const restoreJobId = async () => (await ctx.module.get(OnboardingService).onboardingStatus()).restoreJobId;
 
 describe('restore from point', () => {
-  afterEach(() => {
+  afterEach(async () => {
     ctx.resticMock.restore.mockReset();
-    ctx.database.prepare(`DELETE FROM config WHERE key = 'restored-marker'`).run();
-    ctx.database.prepare(`DELETE FROM config WHERE key = 'restore-awaiting-continue'`).run();
+    ctx.resticMock.snapshot.mockResolvedValue([] as never);
+    ctx.module.get(ModuleConfigRepository).update({ databaseHooks: undefined });
+    await ctx.db
+      .deleteFrom('futo_backups_config')
+      .where('key', 'in', [ConfigurationKey.SkippedOnboardingExtraConfig, ConfigurationKey.RestoreAwaitingContinue])
+      .execute();
   });
 
   it('restores the files and the previous install state for a repository not yet known locally', async () => {
@@ -535,8 +564,8 @@ describe('restore from point', () => {
       expect.anything(),
       expect.any(AbortSignal),
     );
-    expect(marker()).toEqual({ value: 'yes' });
-    expect(getJob(jobId)).toMatchObject({ status: JobStatus.Complete });
+    await expect(marker()).resolves.toEqual({ value: { isSkipped: true } });
+    await expect(getJob(jobId)).resolves.toMatchObject({ status: JobStatus.Complete });
   });
 
   it('fails without touching the current state when the state restore fails', async () => {
@@ -545,8 +574,8 @@ describe('restore from point', () => {
     const jobId = await restorePoint(true);
     await expect(jobs.wait(jobId)).rejects.toThrow('restic restore failed');
 
-    expect(marker()).toBeUndefined();
-    expect(getJob(jobId)).toMatchObject({ status: JobStatus.Failed });
+    await expect(marker()).resolves.toBeUndefined();
+    await expect(getJob(jobId)).resolves.toMatchObject({ status: JobStatus.Failed });
     await expect(restoreJobId()).resolves.toBeUndefined();
   });
 
@@ -588,8 +617,8 @@ describe('restore from point', () => {
       const jobId = await restorePoint();
       await swapped.promise;
 
-      expect(marker()).toEqual({ value: 'yes' });
-      expect(getJob(jobId)).toMatchObject({ status: JobStatus.Running });
+      await expect(marker()).resolves.toEqual({ value: { isSkipped: true } });
+      await expect(getJob(jobId)).resolves.toMatchObject({ status: JobStatus.Running });
       await expect(jobs.get(jobId)).resolves.toMatchObject({ id: jobId, status: JobStatus.Running });
       await expect(restoreJobId()).resolves.toBe(jobId);
 
@@ -677,7 +706,9 @@ describe('restore from point', () => {
       }
     }
   });
+});
 
+describe('support sessions', () => {
   it('makes repository deletion wait for a job that is still finishing its support session', async () => {
     const jobs = ctx.module.get(JobRepository);
     const repositoryService = ctx.module.get(RepositoryService);
@@ -693,7 +724,7 @@ describe('restore from point', () => {
     const finish = jest.spyOn(SupportSession.prototype, 'finish').mockImplementationOnce(async () => {
       finishing.resolve();
       await release.promise;
-      return { sessionId: undefined, droppedLines: 0, localDroppedLines: 0 };
+      return { droppedLines: 0, localDroppedLines: 0 };
     });
 
     try {
@@ -729,10 +760,12 @@ describe('restore from point', () => {
     const unsupported = await jobs.queue(forget('snapshot-1'));
     await jobs.wait(unsupported);
 
-    expect(JSON.parse(getJob(supported).outcome!)).toMatchObject({
+    const supportedJob = await getJob(supported);
+    const unsupportedJob = await getJob(unsupported);
+    expect(supportedJob.outcome).toMatchObject({
       support: { droppedLines: 0, localDroppedLines: 0 },
     });
-    expect(JSON.parse(getJob(unsupported).outcome!)).not.toHaveProperty('support');
+    expect(unsupportedJob.outcome).not.toHaveProperty('support');
     await expect(access(join(ctx.statePath, 'logs', 'jobs', `${supported}.support.jsonl`))).resolves.toBeUndefined();
     await expect(access(join(ctx.statePath, 'logs', 'jobs', `${unsupported}.support.jsonl`))).rejects.toThrow();
     await expect(config.getSupportMode()).resolves.toMatchObject({ remainingRuns: 0 });

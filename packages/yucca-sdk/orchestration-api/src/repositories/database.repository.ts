@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
-import { FileMigrationProvider, Kysely, Migrator, sql } from 'kysely';
+import { Kysely, sql, Transaction } from 'kysely';
+import { FileMigrationProvider, Migrator, NO_MIGRATIONS } from 'kysely/migration';
 import { InjectKysely } from 'nestjs-kysely';
 import { join } from 'node:path';
 import { DB } from '../schema/index.js';
@@ -16,9 +17,29 @@ export class DatabaseRepository {
     this.logger.setContext(DatabaseRepository.name);
   }
 
+  async tryLock(key: string): Promise<boolean> {
+    const {
+      rows: [{ locked }],
+    } = await sql<{ locked: boolean }>`SELECT pg_try_advisory_lock(hashtext(${key})) AS locked`.execute(this.db);
+    return locked;
+  }
+
+  withLock<R>(key: string, callback: (trx: Transaction<DB>) => Promise<R>): Promise<R> {
+    return this.db.transaction().execute(async (trx) => {
+      await sql`SELECT pg_advisory_xact_lock(hashtext(${key}))`.execute(trx);
+      return callback(trx);
+    });
+  }
+
   async runMigrations(): Promise<void> {
-    const migrator = this.createMigrator();
-    const { error, results } = await migrator.migrateToLatest();
+    const {
+      rows: [{ value }],
+    } = await sql<{ value: unknown }>`SELECT 1::int8 AS value`.execute(this.db);
+    if (typeof value !== 'number') {
+      throw new TypeError('Misconfigured dialect: enable convertBigIntToNumber');
+    }
+
+    const { error, results } = await this.createMigrator().migrateToLatest();
 
     for (const result of results ?? []) {
       if (result.status === 'Success') {
@@ -38,58 +59,20 @@ export class DatabaseRepository {
     this.logger.log('Finished running migrations');
   }
 
-  async restoreFrom(path: string): Promise<void> {
-    await sql`PRAGMA foreign_keys = OFF`.execute(this.db);
+  async resetMigrations(): Promise<void> {
+    const { error } = await this.createMigrator().migrateTo(NO_MIGRATIONS);
 
-    try {
-      await sql`ATTACH DATABASE ${path} AS restored`.execute(this.db);
-
-      const { rows: kyselyProbe } = await sql`
-        SELECT name FROM restored.sqlite_master WHERE type = 'table' AND name = 'kysely_migrations'
-      `.execute(this.db);
-
-      if (kyselyProbe.length === 0) {
-        await sql`DETACH DATABASE restored`.execute(this.db);
-        throw new Error("Refusing to restore database, doesn't appear to be from the app");
-      }
-
-      await this.db.transaction().execute(async (trx) => {
-        const currentSchema = await sql<{ name: string }>`
-          SELECT name FROM main.sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%'
-        `.execute(trx);
-
-        for (const { name } of currentSchema.rows) {
-          await sql`DROP TABLE ${sql.table(name)}`.execute(trx);
-        }
-
-        const restoredSchema = await sql<{ type: string; name: string; sql: string }>`
-          SELECT type, name, sql FROM restored.sqlite_master
-          WHERE type IN ('table', 'index') AND name NOT LIKE 'sqlite_%' AND sql IS NOT NULL
-          ORDER BY type = 'index'
-        `.execute(trx);
-
-        for (const object of restoredSchema.rows) {
-          await sql.raw(object.sql).execute(trx);
-        }
-
-        for (const { name } of restoredSchema.rows.filter((object) => object.type === 'table')) {
-          await sql`INSERT INTO ${sql.table(name)} SELECT * FROM ${sql.table(`restored.${name}`)}`.execute(trx);
-        }
-      });
-
-      await sql`DETACH DATABASE restored`.execute(this.db);
-    } finally {
-      await sql`PRAGMA foreign_keys = ON`.execute(this.db);
+    if (error) {
+      this.logger.error(`Migration rollback failed: ${error}`);
+      throw new Error('Migration rollback failed.');
     }
-
-    await this.runMigrations();
   }
 
   private createMigrator(): Migrator {
     return new Migrator({
       db: this.db,
-      migrationLockTableName: 'kysely_migrations_lock',
-      migrationTableName: 'kysely_migrations',
+      migrationLockTableName: 'futo_backups_kysely_migrations_lock',
+      migrationTableName: 'futo_backups_kysely_migrations',
       provider: new FileMigrationProvider({
         fs: {
           readdir: this.storage.readdir,

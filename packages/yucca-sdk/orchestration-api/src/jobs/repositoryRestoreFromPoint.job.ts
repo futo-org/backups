@@ -3,7 +3,6 @@ import { Job } from '../decorators.js';
 import { RepositorySnapshotRestoreFromPointRequestDto } from '../dto/repository.dto.js';
 import { JobName } from '../enum.js';
 import { ConfigRepository } from '../repositories/config.repository.js';
-import { DatabaseRepository } from '../repositories/database.repository.js';
 import { JobRepository } from '../repositories/job.repository.js';
 import { ModuleConfigRepository } from '../repositories/moduleConfig.repository.js';
 import { ResticRepository } from '../repositories/restic.repository.js';
@@ -11,6 +10,7 @@ import { StorageRepository } from '../repositories/storage.repository.js';
 import { BootstrapService } from '../services/bootstrap.service.js';
 import { RepositoryService } from '../services/repository.service.js';
 import { TelemetryService } from '../services/telemetry.service.js';
+import { getDatabaseBackupFileName } from '../utils/restic.js';
 import type { JobHandler } from '../utils/types.js';
 import { JobContext } from './jobContext.js';
 
@@ -29,7 +29,6 @@ export class RepositoryRestoreFromPointJob implements JobHandler<RepositoryResto
     private readonly telemetry: TelemetryService,
     private readonly storage: StorageRepository,
     private readonly moduleConfig: ModuleConfigRepository,
-    private readonly database: DatabaseRepository,
     private readonly config: ConfigRepository,
     private readonly jobs: JobRepository,
     private readonly bootstrap: BootstrapService,
@@ -52,6 +51,7 @@ export class RepositoryRestoreFromPointJob implements JobHandler<RepositoryResto
 
     let summary;
     let error;
+    let databaseRestored = false;
     try {
       summary = await this.restic.restore(
         endpoint,
@@ -84,13 +84,20 @@ export class RepositoryRestoreFromPointJob implements JobHandler<RepositoryResto
           filter: (src) => !src.endsWith('.sqlite3'),
         });
 
-        await this.database.restoreFrom(join(restoredState, 'state.sqlite3'));
-        await this.jobs.persistRunning();
-
-        await this.bootstrap.onApplicationBootstrap();
+        const { databaseHooks } = this.moduleConfig.get();
+        if (databaseHooks) {
+          const [snapshot] = await this.restic.snapshot(endpoint, key, placement, snapshotId, ctx.signal);
+          const backupFileName = getDatabaseBackupFileName(snapshot?.tags, databaseHooks.tagName);
+          if (backupFileName) {
+            await databaseHooks.restore(backupFileName);
+            databaseRestored = true;
+            await this.jobs.persistRunning();
+            await this.bootstrap.onApplicationBootstrap();
+          }
+        }
       }
 
-      await this.config.setRestoreAwaitingContinue();
+      await this.config.setRestoreAwaitingContinue(databaseRestored);
     } catch (error_) {
       error = error_;
     }

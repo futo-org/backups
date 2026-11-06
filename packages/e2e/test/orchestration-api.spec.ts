@@ -539,7 +539,7 @@ describe('Repository', () => {
   });
 
   it('returns 404 when downloading the log of an unknown job', async () => {
-    await expect(sdk.futoBackupsDownloadJobLog('does-not-exist')).rejects.toMatchObject({ status: 404 });
+    await expect(sdk.futoBackupsDownloadJobLog(randomUUID())).rejects.toMatchObject({ status: 404 });
   });
 
   it('list snapshots', async () => {
@@ -867,7 +867,9 @@ describe('Reset & Restore', () => {
     const restore = repositories.find((repository) => repository.name === 'My Restore')!;
     const [{ id: snapshotId }] = restore.snapshots!;
 
-    const { jobId } = await sdk.futoBackupsRestoreFromPoint(restore.id, snapshotId, restore.backends!.primary.id, {});
+    const { jobId } = await sdk.futoBackupsRestoreFromPoint(restore.id, snapshotId, restore.backends!.primary.id, {
+      yuccaConfig: resolve(homedir(), '.yucca'),
+    });
 
     await expect(jobFinished(jobId)).resolves.toMatchObject({ job: { status: 'complete' } });
 
@@ -940,7 +942,11 @@ describe('Repository pruning', () => {
 
 describe('Job cancellation', () => {
   it('returns 404 when cancelling an unknown job', async () => {
-    await expect(sdk.futoBackupsCancelJob('does-not-exist')).rejects.toMatchObject({ status: 404 });
+    await expect(sdk.futoBackupsCancelJob(randomUUID())).rejects.toMatchObject({ status: 404 });
+  });
+
+  it('returns 400 when cancelling a job id that is not a uuid', async () => {
+    await expect(sdk.futoBackupsCancelJob('does-not-exist')).rejects.toMatchObject({ status: 400 });
   });
 
   it('cancels an in-progress backup', async () => {

@@ -3,7 +3,7 @@ import { jest } from '@jest/globals';
 import { setTimeout as delay } from 'node:timers/promises';
 import packageJson from '../package.json' with { type: 'json' };
 import { REPOSITORY_DEFAULT_CLOUD_UUID } from '../src/const.js';
-import { BackendType } from '../src/enum.js';
+import { BackendType, ConfigurationKey } from '../src/enum.js';
 import { BackendRepository } from '../src/repositories/backend.repository.js';
 import { ConfigRepository } from '../src/repositories/config.repository.js';
 import { TelemetryService } from '../src/services/telemetry.service.js';
@@ -27,7 +27,7 @@ beforeEach(async () => {
   // Without this the backend resolves its base URL by fetching the real
   // production .well-known over the network.
   jest.spyOn(yuccaWellKnown, 'getBaseUrl').mockResolvedValue('http://yucca.test');
-  ctx.database.prepare("DELETE FROM config WHERE key = 'telemetry'").run();
+  await ctx.db.deleteFrom('futo_backups_config').where('key', '=', ConfigurationKey.Telemetry).execute();
   await ctx.module.get(BackendRepository).updateBackend(REPOSITORY_DEFAULT_CLOUD_UUID, {
     type: BackendType.Yucca,
     accessToken: 'test-token',
@@ -91,7 +91,7 @@ describe('Telemetry', () => {
   });
 
   it('does not throw when no production backend is configured', async () => {
-    ctx.database.prepare('DELETE FROM backends WHERE id = ?').run(REPOSITORY_DEFAULT_CLOUD_UUID);
+    await ctx.db.deleteFrom('futo_backups_backends').where('id', '=', REPOSITORY_DEFAULT_CLOUD_UUID).execute();
     await ctx.module.get(ConfigRepository).enableTelemetry();
     const telemetry = ctx.module.get(TelemetryService);
 

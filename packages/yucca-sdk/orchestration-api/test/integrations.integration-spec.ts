@@ -1,6 +1,10 @@
+import { jest } from '@jest/globals';
+import { BootstrapStatus } from '../src/enum.js';
+import { BootstrapRepository } from '../src/repositories/bootstrap.repository.js';
 import { ModuleConfigRepository } from '../src/repositories/moduleConfig.repository.js';
 import { RepositoryIntegrationImmichRepository } from '../src/repositories/repositoryIntegrationImmich.repository.js';
 import { RepositoryPathRepository } from '../src/repositories/repositoryPath.repository.js';
+import { BootstrapService } from '../src/services/bootstrap.service.js';
 import { IntegrationsService } from '../src/services/integrations.service.js';
 import { RepositoryService } from '../src/services/repository.service.js';
 import { ScheduleService } from '../src/services/schedule.service.js';
@@ -8,6 +12,13 @@ import { newImmichHooksMock } from './mocks.js';
 import { createTestingModule, TestContext } from './testUtils.js';
 
 let ctx: TestContext;
+
+const immichIntegrationWithLibraryAt = (importPath: string) => ({
+  dataPath: '/data/immich',
+  dataFolders: ['upload'],
+  libraries: [{ id: 'lib-1', name: 'Photos', importPaths: [importPath], exclusionPatterns: [] }],
+  hooks: newImmichHooksMock(),
+});
 
 beforeAll(async () => {
   ctx = await createTestingModule();
@@ -196,49 +207,6 @@ describe('Integrations', () => {
     moduleConfig.update({ immichIntegration: undefined });
   });
 
-  it('treats an integration stored with the legacy all value as every library', async () => {
-    const moduleConfig = ctx.module.get(ModuleConfigRepository);
-    const integrationsService = ctx.module.get(IntegrationsService);
-    const immichRepository = ctx.module.get(RepositoryIntegrationImmichRepository);
-    const repositoryPaths = ctx.module.get(RepositoryPathRepository);
-
-    moduleConfig.update({
-      immichIntegration: {
-        dataPath: '/data/immich',
-        dataFolders: ['upload'],
-        libraries: [
-          { id: 'lib-1', name: 'Photos', importPaths: ['/mnt/photos'], exclusionPatterns: [] },
-          { id: 'lib-2', name: 'Videos', importPaths: ['/mnt/videos'], exclusionPatterns: [] },
-        ],
-        hooks: newImmichHooksMock(),
-      },
-    });
-
-    await integrationsService.configureImmichIntegration({
-      name: 'Immich Backup',
-      worm: false,
-      cron: '0 2 * * *',
-      dataFolders: ['upload'],
-      backupConfiguration: false,
-      libraries: [],
-    });
-
-    const integration = await immichRepository.get();
-    await immichRepository.upsert(integration!.id, integration!.scheduleId, {
-      ...integration!.configuration,
-      libraries: 'all' as never,
-    });
-
-    await expect(immichRepository.get()).resolves.toMatchObject({ configuration: { libraries: ['all'] } });
-
-    await integrationsService.onModuleConfigUpdate(moduleConfig.get());
-    const paths = await repositoryPaths.get(integration!.id);
-    expect(paths).toEqual(expect.arrayContaining(['/mnt/photos', '/mnt/videos']));
-
-    await immichRepository.delete();
-    moduleConfig.update({ immichIntegration: undefined });
-  });
-
   const hooks = newImmichHooksMock();
   it('pauses and resumes the managed schedule', async () => {
     const moduleConfig = ctx.module.get(ModuleConfigRepository);
@@ -296,6 +264,37 @@ describe('Integrations', () => {
 
     const resumedSchedule = await getSchedule();
     expect(resumedSchedule?.paused).toBe(false);
+
+    await immichRepository.delete();
+    moduleConfig.update({ immichIntegration: undefined });
+  });
+
+  it('syncs repository paths at bootstrap when the host changed its libraries before the database was ready', async () => {
+    const moduleConfig = ctx.module.get(ModuleConfigRepository);
+    const immichRepository = ctx.module.get(RepositoryIntegrationImmichRepository);
+    const repositoryPaths = ctx.module.get(RepositoryPathRepository);
+
+    moduleConfig.update({ immichIntegration: immichIntegrationWithLibraryAt('/mnt/photos') });
+    await ctx.module.get(IntegrationsService).configureImmichIntegration({
+      name: 'Immich Boot Test',
+      worm: false,
+      cron: '0 2 * * *',
+      dataFolders: ['upload'],
+      backupConfiguration: false,
+      libraries: ['lib-1'],
+    });
+    const integration = await immichRepository.get();
+
+    const notReady = jest
+      .spyOn(ctx.module.get(BootstrapRepository), 'getStatus')
+      .mockReturnValue(BootstrapStatus.NotReady);
+    moduleConfig.update({ immichIntegration: immichIntegrationWithLibraryAt('/mnt/moved') });
+    await expect(repositoryPaths.get(integration!.id)).resolves.toContain('/mnt/photos');
+    notReady.mockRestore();
+
+    await ctx.module.get(BootstrapService).onApplicationBootstrap();
+
+    await expect(repositoryPaths.get(integration!.id)).resolves.toContain('/mnt/moved');
 
     await immichRepository.delete();
     moduleConfig.update({ immichIntegration: undefined });

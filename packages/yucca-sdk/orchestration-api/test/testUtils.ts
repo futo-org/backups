@@ -4,19 +4,25 @@ import { EventEmitterModule } from '@nestjs/event-emitter';
 import { JwtModule } from '@nestjs/jwt';
 import { ScheduleModule } from '@nestjs/schedule';
 import { Test, TestingModule } from '@nestjs/testing';
-import Database from 'better-sqlite3';
-import { SqliteDialect } from 'kysely';
-import { KyselyModule } from 'nestjs-kysely';
+import { Kysely } from 'kysely';
+import { PGliteDialect } from 'kysely-pglite-dialect';
+import { KYSELY_MODULE_CONNECTION_TOKEN, KyselyModule } from 'nestjs-kysely';
 import { randomUUID } from 'node:crypto';
 import { mkdir, mkdtemp } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { createPGlite } from '../src/bin/pglite.js';
 import { BackendType } from '../src/enum.js';
 import { EventsGateway, GatewayEvent } from '../src/events/events.gateway.js';
 import { ModuleConfigProvider } from '../src/moduleConfig.js';
 import { controllers, jobs, repositories, services } from '../src/orchestrationApi.module.js';
 import { BackendRepository } from '../src/repositories/backend.repository.js';
+import { ConfigRepository } from '../src/repositories/config.repository.js';
+import { DatabaseRepository } from '../src/repositories/database.repository.js';
+import { LoggingRepository } from '../src/repositories/logging.repository.js';
 import { ResticRepository } from '../src/repositories/restic.repository.js';
+import { StorageRepository } from '../src/repositories/storage.repository.js';
+import type { DB } from '../src/schema/index.js';
 import { newResticRepositoryMock, RepositoryInterface } from './mocks.js';
 
 type GatewayListener = (event: GatewayEvent) => void;
@@ -49,7 +55,7 @@ export interface TestContext {
   module: TestingModule;
   gateway: EventsGateway;
   events: TestEventBus;
-  database: InstanceType<typeof Database>;
+  db: Kysely<DB>;
   resticMock: jest.Mocked<RepositoryInterface<ResticRepository>>;
   backendId: string;
   statePath: string;
@@ -61,9 +67,6 @@ export async function createTestingModule(): Promise<TestContext> {
   const backendPath = await mkdtemp(join(tmpdir(), 'yucca-backend-'));
   await mkdir(join(statePath, 'logs'), { recursive: true });
 
-  const database = new Database(':memory:');
-  database.pragma('journal_mode = WAL');
-
   const resticMock = newResticRepositoryMock();
   const events = createEventBus();
 
@@ -72,7 +75,7 @@ export async function createTestingModule(): Promise<TestContext> {
       KyselyModule.forRoot([
         {
           namespace: 'orchestrator',
-          dialect: new SqliteDialect({ database }),
+          dialect: new PGliteDialect(await createPGlite()),
         },
       ]),
       EventEmitterModule.forRoot(),
@@ -104,7 +107,7 @@ export async function createTestingModule(): Promise<TestContext> {
   const app = moduleFixture.createNestApplication();
   await app.init();
 
-  const backendId = 'test-backend';
+  const backendId = randomUUID();
   await moduleFixture.get(BackendRepository).updateBackend(backendId, {
     type: BackendType.Local,
     path: backendPath,
@@ -115,11 +118,40 @@ export async function createTestingModule(): Promise<TestContext> {
     module: moduleFixture,
     gateway: moduleFixture.get(EventsGateway),
     events,
-    database,
+    db: moduleFixture.get<Kysely<DB>>(KYSELY_MODULE_CONNECTION_TOKEN('orchestrator')),
     resticMock,
     backendId,
     statePath,
     backendPath,
+  };
+}
+
+export type BootedConfig = {
+  config: ConfigRepository;
+  db: Kysely<DB>;
+  close: () => Promise<void>;
+};
+
+export async function bootConfig(statePath: string, dataDir = join(statePath, 'pglite')): Promise<BootedConfig> {
+  const moduleFixture = await Test.createTestingModule({
+    imports: [
+      KyselyModule.forRoot([{ namespace: 'orchestrator', dialect: new PGliteDialect(await createPGlite(dataDir)) }]),
+    ],
+    providers: [
+      { provide: ModuleConfigProvider, useValue: { statePath } },
+      LoggingRepository,
+      StorageRepository,
+      DatabaseRepository,
+      ConfigRepository,
+    ],
+  }).compile();
+
+  await moduleFixture.get(DatabaseRepository).runMigrations();
+
+  return {
+    config: moduleFixture.get(ConfigRepository),
+    db: moduleFixture.get<Kysely<DB>>(KYSELY_MODULE_CONNECTION_TOKEN('orchestrator')),
+    close: () => moduleFixture.close(),
   };
 }
 

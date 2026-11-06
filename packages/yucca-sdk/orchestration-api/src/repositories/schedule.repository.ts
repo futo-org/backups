@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { Insertable, Kysely, Updateable } from 'kysely';
+import { Insertable, Kysely, sql, Updateable } from 'kysely';
 import { InjectKysely } from 'nestjs-kysely';
 import { DB } from '../schema/index.js';
 import { ScheduleTable } from '../schema/tables/schedule.table.js';
@@ -9,82 +9,86 @@ export class ScheduleRepository {
   constructor(@InjectKysely('orchestrator') private db: Kysely<DB>) {}
 
   create(schedule: Insertable<ScheduleTable>) {
-    return this.db.insertInto('schedules').values(schedule).returningAll().executeTakeFirstOrThrow();
+    return this.db.insertInto('futo_backups_schedule').values(schedule).returningAll().executeTakeFirstOrThrow();
   }
 
   async get(id: string) {
-    const row = await this.db.selectFrom('schedules').selectAll('schedules').where('id', '=', id).executeTakeFirst();
+    const schedule = await this.selectSchedules().where('id', '=', id).executeTakeFirst();
 
-    if (row) {
-      const { ordering, paused, ...schedule } = row;
-
-      const repositorySchedules = await this.db
-        .selectFrom('repositorySchedules')
-        .selectAll('repositorySchedules')
-        .where('schedule', '=', id)
-        .execute();
-
-      return {
+    return (
+      schedule && {
         ...schedule,
-        paused: !!paused,
-        repositories: repositorySchedules
-          .filter(({ schedule: scheduleId }) => scheduleId === schedule.id)
-          .map(({ repository }) => repository)
-          .toSorted((a, b) => ordering.indexOf(a) - ordering.indexOf(b)),
-      };
-    }
+        lastRun: schedule.lastRun?.toISOString(),
+        lastFinished: schedule.lastFinished?.toISOString(),
+      }
+    );
   }
 
   async getAll() {
-    const schedules = await this.db.selectFrom('schedules').selectAll('schedules').execute();
-    const repositorySchedules = await this.db
-      .selectFrom('repositorySchedules')
-      .selectAll('repositorySchedules')
-      .execute();
+    const schedules = await this.selectSchedules().execute();
 
-    return schedules.map(({ ordering, paused, ...schedule }) => ({
+    return schedules.map((schedule) => ({
       ...schedule,
-      paused: !!paused,
-      repositories: repositorySchedules
-        .filter(({ schedule: scheduleId }) => scheduleId === schedule.id)
-        .map(({ repository }) => repository)
-        .toSorted((a, b) => ordering.indexOf(a) - ordering.indexOf(b)),
+      lastRun: schedule.lastRun?.toISOString(),
+      lastFinished: schedule.lastFinished?.toISOString(),
     }));
+  }
+
+  private selectSchedules() {
+    return this.db
+      .selectFrom('futo_backups_schedule')
+      .select(['id', 'name', 'paused', 'cron', 'lastRun', 'lastFinished'])
+      .select((eb) =>
+        eb
+          .fn<string[]>('array', [
+            eb
+              .selectFrom('futo_backups_repository_schedule')
+              .select('repositoryId')
+              .whereRef('scheduleId', '=', 'futo_backups_schedule.id')
+              .orderBy(sql`array_position(futo_backups_schedule.ordering, "repositoryId")`),
+          ])
+          .as('repositories'),
+      );
   }
 
   async getRepositoryIds(id: string) {
     const repositorySchedules = await this.db
-      .selectFrom('repositorySchedules')
-      .selectAll('repositorySchedules')
-      .where('schedule', '=', id)
+      .selectFrom('futo_backups_repository_schedule')
+      .selectAll('futo_backups_repository_schedule')
+      .where('scheduleId', '=', id)
       .execute();
 
-    return repositorySchedules.map(({ repository }) => repository);
+    return repositorySchedules.map(({ repositoryId }) => repositoryId);
   }
 
   updateSchedule(id: string, schedule: Updateable<ScheduleTable>) {
-    return this.db.updateTable('schedules').where('id', '=', id).set(schedule).returningAll().executeTakeFirst();
+    return this.db
+      .updateTable('futo_backups_schedule')
+      .where('id', '=', id)
+      .set(schedule)
+      .returningAll()
+      .executeTakeFirst();
   }
 
   removeSchedule(id: string) {
-    return this.db.deleteFrom('schedules').where('id', '=', id).execute();
+    return this.db.deleteFrom('futo_backups_schedule').where('id', '=', id).execute();
   }
 
-  addRepositoryToSchedule(schedule: string, repository: string) {
+  addRepositoryToSchedule(scheduleId: string, repositoryId: string) {
     return this.db
-      .insertInto('repositorySchedules')
+      .insertInto('futo_backups_repository_schedule')
       .values({
-        repository,
-        schedule,
+        repositoryId,
+        scheduleId,
       })
       .execute();
   }
 
-  removeRepositoryFromSchedule(schedule: string, repository: string) {
+  removeRepositoryFromSchedule(scheduleId: string, repositoryId: string) {
     return this.db
-      .deleteFrom('repositorySchedules')
-      .where('schedule', '=', schedule)
-      .where('repository', '=', repository)
+      .deleteFrom('futo_backups_repository_schedule')
+      .where('scheduleId', '=', scheduleId)
+      .where('repositoryId', '=', repositoryId)
       .execute();
   }
 }

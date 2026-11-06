@@ -18,7 +18,7 @@
 
   type Props = {
     onExit: () => void;
-    onFinish: () => void;
+    onFinish: (result: { databaseRestored: boolean }) => void;
   };
 
   const { onExit, onFinish }: Props = $props();
@@ -39,8 +39,8 @@
   };
 
   const onRestoreFinished = async () => {
-    await handleContinueAfterRestore();
-    onFinish();
+    const result = await handleContinueAfterRestore();
+    onFinish({ databaseRestored: result?.databaseRestored ?? false });
   };
 
   onMount(() => {

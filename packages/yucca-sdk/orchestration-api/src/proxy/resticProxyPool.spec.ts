@@ -79,7 +79,7 @@ describe(ResticProxyPool.name, () => {
       const first = await pool.getProxy(apiUrl);
       const second = await pool.getProxy('https://other.test/api');
 
-      await pool.onModuleConfigUpdate({ statePath: '/state', throttle });
+      await pool.onModuleConfigUpdate({ statePath: '/state', throttle } as never);
 
       expect(ResticProxyPool.throttle).toEqual(throttle);
       expect(first.throttle).toHaveBeenCalledWith(throttle);
@@ -91,7 +91,7 @@ describe(ResticProxyPool.name, () => {
       ResticProxyPool.throttle = throttle;
       const running = await pool.getProxy(apiUrl);
 
-      await pool.onModuleConfigUpdate({ statePath: '/state' });
+      await pool.onModuleConfigUpdate({ statePath: '/state' } as never);
 
       expect(ResticProxyPool.throttle).toEqual(UNTHROTTLED);
       expect(running.throttle).toHaveBeenCalledWith(UNTHROTTLED);

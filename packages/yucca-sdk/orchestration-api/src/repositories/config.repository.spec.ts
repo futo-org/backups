@@ -22,7 +22,7 @@ describe(ConfigRepository.name, () => {
   it('resolves options for a placed repository', async () => {
     const connections = jest.spyOn(yuccaWellKnown, 'getConnections').mockResolvedValue(7);
     const packSize = jest.spyOn(yuccaWellKnown, 'getPackSizeMib').mockResolvedValue(64);
-    const repository = new ConfigRepository(db as never, { statePath: '/state' }, LoggingRepository.create());
+    const repository = new ConfigRepository(db as never, { statePath: '/state' } as never, LoggingRepository.create());
 
     await expect(
       repository.getResticOptions({ siteCode: 'father', storageClusterCode: 'father-spice' }),
@@ -35,7 +35,7 @@ describe(ConfigRepository.name, () => {
   it('falls back to global config and core count without placement', async () => {
     const connections = jest.spyOn(yuccaWellKnown, 'getConnections').mockResolvedValue(undefined);
     const packSize = jest.spyOn(yuccaWellKnown, 'getPackSizeMib').mockResolvedValue(undefined);
-    const repository = new ConfigRepository(db as never, { statePath: '/state' }, LoggingRepository.create());
+    const repository = new ConfigRepository(db as never, { statePath: '/state' } as never, LoggingRepository.create());
 
     await expect(repository.getResticOptions({ siteCode: null, storageClusterCode: null })).resolves.toEqual({
       connections: availableParallelism(),

@@ -58,6 +58,7 @@ const makeRepository = (metatypes: Array<new () => object>) => {
     {} as never,
     {} as never,
     {} as never,
+    {} as never,
   );
 };
 
