@@ -5,6 +5,7 @@ import { schemaDiff, schemaFromCode, schemaFromDatabase } from '@immich/sql-tool
 import { Kysely, sql } from 'kysely';
 import { PGliteDialect } from 'kysely-pglite-dialect';
 import { createPGlite } from '../bin/pglite.js';
+import { ConfigurationKey, TelemetryLevel } from '../enum.js';
 import '../schema/index.js';
 import type { DB } from '../schema/index.js';
 import { DatabaseRepository } from './database.repository.js';
@@ -76,15 +77,17 @@ describe(DatabaseRepository.name, () => {
     expect(drift.asSql()).toEqual([]);
   });
 
-  it('rolls every migration back and applies them again', async () => {
+  it('empties every table but the migration bookkeeping', async () => {
     await repository.runMigrations();
-    const migratedTables = await tableNames();
+    await db
+      .insertInto('futo_backups_config')
+      .values({ key: ConfigurationKey.Telemetry, value: { level: TelemetryLevel.None } })
+      .execute();
 
-    await repository.resetMigrations();
-    expect(await tableNames()).toEqual(['futo_backups_kysely_migrations', 'futo_backups_kysely_migrations_lock']);
-    expect(await enumNames()).toEqual([]);
+    await repository.truncateTables();
 
-    await repository.runMigrations();
-    expect(await tableNames()).toEqual(migratedTables);
+    expect(await db.selectFrom('futo_backups_config').selectAll().execute()).toEqual([]);
+    const migrations = await sql`SELECT 1 FROM futo_backups_kysely_migrations`.execute(db);
+    expect(migrations.rows.length).toBeGreaterThan(0);
   });
 });

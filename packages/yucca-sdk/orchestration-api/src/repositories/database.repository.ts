@@ -1,8 +1,9 @@
 import { Injectable } from '@nestjs/common';
 import { Kysely, sql, Transaction } from 'kysely';
-import { FileMigrationProvider, Migrator, NO_MIGRATIONS } from 'kysely/migration';
+import { FileMigrationProvider, Migrator } from 'kysely/migration';
 import { InjectKysely } from 'nestjs-kysely';
 import { join } from 'node:path';
+import { MIGRATION_LOCK_TABLE, MIGRATION_TABLE, TABLE_PREFIX } from '../const.js';
 import { DB } from '../schema/index.js';
 import { LoggingRepository } from './logging.repository.js';
 import { StorageRepository } from './storage.repository.js';
@@ -59,20 +60,26 @@ export class DatabaseRepository {
     this.logger.log('Finished running migrations');
   }
 
-  async resetMigrations(): Promise<void> {
-    const { error } = await this.createMigrator().migrateTo(NO_MIGRATIONS);
+  async truncateTables(): Promise<void> {
+    const { rows } = await sql<{ tablename: string }>`
+      SELECT tablename FROM pg_tables
+      WHERE schemaname = current_schema()
+        AND starts_with(tablename, ${TABLE_PREFIX})
+        AND tablename NOT IN (${MIGRATION_TABLE}, ${MIGRATION_LOCK_TABLE})`.execute(this.db);
 
-    if (error) {
-      this.logger.error(`Migration rollback failed: ${error}`);
-      throw new Error('Migration rollback failed.');
+    if (rows.length === 0) {
+      return;
     }
+
+    const tables = sql.join(rows.map(({ tablename }) => sql.table(tablename)));
+    await sql`TRUNCATE ${tables}`.execute(this.db);
   }
 
   private createMigrator(): Migrator {
     return new Migrator({
       db: this.db,
-      migrationLockTableName: 'futo_backups_kysely_migrations_lock',
-      migrationTableName: 'futo_backups_kysely_migrations',
+      migrationLockTableName: MIGRATION_LOCK_TABLE,
+      migrationTableName: MIGRATION_TABLE,
       provider: new FileMigrationProvider({
         fs: {
           readdir: this.storage.readdir,
