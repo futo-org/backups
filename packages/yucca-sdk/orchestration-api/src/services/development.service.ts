@@ -17,7 +17,7 @@ export class DevelopmentService {
       throw new BadRequestException('Not in development mode');
     }
 
-    await this.database.resetMigrations();
+    await this.database.truncateTables();
 
     await this.bootstrap.onApplicationBootstrap();
   }

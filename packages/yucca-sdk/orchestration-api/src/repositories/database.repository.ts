@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { Kysely, sql, Transaction } from 'kysely';
-import { FileMigrationProvider, Migrator, NO_MIGRATIONS } from 'kysely/migration';
+import { FileMigrationProvider, Migrator } from 'kysely/migration';
 import { InjectKysely } from 'nestjs-kysely';
 import { join } from 'node:path';
 import { DB } from '../schema/index.js';
@@ -59,13 +59,21 @@ export class DatabaseRepository {
     this.logger.log('Finished running migrations');
   }
 
-  async resetMigrations(): Promise<void> {
-    const { error } = await this.createMigrator().migrateTo(NO_MIGRATIONS);
+  async truncateTables(): Promise<void> {
+    const { rows } = await sql<{ tablename: string }>`
+      SELECT tablename FROM pg_tables
+      WHERE schemaname = current_schema()
+        AND tablename LIKE 'futo\_backups\_%'
+        AND tablename NOT IN ('futo_backups_kysely_migrations', 'futo_backups_kysely_migrations_lock')`.execute(
+      this.db,
+    );
 
-    if (error) {
-      this.logger.error(`Migration rollback failed: ${error}`);
-      throw new Error('Migration rollback failed.');
+    if (rows.length === 0) {
+      return;
     }
+
+    const tables = sql.join(rows.map(({ tablename }) => sql.table(tablename)));
+    await sql`TRUNCATE ${tables} CASCADE`.execute(this.db);
   }
 
   private createMigrator(): Migrator {
