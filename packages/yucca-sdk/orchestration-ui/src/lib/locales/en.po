@@ -1684,6 +1684,10 @@ msgstr "No changes were made to your existing backups."
 msgid "No external libraries found."
 msgstr "No external libraries found."
 
+#: src/lib/components/backups/BackupItem.svelte
+msgid "No folders added"
+msgstr "No folders added"
+
 #: src/lib/services/integrations.service.ts
 msgid "No Immich instance detected."
 msgstr "No Immich instance detected."

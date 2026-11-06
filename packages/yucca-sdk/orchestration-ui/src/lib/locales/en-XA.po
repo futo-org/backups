@@ -1684,6 +1684,10 @@ msgstr ""
 msgid "No external libraries found."
 msgstr ""
 
+#: src/lib/components/backups/BackupItem.svelte
+msgid "No folders added"
+msgstr ""
+
 #: src/lib/services/integrations.service.ts
 msgid "No Immich instance detected."
 msgstr ""
