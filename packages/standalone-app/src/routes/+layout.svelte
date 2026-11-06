@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { version } from '$app/environment';
   import { page } from '$app/state';
   import { configureYucca, OnboardingGate, YuccaContext } from '@futo-org/backups-orchestrator-ui';
   import {
@@ -32,7 +33,10 @@
     <AppShell>
       <AppShellHeader>
         <div class="flex w-full items-center justify-between px-4 py-2">
-          <Text class="text-2xl font-bold">FUTO Backups</Text>
+          <div class="flex items-baseline gap-2">
+            <Text class="text-2xl font-bold">FUTO Backups</Text>
+            <Text size="small" color="muted">v{version}</Text>
+          </div>
           <ThemeSwitcher size="medium" color="secondary" />
         </div>
       </AppShellHeader>
