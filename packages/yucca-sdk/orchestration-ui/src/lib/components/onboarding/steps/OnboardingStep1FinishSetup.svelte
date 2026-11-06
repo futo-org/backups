@@ -30,7 +30,7 @@
 </script>
 
 <OnboardingStepLayout
-  description={$t`Your subscription is active. Finish setup to create your recovery key and start backing up your Immich library.`}
+  description={$t`Your subscription is active. Finish setup to create your recovery key and start backing up your library.`}
   {actions}
 >
   <Stack gap={3}>

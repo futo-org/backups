@@ -1269,8 +1269,8 @@ msgid "Immich has prepared recommended settings for your first backup. You can u
 msgstr ""
 
 #: src/lib/components/backups/BackupStatus.svelte
-msgid "Immich is backing up your library. You can close this window and continue using Immich while the backup runs in the background."
-msgstr ""
+#~ msgid "Immich is backing up your library. You can close this window and continue using Immich while the backup runs in the background."
+#~ msgstr ""
 
 #: src/lib/components/backups/dialogs/ImportRepositoryModal.svelte
 #: src/lib/services/repository.service.ts
@@ -1456,7 +1456,11 @@ msgid "Link Discord account @{0} to {1}?"
 msgstr ""
 
 #: src/lib/components/onboarding/steps/OnboardingStep2ConnectAccount.svelte
-msgid "Link this Immich server to your FUTO account"
+#~ msgid "Link this Immich server to your FUTO account"
+#~ msgstr ""
+
+#: src/lib/components/onboarding/steps/OnboardingStep2ConnectAccount.svelte
+msgid "Link this server to your FUTO account"
 msgstr ""
 
 #: src/lib/components/backups/metrics-history/MetricsHistoryModal.svelte
@@ -2689,6 +2693,10 @@ msgid "Write-only"
 msgstr ""
 
 #: src/lib/components/backups/BackupStatus.svelte
+msgid "You can close this window and the backup will continue in the background."
+msgstr ""
+
+#: src/lib/components/backups/BackupStatus.svelte
 msgid "You can close this window and the prune will continue in the background."
 msgstr ""
 
@@ -2809,5 +2817,9 @@ msgid "Your restore was interrupted"
 msgstr ""
 
 #: src/lib/components/onboarding/steps/OnboardingStep1FinishSetup.svelte
-msgid "Your subscription is active. Finish setup to create your recovery key and start backing up your Immich library."
+#~ msgid "Your subscription is active. Finish setup to create your recovery key and start backing up your Immich library."
+#~ msgstr ""
+
+#: src/lib/components/onboarding/steps/OnboardingStep1FinishSetup.svelte
+msgid "Your subscription is active. Finish setup to create your recovery key and start backing up your library."
 msgstr ""
