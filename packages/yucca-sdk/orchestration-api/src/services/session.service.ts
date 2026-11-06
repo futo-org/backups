@@ -29,8 +29,12 @@ export class SessionService {
     return cloud?.configuration.type === BackendType.Yucca ? cloud.configuration : undefined;
   }
 
+  isEnabled(): boolean {
+    return this.moduleConfig.get().requireSession === true;
+  }
+
   isRequired(configuration: CloudConfiguration | undefined): boolean {
-    if (!this.moduleConfig.get().requireSession) {
+    if (!this.isEnabled()) {
       return false;
     }
 
