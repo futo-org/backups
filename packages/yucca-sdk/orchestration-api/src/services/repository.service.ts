@@ -514,6 +514,7 @@ export class RepositoryService {
 
     const paths = await this.repositoryPath.get(id);
     if (paths.length === 0) {
+      this.logger.warn(`Refusing to back up repository ${id}: no paths configured`);
       throw new BadRequestException('Missing configuration paths');
     }
 
