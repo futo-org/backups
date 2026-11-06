@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.13.1](https://github.com/futo-org/backups/compare/v1.13.0...v1.13.1) (2026-11-06)
+
+
+### Bug Fixes
+
+* **yucca sdk:** skip the session guard when the host does not require sessions ([#183](https://github.com/futo-org/backups/issues/183)) ([824e1bb](https://github.com/futo-org/backups/commit/824e1bb3b722492624f2e0e84ebafea68ce071bd))
+* **yucca sdk:** truncate tables on dev reset instead of dropping types ([#182](https://github.com/futo-org/backups/issues/182)) ([60bee40](https://github.com/futo-org/backups/commit/60bee409ff59d8306100ef1094805d296288b9bc))
+
 ## [1.13.0](https://github.com/futo-org/backups/compare/v1.12.1...v1.13.0) (2026-11-06)
 
 
