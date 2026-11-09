@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.14.0](https://github.com/futo-org/backups/compare/v1.13.1...v1.14.0) (2026-11-09)
+
+
+### Features
+
+* **api:** polling-style device code flow ([#186](https://github.com/futo-org/backups/issues/186)) ([7c9b288](https://github.com/futo-org/backups/commit/7c9b2884f540bc9867c363d39050b0544a3b3137))
+* **yucca sdk:** poll device login ([#187](https://github.com/futo-org/backups/issues/187)) ([8146c49](https://github.com/futo-org/backups/commit/8146c49d27a52ac42a51a5cb8f89ba9ee9bf0aa8))
+
 ## [1.13.1](https://github.com/futo-org/backups/compare/v1.13.0...v1.13.1) (2026-11-06)
 
 
