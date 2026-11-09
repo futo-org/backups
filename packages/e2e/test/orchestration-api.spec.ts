@@ -1,6 +1,5 @@
 import * as sdk from '@futo-org/backups-orchestrator-ui/sdk';
 import { parse } from 'cookie';
-import { createEventSource, type EventSourceClient } from 'eventsource-client';
 import { randomBytes, randomUUID } from 'node:crypto';
 import { mkdir, mkdtemp, readFile, writeFile } from 'node:fs/promises';
 import { homedir, tmpdir } from 'node:os';
@@ -11,27 +10,6 @@ import { waitForLog } from 'src/victoria-logs';
 const baseUrl = `http://localhost:22676`;
 sdk.defaults.baseUrl = baseUrl;
 let socket: Socket;
-
-const startDeviceFlow = async (path = 'oidc/device') => {
-  const events = createEventSource(`${baseUrl}/api/futo-backups/auth/${path}`);
-
-  for await (const { data } of events) {
-    const message = JSON.parse(data);
-    if (message.type === 'START') {
-      return { events, userCode: message.userCode as string, verificationUri: message.verificationUri as string };
-    }
-  }
-
-  throw new Error('Device flow ended before it started');
-};
-
-const nextDeviceFlowEvent = async (events: EventSourceClient) => {
-  for await (const { data } of events) {
-    return JSON.parse(data);
-  }
-
-  throw new Error('Device flow ended without an event');
-};
 
 const approveDeviceCode = async (userCode: string, verificationUri: string, sub: string) => {
   const approveUrl = new URL('/api/form/device', verificationUri);
@@ -47,24 +25,20 @@ const approveDeviceCode = async (userCode: string, verificationUri: string, sub:
 const login = async () => {
   const backendCreated = waitForMessage('BackendCreate');
 
-  const { events, userCode, verificationUri } = await startDeviceFlow();
+  const { deviceCode, userCode, verificationUri } = await sdk.futoBackupsConnectDeviceAuthorize();
   await approveDeviceCode(userCode, verificationUri, 'bar');
 
+  const result = await sdk.futoBackupsConnectDeviceToken({ deviceCode });
   await backendCreated;
-  events.close();
+
+  return result;
 };
 
-const completeSessionDeviceFlow = async (sub: string) => {
-  const { events, userCode, verificationUri } = await startDeviceFlow('session/device');
-  const result = nextDeviceFlowEvent(events);
-
+const completeSessionDeviceLogin = async (sub: string) => {
+  const { deviceCode, userCode, verificationUri } = await sdk.futoBackupsSessionDeviceAuthorize();
   await approveDeviceCode(userCode, verificationUri, sub);
 
-  try {
-    return await result;
-  } finally {
-    events.close();
-  }
+  return sdk.futoBackupsSessionDeviceToken({ deviceCode });
 };
 
 type JobUpdate = { type: 'JobUpdate'; jobId: string; repositoryId: string; job: Partial<sdk.JobDto> };
@@ -152,32 +126,49 @@ describe('Onboarding (before setup)', () => {
 
 describe('Auth', () => {
   it('provides an OIDC device flow code', async () => {
-    const { events, userCode, verificationUri } = await startDeviceFlow();
-    events.close();
-
-    expect(userCode).toEqual(expect.any(String));
-    expect(verificationUri).toEqual(expect.any(String));
+    await expect(sdk.futoBackupsConnectDeviceAuthorize()).resolves.toMatchObject({
+      deviceCode: expect.any(String),
+      userCode: expect.any(String),
+      verificationUri: expect.any(String),
+      expiresIn: expect.any(Number),
+    });
   });
 
-  it('fails the session device flow before a backend is connected', async () => {
-    const events = createEventSource(`${baseUrl}/api/futo-backups/auth/session/device`);
+  it('reports pending until the device login is approved', async () => {
+    const { deviceCode } = await sdk.futoBackupsConnectDeviceAuthorize();
 
-    await expect(nextDeviceFlowEvent(events)).resolves.toEqual({ type: 'FAILURE', reason: 'NOT_CONNECTED' });
+    await expect(sdk.futoBackupsConnectDeviceToken({ deviceCode })).resolves.toEqual({ status: 'PENDING' });
+  });
 
-    events.close();
+  it('fails a device code the provider does not know', async () => {
+    await expect(sdk.futoBackupsConnectDeviceToken({ deviceCode: 'not-a-device-code' })).resolves.toEqual({
+      status: 'FAILURE',
+      reason: 'DEVICE_FLOW_FAILED',
+    });
+  });
+
+  it('refuses to start a session device login before a backend is connected', async () => {
+    await expect(sdk.futoBackupsSessionDeviceAuthorize()).rejects.toMatchObject({ status: 400 });
+  });
+
+  it('fails the session device login poll before a backend is connected', async () => {
+    await expect(sdk.futoBackupsSessionDeviceToken({ deviceCode: 'not-a-device-code' })).resolves.toEqual({
+      status: 'FAILURE',
+      reason: 'NOT_CONNECTED',
+    });
   });
 
   it('should log us in using IdP', async () => {
-    await login();
+    await expect(login()).resolves.toEqual({ status: 'SUCCESS', backendId: expect.any(String) });
   }, 30_000);
 
-  it('confirms the connected account through the session device flow', async () => {
-    await expect(completeSessionDeviceFlow('bar')).resolves.toEqual({ type: 'SUCCESS' });
+  it('confirms the connected account through the session device login', async () => {
+    await expect(completeSessionDeviceLogin('bar')).resolves.toEqual({ status: 'SUCCESS' });
   }, 30_000);
 
-  it('rejects a different account in the session device flow', async () => {
-    await expect(completeSessionDeviceFlow('orchestration-api-intruder')).resolves.toEqual({
-      type: 'FAILURE',
+  it('rejects a different account in the session device login', async () => {
+    await expect(completeSessionDeviceLogin('orchestration-api-intruder')).resolves.toEqual({
+      status: 'FAILURE',
       reason: 'WRONG_ACCOUNT',
     });
   }, 30_000);
