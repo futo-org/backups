@@ -12,14 +12,35 @@ export const defaults: Oazapfts.Defaults<Oazapfts.CustomHeaders> = {
 };
 const oazapfts = Oazapfts.runtime(defaults);
 export const servers = {};
-export type DeviceFlowEventType = "START" | "SUCCESS" | "FAILURE";
+export type DeviceFlowStartDto = {
+    /** Device verification code */
+    deviceCode: string;
+    /** End-user verification code */
+    userCode: string;
+    /** End-user verification URI */
+    verificationUri: string;
+    /** Verification URI including the user code */
+    verificationUriComplete?: string;
+    /** Seconds until the device code expires */
+    expiresIn: number;
+    /** Minimum seconds between polls */
+    interval?: number;
+};
+export type DeviceFlowIdentityPollRequestDto = {
+    /** Device verification code */
+    deviceCode: string;
+};
+export type DeviceFlowPollStatus = "PENDING" | "SLOW_DOWN" | "SUCCESS" | "FAILURE";
 export type DeviceFlowFailureReason = "NOT_CONNECTED" | "DEVICE_FLOW_FAILED" | "WRONG_ACCOUNT" | "UNKNOWN";
-export type DeviceFlowEventDto = {
-    "type": DeviceFlowEventType;
-    userCode?: string;
-    verificationUri?: string;
-    token?: string;
+export type DeviceFlowPollDto = {
+    status: DeviceFlowPollStatus;
+    /** Device session token */
+    accessToken?: string;
+    /** Connected backend ID */
     backendId?: string;
+    /** Authenticated user ID */
+    userId?: string;
+    /** Failure reason */
     reason?: DeviceFlowFailureReason;
 };
 export type CreateSessionRequestDto = {
@@ -384,26 +405,54 @@ export type SupportModeUpdateRequestDto = {
     includePaths: boolean;
 };
 /**
- * Connect a FUTO Backups account
+ * Start connecting a FUTO Backups account
  */
-export function futoBackupsConnectDeviceFlow(opts?: Oazapfts.RequestOpts) {
+export function futoBackupsConnectDeviceAuthorize(opts?: Oazapfts.RequestOpts) {
     return oazapfts.ok(oazapfts.fetchJson<{
-        status: 200;
-        data: DeviceFlowEventDto;
-    }>("/api/futo-backups/auth/oidc/device", {
-        ...opts
+        status: 201;
+        data: DeviceFlowStartDto;
+    }>("/api/futo-backups/auth/oidc/device/authorize", {
+        ...opts,
+        method: "POST"
     }));
 }
 /**
- * Sign in with FUTO Backups account
+ * Poll a FUTO Backups account connection
  */
-export function futoBackupsSessionDeviceFlow(opts?: Oazapfts.RequestOpts) {
+export function futoBackupsConnectDeviceToken(deviceFlowIdentityPollRequestDto: DeviceFlowIdentityPollRequestDto, opts?: Oazapfts.RequestOpts) {
     return oazapfts.ok(oazapfts.fetchJson<{
         status: 200;
-        data: DeviceFlowEventDto;
-    }>("/api/futo-backups/auth/session/device", {
-        ...opts
+        data: DeviceFlowPollDto;
+    }>("/api/futo-backups/auth/oidc/device/token", oazapfts.json({
+        ...opts,
+        method: "POST",
+        body: deviceFlowIdentityPollRequestDto
+    })));
+}
+/**
+ * Start signing in with FUTO Backups account
+ */
+export function futoBackupsSessionDeviceAuthorize(opts?: Oazapfts.RequestOpts) {
+    return oazapfts.ok(oazapfts.fetchJson<{
+        status: 201;
+        data: DeviceFlowStartDto;
+    }>("/api/futo-backups/auth/session/device/authorize", {
+        ...opts,
+        method: "POST"
     }));
+}
+/**
+ * Poll a FUTO Backups account sign in
+ */
+export function futoBackupsSessionDeviceToken(deviceFlowIdentityPollRequestDto: DeviceFlowIdentityPollRequestDto, opts?: Oazapfts.RequestOpts) {
+    return oazapfts.ok(oazapfts.fetchJson<{
+        status: 200;
+        data: DeviceFlowPollDto;
+    }>("/api/futo-backups/auth/session/device/token", oazapfts.json({
+        ...opts,
+        method: "POST",
+        body: deviceFlowIdentityPollRequestDto
+    })));
 }
 /**
  * Create session
