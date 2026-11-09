@@ -107,8 +107,93 @@
         ]
       }
     },
+    "/api/auth/oidc/device/authorize": {
+      "post": {
+        "operationId": "oidcDeviceAuthorize",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeviceFlowStartDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Auth"
+        ]
+      }
+    },
+    "/api/auth/oidc/device/token": {
+      "post": {
+        "operationId": "oidcDeviceToken",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DeviceFlowPollRequestDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeviceFlowPollDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Auth"
+        ]
+      }
+    },
+    "/api/auth/oidc/device/identity/token": {
+      "post": {
+        "operationId": "oidcDeviceIdentity",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DeviceFlowIdentityPollRequestDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeviceFlowPollDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Auth"
+        ]
+      }
+    },
     "/api/auth/oidc/device/identity": {
       "get": {
+        "deprecated": true,
+        "description": "Use POST /auth/oidc/device/authorize and /auth/oidc/device/identity/token",
         "operationId": "oidcDeviceFlowIdentity",
         "parameters": [],
         "responses": {
@@ -123,6 +208,7 @@
             }
           }
         },
+        "summary": "",
         "tags": [
           "Auth"
         ]
@@ -130,6 +216,8 @@
     },
     "/api/auth/oidc/device": {
       "get": {
+        "deprecated": true,
+        "description": "Use POST /auth/oidc/device/authorize and /auth/oidc/device/token",
         "operationId": "oidcDeviceFlow",
         "parameters": [
           {
@@ -163,6 +251,7 @@
             }
           }
         },
+        "summary": "",
         "tags": [
           "Auth"
         ]
@@ -966,21 +1055,130 @@
           "features"
         ]
       },
-      "DeviceFlowEventType": {
+      "DeviceFlowStartDto": {
+        "type": "object",
+        "properties": {
+          "deviceCode": {
+            "type": "string",
+            "description": "Device verification code"
+          },
+          "userCode": {
+            "type": "string",
+            "description": "End-user verification code"
+          },
+          "verificationUri": {
+            "type": "string",
+            "description": "End-user verification URI"
+          },
+          "verificationUriComplete": {
+            "description": "Verification URI including the user code",
+            "type": "string"
+          },
+          "expiresIn": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "Seconds until the device code expires"
+          },
+          "interval": {
+            "description": "Minimum seconds between polls",
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          }
+        },
+        "required": [
+          "deviceCode",
+          "userCode",
+          "verificationUri",
+          "expiresIn"
+        ]
+      },
+      "DeviceFlowPollRequestDto": {
+        "type": "object",
+        "properties": {
+          "deviceCode": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Device verification code"
+          },
+          "connectionType": {
+            "description": "immich | standalone | restic",
+            "type": "string"
+          },
+          "connectionName": {
+            "description": "Instance name, e.g. a hostname",
+            "type": "string"
+          }
+        },
+        "required": [
+          "deviceCode"
+        ]
+      },
+      "DeviceFlowPollStatus": {
         "type": "string",
         "enum": [
-          "START",
+          "PENDING",
+          "SLOW_DOWN",
           "SUCCESS",
           "FAILURE"
-        ]
+        ],
+        "description": "Poll status"
       },
       "DeviceFlowFailureReason": {
         "type": "string",
         "enum": [
           "UNKNOWN",
           "EMAIL_NOT_ALLOWED",
-          "FEATURE_NOT_ENABLED"
+          "FEATURE_NOT_ENABLED",
+          "EXPIRED",
+          "ACCESS_DENIED"
         ]
+      },
+      "DeviceFlowPollDto": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "$ref": "#/components/schemas/DeviceFlowPollStatus"
+          },
+          "accessToken": {
+            "description": "Device session token",
+            "type": "string"
+          },
+          "userId": {
+            "description": "Authenticated user ID",
+            "type": "string"
+          },
+          "reason": {
+            "description": "Failure reason",
+            "$ref": "#/components/schemas/DeviceFlowFailureReason"
+          }
+        },
+        "required": [
+          "status"
+        ]
+      },
+      "DeviceFlowIdentityPollRequestDto": {
+        "type": "object",
+        "properties": {
+          "deviceCode": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Device verification code"
+          }
+        },
+        "required": [
+          "deviceCode"
+        ]
+      },
+      "DeviceFlowEventType": {
+        "type": "string",
+        "enum": [
+          "START",
+          "SUCCESS",
+          "FAILURE"
+        ],
+        "deprecated": true
       },
       "DeviceFlowEventDto": {
         "type": "object",
@@ -1006,7 +1204,8 @@
         },
         "required": [
           "type"
-        ]
+        ],
+        "deprecated": true
       },
       "TicketAction": {
         "type": "string",

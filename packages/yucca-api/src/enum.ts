@@ -42,6 +42,15 @@ export enum DeviceFlowFailureReason {
   Unknown = 'UNKNOWN',
   EmailNotAllowed = 'EMAIL_NOT_ALLOWED',
   FeatureNotEnabled = 'FEATURE_NOT_ENABLED',
+  Expired = 'EXPIRED',
+  AccessDenied = 'ACCESS_DENIED',
+}
+
+export enum DeviceFlowPollStatus {
+  Pending = 'PENDING',
+  SlowDown = 'SLOW_DOWN',
+  Success = 'SUCCESS',
+  Failure = 'FAILURE',
 }
 
 export enum DatabaseLock {

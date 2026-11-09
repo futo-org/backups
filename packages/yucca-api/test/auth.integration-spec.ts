@@ -521,4 +521,83 @@ describe('AuthController (e2e)', () => {
       }
     }, 15_000);
   });
+
+  describe('device login by polling', () => {
+    const authorize = async () => {
+      const { body } = await request(app.getHttpServer()).post('/api/auth/oidc/device/authorize').expect(201);
+      return body as { deviceCode: string; userCode: string };
+    };
+
+    const approve = async (userCode: string, sub: string) => {
+      const approveUrl = new URL('/api/form/device', env.OIDC_DEVICE_ISSUER);
+      approveUrl.searchParams.set('user_code', userCode);
+      approveUrl.searchParams.set('sub', sub);
+      await fetch(approveUrl);
+    };
+
+    const poll = async (path: string, deviceCode: string) => {
+      const { body } = await request(app.getHttpServer())
+        .post(`/api/auth/oidc/device/${path}`)
+        .send({ deviceCode })
+        .expect(200);
+      return body as { status: string; accessToken: string; userId: string; reason: string };
+    };
+
+    it('returns every field the provider sends when a login starts', async () => {
+      const { body } = await request(app.getHttpServer()).post('/api/auth/oidc/device/authorize').expect(201);
+
+      expect(body).toEqual({
+        deviceCode: expect.any(String),
+        userCode: expect.any(String),
+        verificationUri: expect.any(String),
+        verificationUriComplete: expect.stringContaining('user_code='),
+        expiresIn: expect.any(Number),
+      });
+    });
+
+    it('reports pending until the code is approved, then creates a session', async () => {
+      const { deviceCode, userCode } = await authorize();
+
+      await expect(poll('token', deviceCode)).resolves.toEqual({ status: 'PENDING' });
+
+      await approve(userCode, 'device-poll-user');
+
+      const success = await poll('token', deviceCode);
+      expect(success).toEqual({ status: 'SUCCESS', accessToken: expect.any(String), userId: expect.any(String) });
+
+      await expect(testUtils.getUserByAccessToken(success.accessToken)).resolves.toEqual(
+        expect.objectContaining({ sub: 'device-poll-user' }),
+      );
+    });
+
+    it('confirms the user without creating a session on the identity route', async () => {
+      const { deviceCode, userCode } = await authorize();
+      await approve(userCode, 'device-identity-user');
+
+      const result = await poll('identity/token', deviceCode);
+      expect(result).toEqual({ status: 'SUCCESS', userId: expect.any(String) });
+
+      await expect(testUtils.getSessionsByUserId(result.userId)).resolves.toEqual([]);
+    });
+
+    it('fails as expired when an approved code is redeemed twice', async () => {
+      const { deviceCode, userCode } = await authorize();
+      await approve(userCode, 'device-replay-user');
+      await expect(poll('token', deviceCode)).resolves.toEqual({
+        status: 'SUCCESS',
+        accessToken: expect.any(String),
+        userId: expect.any(String),
+      });
+
+      await expect(poll('token', deviceCode)).resolves.toEqual({ status: 'FAILURE', reason: 'EXPIRED' });
+    });
+
+    it('fails as expired for a device code the provider does not know', async () => {
+      await expect(poll('token', 'not-a-device-code')).resolves.toEqual({ status: 'FAILURE', reason: 'EXPIRED' });
+    });
+
+    it('rejects an empty device code', async () => {
+      await request(app.getHttpServer()).post('/api/auth/oidc/device/token').send({ deviceCode: '' }).expect(400);
+    });
+  });
 });

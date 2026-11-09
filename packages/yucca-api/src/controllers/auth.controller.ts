@@ -1,9 +1,16 @@
-import { Body, Controller, Get, Param, Post, Query, Req, Res, Sse } from '@nestjs/common';
-import { ApiCreatedResponse, ApiOkResponse, ApiQuery } from '@nestjs/swagger';
+import { Body, Controller, Get, HttpCode, HttpStatus, Param, Post, Query, Req, Res, Sse } from '@nestjs/common';
+import { ApiCreatedResponse, ApiOkResponse, ApiOperation, ApiQuery } from '@nestjs/swagger';
 import { type Request, type Response } from 'express';
 import { Duration } from 'luxon';
 import { type Observable } from 'rxjs';
-import { AuthDto, DeviceFlowEventDto } from 'src/dto/auth.dto.js';
+import {
+  AuthDto,
+  DeviceFlowEventDto,
+  DeviceFlowIdentityPollRequestDto,
+  DeviceFlowPollDto,
+  DeviceFlowPollRequestDto,
+  DeviceFlowStartDto,
+} from 'src/dto/auth.dto.js';
 import { TicketCreateRequestDto, TicketCreateResponseDto, TicketDto } from 'src/dto/ticket.dto.js';
 import { CookieName } from 'src/enum.js';
 import { env } from 'src/env.js';
@@ -116,13 +123,38 @@ export class AuthController {
     response.redirect(redirectTo);
   }
 
+  @Post('/oidc/device/authorize')
+  @ApiCreatedResponse({ type: DeviceFlowStartDto })
+  oidcDeviceAuthorize(): Promise<DeviceFlowStartDto> {
+    return this.auth.oidcDeviceAuthorize();
+  }
+
+  @Post('/oidc/device/token')
+  @HttpCode(HttpStatus.OK)
+  @ApiOkResponse({ type: DeviceFlowPollDto })
+  oidcDeviceToken(@Body() dto: DeviceFlowPollRequestDto): Promise<DeviceFlowPollDto> {
+    return this.auth.oidcDeviceToken(dto);
+  }
+
+  @Post('/oidc/device/identity/token')
+  @HttpCode(HttpStatus.OK)
+  @ApiOkResponse({ type: DeviceFlowPollDto })
+  oidcDeviceIdentity(@Body() dto: DeviceFlowIdentityPollRequestDto): Promise<DeviceFlowPollDto> {
+    return this.auth.oidcDeviceIdentity(dto);
+  }
+
   @Sse('/oidc/device/identity')
+  @ApiOperation({
+    deprecated: true,
+    description: 'Use POST /auth/oidc/device/authorize and /auth/oidc/device/identity/token',
+  })
   @ApiOkResponse({ type: DeviceFlowEventDto })
   oidcDeviceFlowIdentity(): Observable<MessageEvent> {
     return this.auth.oidcDeviceFlowIdentityObservable();
   }
 
   @Sse('/oidc/device')
+  @ApiOperation({ deprecated: true, description: 'Use POST /auth/oidc/device/authorize and /auth/oidc/device/token' })
   @ApiOkResponse({ type: DeviceFlowEventDto })
   @ApiQuery({ name: 'connection_type', type: String, required: false, description: 'immich | standalone | restic' })
   @ApiQuery({ name: 'connection_name', type: String, required: false, description: 'Instance name, e.g. a hostname' })

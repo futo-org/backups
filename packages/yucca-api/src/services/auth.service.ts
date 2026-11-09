@@ -8,9 +8,21 @@ import { IncomingHttpHeaders } from 'node:http';
 import * as client from 'openid-client';
 import { UserInfoResponse } from 'openid-client';
 import { from } from 'rxjs';
-import { AuthDto } from 'src/dto/auth.dto.js';
+import {
+  AuthDto,
+  DeviceFlowIdentityPollRequestDto,
+  DeviceFlowPollDto,
+  DeviceFlowPollRequestDto,
+  DeviceFlowStartDto,
+} from 'src/dto/auth.dto.js';
 import { TicketCreateRequestDto, TicketCreateResponseDto, TicketDto } from 'src/dto/ticket.dto.js';
-import { CookieName, DeviceFlowEventType, DeviceFlowFailureReason, TicketAction } from 'src/enum.js';
+import {
+  CookieName,
+  DeviceFlowEventType,
+  DeviceFlowFailureReason,
+  DeviceFlowPollStatus,
+  TicketAction,
+} from 'src/enum.js';
 import { env } from 'src/env.js';
 import { ConnectionRepository } from 'src/repositories/connection.repository.js';
 import { CryptoRepository } from 'src/repositories/crypto.repository.js';
@@ -326,13 +338,7 @@ export class AuthService {
     return connection.id;
   }
 
-  private async runDeviceFlow(callback: (data: { userCode: string; verificationUri: string }) => void) {
-    const { userCode, verificationUri, claims: pendingClaims } = await this.oidc.deviceFlow();
-
-    callback({ userCode, verificationUri });
-
-    const claims = await pendingClaims;
-
+  private async resolveDeviceUser(claims: client.IDToken | undefined) {
     if (!claims) {
       throw new InternalServerErrorException('no id token received');
     }
@@ -346,24 +352,10 @@ export class AuthService {
     return user;
   }
 
-  async oidcDeviceFlowIdentity(
-    callback: (data: { userCode: string; verificationUri: string }) => void,
-  ): Promise<{ userId: string }> {
-    const user = await this.runDeviceFlow(callback);
-
-    return { userId: user.id };
-  }
-
-  async oidcDeviceFlow(
-    callback: (data: { userCode: string; verificationUri: string }) => void,
-    connectionType?: string,
-    connectionName?: string,
-  ): Promise<{ accessToken: string; userId: string }> {
-    const user = await this.runDeviceFlow(callback);
-
-    const overrides = await this.user.getFeatureOverrides(user.id);
+  private async createDeviceSession(userId: string, connectionType?: string, connectionName?: string) {
+    const overrides = await this.user.getFeatureOverrides(userId);
     const connectionId = await this.resolveDeviceConnection(
-      user.id,
+      userId,
       resolveFeatures(overrides),
       connectionType,
       connectionName,
@@ -373,11 +365,107 @@ export class AuthService {
     const accessToken = this.crypto.randomHex(32);
 
     await this.session.create({
-      userId: user.id,
+      userId,
       accessToken,
       connectionId,
       kind: 'device',
     });
+
+    return accessToken;
+  }
+
+  async oidcDeviceAuthorize(): Promise<DeviceFlowStartDto> {
+    const { device_code, user_code, verification_uri, verification_uri_complete, expires_in, interval } =
+      await this.oidc.initiateDeviceCode();
+
+    return {
+      deviceCode: device_code,
+      userCode: user_code,
+      verificationUri: verification_uri,
+      verificationUriComplete: verification_uri_complete,
+      expiresIn: expires_in,
+      interval,
+    };
+  }
+
+  async oidcDeviceToken(dto: DeviceFlowPollRequestDto): Promise<DeviceFlowPollDto> {
+    const result = await this.pollDeviceCode(dto.deviceCode);
+    if (result.status !== DeviceFlowPollStatus.Success || !result.userId) {
+      return result;
+    }
+
+    try {
+      const accessToken = await this.createDeviceSession(result.userId, dto.connectionType, dto.connectionName);
+      return { ...result, accessToken };
+    } catch (error) {
+      return { status: DeviceFlowPollStatus.Failure, reason: this.deviceFlowFailureReason(error) };
+    }
+  }
+
+  oidcDeviceIdentity(dto: DeviceFlowIdentityPollRequestDto): Promise<DeviceFlowPollDto> {
+    return this.pollDeviceCode(dto.deviceCode);
+  }
+
+  private async pollDeviceCode(deviceCode: string): Promise<DeviceFlowPollDto> {
+    try {
+      const result = await this.oidc.pollDeviceCode(deviceCode);
+      switch (result.status) {
+        case 'pending': {
+          return { status: DeviceFlowPollStatus.Pending };
+        }
+        case 'slow_down': {
+          return { status: DeviceFlowPollStatus.SlowDown };
+        }
+        case 'expired': {
+          return { status: DeviceFlowPollStatus.Failure, reason: DeviceFlowFailureReason.Expired };
+        }
+        case 'denied': {
+          return { status: DeviceFlowPollStatus.Failure, reason: DeviceFlowFailureReason.AccessDenied };
+        }
+        case 'complete': {
+          const user = await this.resolveDeviceUser(result.claims);
+          return { status: DeviceFlowPollStatus.Success, userId: user.id };
+        }
+      }
+    } catch (error) {
+      return { status: DeviceFlowPollStatus.Failure, reason: this.deviceFlowFailureReason(error) };
+    }
+  }
+
+  /**
+   * @deprecated
+   */
+  private async runDeviceFlow(callback: (data: { userCode: string; verificationUri: string }) => void) {
+    const { userCode, verificationUri, claims: pendingClaims } = await this.oidc.deviceFlow();
+
+    callback({ userCode, verificationUri });
+
+    const claims = await pendingClaims;
+
+    return this.resolveDeviceUser(claims);
+  }
+
+  /**
+   * @deprecated
+   */
+  async oidcDeviceFlowIdentity(
+    callback: (data: { userCode: string; verificationUri: string }) => void,
+  ): Promise<{ userId: string }> {
+    const user = await this.runDeviceFlow(callback);
+
+    return { userId: user.id };
+  }
+
+  /**
+   * @deprecated
+   */
+  async oidcDeviceFlow(
+    callback: (data: { userCode: string; verificationUri: string }) => void,
+    connectionType?: string,
+    connectionName?: string,
+  ): Promise<{ accessToken: string; userId: string }> {
+    const user = await this.runDeviceFlow(callback);
+    const accessToken = await this.createDeviceSession(user.id, connectionType, connectionName);
 
     return {
       accessToken,
@@ -424,16 +512,22 @@ export class AuthService {
   }
 
   private pushDeviceFlowFailure(queue: { push: (value: MessageEvent) => void }, error: unknown) {
+    const reason = this.deviceFlowFailureReason(error);
+    queue.push({ data: { type: DeviceFlowEventType.Failure, reason } } as MessageEvent);
+  }
+
+  private deviceFlowFailureReason(error: unknown) {
     this.wideContext.setErrorCause(error);
     this.logger.error('oidcDeviceFlow error:', error);
 
-    let reason = DeviceFlowFailureReason.Unknown;
     if (error instanceof EmailNotAllowedException) {
-      reason = DeviceFlowFailureReason.EmailNotAllowed;
-    } else if (error instanceof FeatureNotEnabledException) {
-      reason = DeviceFlowFailureReason.FeatureNotEnabled;
+      return DeviceFlowFailureReason.EmailNotAllowed;
     }
 
-    queue.push({ data: { type: DeviceFlowEventType.Failure, reason } } as MessageEvent);
+    if (error instanceof FeatureNotEnabledException) {
+      return DeviceFlowFailureReason.FeatureNotEnabled;
+    }
+
+    return DeviceFlowFailureReason.Unknown;
   }
 }

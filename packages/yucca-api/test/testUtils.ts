@@ -121,6 +121,10 @@ export const testUtils = {
     return userRepository.getByAccessToken(accessToken);
   },
 
+  getSessionsByUserId: (userId: string) => {
+    return getDb().selectFrom('sessions').selectAll().where('userId', '=', userId).execute();
+  },
+
   createActiveTicket: (userId: string, repositoryId: string, action: TicketAction) => {
     const crypto = new CryptoRepository();
     return getDb()
