@@ -1,8 +1,10 @@
 import {
+  futoBackupsConnectDeviceAuthorize,
+  futoBackupsConnectDeviceToken,
   futoBackupsCreateSession,
-  type DeviceFlowEventDto,
+  futoBackupsSessionDeviceAuthorize,
+  futoBackupsSessionDeviceToken,
 } from '$lib/fetch-client';
-import { getProvider } from '$lib/providers';
 import { queryClient } from '$lib/query-client';
 import { handleError } from '$lib/utils/handle-error';
 import { createMutation } from '@tanstack/svelte-query';
@@ -10,25 +12,15 @@ import { gt } from 'svelte-i18n-lingui';
 
 export type DeviceFlowKind = 'oidc' | 'session';
 
-export const startDeviceFlow = (
-  kind: DeviceFlowKind,
-  onEvent: (event: DeviceFlowEventDto) => void,
-) => {
-  const source = new EventSource(
-    `${getProvider().baseUrl}/api/futo-backups/auth/${kind}/device`,
-    { withCredentials: true },
-  );
-
-  source.addEventListener('message', (event) => {
-    onEvent(JSON.parse(event.data) as DeviceFlowEventDto);
-  });
-
-  source.addEventListener('error', () => {
-    onEvent({ type: 'FAILURE', reason: 'UNKNOWN' });
-    source.close();
-  });
-
-  return () => source.close();
+export const deviceFlowEndpoints = {
+  oidc: {
+    authorize: futoBackupsConnectDeviceAuthorize,
+    token: futoBackupsConnectDeviceToken,
+  },
+  session: {
+    authorize: futoBackupsSessionDeviceAuthorize,
+    token: futoBackupsSessionDeviceToken,
+  },
 };
 
 export const useCreateSession = () =>

@@ -1,47 +1,113 @@
 {
   "openapi": "3.0.0",
   "paths": {
-    "/api/futo-backups/auth/oidc/device": {
-      "get": {
-        "description": "Connect an existing FUTO Backups account to this server.",
-        "operationId": "futoBackupsConnectDeviceFlow",
+    "/api/futo-backups/auth/oidc/device/authorize": {
+      "post": {
+        "description": "Start a device login to connect a FUTO Backups account to this server.",
+        "operationId": "futoBackupsConnectDeviceAuthorize",
         "parameters": [],
         "responses": {
-          "200": {
+          "201": {
             "description": "",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/DeviceFlowEventDto"
+                  "$ref": "#/components/schemas/DeviceFlowStartDto"
                 }
               }
             }
           }
         },
-        "summary": "Connect a FUTO Backups account",
+        "summary": "Start connecting a FUTO Backups account",
         "tags": [
           "Auth"
         ]
       }
     },
-    "/api/futo-backups/auth/session/device": {
-      "get": {
-        "description": "Log into standalone backups app using the associated cloud account.",
-        "operationId": "futoBackupsSessionDeviceFlow",
+    "/api/futo-backups/auth/oidc/device/token": {
+      "post": {
+        "description": "Poll a device login and connect the FUTO Backups account once it is approved.",
+        "operationId": "futoBackupsConnectDeviceToken",
         "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DeviceFlowIdentityPollRequestDto"
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
             "description": "",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/DeviceFlowEventDto"
+                  "$ref": "#/components/schemas/DeviceFlowPollDto"
                 }
               }
             }
           }
         },
-        "summary": "Sign in with FUTO Backups account",
+        "summary": "Poll a FUTO Backups account connection",
+        "tags": [
+          "Auth"
+        ]
+      }
+    },
+    "/api/futo-backups/auth/session/device/authorize": {
+      "post": {
+        "description": "Start a device login to sign in to the standalone backups app.",
+        "operationId": "futoBackupsSessionDeviceAuthorize",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeviceFlowStartDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Start signing in with FUTO Backups account",
+        "tags": [
+          "Auth"
+        ]
+      }
+    },
+    "/api/futo-backups/auth/session/device/token": {
+      "post": {
+        "description": "Poll a device login and issue a session token once it is approved.",
+        "operationId": "futoBackupsSessionDeviceToken",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DeviceFlowIdentityPollRequestDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeviceFlowPollDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Poll a FUTO Backups account sign in",
         "tags": [
           "Auth"
         ]
@@ -1523,13 +1589,67 @@
   "servers": [],
   "components": {
     "schemas": {
-      "DeviceFlowEventType": {
+      "DeviceFlowStartDto": {
+        "type": "object",
+        "properties": {
+          "deviceCode": {
+            "type": "string",
+            "description": "Device verification code"
+          },
+          "userCode": {
+            "type": "string",
+            "description": "End-user verification code"
+          },
+          "verificationUri": {
+            "type": "string",
+            "description": "End-user verification URI"
+          },
+          "verificationUriComplete": {
+            "description": "Verification URI including the user code",
+            "type": "string"
+          },
+          "expiresIn": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "Seconds until the device code expires"
+          },
+          "interval": {
+            "description": "Minimum seconds between polls",
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          }
+        },
+        "required": [
+          "deviceCode",
+          "userCode",
+          "verificationUri",
+          "expiresIn"
+        ]
+      },
+      "DeviceFlowIdentityPollRequestDto": {
+        "type": "object",
+        "properties": {
+          "deviceCode": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Device verification code"
+          }
+        },
+        "required": [
+          "deviceCode"
+        ]
+      },
+      "DeviceFlowPollStatus": {
         "type": "string",
         "enum": [
-          "START",
+          "PENDING",
+          "SLOW_DOWN",
           "SUCCESS",
           "FAILURE"
-        ]
+        ],
+        "description": "Poll status"
       },
       "DeviceFlowFailureReason": {
         "type": "string",
@@ -1540,30 +1660,31 @@
           "UNKNOWN"
         ]
       },
-      "DeviceFlowEventDto": {
+      "DeviceFlowPollDto": {
         "type": "object",
         "properties": {
-          "type": {
-            "$ref": "#/components/schemas/DeviceFlowEventType"
+          "status": {
+            "$ref": "#/components/schemas/DeviceFlowPollStatus"
           },
-          "userCode": {
-            "type": "string"
-          },
-          "verificationUri": {
-            "type": "string"
-          },
-          "token": {
+          "accessToken": {
+            "description": "Device session token",
             "type": "string"
           },
           "backendId": {
+            "description": "Connected backend ID",
+            "type": "string"
+          },
+          "userId": {
+            "description": "Authenticated user ID",
             "type": "string"
           },
           "reason": {
+            "description": "Failure reason",
             "$ref": "#/components/schemas/DeviceFlowFailureReason"
           }
         },
         "required": [
-          "type"
+          "status"
         ]
       },
       "CreateSessionRequestDto": {

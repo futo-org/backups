@@ -85,7 +85,6 @@ catalog:
   eslint-plugin-prettier: ^5.5.4
   eslint-plugin-unicorn: ^62.0.0
   event-iterator: ^2.0.0
-  eventsource-client: ^1.2.0
   express: ^5.2.1
   front-matter: ^4.0.2
   globals: ^17.0.0

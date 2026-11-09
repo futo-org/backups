@@ -1,9 +1,17 @@
-import type { DeviceFlowEventDto } from '$lib/fetch-client';
+import type {
+  DeviceFlowFailureReason,
+  DeviceFlowPollDto,
+} from '$lib/fetch-client';
+import { queryClient } from '$lib/query-client';
 import {
-  startDeviceFlow,
+  deviceFlowEndpoints,
   type DeviceFlowKind,
 } from '$lib/services/session.service';
+import { createQuery } from '@tanstack/svelte-query';
 import { gt, msg } from 'svelte-i18n-lingui';
+
+const DEFAULT_POLL_INTERVAL_SECONDS = 5;
+const SLOW_DOWN_BACKOFF_SECONDS = 5;
 
 const failures: Record<string, string> = {
   NOT_CONNECTED: msg`This instance is not connected to a FUTO Backups account yet.`,
@@ -16,39 +24,109 @@ export function createDeviceFlow(
   kind: DeviceFlowKind,
   handlers: {
     createSession: (token: string) => Promise<unknown>;
-    onComplete: (event: DeviceFlowEventDto) => void;
+    onComplete: (result: DeviceFlowPollDto) => void;
     onFailure?: (message: string) => void;
   },
 ) {
+  const { authorize, token } = deviceFlowEndpoints[kind];
+
   const state = $state<{
     userCode: string | undefined;
     verificationUri: string | undefined;
+    deviceCode: string | undefined;
+    interval: number;
+    polling: boolean;
     error: string | undefined;
     pending: boolean;
     opened: boolean;
   }>({
     userCode: undefined,
     verificationUri: undefined,
+    deviceCode: undefined,
+    interval: DEFAULT_POLL_INTERVAL_SECONDS,
+    polling: false,
     error: undefined,
     pending: false,
     opened: false,
   });
 
-  let close: (() => void) | undefined;
+  let firstPoll: ReturnType<typeof setTimeout> | undefined;
+  let attempt = 0;
+
+  const poll = createQuery(
+    () => ({
+      queryKey: ['device-flow', kind, state.deviceCode],
+      queryFn: async () => {
+        const result = await token({ deviceCode: state.deviceCode! });
+        if (result.status === 'SLOW_DOWN') {
+          state.interval += SLOW_DOWN_BACKOFF_SECONDS;
+        }
+
+        return result;
+      },
+      enabled: state.polling && !!state.deviceCode,
+      refetchInterval: (query) => {
+        const status = query.state.data?.status;
+        return status === 'SUCCESS' || status === 'FAILURE'
+          ? false
+          : state.interval * 1000;
+      },
+      refetchIntervalInBackground: true,
+      refetchOnWindowFocus: false,
+      retry: false,
+      gcTime: 0,
+    }),
+    () => queryClient,
+  );
 
   const stop = () => {
-    close?.();
-    close = undefined;
+    attempt++;
+    clearTimeout(firstPoll);
+    state.polling = false;
+    state.deviceCode = undefined;
   };
 
-  const complete = async (event: DeviceFlowEventDto) => {
-    if (event.token) {
-      await handlers.createSession(event.token);
+  const fail = (reason: DeviceFlowFailureReason | undefined) => {
+    stop();
+    state.pending = false;
+    state.userCode = undefined;
+    state.error = gt(failures[reason ?? 'UNKNOWN']);
+    handlers.onFailure?.(state.error);
+  };
+
+  const complete = async (result: DeviceFlowPollDto) => {
+    stop();
+
+    if (result.accessToken) {
+      await handlers.createSession(result.accessToken);
     }
 
     state.pending = false;
-    handlers.onComplete(event);
+    handlers.onComplete(result);
   };
+
+  $effect(() => {
+    if (!state.polling) {
+      return;
+    }
+
+    if (poll.isError) {
+      fail('UNKNOWN');
+      return;
+    }
+
+    const result = poll.data;
+    switch (result?.status) {
+      case 'SUCCESS': {
+        void complete(result);
+        break;
+      }
+      case 'FAILURE': {
+        fail(result.reason);
+        break;
+      }
+    }
+  });
 
   const start = () => {
     stop();
@@ -58,29 +136,32 @@ export function createDeviceFlow(
     state.pending = true;
     state.opened = false;
 
-    close = startDeviceFlow(kind, (event) => {
-      switch (event.type) {
-        case 'START': {
-          state.userCode = event.userCode;
-          state.verificationUri = event.verificationUri;
-          break;
+    const current = attempt;
+    authorize()
+      .then((started) => {
+        if (current !== attempt) {
+          return;
         }
-        case 'SUCCESS': {
-          stop();
 
-          void complete(event);
-          break;
+        state.userCode = started.userCode;
+        state.verificationUri =
+          started.verificationUriComplete ?? started.verificationUri;
+        state.deviceCode = started.deviceCode;
+        state.interval = started.interval ?? DEFAULT_POLL_INTERVAL_SECONDS;
+        firstPoll = setTimeout(() => {
+          state.polling = true;
+        }, state.interval * 1000);
+      })
+      .catch((error: unknown) => {
+        if (current !== attempt) {
+          return;
         }
-        case 'FAILURE': {
-          stop();
-          state.pending = false;
-          state.userCode = undefined;
-          state.error = gt(failures[event.reason ?? 'UNKNOWN']);
-          handlers.onFailure?.(state.error);
-          break;
-        }
-      }
-    });
+
+        const { status } = error as { status?: number };
+        fail(
+          kind === 'session' && status === 400 ? 'NOT_CONNECTED' : 'UNKNOWN',
+        );
+      });
   };
 
   const open = () => {

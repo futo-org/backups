@@ -18,7 +18,6 @@
     "@types/jsonwebtoken": "catalog:",
     "@types/node": "catalog:",
     "cookie": "catalog:",
-    "eventsource-client": "catalog:",
     "jest": "catalog:",
     "jest-extended": "catalog:",
     "jsonwebtoken": "catalog:",
