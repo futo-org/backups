@@ -574,16 +574,20 @@ describe('AuthController (e2e)', () => {
       const { deviceCode, userCode } = await authorize();
       await approve(userCode, 'device-identity-user');
 
-      await expect(poll('identity/token', deviceCode)).resolves.toEqual({
-        status: 'SUCCESS',
-        userId: expect.any(String),
-      });
+      const result = await poll('identity/token', deviceCode);
+      expect(result).toEqual({ status: 'SUCCESS', userId: expect.any(String) });
+
+      await expect(testUtils.getSessionsByUserId(result.userId)).resolves.toEqual([]);
     });
 
     it('fails as expired when an approved code is redeemed twice', async () => {
       const { deviceCode, userCode } = await authorize();
       await approve(userCode, 'device-replay-user');
-      await poll('token', deviceCode);
+      await expect(poll('token', deviceCode)).resolves.toEqual({
+        status: 'SUCCESS',
+        accessToken: expect.any(String),
+        userId: expect.any(String),
+      });
 
       await expect(poll('token', deviceCode)).resolves.toEqual({ status: 'FAILURE', reason: 'EXPIRED' });
     });
