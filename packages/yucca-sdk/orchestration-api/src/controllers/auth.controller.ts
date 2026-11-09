@@ -1,8 +1,13 @@
-import { Body, Controller, Post, Req, Res, Sse } from '@nestjs/common';
+import { Body, Controller, HttpCode, HttpStatus, Post, Req, Res } from '@nestjs/common';
 import { ApiBody, ApiCreatedResponse, ApiOkResponse, ApiOperation } from '@nestjs/swagger';
 import { type Request, type Response } from 'express';
 import { SESSION_TTL_MS } from '../const.js';
-import { CreateSessionRequestDto, DeviceFlowEventDto } from '../dto/auth.dto.js';
+import {
+  CreateSessionRequestDto,
+  DeviceFlowIdentityPollRequestDto,
+  DeviceFlowPollDto,
+  DeviceFlowStartDto,
+} from '../dto/auth.dto.js';
 import { TicketCreateRequestDto, TicketCreateResponseDto } from '../dto/ticket.dto.js';
 import { CookieName } from '../enum.js';
 import { PublicRoute } from '../middleware/session.guard.js';
@@ -16,27 +21,52 @@ export class AuthController {
     readonly session: SessionService,
   ) {}
 
-  @Sse('/oidc/device')
-  @ApiOkResponse({ type: DeviceFlowEventDto })
+  @Post('/oidc/device/authorize')
+  @ApiCreatedResponse({ type: DeviceFlowStartDto })
   @ApiOperation({
-    operationId: 'futoBackupsConnectDeviceFlow',
-    summary: 'Connect a FUTO Backups account',
-    description: 'Connect an existing FUTO Backups account to this server.',
+    operationId: 'futoBackupsConnectDeviceAuthorize',
+    summary: 'Start connecting a FUTO Backups account',
+    description: 'Start a device login to connect a FUTO Backups account to this server.',
   })
-  connectDeviceFlow() {
-    return this.auth.deviceFlow(false);
+  connectDeviceAuthorize(): Promise<DeviceFlowStartDto> {
+    return this.auth.connectDeviceAuthorize();
   }
 
-  @Sse('/session/device')
-  @PublicRoute()
-  @ApiOkResponse({ type: DeviceFlowEventDto })
+  @Post('/oidc/device/token')
+  @HttpCode(HttpStatus.OK)
+  @ApiOkResponse({ type: DeviceFlowPollDto })
   @ApiOperation({
-    operationId: 'futoBackupsSessionDeviceFlow',
-    summary: 'Sign in with FUTO Backups account',
-    description: 'Log into standalone backups app using the associated cloud account.',
+    operationId: 'futoBackupsConnectDeviceToken',
+    summary: 'Poll a FUTO Backups account connection',
+    description: 'Poll a device login and connect the FUTO Backups account once it is approved.',
   })
-  sessionDeviceFlow() {
-    return this.auth.deviceFlow(true);
+  connectDeviceToken(@Body() dto: DeviceFlowIdentityPollRequestDto): Promise<DeviceFlowPollDto> {
+    return this.auth.connectDeviceToken(dto);
+  }
+
+  @Post('/session/device/authorize')
+  @PublicRoute()
+  @ApiCreatedResponse({ type: DeviceFlowStartDto })
+  @ApiOperation({
+    operationId: 'futoBackupsSessionDeviceAuthorize',
+    summary: 'Start signing in with FUTO Backups account',
+    description: 'Start a device login to sign in to the standalone backups app.',
+  })
+  sessionDeviceAuthorize(): Promise<DeviceFlowStartDto> {
+    return this.auth.sessionDeviceAuthorize();
+  }
+
+  @Post('/session/device/token')
+  @PublicRoute()
+  @HttpCode(HttpStatus.OK)
+  @ApiOkResponse({ type: DeviceFlowPollDto })
+  @ApiOperation({
+    operationId: 'futoBackupsSessionDeviceToken',
+    summary: 'Poll a FUTO Backups account sign in',
+    description: 'Poll a device login and issue a session token once it is approved.',
+  })
+  sessionDeviceToken(@Body() dto: DeviceFlowIdentityPollRequestDto): Promise<DeviceFlowPollDto> {
+    return this.auth.sessionDeviceToken(dto);
   }
 
   @Post('/session')

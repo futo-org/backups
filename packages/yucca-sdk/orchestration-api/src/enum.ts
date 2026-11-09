@@ -73,17 +73,18 @@ export enum InternalEvent {
   ModuleConfigUpdated = 'yucca.moduleConfig.updated',
 }
 
-export enum DeviceFlowEventType {
-  Start = 'START',
-  Success = 'SUCCESS',
-  Failure = 'FAILURE',
-}
-
 export enum DeviceFlowFailureReason {
   NotConnected = 'NOT_CONNECTED',
   DeviceFlowFailed = 'DEVICE_FLOW_FAILED',
   WrongAccount = 'WRONG_ACCOUNT',
   Unknown = 'UNKNOWN',
+}
+
+export enum DeviceFlowPollStatus {
+  Pending = 'PENDING',
+  SlowDown = 'SLOW_DOWN',
+  Success = 'SUCCESS',
+  Failure = 'FAILURE',
 }
 
 export enum BootstrapStatus {
