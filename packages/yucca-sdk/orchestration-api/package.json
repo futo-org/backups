@@ -48,7 +48,6 @@
     "better-sqlite3": "catalog:",
     "cookie": "catalog:",
     "cron": "catalog:",
-    "event-iterator": "catalog:",
     "express": "catalog:",
     "nestjs-kysely": "catalog:",
     "nestjs-zod": "catalog:",

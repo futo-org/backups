@@ -1277,9 +1277,6 @@ importers:
       cron:
         specifier: 'catalog:'
         version: 4.4.0
-      event-iterator:
-        specifier: 'catalog:'
-        version: 2.0.0
       express:
         specifier: 'catalog:'
         version: 5.2.1
