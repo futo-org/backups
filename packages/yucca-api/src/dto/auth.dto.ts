@@ -28,10 +28,10 @@ const DeviceFlowEventSchema = z
 
 const DeviceFlowStartSchema = z
   .object({
-    deviceCode: z.string(),
-    userCode: z.string(),
-    verificationUri: z.string(),
-    verificationUriComplete: z.string().optional(),
+    deviceCode: z.string().describe('Device verification code'),
+    userCode: z.string().describe('End-user verification code'),
+    verificationUri: z.string().describe('End-user verification URI'),
+    verificationUriComplete: z.string().optional().describe('Verification URI including the user code'),
     expiresIn: z.number().int().describe('Seconds until the device code expires'),
     interval: z.number().int().optional().describe('Minimum seconds between polls'),
   })
@@ -39,7 +39,7 @@ const DeviceFlowStartSchema = z
 
 const DeviceFlowIdentityPollRequestSchema = z
   .object({
-    deviceCode: z.string().min(1),
+    deviceCode: z.string().min(1).describe('Device verification code'),
   })
   .meta({ id: 'DeviceFlowIdentityPollRequestDto' });
 
@@ -50,10 +50,10 @@ const DeviceFlowPollRequestSchema = DeviceFlowIdentityPollRequestSchema.extend({
 
 const DeviceFlowPollSchema = z
   .object({
-    status: z.enum(DeviceFlowPollStatus).meta({ id: 'DeviceFlowPollStatus' }),
-    accessToken: z.string().optional(),
-    userId: z.string().optional(),
-    reason: DeviceFlowFailureReasonSchema.optional(),
+    status: z.enum(DeviceFlowPollStatus).meta({ id: 'DeviceFlowPollStatus', description: 'Poll status' }),
+    accessToken: z.string().optional().describe('Device session token'),
+    userId: z.string().optional().describe('Authenticated user ID'),
+    reason: DeviceFlowFailureReasonSchema.optional().describe('Failure reason'),
   })
   .meta({ id: 'DeviceFlowPollDto' });
 

@@ -1059,15 +1059,19 @@
         "type": "object",
         "properties": {
           "deviceCode": {
-            "type": "string"
+            "type": "string",
+            "description": "Device verification code"
           },
           "userCode": {
-            "type": "string"
+            "type": "string",
+            "description": "End-user verification code"
           },
           "verificationUri": {
-            "type": "string"
+            "type": "string",
+            "description": "End-user verification URI"
           },
           "verificationUriComplete": {
+            "description": "Verification URI including the user code",
             "type": "string"
           },
           "expiresIn": {
@@ -1095,7 +1099,8 @@
         "properties": {
           "deviceCode": {
             "type": "string",
-            "minLength": 1
+            "minLength": 1,
+            "description": "Device verification code"
           },
           "connectionType": {
             "description": "immich | standalone | restic",
@@ -1117,7 +1122,8 @@
           "SLOW_DOWN",
           "SUCCESS",
           "FAILURE"
-        ]
+        ],
+        "description": "Poll status"
       },
       "DeviceFlowFailureReason": {
         "type": "string",
@@ -1136,12 +1142,15 @@
             "$ref": "#/components/schemas/DeviceFlowPollStatus"
           },
           "accessToken": {
+            "description": "Device session token",
             "type": "string"
           },
           "userId": {
+            "description": "Authenticated user ID",
             "type": "string"
           },
           "reason": {
+            "description": "Failure reason",
             "$ref": "#/components/schemas/DeviceFlowFailureReason"
           }
         },
@@ -1154,7 +1163,8 @@
         "properties": {
           "deviceCode": {
             "type": "string",
-            "minLength": 1
+            "minLength": 1,
+            "description": "Device verification code"
           }
         },
         "required": [

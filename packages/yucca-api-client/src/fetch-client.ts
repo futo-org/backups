@@ -25,9 +25,13 @@ export type AuthDto = {
     };
 };
 export type DeviceFlowStartDto = {
+    /** Device verification code */
     deviceCode: string;
+    /** End-user verification code */
     userCode: string;
+    /** End-user verification URI */
     verificationUri: string;
+    /** Verification URI including the user code */
     verificationUriComplete?: string;
     /** Seconds until the device code expires */
     expiresIn: number;
@@ -35,6 +39,7 @@ export type DeviceFlowStartDto = {
     interval?: number;
 };
 export type DeviceFlowPollRequestDto = {
+    /** Device verification code */
     deviceCode: string;
     /** immich | standalone | restic */
     connectionType?: string;
@@ -45,11 +50,15 @@ export type DeviceFlowPollStatus = "PENDING" | "SLOW_DOWN" | "SUCCESS" | "FAILUR
 export type DeviceFlowFailureReason = "UNKNOWN" | "EMAIL_NOT_ALLOWED" | "FEATURE_NOT_ENABLED" | "EXPIRED" | "ACCESS_DENIED";
 export type DeviceFlowPollDto = {
     status: DeviceFlowPollStatus;
+    /** Device session token */
     accessToken?: string;
+    /** Authenticated user ID */
     userId?: string;
+    /** Failure reason */
     reason?: DeviceFlowFailureReason;
 };
 export type DeviceFlowIdentityPollRequestDto = {
+    /** Device verification code */
     deviceCode: string;
 };
 export type DeviceFlowEventType = "START" | "SUCCESS" | "FAILURE";
