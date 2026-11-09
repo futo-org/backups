@@ -228,9 +228,6 @@ catalogs:
     event-iterator:
       specifier: ^2.0.0
       version: 2.0.0
-    eventsource-client:
-      specifier: ^1.2.0
-      version: 1.2.0
     express:
       specifier: ^5.2.1
       version: 5.2.1
@@ -556,9 +553,6 @@ importers:
       cookie:
         specifier: 'catalog:'
         version: 1.1.1
-      eventsource-client:
-        specifier: 'catalog:'
-        version: 1.2.0
       jest:
         specifier: 'catalog:'
         version: 30.5.2(@types/node@26.6.4)(ts-node@10.9.2(@types/node@26.6.4)(typescript@6.0.3))
@@ -1286,9 +1280,6 @@ importers:
       event-iterator:
         specifier: 'catalog:'
         version: 2.0.0
-      eventsource-client:
-        specifier: 'catalog:'
-        version: 1.2.0
       express:
         specifier: 'catalog:'
         version: 5.2.1
@@ -5192,14 +5183,6 @@ packages:
   events@3.3.0:
     resolution: {integrity: sha512-mQw+2fkQbALzQ7V0MY0IqdnXNOeTtP4r0lN9z7AAawCXgqea7bDii20AYrIBrFd/Hx0M2Ocz6S111CaFkUcb0Q==}
     engines: {node: '>=0.8.x'}
-
-  eventsource-client@1.2.0:
-    resolution: {integrity: sha512-kDI75RSzO3TwyG/K9w1ap8XwqSPcwi6jaMkNulfVeZmSeUM49U8kUzk1s+vKNt0tGrXgK47i+620Yasn1ccFiw==}
-    engines: {node: '>=18.0.0'}
-
-  eventsource-parser@3.0.6:
-    resolution: {integrity: sha512-Vo1ab+QXPzZ4tCa8SwIHJFaSzy4R6SHf7BY79rFBDf0idraZWAkYrDjDj8uWaSm3S2TK+hJ7/t1CEmZ7jXw+pg==}
-    engines: {node: '>=18.0.0'}
 
   execa@5.1.1:
     resolution: {integrity: sha512-8uSpZZocAZRBAPIEINJj3Lo9HyGitllczc27Eh5YYojjMFMn8yHMDMaUHE2Jqfq05D/wucwI4JGURyXt1vchyg==}
@@ -11769,12 +11752,6 @@ snapshots:
   eventemitter2@6.4.9: {}
 
   events@3.3.0: {}
-
-  eventsource-client@1.2.0:
-    dependencies:
-      eventsource-parser: 3.0.6
-
-  eventsource-parser@3.0.6: {}
 
   execa@5.1.1:
     dependencies:
