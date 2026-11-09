@@ -24,8 +24,35 @@ export type AuthDto = {
         [key: string]: boolean;
     };
 };
+export type DeviceFlowStartDto = {
+    deviceCode: string;
+    userCode: string;
+    verificationUri: string;
+    verificationUriComplete?: string;
+    /** Seconds until the device code expires */
+    expiresIn: number;
+    /** Minimum seconds between polls */
+    interval?: number;
+};
+export type DeviceFlowPollRequestDto = {
+    deviceCode: string;
+    /** immich | standalone | restic */
+    connectionType?: string;
+    /** Instance name, e.g. a hostname */
+    connectionName?: string;
+};
+export type DeviceFlowPollStatus = "PENDING" | "SLOW_DOWN" | "SUCCESS" | "FAILURE";
+export type DeviceFlowFailureReason = "UNKNOWN" | "EMAIL_NOT_ALLOWED" | "FEATURE_NOT_ENABLED" | "EXPIRED" | "ACCESS_DENIED";
+export type DeviceFlowPollDto = {
+    status: DeviceFlowPollStatus;
+    accessToken?: string;
+    userId?: string;
+    reason?: DeviceFlowFailureReason;
+};
+export type DeviceFlowIdentityPollRequestDto = {
+    deviceCode: string;
+};
 export type DeviceFlowEventType = "START" | "SUCCESS" | "FAILURE";
-export type DeviceFlowFailureReason = "UNKNOWN" | "EMAIL_NOT_ALLOWED" | "FEATURE_NOT_ENABLED";
 export type DeviceFlowEventDto = {
     "type": DeviceFlowEventType;
     userCode?: string;
@@ -248,6 +275,38 @@ export function oidcCallback(opts?: Oazapfts.RequestOpts) {
         ...opts
     }));
 }
+export function oidcDeviceAuthorize(opts?: Oazapfts.RequestOpts) {
+    return oazapfts.ok(oazapfts.fetchJson<{
+        status: 201;
+        data: DeviceFlowStartDto;
+    }>("/api/auth/oidc/device/authorize", {
+        ...opts,
+        method: "POST"
+    }));
+}
+export function oidcDeviceToken(deviceFlowPollRequestDto: DeviceFlowPollRequestDto, opts?: Oazapfts.RequestOpts) {
+    return oazapfts.ok(oazapfts.fetchJson<{
+        status: 200;
+        data: DeviceFlowPollDto;
+    }>("/api/auth/oidc/device/token", oazapfts.json({
+        ...opts,
+        method: "POST",
+        body: deviceFlowPollRequestDto
+    })));
+}
+export function oidcDeviceIdentity(deviceFlowIdentityPollRequestDto: DeviceFlowIdentityPollRequestDto, opts?: Oazapfts.RequestOpts) {
+    return oazapfts.ok(oazapfts.fetchJson<{
+        status: 200;
+        data: DeviceFlowPollDto;
+    }>("/api/auth/oidc/device/identity/token", oazapfts.json({
+        ...opts,
+        method: "POST",
+        body: deviceFlowIdentityPollRequestDto
+    })));
+}
+/**
+ * Use POST /auth/oidc/device/authorize and /auth/oidc/device/identity/token
+ */
 export function oidcDeviceFlowIdentity(opts?: Oazapfts.RequestOpts) {
     return oazapfts.ok(oazapfts.fetchJson<{
         status: 200;
@@ -256,6 +315,9 @@ export function oidcDeviceFlowIdentity(opts?: Oazapfts.RequestOpts) {
         ...opts
     }));
 }
+/**
+ * Use POST /auth/oidc/device/authorize and /auth/oidc/device/token
+ */
 export function oidcDeviceFlow({ connectionType, connectionName }: {
     connectionType?: string;
     connectionName?: string;

@@ -2,6 +2,18 @@ import { OnModuleInit } from '@nestjs/common';
 import * as client from 'openid-client';
 import { env } from 'src/env.js';
 
+export type DeviceCodePollResult =
+  | { status: 'pending' | 'slow_down' | 'expired' | 'denied' }
+  | { status: 'complete'; claims: client.IDToken | undefined };
+
+const devicePollErrors: Record<string, Exclude<DeviceCodePollResult['status'], 'complete'>> = {
+  authorization_pending: 'pending',
+  slow_down: 'slow_down',
+  expired_token: 'expired',
+  invalid_grant: 'expired',
+  access_denied: 'denied',
+};
+
 export class OidcRepository implements OnModuleInit {
   private config!: client.Configuration;
   private deviceConfig!: client.Configuration;
@@ -122,6 +134,31 @@ export class OidcRepository implements OnModuleInit {
 
   async revoke(token: string): Promise<void> {
     await client.tokenRevocation(this.config, token);
+  }
+
+  initiateDeviceCode() {
+    return client.initiateDeviceAuthorization(this.deviceConfig, {
+      scope: env.OIDC_SCOPE,
+    });
+  }
+
+  async pollDeviceCode(deviceCode: string): Promise<DeviceCodePollResult> {
+    let tokens: client.TokenEndpointResponse & client.TokenEndpointResponseHelpers;
+    try {
+      tokens = await client.genericGrantRequest(this.deviceConfig, 'urn:ietf:params:oauth:grant-type:device_code', {
+        device_code: deviceCode,
+      });
+    } catch (error) {
+      const status = error instanceof client.ResponseBodyError ? devicePollErrors[error.error] : undefined;
+      if (status) {
+        return { status };
+      }
+
+      throw error;
+    }
+
+    const claims = await this.resolveClaims(this.deviceConfig, tokens);
+    return { status: 'complete', claims };
   }
 
   async deviceFlow(): Promise<{
