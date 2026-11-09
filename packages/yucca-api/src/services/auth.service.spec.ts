@@ -397,6 +397,137 @@ describe(AuthService.name, () => {
     });
   });
 
+  describe('oidcDeviceAuthorize', () => {
+    it('returns every field of the provider response', async () => {
+      mocks.oidc.initiateDeviceCode.mockResolvedValue({
+        device_code: 'device-code',
+        user_code: 'ABCD-EFGH',
+        verification_uri: 'https://idp.test/device',
+        verification_uri_complete: 'https://idp.test/device?user_code=ABCD-EFGH',
+        expires_in: 300,
+        interval: 5,
+      });
+
+      await expect(sut.oidcDeviceAuthorize()).resolves.toEqual({
+        deviceCode: 'device-code',
+        userCode: 'ABCD-EFGH',
+        verificationUri: 'https://idp.test/device',
+        verificationUriComplete: 'https://idp.test/device?user_code=ABCD-EFGH',
+        expiresIn: 300,
+        interval: 5,
+      });
+    });
+
+    it('leaves the optional fields unset when the provider omits them', async () => {
+      mocks.oidc.initiateDeviceCode.mockResolvedValue({
+        device_code: 'device-code',
+        user_code: 'ABCD-EFGH',
+        verification_uri: 'https://idp.test/device',
+        expires_in: 300,
+      });
+
+      const start = await sut.oidcDeviceAuthorize();
+
+      expect(start.verificationUriComplete).toBeUndefined();
+      expect(start.interval).toBeUndefined();
+    });
+  });
+
+  describe('oidcDeviceToken', () => {
+    const claims = { sub: 'oidc-sub', name: 'name', email: 'user@example.com' };
+    const accessToken = 'device-token';
+
+    beforeEach(() => {
+      mocks.user.getBySub.mockResolvedValue({ ...mockUser, disabled: false } as never);
+      mocks.crypto.randomHex.mockReturnValue(accessToken);
+      mocks.connection.getOrCreateDefault.mockResolvedValue({ id: 'default-connection' } as never);
+    });
+
+    it('reports pending without creating a session while the user has not approved', async () => {
+      mocks.oidc.pollDeviceCode.mockResolvedValue({ status: 'pending' });
+
+      await expect(sut.oidcDeviceToken({ deviceCode: 'device-code' })).resolves.toEqual({ status: 'PENDING' });
+
+      expect(mocks.oidc.pollDeviceCode).toHaveBeenCalledWith('device-code');
+      expect(mocks.session.create).not.toHaveBeenCalled();
+    });
+
+    it('tells the client to slow down when the provider asks it to', async () => {
+      mocks.oidc.pollDeviceCode.mockResolvedValue({ status: 'slow_down' });
+
+      await expect(sut.oidcDeviceToken({ deviceCode: 'device-code' })).resolves.toEqual({ status: 'SLOW_DOWN' });
+    });
+
+    it('fails as expired when the device code is no longer valid', async () => {
+      mocks.oidc.pollDeviceCode.mockResolvedValue({ status: 'expired' });
+
+      await expect(sut.oidcDeviceToken({ deviceCode: 'device-code' })).resolves.toEqual({
+        status: 'FAILURE',
+        reason: 'EXPIRED',
+      });
+    });
+
+    it('fails as access denied when the user rejects the login', async () => {
+      mocks.oidc.pollDeviceCode.mockResolvedValue({ status: 'denied' });
+
+      await expect(sut.oidcDeviceToken({ deviceCode: 'device-code' })).resolves.toEqual({
+        status: 'FAILURE',
+        reason: 'ACCESS_DENIED',
+      });
+    });
+
+    it('creates a device session bound to the requested connection once approved', async () => {
+      mocks.oidc.pollDeviceCode.mockResolvedValue({ status: 'complete', claims } as never);
+      mocks.connection.getByUserTypeName.mockResolvedValue(void 0);
+      mocks.connection.create.mockResolvedValue({ id: 'immich-home' } as never);
+
+      await expect(
+        sut.oidcDeviceToken({ deviceCode: 'device-code', connectionType: 'immich', connectionName: 'home-server' }),
+      ).resolves.toEqual({ status: 'SUCCESS', accessToken, userId: mockUser.id });
+
+      expect(mocks.session.create).toHaveBeenCalledWith({
+        userId: mockUser.id,
+        accessToken,
+        connectionId: 'immich-home',
+        kind: 'device',
+      });
+    });
+
+    it('fails as feature not enabled for a restic connection without the flag', async () => {
+      mocks.oidc.pollDeviceCode.mockResolvedValue({ status: 'complete', claims } as never);
+
+      await expect(
+        sut.oidcDeviceToken({ deviceCode: 'device-code', connectionType: 'restic', connectionName: 'my-laptop' }),
+      ).resolves.toEqual({ status: 'FAILURE', reason: 'FEATURE_NOT_ENABLED' });
+      expect(mocks.session.create).not.toHaveBeenCalled();
+    });
+
+    it('fails as unknown when the provider errors', async () => {
+      mocks.oidc.pollDeviceCode.mockRejectedValue(new Error('provider unreachable'));
+
+      await expect(sut.oidcDeviceToken({ deviceCode: 'device-code' })).resolves.toEqual({
+        status: 'FAILURE',
+        reason: 'UNKNOWN',
+      });
+    });
+  });
+
+  describe('oidcDeviceIdentity', () => {
+    it('returns the user without creating a session once approved', async () => {
+      mocks.oidc.pollDeviceCode.mockResolvedValue({
+        status: 'complete',
+        claims: { sub: 'oidc-sub', name: 'name', email: 'user@example.com' },
+      } as never);
+      mocks.user.getBySub.mockResolvedValue({ ...mockUser, disabled: false } as never);
+
+      await expect(sut.oidcDeviceIdentity({ deviceCode: 'device-code' })).resolves.toEqual({
+        status: 'SUCCESS',
+        userId: mockUser.id,
+      });
+      expect(mocks.session.create).not.toHaveBeenCalled();
+    });
+  });
+
   describe('getOrCreateUser', () => {
     const claims = {
       sub: 'new-sub',

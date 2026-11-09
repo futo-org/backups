@@ -66,6 +66,8 @@ export const newOidcRepositoryMock = (): jest.Mocked<RepositoryInterface<OidcRep
     callbackTicket: jest.fn(),
     logout: jest.fn(),
     revoke: jest.fn(),
+    initiateDeviceCode: jest.fn(),
+    pollDeviceCode: jest.fn(),
     deviceFlow: jest.fn(),
   };
 };
