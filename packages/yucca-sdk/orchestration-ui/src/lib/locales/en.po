@@ -505,12 +505,16 @@ msgid "Can't access, is your recovery key correct?"
 msgstr "Can't access, is your recovery key correct?"
 
 #: ../../web/src/lib/components/onboarding/GetStartedChecklist.svelte
-msgid "Can't change your Immich image, or not using Immich?"
-msgstr "Can't change your Immich image, or not using Immich?"
+#~ msgid "Can't change your Immich image, or not using Immich?"
+#~ msgstr "Can't change your Immich image, or not using Immich?"
 
 #: src/lib/components/backups/dialogs/ImportRepositoryModal.svelte
 msgid "Can't read repository."
 msgstr "Can't read repository."
+
+#: ../../web/src/lib/components/onboarding/GetStartedChecklist.svelte
+msgid "Can't update Immich to v3.4.0 yet, or not using Immich?"
+msgstr "Can't update Immich to v3.4.0 yet, or not using Immich?"
 
 #: src/lib/components/backends/dialogs/OAuthDeviceFlowModal.svelte
 #: src/lib/components/backends/dialogs/SelectBackendModal.svelte
@@ -2442,8 +2446,8 @@ msgid "Support mode is off."
 msgstr "Support mode is off."
 
 #: ../../web/src/lib/components/onboarding/GetStartedChecklist.svelte
-msgid "Switch Immich to the beta build"
-msgstr "Switch Immich to the beta build"
+#~ msgid "Switch Immich to the beta build"
+#~ msgstr "Switch Immich to the beta build"
 
 #: src/lib/components/backups/dialogs/RestoreSnapshotModal.svelte
 msgid "Target"
@@ -2500,8 +2504,8 @@ msgid "This invite link has expired. Go back to Discord and claim it again to ge
 msgstr "This invite link has expired. Go back to Discord and claim it again to get a fresh one."
 
 #: ../../web/src/lib/components/onboarding/GetStartedChecklist.svelte
-msgid "This is a development build of Immich. Back up your Immich data first and don't use a server you can't afford to break."
-msgstr "This is a development build of Immich. Back up your Immich data first and don't use a server you can't afford to break."
+#~ msgid "This is a development build of Immich. Back up your Immich data first and don't use a server you can't afford to break."
+#~ msgstr "This is a development build of Immich. Back up your Immich data first and don't use a server you can't afford to break."
 
 #: src/lib/components/integrations/immich/ImmichManageBackupPage.svelte
 msgid "This is an early version of FUTO Backups. The service may be reset and your backup data may be deleted when the beta ends. Please don't rely on it as your only backup."
@@ -2570,6 +2574,10 @@ msgstr "Unable to link your Discord account."
 #: src/lib/components/integrations/immich/settings/ImmichSettingsBandwidth.svelte
 msgid "Until"
 msgstr "Until"
+
+#: ../../web/src/lib/components/onboarding/GetStartedChecklist.svelte
+msgid "Update Immich to v3.4.0"
+msgstr "Update Immich to v3.4.0"
 
 #: src/lib/components/integrations/immich/settings/ImmichSettingsBandwidth.svelte
 msgid "Upload speed"

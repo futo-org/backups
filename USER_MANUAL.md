@@ -66,11 +66,11 @@ docker compose up -d
 
 ### Using in Immich
 
-You can currently use the feature branch directly by using the following version in your Immich deployment:
+Backups ships in Immich v3.4.0. Use that version or later in your Immich deployment:
 
 ```bash
 # .env
-IMMICH_VERSION=pr-27817
+IMMICH_VERSION=v3.4.0
 ```
 
 Then run:
@@ -78,13 +78,7 @@ Then run:
 ```bash
 docker compose pull
 docker compose up -d
-# run both again to update
 ```
-
-> [!CAUTION]
-> This will bump you to the latest<sup>†</sup> `main`/development version of Immich.
->
-> <sup>†</sup> Or at least, generally quite recent.
 
 ### Using with restic
 
