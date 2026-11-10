@@ -3,7 +3,7 @@ ARG ALPINE_VERSION=3.23
 # be appended to the golang base tag (which reuses ${ALPINE_VERSION}).
 ARG ALPINE_IMAGE=alpine:3.24@sha256:294b683cb724975bec92580e1e685676bd4b50bda910ddb8c51d4cabeaec77e6
 
-FROM golang:1.27.3-alpine${ALPINE_VERSION} AS builder
+FROM golang:1.27.4-alpine${ALPINE_VERSION} AS builder
 WORKDIR /app
 RUN apk add --no-cache git
 
