@@ -2,7 +2,7 @@
   "name": "@futo-org/backups-standalone",
   "repository": "https://github.com/futo-org/backups",
   "description": "Backups orchestrator packaged as a standalone single-process app",
-  "version": "1.12.1",
+  "version": "1.15.0",
   "license": "Source First License 1.1",
   "private": true,
   "type": "module",

@@ -1,5 +1,32 @@
 # Changelog
 
+## [1.15.0](https://github.com/futo-org/backups/compare/v1.14.0...v1.15.0) (2026-11-10)
+
+
+### Features
+
+* **standalone:** show the app version in the header ([#177](https://github.com/futo-org/backups/issues/177)) ([12174de](https://github.com/futo-org/backups/commit/12174de4f4d0c94a6db94df6f0c66e6aa8491fcf))
+
+
+### Bug Fixes
+
+* **standalone:** ship a multi-size favicon and apple-touch-icon ([#181](https://github.com/futo-org/backups/issues/181)) ([f00afe5](https://github.com/futo-org/backups/commit/f00afe529a84e5ea6ee073a13ec419d2cc06e50d))
+* **yucca sdk:** drop Immich from str shared with the standalone ([#180](https://github.com/futo-org/backups/issues/180)) ([7c1e2de](https://github.com/futo-org/backups/commit/7c1e2de24bb34101b3dcfe573daa586bdf01e90a))
+* **yucca sdk:** let the deleting snapshot toast be dismissed ([#178](https://github.com/futo-org/backups/issues/178)) ([30f4f73](https://github.com/futo-org/backups/commit/30f4f73bd4453ca84979c119726aa9af1b5f3a84))
+* **yucca sdk:** only explain connectivity for failed jobs, not ones that finished with warnings ([#176](https://github.com/futo-org/backups/issues/176)) ([88c803d](https://github.com/futo-org/backups/commit/88c803d104d5f408761abbc583d739776cb3fb48))
+* **yucca sdk:** skip empty local metrics upsert when stats fails ([#175](https://github.com/futo-org/backups/issues/175)) ([9adaf71](https://github.com/futo-org/backups/commit/9adaf71b95cb8be87eb21ea0e1c3348cc1acf16f))
+
+
+### Documentation
+
+* point Immich setup copy at the v3.4.0 release ([#191](https://github.com/futo-org/backups/issues/191)) ([d899068](https://github.com/futo-org/backups/commit/d899068935963a22bc0657472fa07884ffcbb0b0))
+
+
+### Miscellaneous Chores
+
+* **npm:** update dependency @vitest/browser (5.0.3 → 5.0.5) [security] ([#77](https://github.com/futo-org/backups/issues/77)) ([3198a25](https://github.com/futo-org/backups/commit/3198a25e184573d7c72e52a66bb8b9070176accd))
+* **npm:** update dependency vite (8.3.2 → 8.3.3) [security] ([#79](https://github.com/futo-org/backups/issues/79)) ([8c04e4b](https://github.com/futo-org/backups/commit/8c04e4bf8e257df263d3d78e09e3b4602437502d))
+
 ## [1.14.0](https://github.com/futo-org/backups/compare/v1.13.1...v1.14.0) (2026-11-09)
 
 
