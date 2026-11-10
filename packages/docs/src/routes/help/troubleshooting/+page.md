@@ -1,7 +1,7 @@
 ---
 title: Troubleshooting
 description: What the common errors mean and what to do about them
-order: 1
+order: 2
 ---
 
 ## Setup and sign-in
