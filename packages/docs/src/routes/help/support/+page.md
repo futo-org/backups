@@ -1,7 +1,7 @@
 ---
 title: Getting help
 description: How to reach the FUTO Backups team during the beta, and what to include when you report a problem
-order: 2
+order: 3
 ---
 
 Support for the beta runs through Discord, in the **FUTO Backups** channels on the [Immich Discord](https://discord.immich.app).
@@ -43,4 +43,4 @@ If you are confident something is a bug rather than a configuration problem, an 
 
 ## Before you write in
 
-The [troubleshooting page](/help/troubleshooting) covers the problems that come up most often, including a backup that will not start, a machine that will not connect to your account and what to do about a lost recovery key.
+The [frequently asked questions](/help/faq) answer the questions people ask most, and the [troubleshooting page](/help/troubleshooting) covers the problems that come up most often, including a backup that will not start, a machine that will not connect to your account and what to do about a lost recovery key.
