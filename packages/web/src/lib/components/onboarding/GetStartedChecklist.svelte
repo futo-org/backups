@@ -61,7 +61,7 @@
 
   <StackListItem
     stackOnMobile
-    title={$t`Switch Immich to the beta build`}
+    title={$t`Update Immich to v3.4.0`}
     color={progress.connected ? "success" : "primary"}
   >
     {#snippet icon()}
@@ -73,9 +73,8 @@
     {:else if progress.connected}
       {$t`Done`}
     {:else}
-      {$t`This is a development build of Immich. Back up your Immich data first and don't use a server you can't afford to break.`}
       {$t`Set`}
-      <Code>IMMICH_VERSION=pr-27817</Code>
+      <Code>IMMICH_VERSION=v3.4.0</Code>
       {$t`in your Immich .env, then pull and restart. You need to be an Immich admin.`}
     {/if}
 
@@ -183,7 +182,7 @@
   <HStack gap={3} class="items-center bg-primary-50 px-5 py-3 text-primary">
     <Icon icon={mdiInformationOutline} class="shrink-0" />
     <Text size="small">
-      {$t`Can't change your Immich image, or not using Immich?`}
+      {$t`Can't update Immich to v3.4.0 yet, or not using Immich?`}
       <Link href={standaloneGuideUrl} target="_blank" rel="noreferrer"
         >{$t`Use the standalone container instead`}</Link
       >

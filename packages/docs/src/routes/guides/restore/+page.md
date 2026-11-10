@@ -38,7 +38,7 @@ If the machine is gone, the backups are not. They are on your account, encrypted
 
 ### Immich
 
-1. Install Immich again on the beta build, following [switch to the beta build](/getting-started/immich#1-switch-to-the-beta-build). Do not create an admin account yet.
+1. Install Immich v3.4.0 or later again, following [update Immich](/getting-started/immich#1-update-immich). Do not create an admin account yet.
 2. On the **Welcome to Immich** page, select **Restore From Backup** instead of **Getting Started**. Immich goes into maintenance mode.
 3. When asked **Where would you like to restore from?**, choose **FUTO Backups**.
 4. In **Import recovery key**, enter your existing recovery key in the **Recovery Key** field and select **Save**.

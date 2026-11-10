@@ -1,26 +1,23 @@
 ---
 title: Set up in Immich
-description: Switch your Immich server to the beta build, turn on backups and choose what gets backed up
+description: Update your Immich server to v3.4.0, turn on backups and choose what gets backed up
 order: 2
 ---
 
 Immich has FUTO Backups built in. It backs up your photos and videos, your database and, if you want them, your thumbnails and encoded videos, straight to storage FUTO runs. You need to be an **administrator** of the Immich server.
 
-> [!CAUTION]
-> The Immich integration is not in a stable Immich release yet. Following these steps moves your server onto a development build of Immich, which can contain changes that are not finished. Take a backup of your existing Immich data before you start, and do not do this on a server you cannot afford to break.
-
 Before you begin, make sure you have [joined the beta](/getting-started/beta) and can sign in at [backups.futo.cloud](https://backups.futo.cloud).
 
 > [!NOTE]
-> This needs an Immich installation where you can choose the `immich-server` Docker image tag, such as the official Docker Compose setup, because you switch it to the beta build below. If you run Immich on Unraid with the AIO image or through another unofficial installation method, the Immich integration may not be available to you until backups ships in a full Immich release. In the meantime you can join the beta with the [standalone container](/getting-started/standalone).
+> This needs Immich v3.4.0 or later. If you run Immich on Unraid with the AIO image or through another unofficial installation method that has not picked up v3.4.0 yet, you can join the beta with the [standalone container](/getting-started/standalone) in the meantime.
 
-## 1. Switch to the beta build
+## 1. Update Immich
 
-Set the Immich version to the backups feature branch in your Immich deployment's environment file:
+Update your Immich server to v3.4.0 or later. With the official Docker Compose setup, set the version in your Immich deployment's environment file:
 
 ```bash
 # .env
-IMMICH_VERSION=pr-27817
+IMMICH_VERSION=v3.4.0
 ```
 
 Then pull and restart:
@@ -29,11 +26,6 @@ Then pull and restart:
 docker compose pull
 docker compose up -d
 ```
-
-Run both commands again whenever you want to pick up newer changes to the branch.
-
-> [!NOTE]
-> This image is built from an open pull request rather than a release, and it also carries recent changes from Immich's development branch. A new image appears only when that branch builds successfully, so it can lag behind the latest work on the pull request.
 
 ## 2. Turn on backups
 

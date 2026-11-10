@@ -8,7 +8,7 @@ order: 5
 
 ## Dashboard
 
-Until your first backup finishes, **Get started** at the top lists the four setup steps: switch Immich to the beta build, turn on backups in Immich, connect your FUTO account, and start your first backup. Steps tick off on their own as your server connects and backs up, and the list goes away once your first backup has finished.
+Until your first backup finishes, **Get started** at the top lists the four setup steps: update Immich to v3.4.0, turn on backups in Immich, connect your FUTO account, and start your first backup. Steps tick off on their own as your server connects and backs up, and the list goes away once your first backup has finished.
 
 **Your Backups** summarises how your backups are doing, with a bar splitting them into successful, with warnings, failed and never run. **Recent backups** lists the last few runs with their size.
 
