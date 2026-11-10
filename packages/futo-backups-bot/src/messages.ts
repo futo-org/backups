@@ -1,6 +1,6 @@
 const betaDetails = [
   'FUTO Backups is **free** during the beta. Support happens here on Discord, in the FUTO Backups channels.',
-  'Set up Immich with <https://docs.futo.cloud/getting-started/immich>. The beta needs a non-tagged Immich build for now.',
+  'Set up Immich with <https://docs.futo.cloud/getting-started/immich>. The beta needs Immich v3.4.0 or later.',
   'Your backups are end-to-end encrypted with a key only you control. During the beta we make no durability or availability guarantees and may wipe all data at any time.',
   'Source code: <https://github.com/futo-org/backups>',
 ].join('\n');
