@@ -1,5 +1,29 @@
 # Changelog
 
+## [1.16.0](https://github.com/futo-org/backups/compare/v1.15.0...v1.16.0) (2026-11-11)
+
+
+### Features
+
+* **yucca sdk:** expose the restic connections override in bandwidth settings ([#200](https://github.com/futo-org/backups/issues/200)) ([c105f16](https://github.com/futo-org/backups/commit/c105f16441e9db3675eeb6be760c2d1781c666a0))
+
+
+### Bug Fixes
+
+* **yucca sdk:** clarify the Immich database backup alert ([#205](https://github.com/futo-org/backups/issues/205)) ([43f4f90](https://github.com/futo-org/backups/commit/43f4f9016b0528cefc76a92498b9551e94ba1140))
+* **yucca sdk:** explain clearly when the restic binary is missing ([#201](https://github.com/futo-org/backups/issues/201)) ([7cc89dd](https://github.com/futo-org/backups/commit/7cc89dde6389c4dbf4bbff073db5f3b938fcc87b))
+* **yucca sdk:** say clearly that the recovery key is one key ([#204](https://github.com/futo-org/backups/issues/204)) ([60733bc](https://github.com/futo-org/backups/commit/60733bc7aed161137a9c7b59347517229d02d240))
+
+
+### Documentation
+
+* add an FAQ page ([#192](https://github.com/futo-org/backups/issues/192)) ([8256ca9](https://github.com/futo-org/backups/commit/8256ca9c90e557a2776ea7a71ad659070803777c))
+
+
+### Tests
+
+* fix broken test ([#197](https://github.com/futo-org/backups/issues/197)) ([6254bd9](https://github.com/futo-org/backups/commit/6254bd9b1f19314a7f560b6e0e8c0b3a17984e6a))
+
 ## [1.15.0](https://github.com/futo-org/backups/compare/v1.14.0...v1.15.0) (2026-11-10)
 
 
