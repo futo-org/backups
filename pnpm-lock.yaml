@@ -370,8 +370,8 @@ catalogs:
       specifier: ^3.1.0
       version: 3.1.0
     zod:
-      specifier: 4.4.3
-      version: 4.4.3
+      specifier: 4.6.6
+      version: 4.6.6
 
 importers:
 
@@ -463,7 +463,7 @@ importers:
         version: 6.0.3
       zod:
         specifier: 'catalog:'
-        version: 4.4.3
+        version: 4.6.6
     devDependencies:
       '@types/express':
         specifier: 'catalog:'
@@ -573,7 +573,7 @@ importers:
         version: 6.0.3
       zod:
         specifier: 'catalog:'
-        version: 4.4.3
+        version: 4.6.6
 
   packages/emails:
     dependencies:
@@ -583,7 +583,7 @@ importers:
     devDependencies:
       '@better-svelte-email/cli':
         specifier: 'catalog:'
-        version: 2.1.3(@opentelemetry/api@1.9.0)(@types/node@26.6.6)(@typescript-eslint/types@8.71.1)(esbuild@0.27.7)(jiti@2.7.0)(terser@5.51.2)(tsx@4.21.0)(typescript@6.0.3)(yaml@2.8.2)(zod@4.6.1)
+        version: 2.1.3(@opentelemetry/api@1.9.0)(@types/node@26.6.6)(@typescript-eslint/types@8.71.1)(esbuild@0.27.7)(jiti@2.7.0)(terser@5.51.2)(tsx@4.21.0)(typescript@6.0.3)(yaml@2.8.2)(zod@4.6.6)
       '@better-svelte-email/components':
         specifier: 'catalog:'
         version: 2.1.3(@sveltejs/kit@2.70.3(@opentelemetry/api@1.9.0)(@sveltejs/vite-plugin-svelte@7.3.1(svelte@5.57.1(@typescript-eslint/types@8.71.1))(vite@8.3.3(@types/node@26.6.6)(esbuild@0.27.7)(jiti@2.7.0)(terser@5.51.2)(tsx@4.21.0)(yaml@2.8.2)))(svelte@5.57.1(@typescript-eslint/types@8.71.1))(typescript@6.0.3)(vite@8.3.3(@types/node@26.6.6)(esbuild@0.27.7)(jiti@2.7.0)(terser@5.51.2)(tsx@4.21.0)(yaml@2.8.2)))(svelte@5.57.1(@typescript-eslint/types@8.71.1))
@@ -634,7 +634,7 @@ importers:
         version: 7.8.2
       zod:
         specifier: 'catalog:'
-        version: 4.4.3
+        version: 4.6.6
     devDependencies:
       '@jest/globals':
         specifier: 'catalog:'
@@ -689,7 +689,7 @@ importers:
         version: 9.8.3
       zod:
         specifier: 'catalog:'
-        version: 4.4.3
+        version: 4.6.6
     devDependencies:
       '@types/node':
         specifier: 'catalog:'
@@ -708,7 +708,7 @@ importers:
     dependencies:
       zod:
         specifier: 'catalog:'
-        version: 4.4.3
+        version: 4.6.6
     devDependencies:
       '@types/node':
         specifier: 'catalog:'
@@ -763,10 +763,10 @@ importers:
         version: 1.4.0(@electric-sql/pglite@0.5.12)(kysely@0.29.5)
       nestjs-zod:
         specifier: 'catalog:'
-        version: 5.5.0(@nestjs/common@12.1.2(class-transformer@0.5.1)(class-validator@0.14.3)(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/swagger@12.0.2(@nestjs/common@12.1.2(class-transformer@0.5.1)(class-validator@0.14.3)(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@12.1.2)(class-transformer@0.5.1)(class-validator@0.14.3)(reflect-metadata@0.2.2)(typescript@6.0.3))(rxjs@7.8.2)(zod@4.4.3)
+        version: 5.5.0(@nestjs/common@12.1.2(class-transformer@0.5.1)(class-validator@0.14.3)(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/swagger@12.0.2(@nestjs/common@12.1.2(class-transformer@0.5.1)(class-validator@0.14.3)(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@12.1.2)(class-transformer@0.5.1)(class-validator@0.14.3)(reflect-metadata@0.2.2)(typescript@6.0.3))(rxjs@7.8.2)(zod@4.6.6)
       zod:
         specifier: 'catalog:'
-        version: 4.4.3
+        version: 4.6.6
     devDependencies:
       '@futo-org/backups-orchestrator-ui':
         specifier: workspace:^
@@ -936,7 +936,7 @@ importers:
         version: 3.1.4(@nestjs/common@12.1.2(class-transformer@0.5.1)(class-validator@0.14.3)(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@12.1.2)(kysely@0.29.5)(reflect-metadata@0.2.2)
       nestjs-zod:
         specifier: 'catalog:'
-        version: 5.5.0(@nestjs/common@12.1.2(class-transformer@0.5.1)(class-validator@0.14.3)(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/swagger@12.0.2(@nestjs/common@12.1.2(class-transformer@0.5.1)(class-validator@0.14.3)(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@12.1.2)(class-transformer@0.5.1)(class-validator@0.14.3)(reflect-metadata@0.2.2)(typescript@6.0.3))(rxjs@7.8.2)(zod@4.4.3)
+        version: 5.5.0(@nestjs/common@12.1.2(class-transformer@0.5.1)(class-validator@0.14.3)(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/swagger@12.0.2(@nestjs/common@12.1.2(class-transformer@0.5.1)(class-validator@0.14.3)(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@12.1.2)(class-transformer@0.5.1)(class-validator@0.14.3)(reflect-metadata@0.2.2)(typescript@6.0.3))(rxjs@7.8.2)(zod@4.6.6)
       openid-client:
         specifier: 'catalog:'
         version: 6.8.8
@@ -951,7 +951,7 @@ importers:
         version: 7.8.2
       zod:
         specifier: 'catalog:'
-        version: 4.4.3
+        version: 4.6.6
     devDependencies:
       '@jest/globals':
         specifier: 'catalog:'
@@ -1063,7 +1063,7 @@ importers:
         version: 3.1.4(@nestjs/common@12.1.2(class-transformer@0.5.1)(class-validator@0.14.3)(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@12.1.2)(kysely@0.29.5)(reflect-metadata@0.2.2)
       nestjs-zod:
         specifier: 'catalog:'
-        version: 5.5.0(@nestjs/common@12.1.2(class-transformer@0.5.1)(class-validator@0.14.3)(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/swagger@12.0.2(@nestjs/common@12.1.2(class-transformer@0.5.1)(class-validator@0.14.3)(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@12.1.2)(class-transformer@0.5.1)(class-validator@0.14.3)(reflect-metadata@0.2.2)(typescript@6.0.3))(rxjs@7.8.2)(zod@4.4.3)
+        version: 5.5.0(@nestjs/common@12.1.2(class-transformer@0.5.1)(class-validator@0.14.3)(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/swagger@12.0.2(@nestjs/common@12.1.2(class-transformer@0.5.1)(class-validator@0.14.3)(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@12.1.2)(class-transformer@0.5.1)(class-validator@0.14.3)(reflect-metadata@0.2.2)(typescript@6.0.3))(rxjs@7.8.2)(zod@4.6.6)
       openid-client:
         specifier: 'catalog:'
         version: 6.8.8
@@ -1078,7 +1078,7 @@ importers:
         version: 7.8.2
       zod:
         specifier: 'catalog:'
-        version: 4.4.3
+        version: 4.6.6
     devDependencies:
       '@jest/globals':
         specifier: 'catalog:'
@@ -1203,7 +1203,7 @@ importers:
         version: 7.8.2
       zod:
         specifier: 'catalog:'
-        version: 4.4.3
+        version: 4.6.6
     devDependencies:
       '@jest/globals':
         specifier: 'catalog:'
@@ -1285,7 +1285,7 @@ importers:
         version: 3.1.4(@nestjs/common@12.1.2(class-transformer@0.5.1)(class-validator@0.14.3)(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@12.1.2)(kysely@0.29.5)(reflect-metadata@0.2.2)
       nestjs-zod:
         specifier: 'catalog:'
-        version: 5.5.0(@nestjs/common@12.1.2(class-transformer@0.5.1)(class-validator@0.14.3)(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/swagger@12.0.2(@nestjs/common@12.1.2(class-transformer@0.5.1)(class-validator@0.14.3)(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@12.1.2)(class-transformer@0.5.1)(class-validator@0.14.3)(reflect-metadata@0.2.2)(typescript@6.0.3))(rxjs@7.8.2)(zod@4.4.3)
+        version: 5.5.0(@nestjs/common@12.1.2(class-transformer@0.5.1)(class-validator@0.14.3)(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/swagger@12.0.2(@nestjs/common@12.1.2(class-transformer@0.5.1)(class-validator@0.14.3)(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@12.1.2)(class-transformer@0.5.1)(class-validator@0.14.3)(reflect-metadata@0.2.2)(typescript@6.0.3))(rxjs@7.8.2)(zod@4.6.6)
       openid-client:
         specifier: 'catalog:'
         version: 6.8.8
@@ -1297,7 +1297,7 @@ importers:
         version: 4.8.4
       zod:
         specifier: 'catalog:'
-        version: 4.4.3
+        version: 4.6.6
     devDependencies:
       '@electric-sql/pglite':
         specifier: 'catalog:'
@@ -6404,6 +6404,7 @@ packages:
 
   node-abort-controller@3.1.1:
     resolution: {integrity: sha512-AGK2yQKIjRuqnc6VkX2Xj5d+QW8xZ87pa1UK6yA6ouUyuxfHuMP6umE5QK7UmTeOAymo+Zx1Fxiuw9rVx8taHQ==}
+    deprecated: This package is no longer needed on supported Node.js versions. Node.js 16+ includes AbortController and AbortSignal as built-in globals. All Node.js versions requiring this polyfill are end-of-life. Use the built-in globals instead.
 
   node-addon-api@7.1.1:
     resolution: {integrity: sha512-5m3bsyrjFWE1xf7nz7YXdN4udnVtXK6/Yfgn5qnahL6bCkf2yKt4k3nuTKAtT4r3IG8JNR2ncsIMdZuAzJjHQQ==}
@@ -7863,11 +7864,8 @@ packages:
   zimmerframe@1.1.4:
     resolution: {integrity: sha512-B58NGBEoc8Y9MWWCQGl/gq9xBCe4IiKM0a2x7GZdQKOW5Exr8S1W24J6OgM1njK8xCRGvAJIL/MxXHf6SkmQKQ==}
 
-  zod@4.4.3:
-    resolution: {integrity: sha512-ytENFjIJFl2UwYglde2jchW2Hwm4GJFLDiSXWdTrJQBIN9Fcyp7n4DhxJEiWNAJMV1/BqWfW/kkg71UDcHJyTQ==}
-
-  zod@4.6.1:
-    resolution: {integrity: sha512-341aRWQsve0rvronKNTqZpjmzdbUDlFuzHaI/XLg/Ej82qffDJRRfBTCuv7+9q/rMjB6LSLyEBnW4InJeMtt/Q==}
+  zod@4.6.6:
+    resolution: {integrity: sha512-4UmzQUF5fxvfcYHlbjBmejU+w+hbDnWFx4aS8kBx7nPBHcO2SqPbpAG8snbdg+Xse4pRefR98hgjFgIMCI/UhA==}
 
   zwitch@2.0.4:
     resolution: {integrity: sha512-bXE4cR/kVZhKZX/RjPEflHaKVhUVl85noU3v6b8apfQEc1x4A+zBxjZ4lN8LqGd6WZ3dl98pY4o717VFmoPp+A==}
@@ -8114,9 +8112,9 @@ snapshots:
 
   '@bcoe/v8-coverage@0.2.3': {}
 
-  '@better-svelte-email/cli@2.1.3(@opentelemetry/api@1.9.0)(@types/node@26.6.6)(@typescript-eslint/types@8.71.1)(esbuild@0.27.7)(jiti@2.7.0)(terser@5.51.2)(tsx@4.21.0)(typescript@6.0.3)(yaml@2.8.2)(zod@4.6.1)':
+  '@better-svelte-email/cli@2.1.3(@opentelemetry/api@1.9.0)(@types/node@26.6.6)(@typescript-eslint/types@8.71.1)(esbuild@0.27.7)(jiti@2.7.0)(terser@5.51.2)(tsx@4.21.0)(typescript@6.0.3)(yaml@2.8.2)(zod@4.6.6)':
     dependencies:
-      '@better-svelte-email/preview-server': 2.1.3(@opentelemetry/api@1.9.0)(@sveltejs/vite-plugin-svelte@7.3.1(svelte@5.57.1(@typescript-eslint/types@8.71.1))(vite@8.3.3(@types/node@26.6.6)(esbuild@0.27.7)(jiti@2.7.0)(terser@5.51.2)(tsx@4.21.0)(yaml@2.8.2)))(@types/node@26.6.6)(esbuild@0.27.7)(jiti@2.7.0)(svelte@5.57.1(@typescript-eslint/types@8.71.1))(terser@5.51.2)(tsx@4.21.0)(typescript@6.0.3)(yaml@2.8.2)(zod@4.6.1)
+      '@better-svelte-email/preview-server': 2.1.3(@opentelemetry/api@1.9.0)(@sveltejs/vite-plugin-svelte@7.3.1(svelte@5.57.1(@typescript-eslint/types@8.71.1))(vite@8.3.3(@types/node@26.6.6)(esbuild@0.27.7)(jiti@2.7.0)(terser@5.51.2)(tsx@4.21.0)(yaml@2.8.2)))(@types/node@26.6.6)(esbuild@0.27.7)(jiti@2.7.0)(svelte@5.57.1(@typescript-eslint/types@8.71.1))(terser@5.51.2)(tsx@4.21.0)(typescript@6.0.3)(yaml@2.8.2)(zod@4.6.6)
       '@better-svelte-email/server': 2.1.3(svelte@5.57.1(@typescript-eslint/types@8.71.1))
       '@sveltejs/kit': 2.70.3(@opentelemetry/api@1.9.0)(@sveltejs/vite-plugin-svelte@7.3.1(svelte@5.57.1(@typescript-eslint/types@8.71.1))(vite@8.3.3(@types/node@26.6.6)(jiti@2.7.0)(terser@5.51.2)(tsx@4.21.0)(yaml@2.8.2)))(svelte@5.57.1(@typescript-eslint/types@8.71.1))(typescript@6.0.3)(vite@8.3.3(@types/node@26.6.6)(jiti@2.7.0)(terser@5.51.2)(tsx@4.21.0)(yaml@2.8.2))
       '@sveltejs/vite-plugin-svelte': 7.3.1(svelte@5.57.1(@typescript-eslint/types@8.71.1))(vite@8.3.3(@types/node@26.6.6)(jiti@2.7.0)(terser@5.51.2)(tsx@4.21.0)(yaml@2.8.2))
@@ -8151,14 +8149,14 @@ snapshots:
     optionalDependencies:
       '@sveltejs/kit': 2.70.3(@opentelemetry/api@1.9.0)(@sveltejs/vite-plugin-svelte@7.3.1(svelte@5.57.1(@typescript-eslint/types@8.71.1))(vite@8.3.3(@types/node@26.6.6)(jiti@2.7.0)(terser@5.51.2)(tsx@4.21.0)(yaml@2.8.2)))(svelte@5.57.1(@typescript-eslint/types@8.71.1))(typescript@6.0.3)(vite@8.3.3(@types/node@26.6.6)(jiti@2.7.0)(terser@5.51.2)(tsx@4.21.0)(yaml@2.8.2))
 
-  '@better-svelte-email/preview-server@2.1.3(@opentelemetry/api@1.9.0)(@sveltejs/vite-plugin-svelte@7.3.1(svelte@5.57.1(@typescript-eslint/types@8.71.1))(vite@8.3.3(@types/node@26.6.6)(esbuild@0.27.7)(jiti@2.7.0)(terser@5.51.2)(tsx@4.21.0)(yaml@2.8.2)))(@types/node@26.6.6)(esbuild@0.27.7)(jiti@2.7.0)(svelte@5.57.1(@typescript-eslint/types@8.71.1))(terser@5.51.2)(tsx@4.21.0)(typescript@6.0.3)(yaml@2.8.2)(zod@4.6.1)':
+  '@better-svelte-email/preview-server@2.1.3(@opentelemetry/api@1.9.0)(@sveltejs/vite-plugin-svelte@7.3.1(svelte@5.57.1(@typescript-eslint/types@8.71.1))(vite@8.3.3(@types/node@26.6.6)(esbuild@0.27.7)(jiti@2.7.0)(terser@5.51.2)(tsx@4.21.0)(yaml@2.8.2)))(@types/node@26.6.6)(esbuild@0.27.7)(jiti@2.7.0)(svelte@5.57.1(@typescript-eslint/types@8.71.1))(terser@5.51.2)(tsx@4.21.0)(typescript@6.0.3)(yaml@2.8.2)(zod@4.6.6)':
     dependencies:
       '@lucide/svelte': 1.33.0(svelte@5.57.1(@typescript-eslint/types@8.71.1))
       '@sveltejs/adapter-node': 5.5.7(@sveltejs/kit@2.70.3(@opentelemetry/api@1.9.0)(@sveltejs/vite-plugin-svelte@7.3.1(svelte@5.57.1(@typescript-eslint/types@8.71.1))(vite@8.3.3(@types/node@26.6.6)(jiti@2.7.0)(terser@5.51.2)(tsx@4.21.0)(yaml@2.8.2)))(svelte@5.57.1(@typescript-eslint/types@8.71.1))(typescript@6.0.3)(vite@8.3.3(@types/node@26.6.6)(jiti@2.7.0)(terser@5.51.2)(tsx@4.21.0)(yaml@2.8.2)))
       '@sveltejs/kit': 2.70.3(@opentelemetry/api@1.9.0)(@sveltejs/vite-plugin-svelte@7.3.1(svelte@5.57.1(@typescript-eslint/types@8.71.1))(vite@8.3.3(@types/node@26.6.6)(jiti@2.7.0)(terser@5.51.2)(tsx@4.21.0)(yaml@2.8.2)))(svelte@5.57.1(@typescript-eslint/types@8.71.1))(typescript@6.0.3)(vite@8.3.3(@types/node@26.6.6)(jiti@2.7.0)(terser@5.51.2)(tsx@4.21.0)(yaml@2.8.2))
       '@tailwindcss/vite': 4.3.3(vite@8.3.3(@types/node@26.6.6)(jiti@2.7.0)(terser@5.51.2)(tsx@4.21.0)(yaml@2.8.2))
       clsx: 2.1.1
-      runed: 0.37.1(@sveltejs/kit@2.70.3(@opentelemetry/api@1.9.0)(@sveltejs/vite-plugin-svelte@7.3.1(svelte@5.57.1(@typescript-eslint/types@8.71.1))(vite@8.3.3(@types/node@26.6.6)(esbuild@0.27.7)(jiti@2.7.0)(terser@5.51.2)(tsx@4.21.0)(yaml@2.8.2)))(svelte@5.57.1(@typescript-eslint/types@8.71.1))(typescript@6.0.3)(vite@8.3.3(@types/node@26.6.6)(esbuild@0.27.7)(jiti@2.7.0)(terser@5.51.2)(tsx@4.21.0)(yaml@2.8.2)))(svelte@5.57.1(@typescript-eslint/types@8.71.1))(zod@4.6.1)
+      runed: 0.37.1(@sveltejs/kit@2.70.3(@opentelemetry/api@1.9.0)(@sveltejs/vite-plugin-svelte@7.3.1(svelte@5.57.1(@typescript-eslint/types@8.71.1))(vite@8.3.3(@types/node@26.6.6)(esbuild@0.27.7)(jiti@2.7.0)(terser@5.51.2)(tsx@4.21.0)(yaml@2.8.2)))(svelte@5.57.1(@typescript-eslint/types@8.71.1))(typescript@6.0.3)(vite@8.3.3(@types/node@26.6.6)(esbuild@0.27.7)(jiti@2.7.0)(terser@5.51.2)(tsx@4.21.0)(yaml@2.8.2)))(svelte@5.57.1(@typescript-eslint/types@8.71.1))(zod@4.6.6)
       shiki: 4.4.3
       svelte-themes: 2.0.10(svelte@5.57.1(@typescript-eslint/types@8.71.1))
       tailwind-merge: 3.6.0
@@ -8530,7 +8528,7 @@ snapshots:
 
   '@futo-org/restic-wrapper@1.7.0':
     dependencies:
-      zod: 4.6.1
+      zod: 4.6.6
 
   '@grpc/grpc-js@1.14.3':
     dependencies:
@@ -13187,12 +13185,12 @@ snapshots:
       '@opentelemetry/host-metrics': 0.38.3(@opentelemetry/api@1.9.0)
       rxjs: 7.8.2
 
-  nestjs-zod@5.5.0(@nestjs/common@12.1.2(class-transformer@0.5.1)(class-validator@0.14.3)(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/swagger@12.0.2(@nestjs/common@12.1.2(class-transformer@0.5.1)(class-validator@0.14.3)(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@12.1.2)(class-transformer@0.5.1)(class-validator@0.14.3)(reflect-metadata@0.2.2)(typescript@6.0.3))(rxjs@7.8.2)(zod@4.4.3):
+  nestjs-zod@5.5.0(@nestjs/common@12.1.2(class-transformer@0.5.1)(class-validator@0.14.3)(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/swagger@12.0.2(@nestjs/common@12.1.2(class-transformer@0.5.1)(class-validator@0.14.3)(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@12.1.2)(class-transformer@0.5.1)(class-validator@0.14.3)(reflect-metadata@0.2.2)(typescript@6.0.3))(rxjs@7.8.2)(zod@4.6.6):
     dependencies:
       '@nestjs/common': 12.1.2(class-transformer@0.5.1)(class-validator@0.14.3)(reflect-metadata@0.2.2)(rxjs@7.8.2)
       deepmerge: 4.3.1
       rxjs: 7.8.2
-      zod: 4.4.3
+      zod: 4.6.6
     optionalDependencies:
       '@nestjs/swagger': 12.0.2(@nestjs/common@12.1.2(class-transformer@0.5.1)(class-validator@0.14.3)(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@12.1.2)(class-transformer@0.5.1)(class-validator@0.14.3)(reflect-metadata@0.2.2)(typescript@6.0.3)
 
@@ -13778,7 +13776,7 @@ snapshots:
     optionalDependencies:
       '@sveltejs/kit': 2.70.3(@opentelemetry/api@1.9.0)(@sveltejs/vite-plugin-svelte@7.3.1(svelte@5.57.1(@typescript-eslint/types@8.71.1))(vite@8.3.3(@types/node@26.6.6)(jiti@2.7.0)(terser@5.51.2)(tsx@4.21.0)(yaml@2.8.2)))(svelte@5.57.1(@typescript-eslint/types@8.71.1))(typescript@6.0.3)(vite@8.3.3(@types/node@26.6.6)(jiti@2.7.0)(terser@5.51.2)(tsx@4.21.0)(yaml@2.8.2))
 
-  runed@0.37.1(@sveltejs/kit@2.70.3(@opentelemetry/api@1.9.0)(@sveltejs/vite-plugin-svelte@7.3.1(svelte@5.57.1(@typescript-eslint/types@8.71.1))(vite@8.3.3(@types/node@26.6.6)(esbuild@0.27.7)(jiti@2.7.0)(terser@5.51.2)(tsx@4.21.0)(yaml@2.8.2)))(svelte@5.57.1(@typescript-eslint/types@8.71.1))(typescript@6.0.3)(vite@8.3.3(@types/node@26.6.6)(esbuild@0.27.7)(jiti@2.7.0)(terser@5.51.2)(tsx@4.21.0)(yaml@2.8.2)))(svelte@5.57.1(@typescript-eslint/types@8.71.1))(zod@4.6.1):
+  runed@0.37.1(@sveltejs/kit@2.70.3(@opentelemetry/api@1.9.0)(@sveltejs/vite-plugin-svelte@7.3.1(svelte@5.57.1(@typescript-eslint/types@8.71.1))(vite@8.3.3(@types/node@26.6.6)(esbuild@0.27.7)(jiti@2.7.0)(terser@5.51.2)(tsx@4.21.0)(yaml@2.8.2)))(svelte@5.57.1(@typescript-eslint/types@8.71.1))(typescript@6.0.3)(vite@8.3.3(@types/node@26.6.6)(esbuild@0.27.7)(jiti@2.7.0)(terser@5.51.2)(tsx@4.21.0)(yaml@2.8.2)))(svelte@5.57.1(@typescript-eslint/types@8.71.1))(zod@4.6.6):
     dependencies:
       dequal: 2.0.3
       esm-env: 1.2.2
@@ -13786,7 +13784,7 @@ snapshots:
       svelte: 5.57.1(@typescript-eslint/types@8.71.1)
     optionalDependencies:
       '@sveltejs/kit': 2.70.3(@opentelemetry/api@1.9.0)(@sveltejs/vite-plugin-svelte@7.3.1(svelte@5.57.1(@typescript-eslint/types@8.71.1))(vite@8.3.3(@types/node@26.6.6)(jiti@2.7.0)(terser@5.51.2)(tsx@4.21.0)(yaml@2.8.2)))(svelte@5.57.1(@typescript-eslint/types@8.71.1))(typescript@6.0.3)(vite@8.3.3(@types/node@26.6.6)(jiti@2.7.0)(terser@5.51.2)(tsx@4.21.0)(yaml@2.8.2))
-      zod: 4.6.1
+      zod: 4.6.6
 
   rxjs@7.8.2:
     dependencies:
@@ -14803,8 +14801,6 @@ snapshots:
 
   zimmerframe@1.1.4: {}
 
-  zod@4.4.3: {}
-
-  zod@4.6.1: {}
+  zod@4.6.6: {}
 
   zwitch@2.0.4: {}
