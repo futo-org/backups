@@ -255,6 +255,10 @@ msgstr ""
 msgid "Attempted"
 msgstr ""
 
+#: src/lib/components/integrations/immich/settings/ImmichSettingsBandwidth.svelte
+msgid "Automatic ({count})"
+msgstr ""
+
 #: src/lib/components/onboarding/upsell/UpsellBackupFeaturesGrid.svelte
 msgid "Automatic backups"
 msgstr ""
@@ -1851,6 +1855,10 @@ msgstr ""
 msgid "Page {item}"
 msgstr ""
 
+#: src/lib/components/integrations/immich/settings/ImmichSettingsBandwidth.svelte
+msgid "Parallel uploads to storage. Raise on fast links, lower if your network or disk is struggling. Leave empty for automatic."
+msgstr ""
+
 #: src/lib/components/backends/dialogs/CreateLocalBackendModal.svelte
 msgid "Path"
 msgstr ""
@@ -2577,6 +2585,10 @@ msgstr ""
 
 #: ../../web/src/lib/components/onboarding/GetStartedChecklist.svelte
 msgid "Update Immich to v3.4.0"
+msgstr ""
+
+#: src/lib/components/integrations/immich/settings/ImmichSettingsBandwidth.svelte
+msgid "Upload connections"
 msgstr ""
 
 #: src/lib/components/integrations/immich/settings/ImmichSettingsBandwidth.svelte

@@ -4,7 +4,7 @@ import { InjectKysely } from 'nestjs-kysely';
 import { randomBytes } from 'node:crypto';
 import { availableParallelism } from 'node:os';
 import { resolve } from 'node:path';
-import { ConfigurationKey, TelemetryLevel } from '../enum.js';
+import { ConfigurationKey, ConnectionsSource, TelemetryLevel } from '../enum.js';
 import { type ModuleConfig, ModuleConfigProvider } from '../moduleConfig.js';
 import type { ResticProxyThrottle } from '../proxy/resticProxy.js';
 import { DB } from '../schema/index.js';
@@ -270,19 +270,46 @@ export class ConfigRepository {
     });
   }
 
+  async getConnectionsOverride(): Promise<number | null> {
+    const override = await this.getOptional(ConfigurationKey.ResticOptionRestConnections);
+    return override?.connections || null;
+  }
+
+  async setConnectionsOverride(connections: number | null) {
+    if (connections === null) {
+      await this.db
+        .deleteFrom('futo_backups_config')
+        .where('key', '=', ConfigurationKey.ResticOptionRestConnections)
+        .execute();
+      return;
+    }
+
+    await this.set(ConfigurationKey.ResticOptionRestConnections, { connections });
+  }
+
+  async getAutomaticConnections(
+    placement: ResticPlacement,
+  ): Promise<{ connections: number; source: ConnectionsSource.WellKnown | ConnectionsSource.Cores }> {
+    const cores = availableParallelism();
+    const wellKnownConnections = await yuccaWellKnown.getConnections(
+      cores,
+      placement.siteCode ?? undefined,
+      placement.storageClusterCode ?? undefined,
+    );
+
+    return wellKnownConnections
+      ? { connections: wellKnownConnections, source: ConnectionsSource.WellKnown }
+      : { connections: cores, source: ConnectionsSource.Cores };
+  }
+
   async getResticOptions(
     placement: ResticPlacement,
   ): Promise<{ connections: number; packSizeMib: number | undefined }> {
     const siteCode = placement.siteCode ?? undefined;
     const clusterCode = placement.storageClusterCode ?? undefined;
-    const cores = availableParallelism();
 
-    const override = await this.getOptional(ConfigurationKey.ResticOptionRestConnections);
-    let connections = override?.connections;
-    if (!connections) {
-      const wellKnownConnections = await yuccaWellKnown.getConnections(cores, siteCode, clusterCode);
-      connections = wellKnownConnections ?? cores;
-    }
+    const override = await this.getConnectionsOverride();
+    const { connections } = override ? { connections: override } : await this.getAutomaticConnections(placement);
 
     return { connections, packSizeMib: await yuccaWellKnown.getPackSizeMib(siteCode, clusterCode) };
   }

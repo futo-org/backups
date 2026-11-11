@@ -14,7 +14,7 @@ export class ConfigController {
     summary: 'Get backups orchestrator configuration',
     description: 'Retrieve the current backups orchestrator configuration.',
   })
-  getConfig(): ConfigResponseDto {
+  getConfig(): Promise<ConfigResponseDto> {
     return this.service.getConfig();
   }
 

@@ -77,11 +77,26 @@ export type BandwidthDto = {
     bytesPerSec: number;
     quietHours?: string;
 };
+export type ConnectionsSource = "override" | "well-known" | "cores";
+export type ConnectionsDto = {
+    /** Stored override, null when automatic */
+    "override": number | null;
+    /** Connections used when no override is set */
+    automatic: number;
+    /** Connections the next restic run will use */
+    effective: number;
+    source: ConnectionsSource;
+    min: number;
+    max: number;
+};
 export type ConfigResponseDto = {
     bandwidth: BandwidthDto;
+    connections: ConnectionsDto;
 };
 export type ConfigUpdateRequestDto = {
-    bandwidth: BandwidthDto;
+    bandwidth?: BandwidthDto;
+    /** Restic REST connections override, null to resolve it automatically */
+    connections?: number | null;
 };
 export type FilesystemListingItemDto = {
     path: string;
