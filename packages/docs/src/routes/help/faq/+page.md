@@ -78,7 +78,7 @@ On SMB mounts, the `nouser_xattr` mount option can make these checks a lot faste
 
 ### Should I turn off the database backups built into Immich?
 
-You can. FUTO Backups makes its own fresh database backup at the start of every run, so it matches the files in that backup closely. If Immich's scheduled database backups are still on, the backups page suggests **Use FUTO Backups only**, which is the right choice for most people. Keeping both is fine if you want the extra copies.
+You can. FUTO Backups makes its own fresh database backup at the start of every run, so it matches the files in that backup closely. If Immich's scheduled database backups are still on, the backups page suggests **Turn off Immich's nightly backups**, which is the right choice for most people. Choosing **Keep both** is fine if you want the extra copies.
 
 ### Can I back up Immich with the standalone container instead?
 
