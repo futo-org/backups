@@ -1,19 +1,22 @@
 import { jest } from '@jest/globals';
 import { availableParallelism } from 'node:os';
+import { ConnectionsSource } from '../enum.js';
 import { yuccaWellKnown } from '../wellKnown.js';
 import { ConfigRepository } from './config.repository.js';
 import { LoggingRepository } from './logging.repository.js';
 
-describe(ConfigRepository.name, () => {
-  const db = {
-    selectFrom: jest.fn(() => ({
-      where: jest.fn(() => ({
-        select: jest.fn(() => ({
-          executeTakeFirst: jest.fn(),
-        })),
+const storedValue = (value?: unknown) => ({
+  selectFrom: jest.fn(() => ({
+    where: jest.fn(() => ({
+      select: jest.fn(() => ({
+        executeTakeFirst: jest.fn(() => Promise.resolve(value === undefined ? undefined : { value })),
       })),
     })),
-  };
+  })),
+});
+
+describe(ConfigRepository.name, () => {
+  const db = storedValue();
 
   afterEach(() => {
     jest.restoreAllMocks();
@@ -44,5 +47,40 @@ describe(ConfigRepository.name, () => {
 
     expect(connections).toHaveBeenCalledWith(availableParallelism(), undefined, undefined);
     expect(packSize).toHaveBeenCalledWith(undefined, undefined);
+  });
+
+  it('prefers a stored connections override over the well-known value', async () => {
+    const connections = jest.spyOn(yuccaWellKnown, 'getConnections').mockResolvedValue(7);
+    jest.spyOn(yuccaWellKnown, 'getPackSizeMib').mockResolvedValue(undefined);
+    const repository = new ConfigRepository(
+      storedValue({ connections: 3 }) as never,
+      { statePath: '/state' } as never,
+      LoggingRepository.create(),
+    );
+
+    await expect(repository.getResticOptions({ siteCode: 'father', storageClusterCode: null })).resolves.toEqual({
+      connections: 3,
+      packSizeMib: undefined,
+    });
+
+    expect(connections).not.toHaveBeenCalled();
+  });
+
+  it('reports where the automatic connections come from', async () => {
+    const connections = jest.spyOn(yuccaWellKnown, 'getConnections').mockResolvedValueOnce(7);
+    const repository = new ConfigRepository(db as never, { statePath: '/state' } as never, LoggingRepository.create());
+    const placement = { siteCode: null, storageClusterCode: null };
+
+    await expect(repository.getAutomaticConnections(placement)).resolves.toEqual({
+      connections: 7,
+      source: ConnectionsSource.WellKnown,
+    });
+
+    connections.mockResolvedValueOnce(undefined);
+
+    await expect(repository.getAutomaticConnections(placement)).resolves.toEqual({
+      connections: availableParallelism(),
+      source: ConnectionsSource.Cores,
+    });
   });
 });

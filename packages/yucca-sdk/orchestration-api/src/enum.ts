@@ -31,6 +31,12 @@ export enum ConfigurationKey {
   RestoreAwaitingContinue = 'restore-awaiting-continue',
 }
 
+export enum ConnectionsSource {
+  Override = 'override',
+  WellKnown = 'well-known',
+  Cores = 'cores',
+}
+
 export enum MetadataKey {
   PublicRoute = 'public-route',
   JobConfig = 'job-config',

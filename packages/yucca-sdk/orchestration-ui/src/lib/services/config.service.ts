@@ -3,6 +3,7 @@ import {
   futoBackupsUpdateConfig,
   type BandwidthDto,
   type ConfigUpdateRequestDto,
+  type ConnectionsDto,
 } from '$lib/fetch-client';
 import { queryClient } from '$lib/query-client';
 import { handleError } from '$lib/utils/handle-error';
@@ -54,6 +55,24 @@ export const toBandwidthDto = ({
     bytesPerSec,
     quietHours: bytesPerSec && quiet ? `${quietStart}-${quietEnd}` : undefined,
   };
+};
+
+export const toConnectionsOverride = (
+  value: number | undefined,
+  { min, max }: Pick<ConnectionsDto, 'min' | 'max'>,
+): number | null =>
+  value === undefined || Number.isNaN(value)
+    ? null
+    : Math.min(max, Math.max(min, Math.round(value)));
+
+export const formatAutomaticConnections = ({
+  placements,
+}: Pick<ConnectionsDto, 'placements'>) => {
+  const counts = placements.map(({ automatic }) => automatic);
+  const lowest = Math.min(...counts);
+  const highest = Math.max(...counts);
+
+  return lowest === highest ? String(lowest) : `${lowest}–${highest}`;
 };
 
 export const useConfig = () =>

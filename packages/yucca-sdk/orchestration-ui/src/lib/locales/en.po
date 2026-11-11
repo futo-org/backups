@@ -255,6 +255,10 @@ msgstr "Approve the connection from Immich and save your recovery key. FUTO cann
 msgid "Attempted"
 msgstr "Attempted"
 
+#: src/lib/components/integrations/immich/settings/ImmichSettingsBandwidth.svelte
+msgid "Automatic ({count})"
+msgstr "Automatic ({count})"
+
 #: src/lib/components/onboarding/upsell/UpsellBackupFeaturesGrid.svelte
 msgid "Automatic backups"
 msgstr "Automatic backups"
@@ -1859,6 +1863,10 @@ msgstr "Overview"
 msgid "Page {item}"
 msgstr "Page {item}"
 
+#: src/lib/components/integrations/immich/settings/ImmichSettingsBandwidth.svelte
+msgid "Parallel uploads to storage. Raise on fast links, lower if your network or disk is struggling. Leave empty for automatic."
+msgstr "Parallel uploads to storage. Raise on fast links, lower if your network or disk is struggling. Leave empty for automatic."
+
 #: src/lib/components/backends/dialogs/CreateLocalBackendModal.svelte
 msgid "Path"
 msgstr "Path"
@@ -2590,6 +2598,10 @@ msgstr "Until"
 #: ../../web/src/lib/components/onboarding/GetStartedChecklist.svelte
 msgid "Update Immich to v3.4.0"
 msgstr "Update Immich to v3.4.0"
+
+#: src/lib/components/integrations/immich/settings/ImmichSettingsBandwidth.svelte
+msgid "Upload connections"
+msgstr "Upload connections"
 
 #: src/lib/components/integrations/immich/settings/ImmichSettingsBandwidth.svelte
 msgid "Upload speed"
