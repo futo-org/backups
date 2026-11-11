@@ -441,6 +441,10 @@ msgstr "Backup your photos, videos, albums, metadata, database, configuration, a
 msgid "Backups"
 msgstr "Backups"
 
+#: src/lib/components/integrations/immich/ImmichResticMissingAlert.svelte
+msgid "Backups can't run on this Immich image"
+msgstr "Backups can't run on this Immich image"
+
 #: src/lib/components/backups/BackupsList.svelte
 msgid "Backups found elsewhere"
 msgstr "Backups found elsewhere"
@@ -1169,6 +1173,10 @@ msgstr "FUTO Backups is free during the closed beta. You won't be charged for an
 #: src/lib/components/integrations/immich/ImmichOnboardingSetupFlow.svelte
 msgid "FUTO Backups is in closed beta"
 msgstr "FUTO Backups is in closed beta"
+
+#: src/lib/components/integrations/immich/ImmichResticMissingAlert.svelte
+msgid "FUTO Backups needs the restic program, and this Immich image does not include it. Switch to the official Immich image, or use the FUTO Backups standalone container."
+msgstr "FUTO Backups needs the restic program, and this Immich image does not include it. Switch to the official Immich image, or use the FUTO Backups standalone container."
 
 #: src/lib/components/onboarding/steps/OnboardingStep3SaveRecoveryKey.svelte
 msgid "FUTO cannot restore your backups without this key."
@@ -2284,6 +2292,10 @@ msgstr "Set up Backups"
 #: src/lib/components/onboarding/steps/OnboardingStep2ConnectAccount.svelte
 msgid "Set up FUTO Cloud as your backup storage"
 msgstr "Set up FUTO Cloud as your backup storage"
+
+#: src/lib/components/integrations/immich/ImmichResticMissingAlert.svelte
+msgid "Set up the standalone container"
+msgstr "Set up the standalone container"
 
 #: ../../web/src/lib/components/onboarding/GetStartedChecklist.svelte
 msgid "Setup guide"

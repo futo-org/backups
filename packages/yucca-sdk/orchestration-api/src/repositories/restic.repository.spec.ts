@@ -7,6 +7,7 @@ import { join } from 'node:path';
 import { PassThrough } from 'node:stream';
 import { setTimeout } from 'node:timers/promises';
 import { promisify } from 'node:util';
+import { ResticNotFoundError } from '../utils/errors.js';
 import type { SupportLogLine } from '../utils/supportLogShipper.js';
 import { SupportSession } from '../utils/supportSession.js';
 import { ResticRepository } from './restic.repository.js';
@@ -25,6 +26,18 @@ const withRestic = async <T>(resticVersion: string, run: () => Promise<T>) => {
   );
   const path = process.env.PATH;
   process.env.PATH = `${bin}:${path}`;
+  try {
+    return await run();
+  } finally {
+    process.env.PATH = path;
+    await rm(bin, { recursive: true, force: true });
+  }
+};
+
+const withoutRestic = async <T>(run: () => Promise<T>) => {
+  const bin = await mkdtemp(join(tmpdir(), 'restic-missing-'));
+  const path = process.env.PATH;
+  process.env.PATH = bin;
   try {
     return await run();
   } finally {
@@ -277,5 +290,19 @@ describe(ResticRepository.name, () => {
     controller.abort();
 
     await expect(restic.snapshot(repository, key, placement, 'latest', controller.signal)).rejects.toThrow();
+  }, 30_000);
+
+  it('reports a missing restic binary with a clear error', async () => {
+    await withoutRestic(async () => {
+      await expect(restic.isAvailable()).resolves.toBe(false);
+      await expect(restic.snapshots(repository, key, placement)).rejects.toThrow(ResticNotFoundError);
+      await expect(restic.backup(repository, key, placement, [source])).rejects.toThrow(ResticNotFoundError);
+    });
+  }, 30_000);
+
+  it('notices restic once it is installed', async () => {
+    await withoutRestic(() => expect(restic.isAvailable()).resolves.toBe(false));
+
+    await expect(restic.isAvailable()).resolves.toBe(true);
   }, 30_000);
 });

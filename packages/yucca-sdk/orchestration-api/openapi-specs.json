@@ -2510,8 +2510,14 @@
           },
           "databaseDumpWarningIgnored": {
             "type": "boolean"
+          },
+          "resticAvailable": {
+            "type": "boolean"
           }
-        }
+        },
+        "required": [
+          "resticAvailable"
+        ]
       },
       "ConfigureImmichIntegrationRequestDto": {
         "type": "object",

@@ -5,7 +5,9 @@ import { ConfigRepository } from '../repositories/config.repository.js';
 import { DatabaseRepository } from '../repositories/database.repository.js';
 import { LoggingRepository } from '../repositories/logging.repository.js';
 import { ModuleConfigRepository } from '../repositories/moduleConfig.repository.js';
+import { ResticRepository } from '../repositories/restic.repository.js';
 import { discardStateCacheDirectory } from '../utils/cache.js';
+import { RESTIC_NOT_FOUND_MESSAGE } from '../utils/errors.js';
 import { ConfigService } from './config.service.js';
 import { IntegrationsService } from './integrations.service.js';
 import { JobService } from './job.service.js';
@@ -24,6 +26,7 @@ export class BootstrapService implements OnApplicationBootstrap {
     private readonly bootstrap: BootstrapRepository,
     private readonly moduleConfig: ModuleConfigRepository,
     private readonly integrations: IntegrationsService,
+    private readonly restic: ResticRepository,
   ) {
     this.logger.setContext(BootstrapService.name);
   }
@@ -55,6 +58,10 @@ export class BootstrapService implements OnApplicationBootstrap {
       this.logger.log(
         `Found ${backends} ${backends === 1 ? 'backend' : 'backends'}, ${repositories} ${repositories === 1 ? 'repository' : 'repositories'}, and ${activeSchedules} active ${activeSchedules === 1 ? 'schedule' : 'schedules'}.`,
       );
+
+      if (!(await this.restic.isAvailable())) {
+        this.logger.warn(RESTIC_NOT_FOUND_MESSAGE);
+      }
 
       this.bootstrap.markReady();
     } catch (error) {

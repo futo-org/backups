@@ -26,6 +26,7 @@ const status = (
 ): ImmichBackupStatusDto => ({
   databaseDump: { enabled: true, keepLastAmount: 14 },
   schedule,
+  resticAvailable: true,
   ...overrides,
 });
 

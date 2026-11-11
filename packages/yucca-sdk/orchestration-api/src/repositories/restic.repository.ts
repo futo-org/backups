@@ -16,6 +16,7 @@ import {
 import { Injectable } from '@nestjs/common';
 import type { ChildProcess } from 'node:child_process';
 import { RepositorySnapshotRestoreRequestDto } from '../dto/repository.dto.js';
+import { explainMissingRestic, ResticNotFoundError } from '../utils/errors.js';
 import { createSampledLogWriter, RetentionPolicy } from '../utils/restic.js';
 import { ConfigRepository, ResticPlacement } from './config.repository.js';
 import { ModuleConfigRepository } from './moduleConfig.repository.js';
@@ -30,7 +31,7 @@ type Traceable = {
 
 @Injectable()
 export class ResticRepository {
-  private futoBuild?: Promise<boolean>;
+  private versionInfo?: ReturnType<typeof version>;
 
   constructor(
     private readonly config: ConfigRepository,
@@ -59,7 +60,8 @@ export class ResticRepository {
       .repository(repository)
       .cacheDir(this.cacheDir)
       .password(Buffer.from(key).toString('hex'))
-      .run();
+      .run()
+      .catch(explainMissingRestic);
   }
 
   async backup(
@@ -95,7 +97,8 @@ export class ResticRepository {
       .excludeCaches()
       .signal(signal)
       .on('event', write)
-      .run();
+      .run()
+      .catch(explainMissingRestic);
   }
 
   private async walkConcurrency() {
@@ -105,10 +108,28 @@ export class ResticRepository {
     }
 
     // Only FUTO's restic build walks in parallel; upstream restic rejects the flag.
-    this.futoBuild ??= version()
-      .then((info) => info.version.includes('+futo.'))
-      .catch(() => false);
-    return (await this.futoBuild) ? DEFAULT_WALK_CONCURRENCY : undefined;
+    const futoBuild = await this.version().then(
+      (info) => info.version.includes('+futo.'),
+      () => false,
+    );
+    return futoBuild ? DEFAULT_WALK_CONCURRENCY : undefined;
+  }
+
+  async isAvailable() {
+    try {
+      await this.version();
+      return true;
+    } catch (error) {
+      return !(error instanceof ResticNotFoundError);
+    }
+  }
+
+  private version() {
+    this.versionInfo ??= version().catch((error: unknown) => {
+      this.versionInfo = undefined;
+      return explainMissingRestic(error);
+    });
+    return this.versionInfo;
   }
 
   async restore(
@@ -137,7 +158,7 @@ export class ResticRepository {
       command = command.include(...include);
     }
 
-    return await command.run();
+    return await command.run().catch(explainMissingRestic);
   }
 
   async ls(repository: string, key: Uint8Array, placement: ResticPlacement, snapshotId: string, path: string) {
@@ -150,7 +171,8 @@ export class ResticRepository {
       .snapshot(snapshotId)
       .directory(path)
       .noLock()
-      .run();
+      .run()
+      .catch(explainMissingRestic);
   }
 
   async stats(repository: string, key: Uint8Array, placement: ResticPlacement, signal?: AbortSignal) {
@@ -162,7 +184,8 @@ export class ResticRepository {
       .password(Buffer.from(key).toString('hex'))
       .signal(signal)
       .modeRawData()
-      .run();
+      .run()
+      .catch(explainMissingRestic);
   }
 
   async snapshots(repository: string, key: Uint8Array, placement: ResticPlacement) {
@@ -173,7 +196,8 @@ export class ResticRepository {
       .repository(repository)
       .cacheDir(this.cacheDir)
       .password(Buffer.from(key).toString('hex'))
-      .run();
+      .run()
+      .catch(explainMissingRestic);
   }
 
   async snapshot(
@@ -192,7 +216,8 @@ export class ResticRepository {
       .password(Buffer.from(key).toString('hex'))
       .snapshot(snapshotId)
       .signal(signal)
-      .run();
+      .run()
+      .catch(explainMissingRestic);
   }
 
   async forget(
@@ -212,7 +237,8 @@ export class ResticRepository {
       .snapshot(snapshotId)
       .prune(prune)
       .signal(signal)
-      .run();
+      .run()
+      .catch(explainMissingRestic);
   }
 
   async forgetByPolicy(
@@ -239,7 +265,8 @@ export class ResticRepository {
       .keepWithinWeekly(policy.keepWithinWeekly)
       .keepWithinMonthly(policy.keepWithinMonthly)
       .keepWithinYearly(policy.keepWithinYearly)
-      .run();
+      .run()
+      .catch(explainMissingRestic);
   }
 
   async prune(repository: string, key: Uint8Array, placement: ResticPlacement, signal?: AbortSignal) {
@@ -251,7 +278,8 @@ export class ResticRepository {
       .cacheDir(this.cacheDir)
       .password(Buffer.from(key).toString('hex'))
       .signal(signal)
-      .run();
+      .run()
+      .catch(explainMissingRestic);
   }
 
   async keyList(repository: string, key: Uint8Array, placement: ResticPlacement) {
@@ -261,7 +289,8 @@ export class ResticRepository {
       .repository(repository)
       .cacheDir(this.cacheDir)
       .password(Buffer.from(key).toString('hex'))
-      .run();
+      .run()
+      .catch(explainMissingRestic);
   }
 
   async unlockAll(repository: string, key: Uint8Array, placement: ResticPlacement) {
@@ -272,6 +301,7 @@ export class ResticRepository {
       .repository(repository)
       .cacheDir(this.cacheDir)
       .password(Buffer.from(key).toString('hex'))
-      .run();
+      .run()
+      .catch(explainMissingRestic);
   }
 }
