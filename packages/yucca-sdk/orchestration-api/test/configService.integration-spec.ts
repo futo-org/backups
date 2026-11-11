@@ -23,11 +23,11 @@ afterEach(async () => {
   await ctx.app.close();
 });
 
+const unplaced = { siteCode: null, storageClusterCode: null };
+
 const automaticConnections = {
   override: null,
-  automatic: 8,
-  effective: 8,
-  source: ConnectionsSource.WellKnown,
+  placements: [{ ...unplaced, automatic: 8, effective: 8, source: ConnectionsSource.WellKnown }],
   min: 1,
   max: 128,
 };
@@ -86,7 +86,7 @@ describe('Config service', () => {
 });
 
 describe('Connections override', () => {
-  const placement = { siteCode: null, storageClusterCode: null };
+  const placement = unplaced;
 
   it('falls back to the core count when the well-known has no connections math', async () => {
     jest.spyOn(yuccaWellKnown, 'getConnections').mockResolvedValue(undefined);
@@ -94,9 +94,14 @@ describe('Connections override', () => {
     await expect(ctx.module.get(ConfigService).getConfig()).resolves.toMatchObject({
       connections: {
         override: null,
-        automatic: availableParallelism(),
-        effective: availableParallelism(),
-        source: ConnectionsSource.Cores,
+        placements: [
+          {
+            ...unplaced,
+            automatic: availableParallelism(),
+            effective: availableParallelism(),
+            source: ConnectionsSource.Cores,
+          },
+        ],
       },
     });
   });
@@ -106,7 +111,11 @@ describe('Connections override', () => {
 
     await expect(service.updateConfig({ connections: 3 })).resolves.toEqual({
       bandwidth: UNTHROTTLED,
-      connections: { ...automaticConnections, override: 3, effective: 3, source: ConnectionsSource.Override },
+      connections: {
+        ...automaticConnections,
+        override: 3,
+        placements: [{ ...unplaced, automatic: 8, effective: 3, source: ConnectionsSource.Override }],
+      },
     });
 
     await expect(ctx.module.get(ConfigRepository).getResticOptions(placement)).resolves.toMatchObject({

@@ -78,14 +78,20 @@ export type BandwidthDto = {
     quietHours?: string;
 };
 export type ConnectionsSource = "override" | "well-known" | "cores";
+export type ConnectionsPlacementDto = {
+    siteCode: string | null;
+    storageClusterCode: string | null;
+    /** Connections used here when no override is set */
+    automatic: number;
+    /** Connections the next restic run here will use */
+    effective: number;
+    source: ConnectionsSource;
+};
 export type ConnectionsDto = {
     /** Stored override, null when automatic */
     "override": number | null;
-    /** Connections used when no override is set */
-    automatic: number;
-    /** Connections the next restic run will use */
-    effective: number;
-    source: ConnectionsSource;
+    /** Resolution for each distinct placement of the local repositories, or the global one without any */
+    placements: ConnectionsPlacementDto[];
     min: number;
     max: number;
 };

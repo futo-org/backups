@@ -1832,20 +1832,12 @@
             "description": "Stored override, null when automatic",
             "nullable": true
           },
-          "automatic": {
-            "type": "integer",
-            "minimum": 1,
-            "maximum": 9007199254740991,
-            "description": "Connections used when no override is set"
-          },
-          "effective": {
-            "type": "integer",
-            "minimum": 1,
-            "maximum": 9007199254740991,
-            "description": "Connections the next restic run will use"
-          },
-          "source": {
-            "$ref": "#/components/schemas/ConnectionsSource"
+          "placements": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ConnectionsPlacementDto"
+            },
+            "description": "Resolution for each distinct placement of the local repositories, or the global one without any"
           },
           "min": {
             "type": "integer",
@@ -1860,11 +1852,44 @@
         },
         "required": [
           "override",
-          "automatic",
-          "effective",
-          "source",
+          "placements",
           "min",
           "max"
+        ]
+      },
+      "ConnectionsPlacementDto": {
+        "type": "object",
+        "properties": {
+          "siteCode": {
+            "type": "string",
+            "nullable": true
+          },
+          "storageClusterCode": {
+            "type": "string",
+            "nullable": true
+          },
+          "automatic": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9007199254740991,
+            "description": "Connections used here when no override is set"
+          },
+          "effective": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9007199254740991,
+            "description": "Connections the next restic run here will use"
+          },
+          "source": {
+            "$ref": "#/components/schemas/ConnectionsSource"
+          }
+        },
+        "required": [
+          "siteCode",
+          "storageClusterCode",
+          "automatic",
+          "effective",
+          "source"
         ]
       },
       "ConnectionsSource": {

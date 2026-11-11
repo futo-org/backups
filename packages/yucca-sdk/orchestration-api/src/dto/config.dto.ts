@@ -18,12 +18,22 @@ const BandwidthSchema = z
 
 const ConnectionsOverrideSchema = z.number().int().min(MIN_CONNECTIONS).max(MAX_CONNECTIONS).nullable();
 
+const ConnectionsPlacementSchema = z
+  .object({
+    siteCode: z.string().nullable(),
+    storageClusterCode: z.string().nullable(),
+    automatic: z.number().int().min(1).meta({ description: 'Connections used here when no override is set' }),
+    effective: z.number().int().min(1).meta({ description: 'Connections the next restic run here will use' }),
+    source: z.enum(ConnectionsSource).meta({ id: 'ConnectionsSource' }),
+  })
+  .meta({ id: 'ConnectionsPlacementDto' });
+
 const ConnectionsSchema = z
   .object({
     override: ConnectionsOverrideSchema.meta({ description: 'Stored override, null when automatic' }),
-    automatic: z.number().int().min(1).meta({ description: 'Connections used when no override is set' }),
-    effective: z.number().int().min(1).meta({ description: 'Connections the next restic run will use' }),
-    source: z.enum(ConnectionsSource).meta({ id: 'ConnectionsSource' }),
+    placements: z.array(ConnectionsPlacementSchema).meta({
+      description: 'Resolution for each distinct placement of the local repositories, or the global one without any',
+    }),
     min: z.number().int(),
     max: z.number().int(),
   })
@@ -43,6 +53,7 @@ const ConfigResponseSchema = z
   .meta({ id: 'ConfigResponseDto' });
 
 export class BandwidthDto extends createZodDto(BandwidthSchema) {}
+export class ConnectionsPlacementDto extends createZodDto(ConnectionsPlacementSchema) {}
 export class ConnectionsDto extends createZodDto(ConnectionsSchema) {}
 export class ConfigUpdateRequestDto extends createZodDto(ConfigUpdateRequestSchema) {}
 export class ConfigResponseDto extends createZodDto(ConfigResponseSchema) {}

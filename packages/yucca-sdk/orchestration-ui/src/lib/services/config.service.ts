@@ -65,6 +65,16 @@ export const toConnectionsOverride = (
     ? null
     : Math.min(max, Math.max(min, Math.round(value)));
 
+export const formatAutomaticConnections = ({
+  placements,
+}: Pick<ConnectionsDto, 'placements'>) => {
+  const counts = placements.map(({ automatic }) => automatic);
+  const lowest = Math.min(...counts);
+  const highest = Math.max(...counts);
+
+  return lowest === highest ? String(lowest) : `${lowest}–${highest}`;
+};
+
 export const useConfig = () =>
   createQuery(
     () => ({

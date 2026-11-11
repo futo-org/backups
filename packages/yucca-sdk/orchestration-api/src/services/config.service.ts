@@ -3,6 +3,7 @@ import {
   ConfigResponseDto,
   ConfigUpdateRequestDto,
   ConnectionsDto,
+  ConnectionsPlacementDto,
   MAX_CONNECTIONS,
   MIN_CONNECTIONS,
 } from '../dto/config.dto.js';
@@ -53,23 +54,39 @@ export class ConfigService {
 
   private async getConnections(): Promise<ConnectionsDto> {
     const override = await this.config.getConnectionsOverride();
-    const automatic = await this.getAutomaticConnections();
+    const placements = await this.getPlacements();
 
     return {
       override,
-      automatic: automatic.connections,
-      effective: override ?? automatic.connections,
-      source: override ? ConnectionsSource.Override : automatic.source,
+      placements: await Promise.all(
+        placements.map(async (placement): Promise<ConnectionsPlacementDto> => {
+          const automatic = await this.getAutomaticConnections(placement);
+          return {
+            ...placement,
+            automatic: automatic.connections,
+            effective: override ?? automatic.connections,
+            source: override ? ConnectionsSource.Override : automatic.source,
+          };
+        }),
+      ),
       min: MIN_CONNECTIONS,
       max: MAX_CONNECTIONS,
     };
   }
 
-  private async getAutomaticConnections() {
+  private async getPlacements(): Promise<ResticPlacement[]> {
     const repositories = await this.repository.getAll();
-    const placed = repositories.find(({ siteCode }) => siteCode);
-    const placement = placed ? { siteCode: placed.siteCode, storageClusterCode: placed.storageClusterCode } : UNPLACED;
+    const placements = new Map(
+      repositories.map(({ siteCode, storageClusterCode }) => [
+        `${siteCode}/${storageClusterCode}`,
+        { siteCode, storageClusterCode },
+      ]),
+    );
 
+    return placements.size > 0 ? [...placements.values()] : [UNPLACED];
+  }
+
+  private async getAutomaticConnections(placement: ResticPlacement) {
     try {
       return await this.config.getAutomaticConnections(placement);
     } catch {

@@ -3,6 +3,7 @@
   import {
     defaultQuietHoursEnd,
     defaultQuietHoursStart,
+    formatAutomaticConnections,
     toBandwidthDto,
     toBandwidthForm,
     toBytesPerSec,
@@ -147,7 +148,9 @@
             step={1}
             placeholder={$t({
               message: "Automatic ({count})",
-              values: { count: config.data.connections.automatic },
+              values: {
+                count: formatAutomaticConnections(config.data.connections),
+              },
             })}
           />
         </Field>

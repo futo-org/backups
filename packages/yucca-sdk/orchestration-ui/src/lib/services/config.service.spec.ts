@@ -5,6 +5,7 @@ import {
 import { queryClient } from '$lib/query-client';
 import {
   configKeys,
+  formatAutomaticConnections,
   toBandwidthDto,
   toBandwidthForm,
   toConnectionsOverride,
@@ -14,11 +15,17 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('$lib/fetch-client');
 
-const connections: ConfigResponseDto['connections'] = {
-  override: null,
+const placement = {
+  siteCode: 'father',
+  storageClusterCode: 'father-spice',
   automatic: 8,
   effective: 8,
-  source: 'well-known',
+  source: 'well-known' as const,
+};
+
+const connections: ConfigResponseDto['connections'] = {
+  override: null,
+  placements: [placement],
   min: 1,
   max: 128,
 };
@@ -114,6 +121,24 @@ describe('toConnectionsOverride', () => {
   });
 });
 
+describe('formatAutomaticConnections', () => {
+  it('shows the single automatic value', () => {
+    expect(formatAutomaticConnections(connections)).toBe('8');
+  });
+
+  it('shows the range when repositories resolve differently', () => {
+    expect(
+      formatAutomaticConnections({
+        placements: [
+          { ...placement, automatic: 12 },
+          placement,
+          { ...placement, automatic: 4 },
+        ],
+      }),
+    ).toBe('4–12');
+  });
+});
+
 describe('useUpdateConfig', () => {
   beforeEach(() => {
     queryClient.clear();
@@ -174,8 +199,7 @@ describe('useUpdateConfig', () => {
       connections: {
         ...connections,
         override: 4,
-        effective: 4,
-        source: 'override',
+        placements: [{ ...placement, effective: 4, source: 'override' }],
       },
     };
     vi.mocked(futoBackupsUpdateConfig).mockResolvedValue(saved);

@@ -6,16 +6,25 @@ import { ResticPlacement } from '../repositories/config.repository.js';
 import { ConfigService } from './config.service.js';
 
 const unplaced = { siteCode: null, storageClusterCode: null };
+const spice = { siteCode: 'father', storageClusterCode: 'father-spice' };
+const salt = { siteCode: 'father', storageClusterCode: 'father-salt' };
+
+type Automatic = { connections: number; source: ConnectionsSource };
+
+const byCluster: Record<string, Automatic> = {
+  'father-spice': { connections: 6, source: ConnectionsSource.WellKnown },
+  'father-salt': { connections: 12, source: ConnectionsSource.WellKnown },
+};
 
 const makeService = ({
   override = null,
   repositories = [],
-  automatic = (_placement: ResticPlacement) =>
-    Promise.resolve({ connections: 6, source: ConnectionsSource.WellKnown as ConnectionsSource }),
+  automatic = ({ storageClusterCode }: ResticPlacement) =>
+    Promise.resolve(byCluster[storageClusterCode ?? ''] ?? { connections: 4, source: ConnectionsSource.Cores }),
 }: {
   override?: number | null;
   repositories?: ResticPlacement[];
-  automatic?: (placement: ResticPlacement) => Promise<{ connections: number; source: ConnectionsSource }>;
+  automatic?: (placement: ResticPlacement) => Promise<Automatic>;
 } = {}) => {
   const config = {
     getConnectionsOverride: jest.fn(() => Promise.resolve(override)),
@@ -32,28 +41,37 @@ const makeService = ({
 };
 
 describe(ConfigService.name, () => {
-  it('resolves the automatic value for the placement of a local repository', async () => {
-    const placement = { siteCode: 'father', storageClusterCode: 'father-spice' };
-    const { service, config } = makeService({ repositories: [unplaced, placement] });
+  it('resolves the global automatic value without local repositories', async () => {
+    const { service } = makeService();
 
     await expect(service.getConfig()).resolves.toEqual({
       bandwidth: UNTHROTTLED,
       connections: {
         override: null,
-        automatic: 6,
-        effective: 6,
-        source: ConnectionsSource.WellKnown,
+        placements: [{ ...unplaced, automatic: 4, effective: 4, source: ConnectionsSource.Cores }],
         min: 1,
         max: 128,
       },
     });
-
-    expect(config.getAutomaticConnections).toHaveBeenCalledWith(placement);
   });
 
-  it('falls back to the global value when the placement is no longer published', async () => {
+  it('reports each distinct repository placement with its own automatic value', async () => {
+    const { service } = makeService({ repositories: [spice, salt, spice] });
+
+    await expect(service.getConfig()).resolves.toMatchObject({
+      connections: {
+        placements: [
+          { ...spice, automatic: 6, effective: 6, source: ConnectionsSource.WellKnown },
+          { ...salt, automatic: 12, effective: 12, source: ConnectionsSource.WellKnown },
+        ],
+      },
+    });
+  });
+
+  it('falls back to the global value when a placement is no longer published', async () => {
+    const gone = { siteCode: 'gone', storageClusterCode: null };
     const { service, config } = makeService({
-      repositories: [{ siteCode: 'gone', storageClusterCode: null }],
+      repositories: [gone],
       automatic: (placement) =>
         placement.siteCode
           ? Promise.reject(new Error(`Unknown site '${placement.siteCode}'`))
@@ -61,17 +79,23 @@ describe(ConfigService.name, () => {
     });
 
     await expect(service.getConfig()).resolves.toMatchObject({
-      connections: { automatic: 4, effective: 4, source: ConnectionsSource.Cores },
+      connections: { placements: [{ ...gone, automatic: 4, effective: 4, source: ConnectionsSource.Cores }] },
     });
 
     expect(config.getAutomaticConnections).toHaveBeenLastCalledWith(unplaced);
   });
 
-  it('reports a stored override as the effective value', async () => {
-    const { service } = makeService({ override: 20 });
+  it('reports a stored override as the effective value for every placement', async () => {
+    const { service } = makeService({ override: 20, repositories: [spice, salt] });
 
     await expect(service.getConfig()).resolves.toMatchObject({
-      connections: { override: 20, automatic: 6, effective: 20, source: ConnectionsSource.Override },
+      connections: {
+        override: 20,
+        placements: [
+          { ...spice, automatic: 6, effective: 20, source: ConnectionsSource.Override },
+          { ...salt, automatic: 12, effective: 20, source: ConnectionsSource.Override },
+        ],
+      },
     });
   });
 
