@@ -24,6 +24,8 @@
       .join("\n"),
   );
 
+  const singleLineCode = $derived(code.replace(/\s+/g, " "));
+
   let downloaded = $state(false);
 
   const print = () => window.print();
@@ -38,10 +40,10 @@
         types: [{ accept: { "text/plain": [".txt"] } }],
       });
       const writable = await handle.createWritable();
-      await writable.write(code);
+      await writable.write(singleLineCode);
       await writable.close();
     } else {
-      const blob = new Blob([code], { type: "text/plain" });
+      const blob = new Blob([singleLineCode], { type: "text/plain" });
       const url = URL.createObjectURL(blob);
 
       const anchor = document.createElement("a");
@@ -55,7 +57,7 @@
     downloaded = true;
   };
 
-  const copyCode = () => copyToClipboard(code);
+  const copyCode = () => copyToClipboard(singleLineCode);
 
   const PasswordCredential =
     typeof window !== "undefined"
@@ -66,7 +68,7 @@
     if (PasswordCredential) {
       const cred = new PasswordCredential({
         id: "Backups Recovery Code",
-        password: code,
+        password: singleLineCode,
         name: "Backups Recovery Code",
       });
 
@@ -82,6 +84,10 @@
     >
   </CardBody>
 </Card>
+
+<Text size="small" class="text-center">
+  {$t`This is one key. It is split across lines only to make it easier to read.`}
+</Text>
 
 <VStack>
   <Button

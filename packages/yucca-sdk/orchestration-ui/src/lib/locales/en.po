@@ -2531,6 +2531,10 @@ msgstr "This invite link has expired. Go back to Discord and claim it again to g
 msgid "This is an early version of FUTO Backups. The service may be reset and your backup data may be deleted when the beta ends. Please don't rely on it as your only backup."
 msgstr "This is an early version of FUTO Backups. The service may be reset and your backup data may be deleted when the beta ends. Please don't rely on it as your only backup."
 
+#: src/lib/components/onboarding/RecoveryKeyDisplay.svelte
+msgid "This is one key. It is split across lines only to make it easier to read."
+msgstr "This is one key. It is split across lines only to make it easier to read."
+
 #: ../../web/src/routes/link/discord/+page.svelte
 msgid "This link is invalid or has expired. Click the support button in Discord to get a new one."
 msgstr "This link is invalid or has expired. Click the support button in Discord to get a new one."
