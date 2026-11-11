@@ -1166,8 +1166,8 @@ msgid "FUTO Backups adds backup support to your existing Immich setup, giving yo
 msgstr ""
 
 #: src/lib/components/integrations/immich/ImmichDatabaseDumpAlert.svelte
-msgid "FUTO Backups already creates the same database backups as Immich."
-msgstr ""
+#~ msgid "FUTO Backups already creates the same database backups as Immich."
+#~ msgstr ""
 
 #: src/lib/components/onboarding/steps/OnboardingStepBetaDisclaimer.svelte
 msgid "FUTO Backups is free during the closed beta. You won't be charged for any usage."
@@ -1176,6 +1176,10 @@ msgstr ""
 #: src/lib/components/integrations/immich/ImmichManageBackupPage.svelte
 #: src/lib/components/integrations/immich/ImmichOnboardingSetupFlow.svelte
 msgid "FUTO Backups is in closed beta"
+msgstr ""
+
+#: src/lib/components/integrations/immich/ImmichDatabaseDumpAlert.svelte
+msgid "FUTO Backups makes a fresh database backup before every run, in the same folder as Immich's own nightly ones. Turning off Immich's nightly backups avoids doing the work twice. Your database backups still land in that folder, so any other backup you run of it keeps working."
 msgstr ""
 
 #: src/lib/components/integrations/immich/ImmichResticMissingAlert.svelte
@@ -1273,15 +1277,19 @@ msgid "ID {id}"
 msgstr ""
 
 #: src/lib/components/integrations/immich/ImmichDatabaseDumpAlert.svelte
-msgid "Ignore"
-msgstr ""
+#~ msgid "Ignore"
+#~ msgstr ""
 
 #: src/lib/components/integrations/immich/ImmichDatabaseDumpAlert.svelte
-msgid "Immich database backups are still enabled"
-msgstr ""
+#~ msgid "Immich database backups are still enabled"
+#~ msgstr ""
 
 #: src/lib/components/onboarding/steps/OnboardingStep4FirstBackup.svelte
 msgid "Immich has prepared recommended settings for your first backup. You can update these anytime from the Backups dashboard."
+msgstr ""
+
+#: src/lib/components/integrations/immich/ImmichDatabaseDumpAlert.svelte
+msgid "Immich is also making database backups"
 msgstr ""
 
 #: src/lib/components/backups/BackupStatus.svelte
@@ -1377,6 +1385,10 @@ msgstr ""
 
 #: src/lib/components/backups/dialogs/CancelJobModal.svelte
 msgid "Keep backing up"
+msgstr ""
+
+#: src/lib/components/integrations/immich/ImmichDatabaseDumpAlert.svelte
+msgid "Keep both"
 msgstr ""
 
 #: src/lib/components/integrations/immich/settings/ImmichSettingsStorage.svelte
@@ -1602,8 +1614,8 @@ msgid "Monthly"
 msgstr ""
 
 #: src/lib/components/integrations/immich/ImmichDatabaseDumpAlert.svelte
-msgid "Most users should select \"use FUTO Backups only\"."
-msgstr ""
+#~ msgid "Most users should select \"use FUTO Backups only\"."
+#~ msgstr ""
 
 #: src/lib/components/schedules/RepositoryPicker.svelte
 msgid "Move {name} down"
@@ -2583,6 +2595,10 @@ msgstr ""
 msgid "Try again"
 msgstr ""
 
+#: src/lib/components/integrations/immich/ImmichDatabaseDumpAlert.svelte
+msgid "Turn off Immich's nightly backups"
+msgstr ""
+
 #: ../../web/src/lib/components/onboarding/GetStartedChecklist.svelte
 msgid "Turn on backups in Immich"
 msgstr ""
@@ -2612,8 +2628,8 @@ msgid "Upload speed"
 msgstr ""
 
 #: src/lib/components/integrations/immich/ImmichDatabaseDumpAlert.svelte
-msgid "Use FUTO Backups only"
-msgstr ""
+#~ msgid "Use FUTO Backups only"
+#~ msgstr ""
 
 #: src/lib/components/onboarding/steps/OnboardingStep2ConnectAccount.svelte
 msgid "Use local storage"

@@ -13,12 +13,10 @@
 </script>
 
 {#if backup.needsAttention}
-  <Alert color="warning" title={$t`Immich database backups are still enabled`}>
+  <Alert color="warning" title={$t`Immich is also making database backups`}>
     <Stack gap={3}>
       <Text size="small">
-        {$t`FUTO Backups already creates the same database backups as Immich.`}
-        <br />
-        {$t`Most users should select "use FUTO Backups only".`}
+        {$t`FUTO Backups makes a fresh database backup before every run, in the same folder as Immich's own nightly ones. Turning off Immich's nightly backups avoids doing the work twice. Your database backups still land in that folder, so any other backup you run of it keeps working.`}
       </Text>
       <HStack gap={2}>
         <Button
@@ -27,7 +25,7 @@
           loading={configure.isPending}
           onclick={() => configure.mutate({ enabled: false })}
         >
-          {$t`Use FUTO Backups only`}
+          {$t`Turn off Immich's nightly backups`}
         </Button>
         <Button
           size="small"
@@ -35,7 +33,7 @@
           loading={ignore.isPending}
           onclick={() => ignore.mutate()}
         >
-          {$t`Ignore`}
+          {$t`Keep both`}
         </Button>
       </HStack>
     </Stack>
