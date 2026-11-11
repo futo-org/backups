@@ -131,8 +131,9 @@ describe(JobRepository.name, () => {
     const id = await jobs.queue(forget('snapshot-1'));
 
     await expect(jobs.wait(id)).rejects.toThrow('at least one source file could not be read');
-    expect(getJob(id).status).toBe(JobStatus.Warn);
-    expect(getJob(id).outcome).not.toContain('Could not reach FUTO Backups');
+    const job = await getJob(id);
+    expect(job.status).toBe(JobStatus.Warn);
+    expect(job.outcome?.errors).not.toContainEqual(expect.stringContaining('Could not reach FUTO Backups'));
     expect(fetch).not.toHaveBeenCalled();
     fetch.mockRestore();
   });
