@@ -25,9 +25,10 @@
     repository: LocalRepositoryDto;
     schedule: ScheduleDto;
     status: ImmichBackupStatus;
+    resticMissing?: boolean;
   };
 
-  const { repository, schedule, status }: Props = $props();
+  const { repository, schedule, status, resticMissing = false }: Props = $props();
 
   const appearance = $derived.by(() => {
     switch (status.kind) {
@@ -83,6 +84,7 @@
         size="small"
         color={running ? "danger" : "primary"}
         class="whitespace-nowrap"
+        disabled={!running && resticMissing}
         leadingIcon={running ? mdiStopCircleOutline : mdiCloudUploadOutline}
         onclick={() =>
           void (status.kind === "running"

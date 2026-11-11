@@ -137,6 +137,9 @@ export const useImmichBackupStatus = () => {
     get status() {
       return toImmichBackupStatus(query.data, query.isLoading);
     },
+    get resticMissing() {
+      return query.data?.resticAvailable === false;
+    },
     get needsAttention() {
       const usingImmichDbDump =
         query.data?.databaseDump?.enabled === true &&

@@ -3,7 +3,26 @@ import {
   ResticBackupCommandCouldNotReadSourceDataError,
   TryParseError,
 } from '@futo-org/restic-wrapper';
+import { ServiceUnavailableException } from '@nestjs/common';
 import { JobStatus, TaskStatus } from '../enum.js';
+
+export const RESTIC_NOT_FOUND_MESSAGE =
+  'restic was not found on PATH. Your Immich image does not include it; use the official Immich image or the FUTO Backups standalone container.';
+
+export class ResticNotFoundError extends ServiceUnavailableException {
+  constructor() {
+    super(RESTIC_NOT_FOUND_MESSAGE);
+  }
+}
+
+export function explainMissingRestic(error: unknown): never {
+  const { code, path } = (error ?? {}) as { code?: unknown; path?: unknown };
+  if (code === 'ENOENT' && path === 'restic') {
+    throw new ResticNotFoundError();
+  }
+
+  throw error;
+}
 
 export class TaskCancelledError extends Error {
   constructor() {

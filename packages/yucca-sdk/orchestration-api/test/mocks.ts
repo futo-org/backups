@@ -18,6 +18,7 @@ export const newResticRepositoryMock = (): jest.Mocked<RepositoryInterface<Resti
     ls: jest.fn().mockResolvedValue([]),
     keyList: jest.fn().mockResolvedValue([{ id: 'key-1', current: true }]),
     unlockAll: jest.fn(),
+    isAvailable: jest.fn().mockResolvedValue(true),
   };
 };
 
