@@ -454,7 +454,6 @@ msgstr "Backups on this machine"
 msgid "Backups paused"
 msgstr "Backups paused"
 
-#: src/lib/components/integrations/immich/settings/ImmichSettingsSchedule.svelte
 #: src/lib/components/schedules/ScheduleEditor.svelte
 msgid "Backups will run"
 msgstr "Backups will run"
@@ -757,7 +756,6 @@ msgstr "Current Usage"
 msgid "Custom"
 msgstr "Custom"
 
-#: src/lib/components/integrations/immich/settings/ImmichSettingsSchedule.svelte
 #: src/lib/components/schedules/ScheduleEditor.svelte
 msgid "Daily"
 msgstr "Daily"
@@ -1144,7 +1142,6 @@ msgstr "Free during closed beta"
 msgid "Free in beta"
 msgstr "Free in beta"
 
-#: src/lib/components/integrations/immich/settings/ImmichSettingsSchedule.svelte
 #: src/lib/components/schedules/ScheduleEditor.svelte
 msgid "Frequency"
 msgstr "Frequency"
@@ -1267,8 +1264,8 @@ msgid "How much storage your backups are using."
 msgstr "How much storage your backups are using."
 
 #: src/lib/components/integrations/immich/settings/ImmichSettingsSchedule.svelte
-msgid "How often backups should run."
-msgstr "How often backups should run."
+#~ msgid "How often backups should run."
+#~ msgstr "How often backups should run."
 
 #: src/lib/components/integrations/immich/settings/ImmichSettingsStorage.svelte
 msgid "How this backup is labelled across FUTO Backups."
@@ -1611,7 +1608,6 @@ msgstr "Missing on service"
 msgid "Monday"
 msgstr "Monday"
 
-#: src/lib/components/integrations/immich/settings/ImmichSettingsSchedule.svelte
 #: src/lib/components/schedules/ScheduleEditor.svelte
 msgid "Monthly"
 msgstr "Monthly"
@@ -2379,7 +2375,6 @@ msgstr "Start it from the app you connected. It shows up here as soon as it star
 msgid "Start it from the Backups page in Immich. It shows up here as soon as it starts."
 msgstr "Start it from the Backups page in Immich. It shows up here as soon as it starts."
 
-#: src/lib/components/integrations/immich/settings/ImmichSettingsSchedule.svelte
 #: src/lib/components/schedules/ScheduleEditor.svelte
 msgid "Start time"
 msgstr "Start time"
@@ -2696,7 +2691,6 @@ msgstr "We ran into an error setting up backups..."
 msgid "Wednesday"
 msgstr "Wednesday"
 
-#: src/lib/components/integrations/immich/settings/ImmichSettingsSchedule.svelte
 #: src/lib/components/schedules/ScheduleEditor.svelte
 msgid "Weekly"
 msgstr "Weekly"
@@ -2707,8 +2701,8 @@ msgid "When restoring, you will see broken previews. Use the admin panel to rege
 msgstr "When restoring, you will see broken previews. Use the admin panel to regenerate them."
 
 #: src/lib/components/integrations/immich/settings/ImmichSettingsSchedule.svelte
-msgid "When the scheduled backup starts."
-msgstr "When the scheduled backup starts."
+#~ msgid "When the scheduled backup starts."
+#~ msgstr "When the scheduled backup starts."
 
 #: src/lib/components/settings/SettingsBilling.svelte
 msgid "When your next FUTO Backups charge will occur."

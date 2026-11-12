@@ -1,4 +1,5 @@
 <script lang="ts">
+  import ScheduleEditor from "$lib/components/schedules/ScheduleEditor.svelte";
   import Accordion from "$lib/components/ui/Accordion.svelte";
   import OnEvents from "$lib/components/util/OnEvents.svelte";
   import {
@@ -19,27 +20,11 @@
     Field,
     HStack,
     LoadingSpinner,
-    Select,
     Stack,
     Switch,
-    Text,
   } from "@immich/ui";
   import { mdiClockOutline } from "@mdi/js";
-  import cronstrue from "cronstrue";
-  import { msg, t } from "svelte-i18n-lingui";
-
-  type Frequency = "daily" | "weekly" | "monthly";
-
-  const frequencies = [
-    { value: "daily", label: msg`Daily` },
-    { value: "weekly", label: msg`Weekly` },
-    { value: "monthly", label: msg`Monthly` },
-  ];
-
-  const startTimes = Array.from({ length: 24 }, (_, hour) => ({
-    value: String(hour),
-    label: `${String(hour).padStart(2, "0")}:00`,
-  }));
+  import { t } from "svelte-i18n-lingui";
 
   const integrations = useIntegrations();
   const repositories = useRepositories();
@@ -70,38 +55,16 @@
     integrations.isLoading || repositories.isLoading || schedules.isLoading,
   );
 
-  let frequency = $state<Frequency>("daily");
-  let startTime = $state("3");
+  let cron = $state("0 3 * * *");
   let enabled = $state(true);
   let loaded = false;
-
-  const parse = (cron: string) => {
-    // notes
-    // cron rewritten on write
-    // - minute discarded
-    // - weekly/monthly forced to set date
-    //   => need server-determined date for load distribution
-    const [minute, hour, day, , weekday] = cron.split(" ");
-
-    return {
-      hour: /^\d+$/.test(hour ?? "") ? hour : "3",
-      minute: /^\d+$/.test(minute ?? "") ? Number(minute) : 0,
-      frequency: (day !== "*"
-        ? "monthly"
-        : weekday !== "*"
-          ? "weekly"
-          : "daily") as Frequency,
-    };
-  };
 
   const load = () => {
     if (!schedule) {
       return;
     }
 
-    const parsed = parse(schedule.cron);
-    frequency = parsed.frequency;
-    startTime = parsed.hour;
+    cron = schedule.cron;
     enabled = !schedule.paused;
   };
 
@@ -112,22 +75,6 @@
 
     loaded = true;
     load();
-  });
-
-  const cron = $derived.by(() => {
-    const hour = Number(startTime);
-
-    switch (frequency) {
-      case "weekly": {
-        return `0 ${hour} * * 0`;
-      }
-      case "monthly": {
-        return `0 ${hour} 1 * *`;
-      }
-      default: {
-        return `0 ${hour} * * *`;
-      }
-    }
   });
 
   const onSave = () => {
@@ -174,31 +121,7 @@
         <Switch bind:checked={enabled} />
       </Field>
 
-      <Field
-        label={$t`Frequency`}
-        description={$t`How often backups should run.`}
-        color="primary"
-        required="indicator"
-        disabled={!enabled}
-      >
-        <Select options={frequencies.map((option) => ({ ...option, label: $t(option.label) }))} bind:value={frequency} />
-      </Field>
-
-      <Field
-        label={$t`Start time`}
-        description={$t`When the scheduled backup starts.`}
-        color="primary"
-        required="indicator"
-        disabled={!enabled}
-      >
-        <Select options={startTimes} bind:value={startTime} />
-      </Field>
-
-      <Text size="small" color="muted">
-        {$t`Backups will run`} <span class="lowercase"
-          >{cronstrue.toString(cron, { verbose: true })}</span
-        >.
-      </Text>
+      <ScheduleEditor bind:cron disabled={!enabled} />
 
       <HStack gap={2} class="justify-end">
         <Button
