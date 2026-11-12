@@ -4,17 +4,16 @@ import { FileMigrationProvider, Migrator, NO_MIGRATIONS } from 'kysely/migration
 import { readdir } from 'node:fs/promises';
 import { join } from 'node:path';
 import { createPGlite } from '../../src/bin/pglite.js';
-import type { DB } from '../../src/schema/index.js';
 
-export type MigrationHarness = {
-  db: Kysely<DB>;
+export type MigrationHarness<Db> = {
+  db: Kysely<Db>;
   up: () => Promise<void>;
   migrateTo: (name: string) => Promise<void>;
   close: () => Promise<void>;
 };
 
-export async function openBefore(name: string): Promise<MigrationHarness> {
-  const db = new Kysely<DB>({ dialect: new PGliteDialect(await createPGlite()) });
+export async function openBefore<Db>(name: string): Promise<MigrationHarness<Db>> {
+  const db = new Kysely<Db>({ dialect: new PGliteDialect(await createPGlite()) });
   const provider = new FileMigrationProvider({
     fs: { readdir },
     path: { join },

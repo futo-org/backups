@@ -18,6 +18,12 @@ const chunkSize = 500;
 
 const toId = (id: string) => (z.uuid().safeParse(id).success ? id : randomUUID());
 
+const legacyDefaultSchedulePresets: Record<string, string> = {
+  '0 3 * * *': '@daily',
+  '0 3 * * 0': '@weekly',
+  '0 3 1 * *': '@monthly',
+};
+
 const importedConfigValues: { [Key in ConfigurationKey]?: (value: string) => ConfigurationValues[Key] } = {
   [ConfigurationKey.EncryptionKey]: (value) => ({ key: value }),
   [ConfigurationKey.OnboardedKey]: () => ({ isOnboarded: true }),
@@ -165,7 +171,7 @@ export class LegacyStateRepository {
               importedSchedules.map(({ id, name, cron, paused, ordering, lastRun, lastFinished }) => ({
                 id,
                 name,
-                cron,
+                cron: legacyDefaultSchedulePresets[cron] ?? cron,
                 paused: paused === 1,
                 ordering: (JSON.parse(ordering) as string[]).flatMap(
                   (repositoryId) => repositoryIds.get(repositoryId) ?? [],

@@ -1,10 +1,14 @@
 import { sql } from 'kysely';
 import { MigrationHarness, openBefore } from './harness.js';
 
-let harness: MigrationHarness;
+type Db = {
+  futo_backups_config: { key: string; value: unknown };
+};
+
+let harness: MigrationHarness<Db>;
 
 beforeEach(async () => {
-  harness = await openBefore('1794492929949-InstallationId');
+  harness = await openBefore<Db>('1794492929949-InstallationId');
 });
 
 afterEach(() => harness.close());
