@@ -38,7 +38,7 @@
     {#snippet title()}{$t`Schedules`}{/snippet}
 
     <Suspense query={schedulesQuery}>
-      {#snippet children(schedules)}
+      {#snippet children({ schedules })}
         {#each schedules as schedule (schedule.id)}
           <ScheduleItem {schedule} {repositoryNames} />
         {/each}

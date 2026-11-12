@@ -7,7 +7,11 @@
   import type { ImmichBackupStatus } from "$lib/services/immich.integration.service";
   import { handleCancelJob } from "$lib/services/job.service";
   import { handleCreateBackup } from "$lib/services/repository.service";
-  import { handleResumeSchedule } from "$lib/services/schedule.service";
+  import {
+    handleResumeSchedule,
+    useSchedules,
+  } from "$lib/services/schedule.service";
+  import { describeCron, resolveCron } from "$lib/utils/cron";
   import { Button, FormatBytes, Icon } from "@immich/ui";
   import {
     mdiAlert,
@@ -18,7 +22,6 @@
     mdiProgressUpload,
     mdiStopCircleOutline,
   } from "@mdi/js";
-  import cronstrue from "cronstrue";
   import { T, t } from "svelte-i18n-lingui";
 
   type Props = {
@@ -28,6 +31,9 @@
   };
 
   const { repository, schedule, status }: Props = $props();
+
+  const schedules = useSchedules();
+  const expression = $derived(resolveCron(schedule.cron, schedules.data?.defaults));
 
   const appearance = $derived.by(() => {
     switch (status.kind) {
@@ -71,9 +77,7 @@
     {#if status.kind === "paused"}
       {$t`Backups paused`}
     {:else}
-      <span class="lowercase">
-        {cronstrue.toString(schedule.cron, { verbose: true })}
-      </span>
+      {describeCron(expression)}
     {/if}
 
     {#snippet trailing()}

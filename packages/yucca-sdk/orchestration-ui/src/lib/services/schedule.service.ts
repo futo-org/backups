@@ -4,6 +4,7 @@ import {
   futoBackupsGetSchedules,
   type ScheduleCreateRequestDto,
   type ScheduleDto,
+  type ScheduleListResponseDto,
   type ScheduleUpdateRequestDto,
 } from '$lib/fetch-client';
 import { SocketEvent } from '$lib/events';
@@ -22,8 +23,7 @@ export const useSchedules = () =>
   createQuery(
     () => ({
       queryKey: scheduleKeys.all,
-      queryFn: () =>
-        futoBackupsGetSchedules().then(({ schedules }) => schedules),
+      queryFn: () => futoBackupsGetSchedules(),
     }),
     () => queryClient,
   );
@@ -33,8 +33,10 @@ export const useScheduleEventHandler = () => {
     onScheduleCreate(event: SocketEvent<{ schedule: ScheduleDto }>) {
       queryClient.setQueryData(
         scheduleKeys.all,
-        (data: ScheduleDto[] | undefined) => {
-          return data ? [...data, event.data.schedule] : void 0;
+        (data: ScheduleListResponseDto | undefined) => {
+          return data
+            ? { ...data, schedules: [...data.schedules, event.data.schedule] }
+            : void 0;
         },
       );
     },
@@ -46,13 +48,16 @@ export const useScheduleEventHandler = () => {
     ) {
       queryClient.setQueryData(
         scheduleKeys.all,
-        (data: ScheduleDto[] | undefined) => {
+        (data: ScheduleListResponseDto | undefined) => {
           return data
-            ? data.map((entry) =>
-                entry.id === event.data.scheduleId
-                  ? { ...entry, ...event.data.schedule }
-                  : entry,
-              )
+            ? {
+                ...data,
+                schedules: data.schedules.map((entry) =>
+                  entry.id === event.data.scheduleId
+                    ? { ...entry, ...event.data.schedule }
+                    : entry,
+                ),
+              }
             : void 0;
         },
       );
@@ -60,9 +65,14 @@ export const useScheduleEventHandler = () => {
     onScheduleDelete(event: SocketEvent<{ scheduleId: string }>) {
       queryClient.setQueryData(
         scheduleKeys.all,
-        (data: ScheduleDto[] | undefined) => {
+        (data: ScheduleListResponseDto | undefined) => {
           return data
-            ? data.filter((entry) => entry.id !== event.data.scheduleId)
+            ? {
+                ...data,
+                schedules: data.schedules.filter(
+                  (entry) => entry.id !== event.data.scheduleId,
+                ),
+              }
             : void 0;
         },
       );

@@ -1,4 +1,4 @@
-import { runsMoreThanHourly } from '$lib/utils/cron';
+import { describeCron, resolveCron, runsMoreThanHourly } from '$lib/utils/cron';
 import { describe, expect, it } from 'vitest';
 
 describe('runsMoreThanHourly', () => {
@@ -25,5 +25,32 @@ describe('runsMoreThanHourly', () => {
     '',
   ])('accepts %s', (cron) => {
     expect(runsMoreThanHourly(cron)).toBe(false);
+  });
+});
+
+describe('resolveCron', () => {
+  const defaults = {
+    daily: '23 3 * * *',
+    weekly: '23 3 * * 2',
+    monthly: '23 3 12 * *',
+  };
+
+  it.each([
+    ['@daily', '23 3 * * *'],
+    ['@weekly', '23 3 * * 2'],
+    ['@monthly', '23 3 12 * *'],
+    ['17 4 * * 4', '17 4 * * 4'],
+  ])('resolves %s to %s', (cron, expected) => {
+    expect(resolveCron(cron, defaults)).toBe(expected);
+  });
+
+  it('keeps a preset as written until the defaults have loaded', () => {
+    expect(resolveCron('@weekly', undefined)).toBe('@weekly');
+  });
+});
+
+describe('describeCron', () => {
+  it('lowercases only the first letter so day names keep their capital', () => {
+    expect(describeCron('23 3 * * 2')).toBe('at 03:23 AM, only on Tuesday');
   });
 });

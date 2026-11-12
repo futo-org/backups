@@ -94,7 +94,7 @@
 
   const schedule = $derived(
     integration
-      ? schedules.data?.find((entry) => entry.id === integration.scheduleId)
+      ? schedules.data?.schedules.find((entry) => entry.id === integration.scheduleId)
       : undefined,
   );
 
