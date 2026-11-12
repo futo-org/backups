@@ -2118,8 +2118,8 @@ msgid "Restore failed"
 msgstr ""
 
 #: src/lib/services/snapshot.service.ts
-msgid "Restore files"
-msgstr ""
+#~ msgid "Restore files"
+#~ msgstr ""
 
 #: src/lib/components/backups/dialogs/RollbackSnapshotModal.svelte
 msgid "Restore files from the snapshot"
@@ -2127,6 +2127,10 @@ msgstr ""
 
 #: src/lib/components/backups/dialogs/RestoreSnapshotModal.svelte
 msgid "Restore files to where they were originally."
+msgstr ""
+
+#: src/lib/services/snapshot.service.ts
+msgid "Restore files…"
 msgstr ""
 
 #: src/lib/components/onboarding/restore-point-flow/RestorePointFlow2SelectSnapshot.svelte
@@ -2187,8 +2191,12 @@ msgid "Return you here to finish setup"
 msgstr ""
 
 #: src/lib/services/snapshot.service.ts
-msgid "Rollback snapshot"
+msgid "Roll back Immich to this snapshot…"
 msgstr ""
+
+#: src/lib/services/snapshot.service.ts
+#~ msgid "Rollback snapshot"
+#~ msgstr ""
 
 #: src/lib/components/backups/dialogs/RollbackSnapshotModal.svelte
 msgid "Rollback to this snapshot?"

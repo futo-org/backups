@@ -8,7 +8,7 @@ There are three ways to get data back, depending on how much you lost.
 
 ## Restoring some files
 
-Open the backup, find the snapshot you want in **Snapshots**, and choose **Restore files** from its menu.
+Open the backup, find the snapshot you want in **Snapshots**, and choose **Restore files…** from its menu.
 
 In the **Restore Backup** window:
 
@@ -28,7 +28,7 @@ If you mounted your data read-only with `:ro`, an in-place restore cannot write 
 
 ## Rolling an Immich server back
 
-Immich can go back to how it was at a chosen snapshot. On the snapshot, choose **Rollback snapshot**.
+Immich can go back to how it was at a chosen snapshot. On the snapshot, choose **Roll back Immich to this snapshot…**.
 
 This restores your files **and** the Immich database, and restarts the server as part of the process. Immich goes into maintenance mode while it runs. Anything added after that snapshot was taken is gone once it completes, so treat it as a last resort rather than a way to undo one deletion.
 
