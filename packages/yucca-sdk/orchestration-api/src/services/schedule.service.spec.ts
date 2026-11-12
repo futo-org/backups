@@ -96,4 +96,38 @@ describe(ScheduleService.name, () => {
     expect(weekdays.size).toBe(7);
     expect(monthdays.size).toBeGreaterThan(24);
   });
+
+  it('keeps presets as chosen and registers them with the installation default expression', async () => {
+    const { defaults } = await service.getSchedules();
+    const { schedule } = await service.createSchedule({
+      name: 'Preset',
+      paused: true,
+      cron: '@weekly',
+      repositories: [],
+    });
+    expect(await new ScheduleRepository(db).get(schedule.id)).toMatchObject({ cron: '@weekly' });
+    expect(String(registry.getCronJob(schedule.id).cronTime.source)).toBe(defaults.weekly);
+
+    await service.updateSchedule(schedule.id, { cron: '@monthly' });
+    expect(await new ScheduleRepository(db).get(schedule.id)).toMatchObject({ cron: '@monthly' });
+    expect(String(registry.getCronJob(schedule.id).cronTime.source)).toBe(defaults.monthly);
+  });
+
+  it('registers custom expressions as written', async () => {
+    const { schedule } = await service.createSchedule({
+      name: 'Custom',
+      paused: true,
+      cron: '17 4 * * 4',
+      repositories: [],
+    });
+    expect(String(registry.getCronJob(schedule.id).cronTime.source)).toBe('17 4 * * 4');
+  });
+
+  it('resolves stored presets when registering schedules at bootstrap', async () => {
+    const { defaults } = await service.getSchedules();
+    const id = '6f6b0e8a-5c1a-4a43-9e0e-7d3f1f1c2b10';
+    await new ScheduleRepository(db).create({ id, name: 'Stored', paused: true, cron: '@daily', ordering: [] });
+    await service.bootstrap();
+    expect(String(registry.getCronJob(id).cronTime.source)).toBe(defaults.daily);
+  });
 });

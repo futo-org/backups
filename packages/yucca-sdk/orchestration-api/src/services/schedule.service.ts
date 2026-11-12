@@ -44,16 +44,23 @@ export class ScheduleService {
     this.cronJobs.clear();
 
     for (const schedule of await this.schedule.getAll()) {
-      this.createCronJob(schedule.id, schedule.cron, schedule.paused);
+      await this.createCronJob(schedule.id, schedule.cron, schedule.paused);
     }
   }
 
-  private createCronJob(id: string, cron: string, paused: boolean): void {
+  private async resolveCron(cron: string): Promise<string> {
+    const { daily, weekly, monthly } = await this.getScheduleDefaults();
+    const presets: Record<string, string> = { '@daily': daily, '@weekly': weekly, '@monthly': monthly };
+    return presets[cron] ?? cron;
+  }
+
+  private async createCronJob(id: string, cron: string, paused: boolean): Promise<void> {
+    const expression = await this.resolveCron(cron);
     this.cronJobs.add(id);
     this.schedulerRegistry.addCronJob(
       id,
       new CronJob<null, null>(
-        cron, // expression
+        expression,
         () => this.runSchedule(id), // onTick
         undefined, // onComplete
         !paused, // started
@@ -66,9 +73,10 @@ export class ScheduleService {
     );
   }
 
-  private updateCronJob(id: string, cron: string, paused: boolean): void {
+  private async updateCronJob(id: string, cron: string, paused: boolean): Promise<void> {
+    const expression = await this.resolveCron(cron);
     const job = this.schedulerRegistry.getCronJob(id);
-    job.setTime(new CronTime(cron));
+    job.setTime(new CronTime(expression));
 
     if (paused) {
       void job.stop();
@@ -159,7 +167,7 @@ export class ScheduleService {
       schedule,
     });
 
-    this.createCronJob(id, dto.cron, schedule.paused);
+    await this.createCronJob(id, dto.cron, schedule.paused);
 
     return {
       schedule,
@@ -244,7 +252,7 @@ export class ScheduleService {
       schedule,
     });
 
-    this.updateCronJob(scheduleId, schedule.cron, schedule.paused);
+    await this.updateCronJob(scheduleId, schedule.cron, schedule.paused);
 
     return {
       schedule,
