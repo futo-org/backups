@@ -3072,6 +3072,25 @@
           "schedule"
         ]
       },
+      "ScheduleDefaultsDto": {
+        "type": "object",
+        "properties": {
+          "daily": {
+            "type": "string"
+          },
+          "weekly": {
+            "type": "string"
+          },
+          "monthly": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "daily",
+          "weekly",
+          "monthly"
+        ]
+      },
       "ScheduleListResponseDto": {
         "type": "object",
         "properties": {
@@ -3080,10 +3099,14 @@
             "items": {
               "$ref": "#/components/schemas/ScheduleDto"
             }
+          },
+          "defaults": {
+            "$ref": "#/components/schemas/ScheduleDefaultsDto"
           }
         },
         "required": [
-          "schedules"
+          "schedules",
+          "defaults"
         ]
       },
       "ScheduleUpdateRequestDto": {

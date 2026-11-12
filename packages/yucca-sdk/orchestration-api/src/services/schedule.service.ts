@@ -2,16 +2,18 @@ import { BadRequestException, Injectable, NotFoundException } from '@nestjs/comm
 import { SchedulerRegistry } from '@nestjs/schedule';
 import { CronJob, CronTime } from 'cron';
 import { Updateable } from 'kysely';
-import { randomUUID } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
 import {
   ScheduleCreateRequestDto,
   ScheduleCreateResponseDto,
+  ScheduleDefaultsDto,
   ScheduleListResponseDto,
   ScheduleUpdateRequestDto,
   ScheduleUpdateResponseDto,
 } from '../dto/schedule.dto.js';
 import { JobName } from '../enum.js';
 import { EventsGateway } from '../events/events.gateway.js';
+import { ConfigRepository } from '../repositories/config.repository.js';
 import { JobRepository } from '../repositories/job.repository.js';
 import { ModuleConfigRepository } from '../repositories/moduleConfig.repository.js';
 import { RepositoryIntegrationImmichRepository } from '../repositories/repositoryIntegrationImmich.repository.js';
@@ -29,6 +31,7 @@ export class ScheduleService {
     private readonly integrationImmich: RepositoryIntegrationImmichRepository,
     private readonly telemetry: TelemetryService,
     private readonly jobs: JobRepository,
+    private readonly config: ConfigRepository,
   ) {}
 
   private readonly cronJobs = new Set<string>();
@@ -163,9 +166,24 @@ export class ScheduleService {
     };
   }
 
+  async getScheduleDefaults(): Promise<ScheduleDefaultsDto> {
+    const installationId = await this.config.getInstallationId();
+    const hash = createHash('sha256').update(`backup-schedule:${installationId}`).digest();
+    const minute = hash.readUInt32BE(0) % 60;
+    const weekday = hash.readUInt32BE(4) % 7;
+    const monthday = (hash.readUInt32BE(8) % 28) + 1;
+
+    return {
+      daily: `${minute} 3 * * *`,
+      weekly: `${minute} 3 * * ${weekday}`,
+      monthly: `${minute} 3 ${monthday} * *`,
+    };
+  }
+
   async getSchedules(): Promise<ScheduleListResponseDto> {
     return {
       schedules: await this.schedule.getAll(),
+      defaults: await this.getScheduleDefaults(),
     };
   }
 

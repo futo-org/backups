@@ -13,6 +13,7 @@ export type ConfigurationValues = {
   [ConfigurationKey.ResticOptionRestConnections]: { connections: number };
   [ConfigurationKey.SessionSecret]: { secret: string };
   [ConfigurationKey.StatePath]: { path: string };
+  [ConfigurationKey.InstallationId]: { id: string };
   [ConfigurationKey.Throttle]: ResticProxyThrottle;
   [ConfigurationKey.SupportMode]: SupportModeSettings;
   [ConfigurationKey.RestoreAwaitingContinue]: { isAwaiting: boolean; databaseRestored?: boolean };
