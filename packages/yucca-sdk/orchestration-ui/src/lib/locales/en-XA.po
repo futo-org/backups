@@ -455,6 +455,7 @@ msgid "Backups paused"
 msgstr ""
 
 #: src/lib/components/integrations/immich/settings/ImmichSettingsSchedule.svelte
+#: src/lib/components/schedules/ScheduleEditor.svelte
 msgid "Backups will run"
 msgstr ""
 
@@ -752,7 +753,12 @@ msgstr ""
 msgid "Current Usage"
 msgstr ""
 
+#: src/lib/components/schedules/ScheduleEditor.svelte
+msgid "Custom"
+msgstr ""
+
 #: src/lib/components/integrations/immich/settings/ImmichSettingsSchedule.svelte
+#: src/lib/components/schedules/ScheduleEditor.svelte
 msgid "Daily"
 msgstr ""
 
@@ -767,6 +773,22 @@ msgstr ""
 #: src/lib/utils/format.ts
 msgid "Database backups"
 msgstr ""
+
+#: src/lib/components/schedules/ScheduleEditor.svelte
+msgid "Day of month"
+msgstr ""
+
+#: src/lib/components/schedules/ScheduleEditor.svelte
+msgid "Day of week"
+msgstr ""
+
+#: src/lib/components/schedules/ScheduleEditor.svelte
+msgid "Days 29, 30 and 31 only run in months that have that day."
+msgstr ""
+
+#: src/lib/components/schedules/ScheduleEditor.svelte
+#~ msgid "Default"
+#~ msgstr ""
 
 #: src/lib/services/schedule.service.ts
 #: src/lib/services/schedule.service.ts
@@ -873,8 +895,7 @@ msgstr ""
 msgid "Enter a backup name."
 msgstr ""
 
-#: src/lib/components/schedules/dialogs/ConfigureScheduleModal.svelte
-#: src/lib/components/schedules/dialogs/CreateScheduleModal.svelte
+#: src/lib/components/schedules/ScheduleEditor.svelte
 msgid "Enter a valid cron expression, for example 0 3 * * *"
 msgstr ""
 
@@ -969,6 +990,10 @@ msgstr ""
 
 #: src/lib/services/repository.service.ts
 msgid "Failed to import repository"
+msgstr ""
+
+#: src/lib/components/schedules/ScheduleEditor.svelte
+msgid "Failed to load default schedule"
 msgstr ""
 
 #: src/lib/services/filesystem.service.ts
@@ -1120,11 +1145,16 @@ msgid "Free in beta"
 msgstr ""
 
 #: src/lib/components/integrations/immich/settings/ImmichSettingsSchedule.svelte
+#: src/lib/components/schedules/ScheduleEditor.svelte
 msgid "Frequency"
 msgstr ""
 
 #: src/lib/components/onboarding/upsell/UpsellFrequentlyAskedQuestions.svelte
 msgid "Frequently Asked Questions"
+msgstr ""
+
+#: src/lib/components/schedules/ScheduleEditor.svelte
+msgid "Friday"
 msgstr ""
 
 #: src/lib/components/integrations/immich/settings/ImmichSettingsBandwidth.svelte
@@ -1577,7 +1607,12 @@ msgstr ""
 msgid "Missing on service"
 msgstr ""
 
+#: src/lib/components/schedules/ScheduleEditor.svelte
+msgid "Monday"
+msgstr ""
+
 #: src/lib/components/integrations/immich/settings/ImmichSettingsSchedule.svelte
+#: src/lib/components/schedules/ScheduleEditor.svelte
 msgid "Monthly"
 msgstr ""
 
@@ -2179,6 +2214,10 @@ msgstr ""
 msgid "S3 Server"
 msgstr ""
 
+#: src/lib/components/schedules/ScheduleEditor.svelte
+msgid "Saturday"
+msgstr ""
+
 #: src/lib/components/integrations/immich/settings/ImmichSettingsBackupContents.svelte
 #: src/lib/components/integrations/immich/settings/ImmichSettingsBandwidth.svelte
 #: src/lib/components/integrations/immich/settings/ImmichSettingsSchedule.svelte
@@ -2207,10 +2246,13 @@ msgstr ""
 
 #: src/lib/components/integrations/immich/settings/ImmichSettingsSchedule.svelte
 #: src/lib/components/onboarding/steps/OnboardingStep4FirstBackup.svelte
-#: src/lib/components/schedules/dialogs/ConfigureScheduleModal.svelte
-#: src/lib/components/schedules/dialogs/CreateScheduleModal.svelte
+#: src/lib/components/schedules/ScheduleEditor.svelte
 msgid "Schedule"
 msgstr ""
+
+#: src/lib/components/schedules/ScheduleEditor.svelte
+#~ msgid "Schedule type"
+#~ msgstr ""
 
 #: src/lib/components/schedules/ScheduleList.svelte
 msgid "Schedules"
@@ -2338,6 +2380,7 @@ msgid "Start it from the Backups page in Immich. It shows up here as soon as it 
 msgstr ""
 
 #: src/lib/components/integrations/immich/settings/ImmichSettingsSchedule.svelte
+#: src/lib/components/schedules/ScheduleEditor.svelte
 msgid "Start time"
 msgstr ""
 
@@ -2423,6 +2466,10 @@ msgstr ""
 
 #: src/lib/components/backups/run-history/RepositoryRunHistoryPage.svelte
 msgid "Successful only"
+msgstr ""
+
+#: src/lib/components/schedules/ScheduleEditor.svelte
+msgid "Sunday"
 msgstr ""
 
 #: src/lib/components/backups/dialogs/ViewStatusModal.svelte
@@ -2511,8 +2558,7 @@ msgstr ""
 msgid "This repository no longer exists on FUTO Backups. Remove it from this machine? Local settings (paths, schedules) will be removed; no backup data is affected."
 msgstr ""
 
-#: src/lib/components/schedules/dialogs/ConfigureScheduleModal.svelte
-#: src/lib/components/schedules/dialogs/CreateScheduleModal.svelte
+#: src/lib/components/schedules/ScheduleEditor.svelte
 msgid "This schedule runs more than once an hour. A * in the minute field runs a backup every minute."
 msgstr ""
 
@@ -2534,6 +2580,10 @@ msgstr ""
 msgid "Thumbnails and previews"
 msgstr ""
 
+#: src/lib/components/schedules/ScheduleEditor.svelte
+msgid "Thursday"
+msgstr ""
+
 #: ../../web/src/routes/dashboard/+layout.svelte
 msgid "Toggle dark theme"
 msgstr ""
@@ -2549,6 +2599,10 @@ msgstr ""
 #: src/lib/components/backups/BackupStatus.svelte
 #: src/lib/components/util/DeviceFlowAction.svelte
 msgid "Try again"
+msgstr ""
+
+#: src/lib/components/schedules/ScheduleEditor.svelte
+msgid "Tuesday"
 msgstr ""
 
 #: ../../web/src/lib/components/onboarding/GetStartedChecklist.svelte
@@ -2571,6 +2625,10 @@ msgstr ""
 msgid "Upload speed"
 msgstr ""
 
+#: src/lib/components/schedules/ScheduleEditor.svelte
+msgid "Use default"
+msgstr ""
+
 #: src/lib/components/integrations/immich/ImmichDatabaseDumpAlert.svelte
 msgid "Use FUTO Backups only"
 msgstr ""
@@ -2591,8 +2649,7 @@ msgstr ""
 msgid "Use this folder"
 msgstr ""
 
-#: src/lib/components/schedules/dialogs/ConfigureScheduleModal.svelte
-#: src/lib/components/schedules/dialogs/CreateScheduleModal.svelte
+#: src/lib/components/schedules/ScheduleEditor.svelte
 msgid "Uses cron syntax"
 msgstr ""
 
@@ -2635,7 +2692,12 @@ msgstr ""
 msgid "We ran into an error setting up backups..."
 msgstr ""
 
+#: src/lib/components/schedules/ScheduleEditor.svelte
+msgid "Wednesday"
+msgstr ""
+
 #: src/lib/components/integrations/immich/settings/ImmichSettingsSchedule.svelte
+#: src/lib/components/schedules/ScheduleEditor.svelte
 msgid "Weekly"
 msgstr ""
 
