@@ -33,6 +33,16 @@ spec:
       hostAliases:
         {{- toYaml . | nindent 8 }}
       {{- end }}
+      {{- with .Values.topologySpreadConstraints }}
+      topologySpreadConstraints:
+        {{- range . }}
+        {{- $constraint := deepCopy . }}
+        {{- if not $constraint.labelSelector }}
+        {{- $_ := set $constraint "labelSelector" (dict "matchLabels" (include "yucca-common.selectorLabels" $ | fromYaml)) }}
+        {{- end }}
+        - {{ toYaml $constraint | indent 10 | trim }}
+        {{- end }}
+      {{- end }}
       # Restricted-PSS-compliant defaults (the yucca namespace enforces
       # `restricted`). uid/gid 1000 matches every service Dockerfile (USER
       # node/michael, both 1000) — set explicitly because kubelet can't verify

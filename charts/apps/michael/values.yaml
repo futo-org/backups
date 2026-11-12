@@ -24,6 +24,18 @@ pdb:
 # not a wait: an idle pod exits as soon as the drain delay elapses.
 terminationGracePeriodSeconds: 150
 
+# The restic gateway prefers a michael on its own node (zone-aware routing, one
+# zone per node), so an uneven spread pushes the surplus across the fabric.
+# nodeTaintsPolicy Honor keeps cordoned and control-plane nodes out of the skew
+# count, or a drain would wedge scheduling; matchLabelKeys spreads each
+# ReplicaSet on its own mid-rollout.
+topologySpreadConstraints:
+  - maxSkew: 1
+    topologyKey: kubernetes.io/hostname
+    whenUnsatisfiable: DoNotSchedule
+    nodeTaintsPolicy: Honor
+    matchLabelKeys: [pod-template-hash]
+
 # Generous requests, deliberately huge memory limits (never CPU-limit).
 resources:
   requests: { cpu: 250m, memory: 256Mi }
