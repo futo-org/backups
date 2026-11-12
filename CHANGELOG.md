@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.17.0](https://github.com/futo-org/backups/compare/v1.16.0...v1.17.0) (2026-11-12)
+
+
+### Features
+
+* **michael:** spread gateways evenly across nodes ([#207](https://github.com/futo-org/backups/issues/207)) ([ee47fcf](https://github.com/futo-org/backups/commit/ee47fcf8ab48d3fc26870887e6e5cd84ec70c412))
+
 ## [1.16.0](https://github.com/futo-org/backups/compare/v1.15.0...v1.16.0) (2026-11-11)
 
 
