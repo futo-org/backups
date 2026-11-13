@@ -137,14 +137,17 @@ describe('Immich schedule settings', () => {
     expect(saved()).toMatchObject({ cron: '*/30 1-5 * * 1-5' });
   });
 
-  it('pauses backups without changing the saved schedule', async () => {
-    await open('17 3 * * 4');
-    await page
-      .getByRole('switch', { name: 'Run backups automatically' })
-      .click();
-    await button('Save').click();
-    expect(saved()).toMatchObject({ cron: '17 3 * * 4', paused: true });
-  });
+  it.each(['17 3 * * 4', '0 17 3 * * 4', '17 3 * * THU'])(
+    'pauses backups without changing the saved schedule %s',
+    async (cron) => {
+      await open(cron);
+      await page
+        .getByRole('switch', { name: 'Run backups automatically' })
+        .click();
+      await button('Save').click();
+      expect(saved()).toMatchObject({ cron, paused: true });
+    },
+  );
 
   it('shows the installation default day and time for a preset', async () => {
     await open('@weekly');

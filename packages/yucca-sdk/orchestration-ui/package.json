@@ -79,7 +79,7 @@
     "@mdi/js": "catalog:",
     "@oazapfts/runtime": "catalog:",
     "@tanstack/svelte-query": "catalog:",
-    "cron-validate": "catalog:",
+    "cron": "catalog:",
     "cronstrue": "catalog:",
     "lodash.debounce": "catalog:",
     "luxon": "catalog:",

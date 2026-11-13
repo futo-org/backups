@@ -1,13 +1,5 @@
-import cronValidate from 'cron-validate';
+import { validateCronExpression } from 'cron';
 import cronstrue from 'cronstrue';
-
-const cronValidateModule = cronValidate as unknown as {
-  default: typeof cronValidate;
-};
-const validate =
-  typeof cronValidate === 'function'
-    ? cronValidate
-    : cronValidateModule.default;
 
 const MINUTES_PER_HOUR = 60;
 
@@ -44,8 +36,7 @@ export type SchedulePreset = (typeof schedulePresets)[number];
 export const toSchedulePreset = (cron: string) =>
   schedulePresets.find((preset) => cron === `@${preset}`);
 
-export const isValidCron = (cron: string) =>
-  !!toSchedulePreset(cron) || validate(cron).isValid();
+export const isValidCron = (cron: string) => validateCronExpression(cron).valid;
 
 export const resolveCron = (
   cron: string,
