@@ -2597,6 +2597,9 @@
           "databaseDumpWarningIgnored": {
             "type": "boolean"
           },
+          "databaseDumpWarningEnabled": {
+            "type": "boolean"
+          },
           "resticAvailable": {
             "type": "boolean"
           }

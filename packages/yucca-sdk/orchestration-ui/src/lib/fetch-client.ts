@@ -257,6 +257,7 @@ export type ImmichBackupStatusDto = {
     latestBackupJob?: JobDto;
     databaseDump?: ImmichDatabaseDumpConfigDto;
     databaseDumpWarningIgnored?: boolean;
+    databaseDumpWarningEnabled?: boolean;
     resticAvailable: boolean;
 };
 export type ConfigureImmichIntegrationRequestDto = {

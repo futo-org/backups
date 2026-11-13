@@ -1,6 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { randomUUID } from 'node:crypto';
 import { createBackend } from '../backends/createBackend.js';
+import { YuccaBackend } from '../backends/yucca.backend.js';
+import { REPOSITORY_DEFAULT_CLOUD_UUID } from '../const.js';
 import { BackendResponseDto, BackendsResponseDto, CreateLocalBackendRequestDto } from '../dto/backend.dto.js';
 import { BackendType } from '../enum.js';
 import { EventsGateway } from '../events/events.gateway.js';
@@ -41,6 +43,16 @@ export class BackendService {
         error: error[idx],
       })),
     };
+  }
+
+  async isCloudFeatureEnabled(feature: string): Promise<boolean> {
+    const cloud = await this.repository.getBackend(REPOSITORY_DEFAULT_CLOUD_UUID);
+    if (!(cloud?.backend instanceof YuccaBackend)) {
+      return false;
+    }
+
+    const features = await cloud.backend.getFeatures();
+    return features[feature] === true;
   }
 
   async createLocalBackend(dto: CreateLocalBackendRequestDto): Promise<BackendResponseDto> {

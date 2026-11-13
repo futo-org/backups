@@ -3,6 +3,7 @@ export const REPOSITORY_DEFAULT_CLOUD_UUID = 'd0368cdd-39ae-40e1-91d6-d81815c65c
 export const YUCCA_WELL_KNOWN = 'https://meta.futo.cloud/.well-known/yucca.json';
 export const SESSION_TTL_MS = 30 * 24 * 60 * 60 * 1000;
 export const SUPPORT_LOG_STREAMING_FEATURE = 'support-log-streaming';
+export const IMMICH_DATABASE_DUMP_ALERT_FEATURE = 'immich-database-dump-alert';
 export const TABLE_PREFIX = 'futo_backups_';
 export const MIGRATION_TABLE = `${TABLE_PREFIX}kysely_migrations`;
 export const MIGRATION_LOCK_TABLE = `${TABLE_PREFIX}kysely_migrations_lock`;

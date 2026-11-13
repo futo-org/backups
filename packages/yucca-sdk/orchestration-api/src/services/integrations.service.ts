@@ -1,6 +1,7 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { OnEvent } from '@nestjs/event-emitter';
 import { join } from 'node:path';
+import { IMMICH_DATABASE_DUMP_ALERT_FEATURE } from '../const.js';
 import {
   ConfigureImmichDatabaseDumpRequestDto,
   ConfigureImmichIntegrationRequestDto,
@@ -88,15 +89,23 @@ export class IntegrationsService {
       return { resticAvailable };
     }
 
-    const [{ repositories }, { backends }, schedule, latestBackupJob, databaseDump, databaseDumpWarningIgnored] =
-      await Promise.all([
-        this.repositoryService.getRepositories(),
-        this.backendService.getBackends(),
-        this.schedule.get(integration.scheduleId),
-        this.jobs.getLatest(integration.id, JobName.RepositoryBackup),
-        immichIntegration.hooks.getImmichDatabaseDumpConfig(),
-        this.config.hasIgnoredImmichDatabaseDumpWarning(),
-      ]);
+    const [
+      { repositories },
+      { backends },
+      schedule,
+      latestBackupJob,
+      databaseDump,
+      databaseDumpWarningIgnored,
+      databaseDumpWarningEnabled,
+    ] = await Promise.all([
+      this.repositoryService.getRepositories(),
+      this.backendService.getBackends(),
+      this.schedule.get(integration.scheduleId),
+      this.jobs.getLatest(integration.id, JobName.RepositoryBackup),
+      immichIntegration.hooks.getImmichDatabaseDumpConfig(),
+      this.config.hasIgnoredImmichDatabaseDumpWarning(),
+      this.backendService.isCloudFeatureEnabled(IMMICH_DATABASE_DUMP_ALERT_FEATURE).catch(() => false),
+    ]);
 
     const repository = repositories.find((entry) => entry.id === integration.id);
 
@@ -108,6 +117,7 @@ export class IntegrationsService {
       latestBackupJob,
       databaseDump,
       databaseDumpWarningIgnored,
+      databaseDumpWarningEnabled,
       resticAvailable,
     };
   }

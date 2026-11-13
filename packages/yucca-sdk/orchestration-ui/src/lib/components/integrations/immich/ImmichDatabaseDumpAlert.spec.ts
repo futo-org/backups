@@ -25,6 +25,7 @@ const status = (
   overrides: Partial<ImmichBackupStatusDto> = {},
 ): ImmichBackupStatusDto => ({
   databaseDump: { enabled: true, keepLastAmount: 14 },
+  databaseDumpWarningEnabled: true,
   schedule,
   resticAvailable: true,
   ...overrides,
@@ -50,6 +51,12 @@ describe('ImmichDatabaseDumpAlert', () => {
 
   it('shows while Immich database dumps are enabled and not ignored', () => {
     expect(isAlertShown(status())).toBe(true);
+  });
+
+  it('hides while the feature is off for the user', () => {
+    expect(isAlertShown(status({ databaseDumpWarningEnabled: false }))).toBe(
+      false,
+    );
   });
 
   it('hides once the warning has been ignored', () => {

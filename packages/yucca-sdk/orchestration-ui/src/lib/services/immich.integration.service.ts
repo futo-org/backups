@@ -142,7 +142,8 @@ export const useImmichBackupStatus = () => {
     },
     get needsAttention() {
       const usingImmichDbDump =
-        query.data?.databaseDump?.enabled === true &&
+        query.data?.databaseDumpWarningEnabled === true &&
+        query.data.databaseDump?.enabled === true &&
         query.data.schedule !== undefined &&
         !query.data.schedule.paused &&
         query.data.databaseDumpWarningIgnored !== true;

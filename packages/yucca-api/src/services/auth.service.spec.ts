@@ -89,7 +89,10 @@ describe(AuthService.name, () => {
         sut.authenticate({
           cookie: 'yucca-access-token=my-token',
         }),
-      ).resolves.toEqual({ ...mockUser, features: { 'connection-restic': false, 'support-log-streaming': false } });
+      ).resolves.toEqual({
+        ...mockUser,
+        features: { 'connection-restic': false, 'support-log-streaming': false, 'immich-database-dump-alert': false },
+      });
       expect(mocks.wideContext.addContext).toHaveBeenCalledWith('customerId', mockUser.id);
     });
 
@@ -103,7 +106,9 @@ describe(AuthService.name, () => {
           cookie: 'yucca-access-token=my-token',
         }),
       ).resolves.toEqual(
-        expect.objectContaining({ features: { 'connection-restic': true, 'support-log-streaming': false } }),
+        expect.objectContaining({
+          features: { 'connection-restic': true, 'support-log-streaming': false, 'immich-database-dump-alert': false },
+        }),
       );
     });
 
@@ -117,7 +122,9 @@ describe(AuthService.name, () => {
           cookie: 'yucca-access-token=my-token',
         }),
       ).resolves.toEqual(
-        expect.objectContaining({ features: { 'connection-restic': false, 'support-log-streaming': false } }),
+        expect.objectContaining({
+          features: { 'connection-restic': false, 'support-log-streaming': false, 'immich-database-dump-alert': false },
+        }),
       );
     });
   });

@@ -247,6 +247,7 @@ describe('Integrations', () => {
     const status = await integrationsService.getImmichBackupStatus();
     expect(status.databaseDump).toEqual({ enabled: true, keepLastAmount: 14 });
     expect(status.resticAvailable).toBe(true);
+    expect(status.databaseDumpWarningEnabled).toBe(false);
 
     await integrationsService.configureImmichDatabaseDump({ enabled: false });
     expect(hooks.configureImmichDatabaseDump).toHaveBeenCalledWith({ enabled: false });
