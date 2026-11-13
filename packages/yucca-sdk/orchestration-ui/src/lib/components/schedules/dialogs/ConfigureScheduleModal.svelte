@@ -1,6 +1,7 @@
 <script lang="ts">
   import type { ScheduleDto } from "$lib/fetch-client";
   import { useUpdateSchedule } from "$lib/services/schedule.service";
+  import { isValidCron } from "$lib/utils/cron";
   import { Field, FormModal, Input, Stack } from "@immich/ui";
   import ScheduleEditor from "../ScheduleEditor.svelte";
   import RepositoryPicker from "../RepositoryPicker.svelte";
@@ -20,8 +21,6 @@
   // svelte-ignore state_referenced_locally
   let repositories = $state([...schedule.repositories]);
 
-  let cronInvalid = $state(false);
-
   const mutation = useUpdateSchedule();
 
   const onSubmit = () =>
@@ -35,7 +34,7 @@
   title={$t({ message: "Edit {name}", values: { name: schedule.name } })}
   size="large"
   disabled={name.length === 0 ||
-    cronInvalid ||
+    !isValidCron(cron) ||
     repositories.length === 0 ||
     mutation.isPending}
   {onSubmit}
@@ -45,7 +44,7 @@
     <Field label={$t`Name`}>
       <Input bind:value={name} />
     </Field>
-    <ScheduleEditor bind:cron bind:invalid={cronInvalid} />
+    <ScheduleEditor bind:cron />
 
     <RepositoryPicker bind:repositories />
   </Stack>

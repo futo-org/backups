@@ -15,6 +15,7 @@
     useScheduleEventHandler,
     useSchedules,
   } from "$lib/services/schedule.service";
+  import { isValidCron } from "$lib/utils/cron";
   import {
     Button,
     Field,
@@ -78,7 +79,7 @@
   });
 
   const onSave = () => {
-    if (!integration || !repository || !schedule) {
+    if (!integration || !repository || !schedule || !isValidCron(cron)) {
       return;
     }
 
@@ -132,7 +133,12 @@
         >
           {$t`Reset`}
         </Button>
-        <Button shape="round" loading={mutation.isPending} onclick={onSave}>
+        <Button
+          shape="round"
+          disabled={!isValidCron(cron)}
+          loading={mutation.isPending}
+          onclick={onSave}
+        >
           {$t`Save`}
         </Button>
       </HStack>

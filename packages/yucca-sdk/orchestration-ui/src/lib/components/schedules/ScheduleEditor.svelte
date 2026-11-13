@@ -2,6 +2,7 @@
   import { useSchedules } from "$lib/services/schedule.service";
   import {
     describeCron,
+    isValidCron,
     resolveCron,
     runsMoreThanHourly,
     toSchedulePreset,
@@ -17,28 +18,17 @@
     Select,
     Text,
   } from "@immich/ui";
-  import cronValidate from "cron-validate";
   import { msg, t } from "svelte-i18n-lingui";
 
   type Props = {
     cron: string;
     disabled?: boolean;
-    invalid?: boolean;
   };
 
   let {
     cron = $bindable(),
     disabled = false,
-    invalid = $bindable(false),
   }: Props = $props();
-
-  const cronValidateModule = cronValidate as unknown as {
-    default: typeof cronValidate;
-  };
-  const validate =
-    typeof cronValidate === "function"
-      ? cronValidate
-      : cronValidateModule.default;
 
   const frequencies = [
     { value: "daily", label: msg`Daily` },
@@ -83,9 +73,7 @@
     editingCustom ? "custom" : (preset ?? pattern ?? "custom"),
   );
   const waitingForDefaults = $derived(!!preset && !schedules.data?.defaults);
-  const cronInvalid = $derived(
-    frequency === "custom" && !preset && validate(cron).isError(),
-  );
+  const cronInvalid = $derived(!isValidCron(cron));
   const defaultExpression = $derived(
     frequency === "custom" ? undefined : schedules.data?.defaults[frequency],
   );
@@ -171,10 +159,6 @@
         return options;
       }),
   );
-
-  $effect(() => {
-    invalid = cronInvalid;
-  });
 
   const setFields = (changes: Record<number, string>) => {
     cron = fields.map((field, index) => changes[index] ?? field).join(" ");

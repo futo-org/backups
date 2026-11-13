@@ -120,6 +120,23 @@ describe('Immich schedule settings', () => {
     expect(saved()).toMatchObject({ cron });
   });
 
+  it('prevents saving an invalid custom schedule and allows a corrected expression', async () => {
+    await open('17 3 * * 4');
+    await choose('Frequency', 'Custom');
+    const input = page.getByRole('textbox', { name: 'Schedule', exact: true });
+    await input.fill('invalid');
+    await expect
+      .element(
+        page.getByText('Enter a valid cron expression, for example 0 3 * * *'),
+      )
+      .toBeVisible();
+    await expect.element(button('Save')).toBeDisabled();
+    expect(state.mutate).not.toHaveBeenCalled();
+    await input.fill('*/30 1-5 * * 1-5');
+    await button('Save').click();
+    expect(saved()).toMatchObject({ cron: '*/30 1-5 * * 1-5' });
+  });
+
   it('pauses backups without changing the saved schedule', async () => {
     await open('17 3 * * 4');
     await page

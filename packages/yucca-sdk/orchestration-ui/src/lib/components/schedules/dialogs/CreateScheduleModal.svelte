@@ -1,5 +1,6 @@
 <script lang="ts">
   import { useCreateSchedule } from "$lib/services/schedule.service";
+  import { isValidCron } from "$lib/utils/cron";
   import { Field, FormModal, Input, Stack } from "@immich/ui";
   import ScheduleEditor from "../ScheduleEditor.svelte";
   import RepositoryPicker from "../RepositoryPicker.svelte";
@@ -15,8 +16,6 @@
   let cron = $state("@daily");
   let repositories = $state<string[]>([]);
 
-  let cronInvalid = $state(false);
-
   const mutation = useCreateSchedule();
 
   const onSubmit = () =>
@@ -30,7 +29,7 @@
   title={$t`Create A New Schedule`}
   size="large"
   disabled={name.length === 0 ||
-    cronInvalid ||
+    !isValidCron(cron) ||
     repositories.length === 0 ||
     mutation.isPending}
   {onSubmit}
@@ -43,7 +42,7 @@
     >
       <Input bind:value={name} />
     </Field>
-    <ScheduleEditor bind:cron bind:invalid={cronInvalid} />
+    <ScheduleEditor bind:cron />
 
     <RepositoryPicker bind:repositories />
   </Stack>

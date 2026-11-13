@@ -1,4 +1,9 @@
-import { describeCron, resolveCron, runsMoreThanHourly } from '$lib/utils/cron';
+import {
+  describeCron,
+  isValidCron,
+  resolveCron,
+  runsMoreThanHourly,
+} from '$lib/utils/cron';
 import { describe, expect, it } from 'vitest';
 
 describe('runsMoreThanHourly', () => {
@@ -25,6 +30,19 @@ describe('runsMoreThanHourly', () => {
     '',
   ])('accepts %s', (cron) => {
     expect(runsMoreThanHourly(cron)).toBe(false);
+  });
+});
+
+describe('isValidCron', () => {
+  it.each(['@daily', '@weekly', '@monthly', '0 3 * * *', '*/30 1-5 * * 1-5'])(
+    'accepts %s',
+    (cron) => {
+      expect(isValidCron(cron)).toBe(true);
+    },
+  );
+
+  it.each(['invalid', '', '@hourly', '60 3 * * *'])('rejects %j', (cron) => {
+    expect(isValidCron(cron)).toBe(false);
   });
 });
 
