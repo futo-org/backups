@@ -165,7 +165,7 @@
   };
 </script>
 
-<Field label={$t`Frequency`} {disabled}>
+<Field label={$t`Frequency`} disabled={disabled || schedules.isLoading || schedules.isError}>
   <Select
     options={frequencies.map((option) => ({
       ...option,
@@ -181,8 +181,7 @@
 
 {#if waitingForDefaults}
   {#if schedules.isError}
-    <HelperText color="danger">{$t`Failed to load default schedule`}</HelperText
-    >
+    <Text size="small" color="danger">{$t`Failed to load default schedule`}</Text>
   {:else}
     <LoadingSpinner />
   {/if}
