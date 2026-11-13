@@ -72,7 +72,9 @@
       <Badge size="tiny" color="danger">{$t`Offline`}</Badge>
     {/if}
 
-    {#if outcome === "failed"}
+    {#if repository.configuration?.paths.length === 0}
+      <Badge size="tiny" color="danger">{$t`No folders added`}</Badge>
+    {:else if outcome === "failed"}
       <Badge size="tiny" color="danger">
         {$t`Failed`} <RelativeTime time={repository.metrics.lastBackup!} />
       </Badge>

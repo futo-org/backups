@@ -17,6 +17,7 @@ import { BackendType, JobName, TaskStatus, TicketAction } from '../src/enum.js';
 import { ResticProxyPool } from '../src/proxy/resticProxyPool.js';
 import { BackendRepository } from '../src/repositories/backend.repository.js';
 import { JobRepository } from '../src/repositories/job.repository.js';
+import { LoggingRepository } from '../src/repositories/logging.repository.js';
 import { ModuleConfigRepository } from '../src/repositories/moduleConfig.repository.js';
 import { RepositoryRepository } from '../src/repositories/repository.repository.js';
 import { RepositoryIntegrationImmichRepository } from '../src/repositories/repositoryIntegrationImmich.repository.js';
@@ -180,8 +181,11 @@ describe('Repository', () => {
       { name: 'No Paths Repo', worm: false },
       ctx.backendId,
     );
+    const warn = jest.spyOn(LoggingRepository.prototype, 'warn');
 
     await expect(repositoryService.createBackup(repository.id)).rejects.toThrow('Missing configuration paths');
+    expect(warn).toHaveBeenCalledWith(`Refusing to back up repository ${repository.id}: no paths configured`);
+    warn.mockRestore();
   });
 
   it('skips the metrics update when restic stats fails and there is nothing else to save', async () => {
