@@ -86,21 +86,98 @@
   const cronInvalid = $derived(
     frequency === "custom" && !preset && validate(cron).isError(),
   );
+  const defaultExpression = $derived(
+    frequency === "custom" ? undefined : schedules.data?.defaults[frequency],
+  );
+  const dayOptions = $derived.by(() => {
+    const options =
+      frequency === "weekly"
+        ? weekdays.map((label, index) => ({
+            value: String(index),
+            label: $t(label),
+          }))
+        : monthDays;
+    const defaultDay =
+      defaultExpression?.split(" ")[frequency === "weekly" ? 4 : 2];
+    return options.flatMap((option) =>
+      option.value === defaultDay
+        ? [
+            option,
+            {
+              value: "default",
+              label: $t({
+                message: "{day} (at default time)",
+                values: { day: option.label },
+              }),
+            },
+          ]
+        : [option],
+    );
+  });
+  const startTime = $derived(`${Number(fields[1])}:${Number(fields[0])}`);
+  const defaultStartTime = $derived.by(() => {
+    const [minute, hour] = defaultExpression?.split(" ") ?? [];
+    return defaultExpression ? `${Number(hour)}:${Number(minute)}` : undefined;
+  });
+  const pad = (part: number) => String(part).padStart(2, "0");
+  const defaultWindow = $derived.by(() => {
+    const [, hour, ...days] = defaultExpression?.split(" ") ?? [];
+    if (!defaultExpression) {
+      return undefined;
+    }
+
+    const start = Number(hour);
+    return {
+      start: `${pad(start)}:00`,
+      end: `${pad((start + 1) % 24)}:00`,
+      days: describeCron(["0", "0", ...days].join(" "))
+        .split(", ")
+        .slice(1)
+        .join(", "),
+    };
+  });
   const startTimes = $derived(
-    Array.from({ length: 24 }, (_, hour) => ({
-      value: String(hour),
-      label: `${String(hour).padStart(2, "0")}:${fields[0]?.padStart(2, "0")}`,
-    })),
+    [
+      ...new Set([
+        ...Array.from({ length: 24 }, (_, hour) => `${hour}:0`),
+        startTime,
+        ...(frequency === "daily" && defaultStartTime
+          ? [defaultStartTime]
+          : []),
+      ]),
+    ]
+      .map((time) => time.split(":").map(Number))
+      .toSorted(([a = 0, b = 0], [c = 0, d = 0]) => a * 60 + b - (c * 60 + d))
+      .flatMap(([hour = 0, minute = 0]) => {
+        const value = `${hour}:${minute}`;
+        const options =
+          minute === 0 || (!preset && value === startTime)
+            ? [{ value, label: `${pad(hour)}:${pad(minute)}` }]
+            : [];
+        if (
+          frequency === "daily" &&
+          value === defaultStartTime &&
+          defaultWindow
+        ) {
+          options.push({
+            value: "default",
+            label: $t({
+              message: "Between {start} and {end} (default)",
+              values: defaultWindow,
+            }),
+          });
+        }
+
+        return options;
+      }),
   );
 
   $effect(() => {
     invalid = cronInvalid;
   });
 
-  const setField = (index: number, value: string) => {
-    const updated = [...fields];
-    updated[index] = value;
-    cron = updated.join(" ");
+  const setFields = (changes: Record<number, string>) => {
+    cron = fields.map((field, index) => changes[index] ?? field).join(" ");
   };
 </script>
 
@@ -144,43 +221,64 @@
     {/if}
   </Field>
 {:else}
-  <HStack gap={2} class="items-start">
-    {#if frequency === "weekly"}
-      <Field label={$t`Day of week`} {disabled}>
-        <Select
-          options={weekdays.map((label, index) => ({
-            value: String(index),
-            label: $t(label),
-          }))}
-          value={String(Number(fields[4]) % 7)}
-          onChange={(value) => setField(4, value)}
-        />
-      </Field>
-    {:else if frequency === "monthly"}
-      <Field label={$t`Day of month`} {disabled}>
-        <Select
-          options={monthDays}
-          value={String(Number(fields[2]))}
-          onChange={(value) => setField(2, value)}
-        />
-      </Field>
-    {/if}
+  {#if frequency === "weekly" || frequency === "monthly"}
+    <Field
+      label={frequency === "weekly" ? $t`Day of week` : $t`Day of month`}
+      {disabled}
+    >
+      <Select
+        options={dayOptions}
+        value={preset
+          ? "default"
+          : frequency === "weekly"
+            ? String(Number(fields[4]) % 7)
+            : String(Number(fields[2]))}
+        onChange={(value) => {
+          if (value === "default") {
+            cron = `@${frequency}`;
+            return;
+          }
 
+          setFields({
+            0: preset ? "0" : fields[0],
+            [frequency === "weekly" ? 4 : 2]: value,
+          });
+        }}
+      />
+    </Field>
+  {/if}
+
+  {#if frequency === "daily" || !preset}
     <Field label={$t`Start time`} {disabled}>
       <Select
         options={startTimes}
-        value={String(Number(fields[1]))}
-        onChange={(value) => setField(1, value)}
+        value={preset ? "default" : startTime}
+        onChange={(value) => {
+          if (value === "default") {
+            cron = "@daily";
+            return;
+          }
+
+          const [hour = "0", minute = "0"] = value.split(":");
+          setFields({ 0: minute, 1: hour });
+        }}
       />
     </Field>
-  </HStack>
+  {/if}
 {/if}
 
 {#if !waitingForDefaults && !cronInvalid}
   <HStack gap={2} class="items-center justify-between">
     <Text size="small" color="muted">
-      {$t`Backups will run`}
-      {describeCron(effectiveCron)}.
+      {#if preset && defaultWindow}
+        {$t({
+          message: "Backups will run between {start} and {end}, {days}.",
+          values: defaultWindow,
+        })}
+      {:else}
+        {$t`Backups will run`}
+        {describeCron(effectiveCron)}.
+      {/if}
       {#if frequency === "monthly" && Number(fields[2]) > 28}
         {$t`Days 29, 30 and 31 only run in months that have that day.`}
       {/if}

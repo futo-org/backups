@@ -76,6 +76,10 @@ msgstr "{count}w"
 msgid "{count}y"
 msgstr "{count}y"
 
+#: src/lib/components/schedules/ScheduleEditor.svelte
+msgid "{day} (at default time)"
+msgstr "{day} (at default time)"
+
 #: ../../web/src/lib/components/onboarding/GetStartedChecklist.svelte
 msgid "{done} of {total} done"
 msgstr "{done} of {total} done"
@@ -458,6 +462,10 @@ msgstr "Backups paused"
 msgid "Backups will run"
 msgstr "Backups will run"
 
+#: src/lib/components/schedules/ScheduleEditor.svelte
+msgid "Backups will run between {start} and {end}, {days}."
+msgstr "Backups will run between {start} and {end}, {days}."
+
 #: src/lib/components/integrations/immich/settings/ImmichSettingsBandwidth.svelte
 msgid "Bandwidth"
 msgstr "Bandwidth"
@@ -470,6 +478,10 @@ msgstr "Before continuing, please be aware of the following:"
 #: ../../web/src/routes/dashboard/+layout.svelte
 msgid "Beta"
 msgstr "Beta"
+
+#: src/lib/components/schedules/ScheduleEditor.svelte
+msgid "Between {start} and {end} (default)"
+msgstr "Between {start} and {end} (default)"
 
 #: ../../web/src/routes/dashboard/connections/+page.svelte
 msgid "billed"

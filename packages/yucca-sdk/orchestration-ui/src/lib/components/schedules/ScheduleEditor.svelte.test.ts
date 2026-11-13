@@ -91,7 +91,9 @@ describe('Schedule dialogs', () => {
       .element(page.getByRole('button', { name: 'Frequency' }))
       .toHaveTextContent('Daily');
     await expect
-      .element(page.getByText('Backups will run at 03:23 AM, every day.'))
+      .element(
+        page.getByText('Backups will run between 03:00 and 04:00, every day.'),
+      )
       .toBeVisible();
     await button('Save').click();
     expect(created()).toMatchObject({
@@ -105,12 +107,12 @@ describe('Schedule dialogs', () => {
     await choose('Frequency', 'Weekly');
     await expect
       .element(page.getByRole('button', { name: 'Day of week' }))
-      .toHaveTextContent('Tuesday');
+      .toHaveTextContent('Tuesday (at default time)');
     await expect.element(button('Use default')).not.toBeInTheDocument();
 
     await choose('Day of week', 'Thursday');
     await button('Save').click();
-    expect(created()).toMatchObject({ cron: '23 3 * * 4' });
+    expect(created()).toMatchObject({ cron: '0 3 * * 4' });
 
     await button('Use default').click();
     await expect.element(button('Use default')).not.toBeInTheDocument();
@@ -118,11 +120,82 @@ describe('Schedule dialogs', () => {
     expect(created()).toMatchObject({ cron: '@weekly' });
   });
 
-  it('keeps the minute when changing the start time', async () => {
+  it('offers whole hours and the installation default as start times', async () => {
     await openCreate();
-    await choose('Start time', '05:23');
+    await choose('Start time', '05:00');
     await button('Save').click();
-    expect(created()).toMatchObject({ cron: '23 5 * * *' });
+    expect(created()).toMatchObject({ cron: '0 5 * * *' });
+
+    await choose('Start time', 'Between 03:00 and 04:00 (default)');
+    await button('Save').click();
+    expect(created()).toMatchObject({ cron: '@daily' });
+  });
+
+  it.each([
+    {
+      frequency: 'Weekly',
+      field: 'Day of week',
+      day: 'Tuesday',
+      cron: '0 3 * * 2',
+      preset: '@weekly',
+    },
+    {
+      frequency: 'Monthly',
+      field: 'Day of month',
+      day: '12',
+      cron: '0 3 12 * *',
+      preset: '@monthly',
+    },
+  ])(
+    'offers one default choice for $frequency and shows time only for an explicit day',
+    async ({ frequency, field, day, cron, preset }) => {
+      await openCreate();
+      await choose('Frequency', frequency);
+      await expect
+        .element(page.getByRole('button', { name: field }))
+        .toHaveTextContent(day + ' (at default time)');
+      await expect
+        .element(page.getByRole('button', { name: 'Start time' }))
+        .not.toBeInTheDocument();
+
+      await choose(field, day);
+      await expect
+        .element(page.getByRole('button', { name: 'Start time' }))
+        .toHaveTextContent('03:00');
+      await button('Save').click();
+      expect(created()).toMatchObject({ cron });
+
+      await choose('Start time', '05:00');
+      await choose(field, day + ' (at default time)');
+      await expect
+        .element(page.getByRole('button', { name: 'Start time' }))
+        .not.toBeInTheDocument();
+      await button('Save').click();
+      expect(created()).toMatchObject({ cron: preset });
+    },
+  );
+
+  it('keeps a saved daily time explicit even when it matches the installation default', async () => {
+    const schedule: ScheduleDto = {
+      id: 'schedule',
+      name: 'Nightly',
+      cron: '23 3 * * *',
+      paused: false,
+      repositories: [state.id],
+    };
+    await render(ConfigureScheduleModal, { schedule, onClose: vi.fn() });
+    await expect
+      .element(page.getByRole('button', { name: 'Start time' }))
+      .toHaveTextContent('03:23');
+    await button('Save').click();
+    expect(state.update.mock.lastCall?.[0]).toMatchObject({
+      dto: { cron: '23 3 * * *' },
+    });
+    await choose('Start time', 'Between 03:00 and 04:00 (default)');
+    await button('Save').click();
+    expect(state.update.mock.lastCall?.[0]).toMatchObject({
+      dto: { cron: '@daily' },
+    });
   });
 
   it('validates custom expressions before saving', async () => {

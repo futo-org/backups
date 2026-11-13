@@ -136,10 +136,17 @@ describe('Immich schedule settings', () => {
       .toHaveTextContent('Weekly');
     await expect
       .element(page.getByRole('button', { name: 'Day of week' }))
-      .toHaveTextContent('Tuesday');
+      .toHaveTextContent('Tuesday (at default time)');
     await expect
       .element(page.getByRole('button', { name: 'Start time' }))
-      .toHaveTextContent('03:23');
+      .not.toBeInTheDocument();
+    await expect
+      .element(
+        page.getByText(
+          'Backups will run between 03:00 and 04:00, only on Tuesday.',
+        ),
+      )
+      .toBeVisible();
     await expect.element(button('Use default')).not.toBeInTheDocument();
   });
 
@@ -152,9 +159,11 @@ describe('Immich schedule settings', () => {
       .element(page.getByRole('button', { name: 'Start time' }))
       .toHaveTextContent('03:17');
     await choose('Day of week', 'Tuesday');
-    await choose('Start time', '06:17');
     await button('Save').click();
-    expect(saved()).toMatchObject({ cron: '17 6 * * 2' });
+    expect(saved()).toMatchObject({ cron: '17 3 * * 2' });
+    await choose('Start time', '06:00');
+    await button('Save').click();
+    expect(saved()).toMatchObject({ cron: '0 6 * * 2' });
     await button('Reset').click();
     await expect
       .element(page.getByRole('button', { name: 'Day of week' }))
@@ -176,7 +185,7 @@ describe('Immich schedule settings', () => {
     await choose('Frequency', 'Monthly');
     await expect
       .element(page.getByRole('button', { name: 'Day of month' }))
-      .toHaveTextContent('12');
+      .toHaveTextContent('12 (at default time)');
     await button('Save').click();
     expect(saved()).toMatchObject({ cron: '@monthly' });
   });
@@ -186,7 +195,7 @@ describe('Immich schedule settings', () => {
     await button('Use default').click();
     await expect
       .element(page.getByRole('button', { name: 'Day of week' }))
-      .toHaveTextContent('Tuesday');
+      .toHaveTextContent('Tuesday (at default time)');
     await button('Save').click();
     expect(saved()).toMatchObject({ cron: '@weekly' });
   });
