@@ -1,6 +1,6 @@
 module columbo
 
-go 1.27.3
+go 1.27.4
 
 require (
 	github.com/cloudwego/eino v0.9.21

@@ -21,7 +21,7 @@ config_roots = [
 node = "26.12.1"
 pnpm = "10.28.1"
 wrangler = "4.127.0"
-go = "1.27.3"
+go = "1.27.4"
 golangci-lint = "2.14.0"
 # restic is FUTO's build from futo-org/restic, the one the images ship (parallel directory walk).
 # It has no release downloads, so `mise install` pulls it out of the standalone image's pinned

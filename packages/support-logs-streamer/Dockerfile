@@ -5,7 +5,7 @@ ARG ALPINE_VERSION=3.23
 # be appended to the golang base tags (which reuse ${ALPINE_VERSION}).
 ARG ALPINE_IMAGE=alpine:3.24@sha256:294b683cb724975bec92580e1e685676bd4b50bda910ddb8c51d4cabeaec77e6
 
-FROM golang:1.27.3-alpine${ALPINE_VERSION} AS dev
+FROM golang:1.27.4-alpine${ALPINE_VERSION} AS dev
 WORKDIR /src
 # air is pinned: @latest broke michael's build when v1.67.2 started requiring a
 # newer Go than this base image ships (bump air and the golang tag together).
@@ -16,7 +16,7 @@ COPY packages/support-logs-streamer/ ./
 EXPOSE 3040
 CMD ["air", "-c", ".air.toml"]
 
-FROM golang:1.27.3-alpine${ALPINE_VERSION} AS builder
+FROM golang:1.27.4-alpine${ALPINE_VERSION} AS builder
 WORKDIR /app
 
 COPY packages/support-logs-streamer/go.mod packages/support-logs-streamer/go.sum ./
