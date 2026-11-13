@@ -4,11 +4,11 @@ description: What FUTO Cloud collects when you use a FUTO Account, how it is use
 order: 2
 ---
 
-**Last updated:** October 21, 2026
+**Last updated:** November 13, 2026
 
 ## 1. Scope of This Policy
 
-This Privacy Policy applies to FUTO Cloud ("we", "our", or "us") and covers our collection, use, and disclosure of your information when you create a FUTO Account at futo.cloud and use FUTO Cloud services with it, including the Immich Backup service. This Policy does not cover any third-party websites, services, or applications that can be accessed through our app. Data on your Immich server stays on your server, and we only receive what the Backup Service transmits to us.
+This Privacy Policy applies to FUTO Cloud ("we", "our", or "us") and covers our collection, use, and disclosure of your information when you create a FUTO Account at futo.cloud and use FUTO Cloud services with it, including the Immich Backup service, and when you contact our support, including on our Discord server. This Policy does not cover any third-party websites, services, or applications that can be accessed through our app. Data on your Immich server stays on your server, and we only receive what the Backup Service transmits to us.
 
 ## 2. Information We Collect
 
@@ -48,6 +48,14 @@ Connection and backup names are not part of your encrypted backup content. We st
 - Hardware specifications
 - Network information (e.g., ASN and measured upload/download speeds)
 
+**Support:** When you contact support, we collect what you send us, including messages, attachments, and any logs you choose to share. If you open a support ticket on our Discord server, our support bot also collects:
+
+- Your Discord user ID and username
+- The link between your Discord account and your FUTO Account
+- The messages and attachments posted in your ticket
+
+The support bot only processes messages posted in support tickets. It does not process the content of messages in any other channel.
+
 ## 3. Use of Your Information
 
 **Providing FUTO Cloud:** Account information is used to create and secure your account, store and return your backups, bill your subscription, and respond to support requests.
@@ -55,6 +63,8 @@ Connection and backup names are not part of your encrypted backup content. We st
 **Purchasing:** The country of origin and postal code are collected solely for determining the applicable tax rates on your purchase. Card details are used by our payment processor to process your payment.
 
 **Improving FUTO Cloud:** Request metadata, device, and connection information help us understand our user base and ensure that we optimize our clients and infrastructure for those devices, networks, and locations.
+
+**Support:** Support conversations are used to resolve your request. When you open a support ticket with a linked FUTO Account, an AI tool reviews your ticket together with the service data tied to your account and reports its findings, and our staff may run it again later. These findings are shown only to our staff. We do not use your support conversations to train AI models.
 
 ## 4. Sharing of Your Information
 
@@ -64,6 +74,8 @@ Connection and backup names are not part of your encrypted backup content. We st
 
 **Infrastructure Providers:** Our hosting provider stores data on our behalf and may only process it to provide that service to us.
 
+**Support Providers:** Support conversations are copied to our helpdesk provider so our staff can answer them and, if you choose, so you can receive replies by email. When the AI tool described above runs, your ticket conversation and related account data are sent to a third-party AI model provider to produce the analysis. Messages you post on Discord are also handled by Discord under its own privacy policy.
+
 **Legal Requests:** We disclose information only where legally required, such as a lawful request by public authorities. Because backup content is end-to-end encrypted, we cannot produce it.
 
 We do not sell your information, and we do not use it for advertising.
@@ -71,6 +83,8 @@ We do not sell your information, and we do not use it for advertising.
 ## 5. Data Retention and Deletion
 
 We keep your information while your account is active. Once your subscription ends (a cancellation takes effect at the end of the current billing period) or you delete your account, your backup data will no longer be available for export and is deleted from our systems within 90 days. Billing records are kept as long as tax law requires.
+
+Support conversations are kept as long as we need them to support you, and are not deleted on a fixed schedule. Support tickets on Discord are deleted from Discord 14 days after they close, and a transcript is kept on our own systems. You can ask us to delete your support conversations at any time.
 
 ## 6. Your Rights
 
