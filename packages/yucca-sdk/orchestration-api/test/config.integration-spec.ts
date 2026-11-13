@@ -89,6 +89,7 @@ describe('Configuration upsert', () => {
     const keys = await rows();
     expect(keys.map((candidate) => candidate.key)).toEqual([
       'encryption-key',
+      'installation-id',
       'onboarded-key',
       'session-secret',
       'skipped-onboarding-extra-config',
