@@ -13,6 +13,10 @@ const isCronExpression = (expression: string): boolean => {
 
 const CronExpressionSchema = z.string().refine(isCronExpression, 'Invalid cron expression');
 
+const ScheduleDefaultsSchema = z
+  .object({ daily: z.string(), weekly: z.string(), monthly: z.string() })
+  .meta({ id: 'ScheduleDefaultsDto' });
+
 export const ScheduleSchema = z
   .object({
     id: z.string(),
@@ -48,9 +52,10 @@ const ScheduleUpdateRequestSchema = z
 const ScheduleUpdateResponseSchema = z.object({ schedule: ScheduleSchema }).meta({ id: 'ScheduleUpdateResponseDto' });
 
 const ScheduleListResponseSchema = z
-  .object({ schedules: z.array(ScheduleSchema) })
+  .object({ schedules: z.array(ScheduleSchema), defaults: ScheduleDefaultsSchema })
   .meta({ id: 'ScheduleListResponseDto' });
 
+export class ScheduleDefaultsDto extends createZodDto(ScheduleDefaultsSchema) {}
 export class ScheduleDto extends createZodDto(ScheduleSchema) {}
 export class ScheduleCreateRequestDto extends createZodDto(ScheduleCreateRequestSchema) {}
 export class ScheduleCreateResponseDto extends createZodDto(ScheduleCreateResponseSchema) {}

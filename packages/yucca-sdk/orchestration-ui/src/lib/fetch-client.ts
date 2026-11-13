@@ -396,8 +396,14 @@ export type ScheduleCreateRequestDto = {
 export type ScheduleCreateResponseDto = {
     schedule: ScheduleDto;
 };
+export type ScheduleDefaultsDto = {
+    daily: string;
+    weekly: string;
+    monthly: string;
+};
 export type ScheduleListResponseDto = {
     schedules: ScheduleDto[];
+    defaults: ScheduleDefaultsDto;
 };
 export type ScheduleUpdateRequestDto = {
     name?: string;

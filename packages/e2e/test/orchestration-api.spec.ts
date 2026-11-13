@@ -711,6 +711,11 @@ describe('Schedule', () => {
 
   it('gets a list of schedules', async () => {
     await expect(sdk.futoBackupsGetSchedules()).resolves.toEqual({
+      defaults: {
+        daily: expect.stringMatching(/^\d+ 3 \* \* \*$/),
+        weekly: expect.stringMatching(/^\d+ 3 \* \* [0-6]$/),
+        monthly: expect.stringMatching(/^\d+ 3 \d+ \* \*$/),
+      },
       schedules: expect.arrayContaining([
         expect.objectContaining({
           id: schedule.id,

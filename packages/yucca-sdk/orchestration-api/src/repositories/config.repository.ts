@@ -1,7 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { Kysely } from 'kysely';
 import { InjectKysely } from 'nestjs-kysely';
-import { randomBytes } from 'node:crypto';
+import { randomBytes, randomUUID } from 'node:crypto';
 import { availableParallelism } from 'node:os';
 import { resolve } from 'node:path';
 import { ConfigurationKey, ConnectionsSource, TelemetryLevel } from '../enum.js';
@@ -46,6 +46,7 @@ export class ConfigRepository {
     }
 
     await this.recordStatePath(statePath);
+    await this.getInstallationId();
 
     const hasSecret = await this.hasSessionSecret();
 
@@ -135,6 +136,17 @@ export class ConfigRepository {
     const row = await this.db.selectFrom('futo_backups_config').where('key', '=', key).select('key').executeTakeFirst();
 
     return !!row;
+  }
+
+  async getInstallationId(): Promise<string> {
+    await this.db
+      .insertInto('futo_backups_config')
+      .values({ key: ConfigurationKey.InstallationId, value: { id: randomUUID() } })
+      .onConflict((oc) => oc.column('key').doNothing())
+      .execute();
+
+    const { id } = await this.get(ConfigurationKey.InstallationId);
+    return id;
   }
 
   async hasEncryptionKey() {

@@ -1,8 +1,8 @@
 <script lang="ts">
   import { useCreateSchedule } from "$lib/services/schedule.service";
-  import { runsMoreThanHourly } from "$lib/utils/cron";
-  import { Field, FormModal, HelperText, Input, Stack } from "@immich/ui";
-  import validate from "cron-validate";
+  import { isValidCron } from "$lib/utils/cron";
+  import { Field, FormModal, Input, Stack } from "@immich/ui";
+  import ScheduleEditor from "../ScheduleEditor.svelte";
   import RepositoryPicker from "../RepositoryPicker.svelte";
   import { t } from "svelte-i18n-lingui";
 
@@ -13,10 +13,8 @@
   const { onClose }: Props = $props();
 
   let name = $state("");
-  let cron = $state("0 3 * * *");
+  let cron = $state("@daily");
   let repositories = $state<string[]>([]);
-
-  const cronInvalid = $derived(validate(cron).isError());
 
   const mutation = useCreateSchedule();
 
@@ -31,7 +29,7 @@
   title={$t`Create A New Schedule`}
   size="large"
   disabled={name.length === 0 ||
-    cronInvalid ||
+    !isValidCron(cron) ||
     repositories.length === 0 ||
     mutation.isPending}
   {onSubmit}
@@ -44,22 +42,7 @@
     >
       <Input bind:value={name} />
     </Field>
-    <Field
-      label={$t`Schedule`}
-      description={$t`Uses cron syntax`}
-      invalid={cronInvalid}
-    >
-      <Input bind:value={cron} />
-      {#if cronInvalid}
-        <HelperText color="danger"
-          >{$t`Enter a valid cron expression, for example 0 3 * * *`}</HelperText
-        >
-      {:else if runsMoreThanHourly(cron)}
-        <HelperText color="warning"
-          >{$t`This schedule runs more than once an hour. A * in the minute field runs a backup every minute.`}</HelperText
-        >
-      {/if}
-    </Field>
+    <ScheduleEditor bind:cron />
 
     <RepositoryPicker bind:repositories />
   </Stack>

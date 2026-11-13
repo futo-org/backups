@@ -21,6 +21,8 @@
     handleOnboardingStatus,
   } from "$lib/services/onboarding.service";
   import { handleCreateBackup } from "$lib/services/repository.service";
+  import { useSchedules } from "$lib/services/schedule.service";
+  import { resolveCron } from "$lib/utils/cron";
   import { LoadingSpinner } from "@immich/ui";
   import cronstrue from "cronstrue";
   import { onMount, type Snippet } from "svelte";
@@ -52,7 +54,15 @@
 
   const defaults = useConfigureAndStartImmichIntegration();
 
-  const schedule = cronstrue.toString(IMMICH_DEFAULT_CRON, { verbose: true });
+  const schedules = useSchedules();
+  const schedule = $derived(
+    schedules.data?.defaults
+      ? cronstrue.toString(
+          resolveCron(IMMICH_DEFAULT_CRON, schedules.data.defaults),
+          { verbose: true },
+        )
+      : "",
+  );
 
   onMount(() => {
     handleOnboardingStatus().then(async (data) => {

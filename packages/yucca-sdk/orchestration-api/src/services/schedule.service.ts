@@ -2,16 +2,18 @@ import { BadRequestException, Injectable, NotFoundException } from '@nestjs/comm
 import { SchedulerRegistry } from '@nestjs/schedule';
 import { CronJob, CronTime } from 'cron';
 import { Updateable } from 'kysely';
-import { randomUUID } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
 import {
   ScheduleCreateRequestDto,
   ScheduleCreateResponseDto,
+  ScheduleDefaultsDto,
   ScheduleListResponseDto,
   ScheduleUpdateRequestDto,
   ScheduleUpdateResponseDto,
 } from '../dto/schedule.dto.js';
 import { JobName } from '../enum.js';
 import { EventsGateway } from '../events/events.gateway.js';
+import { ConfigRepository } from '../repositories/config.repository.js';
 import { JobRepository } from '../repositories/job.repository.js';
 import { ModuleConfigRepository } from '../repositories/moduleConfig.repository.js';
 import { RepositoryIntegrationImmichRepository } from '../repositories/repositoryIntegrationImmich.repository.js';
@@ -29,6 +31,7 @@ export class ScheduleService {
     private readonly integrationImmich: RepositoryIntegrationImmichRepository,
     private readonly telemetry: TelemetryService,
     private readonly jobs: JobRepository,
+    private readonly config: ConfigRepository,
   ) {}
 
   private readonly cronJobs = new Set<string>();
@@ -41,16 +44,23 @@ export class ScheduleService {
     this.cronJobs.clear();
 
     for (const schedule of await this.schedule.getAll()) {
-      this.createCronJob(schedule.id, schedule.cron, schedule.paused);
+      await this.createCronJob(schedule.id, schedule.cron, schedule.paused);
     }
   }
 
-  private createCronJob(id: string, cron: string, paused: boolean): void {
+  private async resolveCron(cron: string): Promise<string> {
+    const { daily, weekly, monthly } = await this.getScheduleDefaults();
+    const presets: Record<string, string> = { '@daily': daily, '@weekly': weekly, '@monthly': monthly };
+    return presets[cron] ?? cron;
+  }
+
+  private async createCronJob(id: string, cron: string, paused: boolean): Promise<void> {
+    const expression = await this.resolveCron(cron);
     this.cronJobs.add(id);
     this.schedulerRegistry.addCronJob(
       id,
       new CronJob<null, null>(
-        cron, // expression
+        expression,
         () => this.runSchedule(id), // onTick
         undefined, // onComplete
         !paused, // started
@@ -63,9 +73,10 @@ export class ScheduleService {
     );
   }
 
-  private updateCronJob(id: string, cron: string, paused: boolean): void {
+  private async updateCronJob(id: string, cron: string, paused: boolean): Promise<void> {
+    const expression = await this.resolveCron(cron);
     const job = this.schedulerRegistry.getCronJob(id);
-    job.setTime(new CronTime(cron));
+    job.setTime(new CronTime(expression));
 
     if (paused) {
       void job.stop();
@@ -156,16 +167,31 @@ export class ScheduleService {
       schedule,
     });
 
-    this.createCronJob(id, dto.cron, schedule.paused);
+    await this.createCronJob(id, dto.cron, schedule.paused);
 
     return {
       schedule,
     };
   }
 
+  async getScheduleDefaults(): Promise<ScheduleDefaultsDto> {
+    const installationId = await this.config.getInstallationId();
+    const hash = createHash('sha256').update(`backup-schedule:${installationId}`).digest();
+    const minute = hash.readUInt32BE(0) % 60;
+    const weekday = hash.readUInt32BE(4) % 7;
+    const monthday = (hash.readUInt32BE(8) % 28) + 1;
+
+    return {
+      daily: `${minute} 3 * * *`,
+      weekly: `${minute} 3 * * ${weekday}`,
+      monthly: `${minute} 3 ${monthday} * *`,
+    };
+  }
+
   async getSchedules(): Promise<ScheduleListResponseDto> {
     return {
       schedules: await this.schedule.getAll(),
+      defaults: await this.getScheduleDefaults(),
     };
   }
 
@@ -226,7 +252,7 @@ export class ScheduleService {
       schedule,
     });
 
-    this.updateCronJob(scheduleId, schedule.cron, schedule.paused);
+    await this.updateCronJob(scheduleId, schedule.cron, schedule.paused);
 
     return {
       schedule,

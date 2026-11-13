@@ -10,7 +10,7 @@ A backup only protects you if it keeps running. Schedules do that.
 
 Open the backups page, select **Configure**, then **Schedule**, and turn on **Run backups automatically**.
 
-Pick a **Frequency** of daily, weekly or monthly and a **Start time** on the hour. The default is daily at 03:00. The page tells you in plain words when backups will run, then select **Save**.
+Pick a **Frequency** of daily, weekly or monthly. We recommend that you keep the default time and day, as this helps us optimise your backup performance. By default, we'll perform your backup between 03:00 and 04:00.
 
 ## In the standalone app
 
@@ -18,7 +18,7 @@ Schedules are separate from backups, so one schedule can run several backups in 
 
 1. Go to **Schedules** and select **Create new schedule**.
 2. Give it a **Name**.
-3. Set **Schedule**, which takes a cron expression. The box starts at `*/15 * * * *`, every fifteen minutes, which is almost certainly not what you want.
+3. Pick a **Frequency**. New schedules start on the installation's daily default. Choose **Custom** to enter a cron expression.
 4. Add the backups it should run, in the order you want them.
 5. Save.
 
@@ -26,6 +26,9 @@ Common expressions:
 
 | Expression | When it runs |
 | --- | --- |
+| `@daily` | This installation's daily default |
+| `@weekly` | This installation's weekly default |
+| `@monthly` | This installation's monthly default |
 | `0 3 * * *` | Every day at 03:00 |
 | `0 3 * * 0` | Every Sunday at 03:00 |
 | `0 */6 * * *` | Every six hours |

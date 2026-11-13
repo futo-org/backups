@@ -10,7 +10,7 @@ import { handleError } from '$lib/utils/handle-error';
 import { createMutation, createQuery } from '@tanstack/svelte-query';
 import { gt } from 'svelte-i18n-lingui';
 
-export const IMMICH_DEFAULT_CRON = '0 3 * * *';
+export const IMMICH_DEFAULT_CRON = '@daily';
 
 export const integrationsKeys = {
   all: ['integrations'] as const,

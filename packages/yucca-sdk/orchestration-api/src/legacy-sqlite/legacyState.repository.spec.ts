@@ -65,6 +65,26 @@ afterEach(async () => {
 });
 
 describe(LegacyStateRepository.name, () => {
+  it('imports the old default schedules as presets and keeps customised schedules', async () => {
+    await createLegacyState([
+      `INSERT INTO schedules (id, name, paused, cron, ordering) VALUES
+        ('00000000-0000-0000-0000-000000000001', 'Daily', 1, '0 3 * * *', '[]'),
+        ('00000000-0000-0000-0000-000000000002', 'Weekly', 1, '0 3 * * 0', '[]'),
+        ('00000000-0000-0000-0000-000000000003', 'Monthly', 1, '0 3 1 * *', '[]'),
+        ('00000000-0000-0000-0000-000000000004', 'Custom', 1, '5 4 * * 2', '[]')`,
+    ]);
+    await legacyState.importFrom(directory);
+    const schedules = await db.selectFrom('futo_backups_schedule').select(['name', 'cron']).execute();
+    expect(schedules).toEqual(
+      expect.arrayContaining([
+        { name: 'Daily', cron: '@daily' },
+        { name: 'Weekly', cron: '@weekly' },
+        { name: 'Monthly', cron: '@monthly' },
+        { name: 'Custom', cron: '5 4 * * 2' },
+      ]),
+    );
+  });
+
   it('imports the state and history and leaves secrets behind', async () => {
     await createLegacyState([
       `INSERT INTO config (key, value) VALUES

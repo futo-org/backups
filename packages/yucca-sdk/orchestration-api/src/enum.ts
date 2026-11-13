@@ -29,6 +29,7 @@ export enum ConfigurationKey {
   Throttle = 'throttle',
   SupportMode = 'support-mode',
   RestoreAwaitingContinue = 'restore-awaiting-continue',
+  InstallationId = 'installation-id',
 }
 
 export enum ConnectionsSource {
