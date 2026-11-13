@@ -73,7 +73,11 @@ describe('FeaturesController (e2e)', () => {
         .get(`/api/user/${user.id}/features`)
         .set('Cookie', authCookie)
         .expect(200);
-      expect(body.features).toEqual({ 'connection-restic': true, 'support-log-streaming': false });
+      expect(body.features).toEqual({
+        'connection-restic': true,
+        'support-log-streaming': false,
+        'immich-database-dump-alert': false,
+      });
       expect(body.overrides).toEqual([
         expect.objectContaining({ flag: 'connection-restic', value: true, setBy: 'admin', reason: 'beta cohort 1' }),
       ]);
@@ -87,7 +91,11 @@ describe('FeaturesController (e2e)', () => {
         .get(`/api/user/${user.id}/features`)
         .set('Cookie', authCookie)
         .expect(200));
-      expect(body.features).toEqual({ 'connection-restic': false, 'support-log-streaming': false });
+      expect(body.features).toEqual({
+        'connection-restic': false,
+        'support-log-streaming': false,
+        'immich-database-dump-alert': false,
+      });
       expect(body.overrides).toEqual([]);
     });
 

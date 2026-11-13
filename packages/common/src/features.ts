@@ -23,6 +23,13 @@ export const FeatureFlags = {
     description: 'Stream restic support-mode (-vv) logs from the client to FUTO',
     since: '1.9.0',
   },
+  immichDatabaseDumpAlert: {
+    key: 'immich-database-dump-alert',
+    default: false,
+    stage: 'experimental',
+    description: 'Suggest turning off Immich nightly database backups when FUTO Backups is backing up Immich',
+    since: '1.18.0',
+  },
 } as const satisfies Record<string, FeatureFlagDefinition>;
 
 export type FeatureFlagKey = (typeof FeatureFlags)[keyof typeof FeatureFlags]['key'];
