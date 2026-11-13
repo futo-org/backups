@@ -1,5 +1,23 @@
 # Changelog
 
+## [1.18.0](https://github.com/futo-org/backups/compare/v1.17.0...v1.18.0) (2026-11-13)
+
+
+### Features
+
+* **yucca sdk:** deterministic default schedules based on installation id ([#218](https://github.com/futo-org/backups/issues/218)) ([ce7c0a8](https://github.com/futo-org/backups/commit/ce7c0a815e4762c9f9ac0c648adb32476a5fa1ad))
+* **yucca sdk:** gate the Immich database backup alert behind a feature flag ([#219](https://github.com/futo-org/backups/issues/219)) ([39e1250](https://github.com/futo-org/backups/commit/39e12505db4067ce162b70016691150d67cb3b7a))
+
+
+### Bug Fixes
+
+* **orchestration-ui:** clearer snapshot menu labels for roll back and restore ([#213](https://github.com/futo-org/backups/issues/213)) ([5951e96](https://github.com/futo-org/backups/commit/5951e96e09841393cd392374a4ffcbae4185c08e))
+
+
+### Documentation
+
+* **legal:** cover support and Discord ticket data in the privacy policy ([#220](https://github.com/futo-org/backups/issues/220)) ([fa2578b](https://github.com/futo-org/backups/commit/fa2578b80d8cfd994a0f440ee9eae97c147fa683))
+
 ## [1.17.0](https://github.com/futo-org/backups/compare/v1.16.0...v1.17.0) (2026-11-12)
 
 
