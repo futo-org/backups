@@ -3,9 +3,11 @@
   import {
     defaultQuietHoursEnd,
     defaultQuietHoursStart,
+    formatAutomaticConnections,
     toBandwidthDto,
     toBandwidthForm,
     toBytesPerSec,
+    toConnectionsOverride,
     useConfig,
     useUpdateConfig,
   } from "$lib/services/config.service";
@@ -35,6 +37,7 @@
   let quiet = $state(false);
   let quietStart = $state(defaultQuietHoursStart);
   let quietEnd = $state(defaultQuietHoursEnd);
+  let connections = $state<number>();
   let loaded = false;
 
   const load = () => {
@@ -45,6 +48,7 @@
     ({ mbps, quiet, quietStart, quietEnd } = toBandwidthForm(
       config.data.bandwidth,
     ));
+    connections = config.data.connections.override ?? undefined;
   };
 
   $effect(() => {
@@ -59,8 +63,13 @@
   const limited = $derived(toBytesPerSec(mbps) > 0);
 
   const onSave = () => {
+    if (!config.data) {
+      return;
+    }
+
     mutation.mutate({
       bandwidth: toBandwidthDto({ mbps, quiet, quietStart, quietEnd }),
+      connections: toConnectionsOverride(connections, config.data.connections),
     });
   };
 </script>
@@ -124,6 +133,27 @@
             {/if}
           </div>
         </div>
+      {/if}
+
+      {#if config.data}
+        <Field
+          label={$t`Upload connections`}
+          description={$t`Parallel uploads to storage. Raise on fast links, lower if your network or disk is struggling. Leave empty for automatic.`}
+          color="primary"
+        >
+          <NumberInput
+            bind:value={connections}
+            min={config.data.connections.min}
+            max={config.data.connections.max}
+            step={1}
+            placeholder={$t({
+              message: "Automatic ({count})",
+              values: {
+                count: formatAutomaticConnections(config.data.connections),
+              },
+            })}
+          />
+        </Field>
       {/if}
 
       <HStack gap={2} class="justify-end">

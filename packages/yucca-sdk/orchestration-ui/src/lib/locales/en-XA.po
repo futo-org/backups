@@ -259,6 +259,10 @@ msgstr ""
 msgid "Attempted"
 msgstr ""
 
+#: src/lib/components/integrations/immich/settings/ImmichSettingsBandwidth.svelte
+msgid "Automatic ({count})"
+msgstr ""
+
 #: src/lib/components/onboarding/upsell/UpsellBackupFeaturesGrid.svelte
 msgid "Automatic backups"
 msgstr ""
@@ -445,6 +449,10 @@ msgstr ""
 msgid "Backups"
 msgstr ""
 
+#: src/lib/components/integrations/immich/ImmichResticMissingAlert.svelte
+msgid "Backups can't run on this Immich image"
+msgstr ""
+
 #: src/lib/components/backups/BackupsList.svelte
 msgid "Backups found elsewhere"
 msgstr ""
@@ -517,11 +525,15 @@ msgid "Can't access, is your recovery key correct?"
 msgstr ""
 
 #: ../../web/src/lib/components/onboarding/GetStartedChecklist.svelte
-msgid "Can't change your Immich image, or not using Immich?"
-msgstr ""
+#~ msgid "Can't change your Immich image, or not using Immich?"
+#~ msgstr ""
 
 #: src/lib/components/backups/dialogs/ImportRepositoryModal.svelte
 msgid "Can't read repository."
+msgstr ""
+
+#: ../../web/src/lib/components/onboarding/GetStartedChecklist.svelte
+msgid "Can't update Immich to v3.4.0 yet, or not using Immich?"
 msgstr ""
 
 #: src/lib/components/backends/dialogs/OAuthDeviceFlowModal.svelte
@@ -1193,8 +1205,8 @@ msgid "FUTO Backups adds backup support to your existing Immich setup, giving yo
 msgstr ""
 
 #: src/lib/components/integrations/immich/ImmichDatabaseDumpAlert.svelte
-msgid "FUTO Backups already creates the same database backups as Immich."
-msgstr ""
+#~ msgid "FUTO Backups already creates the same database backups as Immich."
+#~ msgstr ""
 
 #: src/lib/components/onboarding/steps/OnboardingStepBetaDisclaimer.svelte
 msgid "FUTO Backups is free during the closed beta. You won't be charged for any usage."
@@ -1203,6 +1215,14 @@ msgstr ""
 #: src/lib/components/integrations/immich/ImmichManageBackupPage.svelte
 #: src/lib/components/integrations/immich/ImmichOnboardingSetupFlow.svelte
 msgid "FUTO Backups is in closed beta"
+msgstr ""
+
+#: src/lib/components/integrations/immich/ImmichDatabaseDumpAlert.svelte
+msgid "FUTO Backups makes a fresh database backup before every run, in the same folder as Immich's own nightly ones. Turning off Immich's nightly backups avoids doing the work twice. Your database backups still land in that folder, so any other backup you run of it keeps working."
+msgstr ""
+
+#: src/lib/components/integrations/immich/ImmichResticMissingAlert.svelte
+msgid "FUTO Backups needs the restic program, and this Immich image does not include it. Switch to the official Immich image, or use the FUTO Backups standalone container."
 msgstr ""
 
 #: src/lib/components/onboarding/steps/OnboardingStep3SaveRecoveryKey.svelte
@@ -1296,20 +1316,24 @@ msgid "ID {id}"
 msgstr ""
 
 #: src/lib/components/integrations/immich/ImmichDatabaseDumpAlert.svelte
-msgid "Ignore"
-msgstr ""
+#~ msgid "Ignore"
+#~ msgstr ""
 
 #: src/lib/components/integrations/immich/ImmichDatabaseDumpAlert.svelte
-msgid "Immich database backups are still enabled"
-msgstr ""
+#~ msgid "Immich database backups are still enabled"
+#~ msgstr ""
 
 #: src/lib/components/onboarding/steps/OnboardingStep4FirstBackup.svelte
 msgid "Immich has prepared recommended settings for your first backup. You can update these anytime from the Backups dashboard."
 msgstr ""
 
-#: src/lib/components/backups/BackupStatus.svelte
-msgid "Immich is backing up your library. You can close this window and continue using Immich while the backup runs in the background."
+#: src/lib/components/integrations/immich/ImmichDatabaseDumpAlert.svelte
+msgid "Immich is also making database backups"
 msgstr ""
+
+#: src/lib/components/backups/BackupStatus.svelte
+#~ msgid "Immich is backing up your library. You can close this window and continue using Immich while the backup runs in the background."
+#~ msgstr ""
 
 #: src/lib/components/backups/dialogs/ImportRepositoryModal.svelte
 #: src/lib/services/repository.service.ts
@@ -1400,6 +1424,10 @@ msgstr ""
 
 #: src/lib/components/backups/dialogs/CancelJobModal.svelte
 msgid "Keep backing up"
+msgstr ""
+
+#: src/lib/components/integrations/immich/ImmichDatabaseDumpAlert.svelte
+msgid "Keep both"
 msgstr ""
 
 #: src/lib/components/integrations/immich/settings/ImmichSettingsStorage.svelte
@@ -1495,7 +1523,11 @@ msgid "Link Discord account @{0} to {1}?"
 msgstr ""
 
 #: src/lib/components/onboarding/steps/OnboardingStep2ConnectAccount.svelte
-msgid "Link this Immich server to your FUTO account"
+#~ msgid "Link this Immich server to your FUTO account"
+#~ msgstr ""
+
+#: src/lib/components/onboarding/steps/OnboardingStep2ConnectAccount.svelte
+msgid "Link this server to your FUTO account"
 msgstr ""
 
 #: src/lib/components/backups/metrics-history/MetricsHistoryModal.svelte
@@ -1625,8 +1657,8 @@ msgid "Monthly"
 msgstr ""
 
 #: src/lib/components/integrations/immich/ImmichDatabaseDumpAlert.svelte
-msgid "Most users should select \"use FUTO Backups only\"."
-msgstr ""
+#~ msgid "Most users should select \"use FUTO Backups only\"."
+#~ msgstr ""
 
 #: src/lib/components/schedules/RepositoryPicker.svelte
 msgid "Move {name} down"
@@ -1886,6 +1918,10 @@ msgstr ""
 msgid "Page {item}"
 msgstr ""
 
+#: src/lib/components/integrations/immich/settings/ImmichSettingsBandwidth.svelte
+msgid "Parallel uploads to storage. Raise on fast links, lower if your network or disk is struggling. Leave empty for automatic."
+msgstr ""
+
 #: src/lib/components/backends/dialogs/CreateLocalBackendModal.svelte
 msgid "Path"
 msgstr ""
@@ -2125,8 +2161,8 @@ msgid "Restore failed"
 msgstr ""
 
 #: src/lib/services/snapshot.service.ts
-msgid "Restore files"
-msgstr ""
+#~ msgid "Restore files"
+#~ msgstr ""
 
 #: src/lib/components/backups/dialogs/RollbackSnapshotModal.svelte
 msgid "Restore files from the snapshot"
@@ -2134,6 +2170,10 @@ msgstr ""
 
 #: src/lib/components/backups/dialogs/RestoreSnapshotModal.svelte
 msgid "Restore files to where they were originally."
+msgstr ""
+
+#: src/lib/services/snapshot.service.ts
+msgid "Restore files…"
 msgstr ""
 
 #: src/lib/components/onboarding/restore-point-flow/RestorePointFlow2SelectSnapshot.svelte
@@ -2194,8 +2234,12 @@ msgid "Return you here to finish setup"
 msgstr ""
 
 #: src/lib/services/snapshot.service.ts
-msgid "Rollback snapshot"
+msgid "Roll back Immich to this snapshot…"
 msgstr ""
+
+#: src/lib/services/snapshot.service.ts
+#~ msgid "Rollback snapshot"
+#~ msgstr ""
 
 #: src/lib/components/backups/dialogs/RollbackSnapshotModal.svelte
 msgid "Rollback to this snapshot?"
@@ -2325,6 +2369,10 @@ msgstr ""
 
 #: src/lib/components/onboarding/steps/OnboardingStep2ConnectAccount.svelte
 msgid "Set up FUTO Cloud as your backup storage"
+msgstr ""
+
+#: src/lib/components/integrations/immich/ImmichResticMissingAlert.svelte
+msgid "Set up the standalone container"
 msgstr ""
 
 #: ../../web/src/lib/components/onboarding/GetStartedChecklist.svelte
@@ -2492,8 +2540,8 @@ msgid "Support mode is off."
 msgstr ""
 
 #: ../../web/src/lib/components/onboarding/GetStartedChecklist.svelte
-msgid "Switch Immich to the beta build"
-msgstr ""
+#~ msgid "Switch Immich to the beta build"
+#~ msgstr ""
 
 #: src/lib/components/backups/dialogs/RestoreSnapshotModal.svelte
 msgid "Target"
@@ -2550,11 +2598,15 @@ msgid "This invite link has expired. Go back to Discord and claim it again to ge
 msgstr ""
 
 #: ../../web/src/lib/components/onboarding/GetStartedChecklist.svelte
-msgid "This is a development build of Immich. Back up your Immich data first and don't use a server you can't afford to break."
-msgstr ""
+#~ msgid "This is a development build of Immich. Back up your Immich data first and don't use a server you can't afford to break."
+#~ msgstr ""
 
 #: src/lib/components/integrations/immich/ImmichManageBackupPage.svelte
 msgid "This is an early version of FUTO Backups. The service may be reset and your backup data may be deleted when the beta ends. Please don't rely on it as your only backup."
+msgstr ""
+
+#: src/lib/components/onboarding/RecoveryKeyDisplay.svelte
+msgid "This is one key. It is split across lines only to make it easier to read."
 msgstr ""
 
 #: ../../web/src/routes/link/discord/+page.svelte
@@ -2612,6 +2664,10 @@ msgstr ""
 msgid "Tuesday"
 msgstr ""
 
+#: src/lib/components/integrations/immich/ImmichDatabaseDumpAlert.svelte
+msgid "Turn off Immich's nightly backups"
+msgstr ""
+
 #: ../../web/src/lib/components/onboarding/GetStartedChecklist.svelte
 msgid "Turn on backups in Immich"
 msgstr ""
@@ -2628,6 +2684,14 @@ msgstr ""
 msgid "Until"
 msgstr ""
 
+#: ../../web/src/lib/components/onboarding/GetStartedChecklist.svelte
+msgid "Update Immich to v3.4.0"
+msgstr ""
+
+#: src/lib/components/integrations/immich/settings/ImmichSettingsBandwidth.svelte
+msgid "Upload connections"
+msgstr ""
+
 #: src/lib/components/integrations/immich/settings/ImmichSettingsBandwidth.svelte
 msgid "Upload speed"
 msgstr ""
@@ -2637,8 +2701,8 @@ msgid "Use default"
 msgstr ""
 
 #: src/lib/components/integrations/immich/ImmichDatabaseDumpAlert.svelte
-msgid "Use FUTO Backups only"
-msgstr ""
+#~ msgid "Use FUTO Backups only"
+#~ msgstr ""
 
 #: src/lib/components/onboarding/steps/OnboardingStep2ConnectAccount.svelte
 msgid "Use local storage"
@@ -2754,6 +2818,10 @@ msgstr ""
 
 #: src/lib/components/integrations/immich/settings/ImmichSettingsStorage.svelte
 msgid "Write-only"
+msgstr ""
+
+#: src/lib/components/backups/BackupStatus.svelte
+msgid "You can close this window and the backup will continue in the background."
 msgstr ""
 
 #: src/lib/components/backups/BackupStatus.svelte
@@ -2877,5 +2945,9 @@ msgid "Your restore was interrupted"
 msgstr ""
 
 #: src/lib/components/onboarding/steps/OnboardingStep1FinishSetup.svelte
-msgid "Your subscription is active. Finish setup to create your recovery key and start backing up your Immich library."
+#~ msgid "Your subscription is active. Finish setup to create your recovery key and start backing up your Immich library."
+#~ msgstr ""
+
+#: src/lib/components/onboarding/steps/OnboardingStep1FinishSetup.svelte
+msgid "Your subscription is active. Finish setup to create your recovery key and start backing up your library."
 msgstr ""

@@ -19,6 +19,7 @@ import { ModuleConfigRepository } from '../repositories/moduleConfig.repository.
 import { RepositoryRepository } from '../repositories/repository.repository.js';
 import { RepositoryIntegrationImmichRepository } from '../repositories/repositoryIntegrationImmich.repository.js';
 import { RepositoryPathRepository } from '../repositories/repositoryPath.repository.js';
+import { ResticRepository } from '../repositories/restic.repository.js';
 import { ScheduleRepository } from '../repositories/schedule.repository.js';
 import { ImmichRepositoryConfig } from '../schema/tables/repositoryIntegrationImmich.table.js';
 import { BackendService } from './backend.service.js';
@@ -43,6 +44,7 @@ export class IntegrationsService {
     private readonly telemetry: TelemetryService,
     private readonly lock: LockRepository,
     private readonly bootstrapRepository: BootstrapRepository,
+    private readonly restic: ResticRepository,
   ) {}
 
   @OnEvent(InternalEvent.ModuleConfigUpdated)
@@ -81,8 +83,9 @@ export class IntegrationsService {
   async getImmichBackupStatus(): Promise<ImmichBackupStatusDto> {
     const { immichIntegration } = this.moduleConfig.get();
     const integration = await this.repositoryIntegrationImmich.get();
+    const resticAvailable = await this.restic.isAvailable();
     if (!integration || !immichIntegration) {
-      return {};
+      return { resticAvailable };
     }
 
     const [{ repositories }, { backends }, schedule, latestBackupJob, databaseDump, databaseDumpWarningIgnored] =
@@ -105,6 +108,7 @@ export class IntegrationsService {
       latestBackupJob,
       databaseDump,
       databaseDumpWarningIgnored,
+      resticAvailable,
     };
   }
 

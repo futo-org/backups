@@ -28,9 +28,10 @@
     repository: LocalRepositoryDto;
     schedule: ScheduleDto;
     status: ImmichBackupStatus;
+    resticMissing?: boolean;
   };
 
-  const { repository, schedule, status }: Props = $props();
+  const { repository, schedule, status, resticMissing = false }: Props = $props();
 
   const schedules = useSchedules();
   const expression = $derived(resolveCron(schedule.cron, schedules.data?.defaults));
@@ -87,6 +88,7 @@
         size="small"
         color={running ? "danger" : "primary"}
         class="whitespace-nowrap"
+        disabled={!running && resticMissing}
         leadingIcon={running ? mdiStopCircleOutline : mdiCloudUploadOutline}
         onclick={() =>
           void (status.kind === "running"

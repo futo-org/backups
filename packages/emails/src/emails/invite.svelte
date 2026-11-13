@@ -20,8 +20,7 @@
     <Link href="https://discord.com/channels/979116623879368755/1544327850297921586">#backups-support</Link> channels. For
     setup instructions and documentation, please see
     <Link href="https://docs.futo.cloud/">https://docs.futo.cloud/</Link>. It's important to note that the beta requires
-    you to run a non-tagged version of Immich, but we keep it up to date with the latest releases. We aim to get this
-    merged and tagged as soon as possible.
+    Immich v3.4.0 or later.
   </Text>
   <Text>
     To set up Immich, follow these instructions

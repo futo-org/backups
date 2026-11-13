@@ -67,6 +67,7 @@ const ImmichBackupStatusSchema = z
     latestBackupJob: JobSchema.optional(),
     databaseDump: ImmichDatabaseDumpConfigSchema.optional(),
     databaseDumpWarningIgnored: z.boolean().optional(),
+    resticAvailable: z.boolean(),
   })
   .meta({ id: 'ImmichBackupStatusDto' });
 

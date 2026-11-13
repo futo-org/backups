@@ -1,3 +1,4 @@
+import { ResticBackupCommandCouldNotReadSourceDataError } from '@futo-org/restic-wrapper';
 import { jest } from '@jest/globals';
 import { randomUUID } from 'node:crypto';
 import { access, mkdir, mkdtemp, readFile } from 'node:fs/promises';
@@ -11,6 +12,7 @@ import { ModuleConfigRepository } from '../src/repositories/moduleConfig.reposit
 import { BootstrapService } from '../src/services/bootstrap.service.js';
 import { OnboardingService } from '../src/services/onboarding.service.js';
 import { RepositoryService } from '../src/services/repository.service.js';
+import { RESTIC_NOT_FOUND_MESSAGE, ResticNotFoundError } from '../src/utils/errors.js';
 import { SupportSession } from '../src/utils/supportSession.js';
 import { createTestingModule, TestContext } from './testUtils.js';
 
@@ -111,6 +113,42 @@ describe(JobRepository.name, () => {
 
     const log = await readFile(join(ctx.statePath, 'logs', 'jobs', `${id}.jsonl`), 'utf8');
     expect(log).toContain('restic forget failed');
+  });
+
+  it('records a clear error when restic is missing', async () => {
+    const jobs = ctx.module.get(JobRepository);
+    ctx.resticMock.forget.mockRejectedValueOnce(new ResticNotFoundError());
+
+    const id = await jobs.queue(forget('snapshot-1'));
+
+    await expect(jobs.wait(id)).rejects.toThrow(RESTIC_NOT_FOUND_MESSAGE);
+    const job = await getJob(id);
+    expect(job.status).toBe(JobStatus.Failed);
+    expect(job.outcome?.errors).toEqual([expect.stringContaining(RESTIC_NOT_FOUND_MESSAGE)]);
+  });
+
+  it('does not blame connectivity for a job that finished with warnings', async () => {
+    const jobs = ctx.module.get(JobRepository);
+    const fetch = jest.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(''));
+    const warning = new ResticBackupCommandCouldNotReadSourceDataError('at least one source file could not be read');
+    warning.error = [
+      {
+        message_type: 'error',
+        error: {
+          message: 'Save(<data/ae04524f63>) returned error, retrying after 575ms: unexpected HTTP response (502)',
+        },
+      },
+    ];
+    ctx.resticMock.forget.mockRejectedValueOnce(warning);
+
+    const id = await jobs.queue(forget('snapshot-1'));
+
+    await expect(jobs.wait(id)).rejects.toThrow('at least one source file could not be read');
+    const job = await getJob(id);
+    expect(job.status).toBe(JobStatus.Warn);
+    expect(job.outcome?.errors).not.toContainEqual(expect.stringContaining('Could not reach FUTO Backups'));
+    expect(fetch).not.toHaveBeenCalled();
+    fetch.mockRestore();
   });
 
   it('resolves a stored log path against the current state directory', async () => {

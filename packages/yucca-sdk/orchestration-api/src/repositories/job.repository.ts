@@ -577,7 +577,7 @@ export class JobRepository implements OnModuleInit, BeforeApplicationShutdown {
   }
 
   private async explainConnectivity(ctx: JobContext, error: unknown) {
-    if (error instanceof TaskCancelledError) {
+    if (getJobStatus(error) !== JobStatus.Failed) {
       return;
     }
 

@@ -77,11 +77,32 @@ export type BandwidthDto = {
     bytesPerSec: number;
     quietHours?: string;
 };
+export type ConnectionsSource = "override" | "well-known" | "cores";
+export type ConnectionsPlacementDto = {
+    siteCode: string | null;
+    storageClusterCode: string | null;
+    /** Connections used here when no override is set */
+    automatic: number;
+    /** Connections the next restic run here will use */
+    effective: number;
+    source: ConnectionsSource;
+};
+export type ConnectionsDto = {
+    /** Stored override, null when automatic */
+    "override": number | null;
+    /** Resolution for each distinct placement of the local repositories, or the global one without any */
+    placements: ConnectionsPlacementDto[];
+    min: number;
+    max: number;
+};
 export type ConfigResponseDto = {
     bandwidth: BandwidthDto;
+    connections: ConnectionsDto;
 };
 export type ConfigUpdateRequestDto = {
-    bandwidth: BandwidthDto;
+    bandwidth?: BandwidthDto;
+    /** Restic REST connections override, null to resolve it automatically */
+    connections?: number | null;
 };
 export type FilesystemListingItemDto = {
     path: string;
@@ -236,6 +257,7 @@ export type ImmichBackupStatusDto = {
     latestBackupJob?: JobDto;
     databaseDump?: ImmichDatabaseDumpConfigDto;
     databaseDumpWarningIgnored?: boolean;
+    resticAvailable: boolean;
 };
 export type ConfigureImmichIntegrationRequestDto = {
     name: string;

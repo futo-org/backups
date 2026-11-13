@@ -21,6 +21,7 @@
   import { Alert, Button, Container, HStack, Stack, Text } from "@immich/ui";
   import ImmichDatabaseDumpAlert from "./ImmichDatabaseDumpAlert.svelte";
   import ImmichManageBackupOverview from "./ImmichManageBackupOverview.svelte";
+  import ImmichResticMissingAlert from "./ImmichResticMissingAlert.svelte";
   import { t } from "svelte-i18n-lingui";
 
   type Props = {
@@ -49,6 +50,7 @@
   <Container size="medium" center>
     {#if repository && schedule}
       <Stack class="mt-4" gap={6}>
+        <ImmichResticMissingAlert />
         <Alert color="info" title={$t`FUTO Backups is in closed beta`}>
           <Stack gap={3}>
             <Text size="small">
@@ -77,7 +79,12 @@
           </Stack>
         </Alert>
         <ImmichDatabaseDumpAlert />
-        <ImmichManageBackupOverview {repository} {schedule} status={backup.status} />
+        <ImmichManageBackupOverview
+          {repository}
+          {schedule}
+          status={backup.status}
+          resticMissing={backup.resticMissing}
+        />
         <BackendsList {repository} />
         <RepositoryRunHistory {repository} onViewAll={onViewAttempts} />
         <RepositorySnapshotsList

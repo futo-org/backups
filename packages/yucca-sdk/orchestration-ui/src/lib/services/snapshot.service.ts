@@ -105,7 +105,6 @@ export const handleForgetSnapshot = async (
 ) => {
   toastManager.info(gt`Deleting snapshot`, {
     id: snapshotId,
-    closable: false,
     timeout: null!,
   });
 
@@ -154,7 +153,7 @@ export const getSnapshotActions = (
   const removeSnapshot = useRemoveSnapshot(repositoryId);
 
   const Restore: ActionItem = {
-    title: t(msg`Restore files`),
+    title: t(msg`Restore files…`),
     icon: mdiBackupRestore,
     onAction: () =>
       void modalManager.open(RestoreSnapshotModal, {
@@ -164,7 +163,7 @@ export const getSnapshotActions = (
   };
 
   const Rollback: ActionItem = {
-    title: t(msg`Rollback snapshot`),
+    title: t(msg`Roll back Immich to this snapshot…`),
     icon: mdiHistory,
     onAction: () =>
       void modalManager.open(RollbackSnapshotModal, {

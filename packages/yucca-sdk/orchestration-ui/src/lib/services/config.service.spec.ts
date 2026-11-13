@@ -5,13 +5,30 @@ import {
 import { queryClient } from '$lib/query-client';
 import {
   configKeys,
+  formatAutomaticConnections,
   toBandwidthDto,
   toBandwidthForm,
+  toConnectionsOverride,
   useUpdateConfig,
 } from '$lib/services/config.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('$lib/fetch-client');
+
+const placement = {
+  siteCode: 'father',
+  storageClusterCode: 'father-spice',
+  automatic: 8,
+  effective: 8,
+  source: 'well-known' as const,
+};
+
+const connections: ConfigResponseDto['connections'] = {
+  override: null,
+  placements: [placement],
+  min: 1,
+  max: 128,
+};
 
 describe('toBandwidthForm', () => {
   it('reads the limit and quiet hours from the saved config', () => {
@@ -87,6 +104,41 @@ describe('toBandwidthDto', () => {
   });
 });
 
+describe('toConnectionsOverride', () => {
+  it('clears the override when the field is empty', () => {
+    expect(toConnectionsOverride(undefined, connections)).toBeNull();
+    expect(toConnectionsOverride(Number.NaN, connections)).toBeNull();
+  });
+
+  it('keeps a whole number within range', () => {
+    expect(toConnectionsOverride(12, connections)).toBe(12);
+  });
+
+  it('rounds and clamps to the allowed range', () => {
+    expect(toConnectionsOverride(2.4, connections)).toBe(2);
+    expect(toConnectionsOverride(0, connections)).toBe(1);
+    expect(toConnectionsOverride(500, connections)).toBe(128);
+  });
+});
+
+describe('formatAutomaticConnections', () => {
+  it('shows the single automatic value', () => {
+    expect(formatAutomaticConnections(connections)).toBe('8');
+  });
+
+  it('shows the range when repositories resolve differently', () => {
+    expect(
+      formatAutomaticConnections({
+        placements: [
+          { ...placement, automatic: 12 },
+          placement,
+          { ...placement, automatic: 4 },
+        ],
+      }),
+    ).toBe('4–12');
+  });
+});
+
 describe('useUpdateConfig', () => {
   beforeEach(() => {
     queryClient.clear();
@@ -96,6 +148,7 @@ describe('useUpdateConfig', () => {
   it('sends the bandwidth through the SDK and caches the saved config', async () => {
     const saved: ConfigResponseDto = {
       bandwidth: { bytesPerSec: 1_000_000, quietHours: '22:00-06:00' },
+      connections,
     };
     vi.mocked(futoBackupsUpdateConfig).mockResolvedValue(saved);
 
@@ -111,11 +164,16 @@ describe('useUpdateConfig', () => {
     await vi.waitFor(() =>
       expect(queryClient.getQueryData(configKeys.all)).toEqual(saved),
     );
-    expect(futoBackupsUpdateConfig).toHaveBeenCalledWith(saved);
+    expect(futoBackupsUpdateConfig).toHaveBeenCalledWith({
+      bandwidth: saved.bandwidth,
+    });
   });
 
   it('sends a zero limit without quiet hours to disable throttling', async () => {
-    const saved: ConfigResponseDto = { bandwidth: { bytesPerSec: 0 } };
+    const saved: ConfigResponseDto = {
+      bandwidth: { bytesPerSec: 0 },
+      connections,
+    };
     vi.mocked(futoBackupsUpdateConfig).mockResolvedValue(saved);
 
     useUpdateConfig().mutate({
@@ -132,6 +190,31 @@ describe('useUpdateConfig', () => {
     );
     expect(futoBackupsUpdateConfig).toHaveBeenCalledWith({
       bandwidth: { bytesPerSec: 0, quietHours: undefined },
+    });
+  });
+
+  it('sends a connections override alongside the bandwidth', async () => {
+    const saved: ConfigResponseDto = {
+      bandwidth: { bytesPerSec: 0 },
+      connections: {
+        ...connections,
+        override: 4,
+        placements: [{ ...placement, effective: 4, source: 'override' }],
+      },
+    };
+    vi.mocked(futoBackupsUpdateConfig).mockResolvedValue(saved);
+
+    useUpdateConfig().mutate({
+      bandwidth: { bytesPerSec: 0 },
+      connections: toConnectionsOverride(4, connections),
+    });
+
+    await vi.waitFor(() =>
+      expect(queryClient.getQueryData(configKeys.all)).toEqual(saved),
+    );
+    expect(futoBackupsUpdateConfig).toHaveBeenCalledWith({
+      bandwidth: { bytesPerSec: 0 },
+      connections: 4,
     });
   });
 });

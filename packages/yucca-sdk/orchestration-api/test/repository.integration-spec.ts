@@ -23,6 +23,7 @@ import { RepositoryIntegrationImmichRepository } from '../src/repositories/repos
 import { AuthService } from '../src/services/auth.service.js';
 import { IntegrationsService } from '../src/services/integrations.service.js';
 import { RepositoryService } from '../src/services/repository.service.js';
+import { TelemetryService } from '../src/services/telemetry.service.js';
 import { YuccaService } from '../src/services/yucca.service.js';
 import { newDatabaseHooksMock, newImmichHooksMock } from './mocks.js';
 import { createTestingModule, TestContext, waitFor, waitForEvent } from './testUtils.js';
@@ -181,6 +182,28 @@ describe('Repository', () => {
     );
 
     await expect(repositoryService.createBackup(repository.id)).rejects.toThrow('Missing configuration paths');
+  });
+
+  it('skips the metrics update when restic stats fails and there is nothing else to save', async () => {
+    const repositoryService = ctx.module.get(RepositoryService);
+    const telemetry = jest.spyOn(ctx.module.get(TelemetryService), 'submitStructuredLog');
+
+    const { repository } = await repositoryService.createRepository(
+      { name: 'Stats Failure Repo', worm: false },
+      ctx.backendId,
+    );
+    ctx.resticMock.stats.mockRejectedValueOnce(new Error('stats failed'));
+
+    await repositoryService.updateLocalMetrics(repository.id, {
+      resticParameters: {
+        endpoint: 'http://restic.test',
+        key: new Uint8Array(),
+        placement: { siteCode: null, storageClusterCode: null },
+      },
+    });
+
+    expect(telemetry).toHaveBeenCalledWith('Failed to read repository stats', expect.anything());
+    expect(telemetry).not.toHaveBeenCalledWith('Failed to update repository metrics', expect.anything());
   });
 
   it('updates metrics after successful backup', async () => {
