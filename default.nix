@@ -3,10 +3,10 @@
     sha256 = "06sil8mb0psrx1x49yfrxxr7sd6fqjz77amyx7bhr7rp3216gpyh";
   }) {},
 
-  # Playwright v1.59.1
+  # Playwright v1.63.0
   unstablePkgs ? import (fetchTarball {
-    url = "https://github.com/NixOS/nixpkgs/archive/b51242d7d43689db2f3be91bd05d5b24fbb469c4.tar.gz";
-    sha256 = "0ldd02kkfzndk0x98zsg992gqz84ip18hvrq01wws6p96ki176rb";
+    url = "https://github.com/NixOS/nixpkgs/archive/1e7da2489c0ba3a06bceec1b444fbc02c5223ab1.tar.gz";
+    sha256 = "023zzfbhnjp15clc2fbp7z81q0yqhdsllisq9wb4jmqd0advaflq";
   }) {},
 }:
 
