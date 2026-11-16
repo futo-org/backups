@@ -77,6 +77,7 @@ export class ResticRepository {
     const write = createSampledLogWriter(log);
     const { connections, packSizeMib } = await this.config.getResticOptions(placement);
     const walkConcurrency = await this.walkConcurrency();
+    const scopes = excludeScopes.filter(({ paths }) => paths.length > 0);
 
     // restic's default parent match includes the hostname, which in a container changes on every recreate and
     // would force a full re-read.
@@ -94,7 +95,7 @@ export class ResticRepository {
       .noScan(totalKnown && (walkConcurrency ?? 1) > 1)
       .addFile(...paths)
       .excludeCaches()
-      .iexcludeScopedGlob(...excludeScopes)
+      .iexcludeScopedGlob(...(scopes.some(({ patterns }) => patterns.length > 0) ? scopes : []))
       .signal(signal)
       .on('event', write)
       .run();
