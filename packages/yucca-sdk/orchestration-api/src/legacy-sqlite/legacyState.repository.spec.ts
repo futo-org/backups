@@ -136,6 +136,7 @@ describe(LegacyStateRepository.name, () => {
     expect(repositories).toContainEqual({
       id: repositoryId,
       remoteId: 'remote-uuid',
+      name: null,
       backendId,
       retentionPolicy: { keepLast: 3, keepWithin: '1m' },
       siteCode: 'test-site',
@@ -145,6 +146,7 @@ describe(LegacyStateRepository.name, () => {
     expect(bucket).toEqual({
       id: bucket?.id,
       remoteId: 'my-bucket',
+      name: null,
       backendId,
       retentionPolicy: null,
       siteCode: null,
