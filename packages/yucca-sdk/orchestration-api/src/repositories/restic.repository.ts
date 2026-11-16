@@ -72,6 +72,7 @@ export class ResticRepository {
     tags: string[] = [],
     parent?: string,
     totalKnown = false,
+    excludeScopes: { paths: string[]; patterns: string[] }[] = [],
   ) {
     const write = createSampledLogWriter(log);
     const { connections, packSizeMib } = await this.config.getResticOptions(placement);
@@ -93,6 +94,7 @@ export class ResticRepository {
       .noScan(totalKnown && (walkConcurrency ?? 1) > 1)
       .addFile(...paths)
       .excludeCaches()
+      .iexcludeScopedGlob(...excludeScopes)
       .signal(signal)
       .on('event', write)
       .run();

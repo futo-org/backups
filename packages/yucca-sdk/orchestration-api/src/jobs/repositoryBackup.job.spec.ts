@@ -29,8 +29,8 @@ describe(RepositoryBackupJob.name, () => {
       }),
     };
     const repositoryPaths = { get: jest.fn<() => Promise<string[]>>().mockResolvedValue(['/data']) };
-    const immichIntegration = { get: jest.fn<() => Promise<undefined>>().mockResolvedValue(undefined) };
-    const moduleConfig = { get: () => ({ statePath: '/state' }) };
+    const immichIntegration = { get: jest.fn<() => Promise<object | undefined>>().mockResolvedValue(undefined) };
+    const moduleConfig = { get: jest.fn<() => object>().mockReturnValue({ statePath: '/state' }) };
     const restic = newResticRepositoryMock();
     const jobs = {
       queue: jest.fn(),
@@ -54,6 +54,8 @@ describe(RepositoryBackupJob.name, () => {
       ),
       restic,
       context,
+      immichIntegration,
+      moduleConfig,
     };
   };
 
@@ -154,5 +156,35 @@ describe(RepositoryBackupJob.name, () => {
 
     expect(restic.snapshot).not.toHaveBeenCalled();
     expect(restic.backup.mock.calls[0][7]).toBeUndefined();
+  });
+
+  const immichLibraries = {
+    statePath: '/state',
+    immichIntegration: {
+      libraries: [
+        { id: 'library-1', importPaths: ['/photos'], exclusionPatterns: ['**/@eaDir/**'] },
+        { id: 'library-2', importPaths: ['/scans'], exclusionPatterns: ['**/*.pdf'] },
+      ],
+    },
+  };
+
+  it('excludes what the exclusion patterns of each library the Immich integration backs up match', async () => {
+    const { job, restic, context, immichIntegration, moduleConfig } = makeJob();
+    immichIntegration.get.mockResolvedValue({ id: 'repository-1', configuration: { libraries: ['library-1'] } });
+    moduleConfig.get.mockReturnValue(immichLibraries);
+
+    await job.run({ repositoryId: 'repository-1' }, context);
+
+    expect(restic.backup.mock.calls[0][9]).toEqual([{ paths: ['/photos'], patterns: ['**/@eaDir/**'] }]);
+  });
+
+  it('excludes nothing from repositories outside the Immich integration', async () => {
+    const { job, restic, context, immichIntegration, moduleConfig } = makeJob();
+    immichIntegration.get.mockResolvedValue({ id: 'repository-2', configuration: { libraries: ['all'] } });
+    moduleConfig.get.mockReturnValue(immichLibraries);
+
+    await job.run({ repositoryId: 'repository-1' }, context);
+
+    expect(restic.backup.mock.calls[0][9]).toEqual([]);
   });
 });
