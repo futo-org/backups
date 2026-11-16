@@ -29,6 +29,7 @@ import { BackendRepository } from '../repositories/backend.repository.js';
 import { ConfigRepository, ResticPlacement } from '../repositories/config.repository.js';
 import { JobRepository } from '../repositories/job.repository.js';
 import { LoggingRepository } from '../repositories/logging.repository.js';
+import { ModuleConfigRepository } from '../repositories/moduleConfig.repository.js';
 import { RepositoryRepository } from '../repositories/repository.repository.js';
 import { RepositoryLocalMetricsRepository } from '../repositories/repositoryLocalMetrics.repository.js';
 import { RepositoryPathRepository } from '../repositories/repositoryPath.repository.js';
@@ -51,6 +52,7 @@ export class RepositoryService {
     private readonly repositoryLocalMetrics: RepositoryLocalMetricsRepository,
     private readonly telemetry: TelemetryService,
     private readonly logger: LoggingRepository,
+    private readonly moduleConfig: ModuleConfigRepository,
   ) {
     this.logger.setContext(RepositoryService.name);
   }
@@ -645,7 +647,7 @@ export class RepositoryService {
 
     const { backend, configuration } = await this.getBackendOrThrow(dto.backendId);
 
-    let name = local.name ?? 'Restored Repository';
+    let name = local.name ?? (this.moduleConfig.get().immichIntegration ? 'Immich' : 'Restored Repository');
     try {
       const { backend: previous } = await this.getBackendOrThrow(local.backendId);
       const { repository: previousRemote } = await previous.getRepository(local.remoteId);
