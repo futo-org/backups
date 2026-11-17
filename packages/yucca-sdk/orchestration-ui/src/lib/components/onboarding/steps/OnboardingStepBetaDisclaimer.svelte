@@ -44,7 +44,7 @@
 
   const actions = $derived<OnboardingStepAction[]>([
     {
-      label: $t`Start backup`,
+      label: $t`Create backup`,
       onClick: onConfirm,
       disabled: !confirm,
       loading,

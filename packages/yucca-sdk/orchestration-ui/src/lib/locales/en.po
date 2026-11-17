@@ -764,6 +764,10 @@ msgstr "Create A New Backup"
 msgid "Create A New Schedule"
 msgstr "Create A New Schedule"
 
+#: src/lib/components/onboarding/steps/OnboardingStepBetaDisclaimer.svelte
+msgid "Create backup"
+msgstr "Create backup"
+
 #: src/lib/components/backends/dialogs/CreateLocalBackendModal.svelte
 msgid "Create local backend"
 msgstr "Create local backend"
@@ -2426,7 +2430,6 @@ msgid "Something went wrong"
 msgstr "Something went wrong"
 
 #: src/lib/components/onboarding/steps/OnboardingStep4FirstBackup.svelte
-#: src/lib/components/onboarding/steps/OnboardingStepBetaDisclaimer.svelte
 #: src/lib/components/onboarding/upsell/UpsellHowItWorks.svelte
 msgid "Start backup"
 msgstr "Start backup"
