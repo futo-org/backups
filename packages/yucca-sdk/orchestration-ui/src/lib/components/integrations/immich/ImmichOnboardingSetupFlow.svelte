@@ -51,6 +51,7 @@
   let status: OnboardingStatusResponseDto | undefined = $state();
   let stage: Stage = $state("idle");
   let confirming = $state(false);
+  let repositoryId = $state("");
 
   const defaults = useConfigureAndStartImmichIntegration();
 
@@ -93,7 +94,7 @@
       status?.hasOnboardedKey && status.hasBackup ? "finished" : "storage");
 
   const onBackendReady = () =>
-    (stage = status?.hasOnboardedKey ? "backup" : "key");
+    (stage = status?.hasOnboardedKey ? "disclaimer" : "key");
 
   const onConnect = () => {
     handleStartYuccaLogin(onBackendReady);
@@ -104,18 +105,25 @@
 
     try {
       await handleConfirmRecoveryKey();
-      stage = "backup";
+      stage = "disclaimer";
     } finally {
       confirming = false;
     }
   };
 
-  const onStartBackup = () =>
-    defaults.mutate(undefined, { onSuccess: ({ repositoryId }) => {
-        stage = "finished";
-        handleCreateBackup(repositoryId).catch(() => void 0);
+  const onCreateBackup = () =>
+    defaults.mutate(undefined, { onSuccess: (integration) => {
+        repositoryId = integration.repositoryId;
+        stage = "backup";
       }
     });
+
+  const onClose = () => (stage = "finished");
+
+  const onStartBackup = () => {
+    onClose();
+    handleCreateBackup(repositoryId).catch(() => void 0);
+  };
 </script>
 
 {#if status === undefined || status.status === "not-ready"}
@@ -184,11 +192,11 @@
     />
   </OnboardingStepModal>
 {:else if stage === "backup"}
-  <OnboardingStepModal title={$t`Start your first backup`} onClose={onCancel}>
+  <OnboardingStepModal title={$t`Start your first backup`} {onClose}>
     <OnboardingStepFirstBackup
       {schedule}
       storageLocation={$t`FUTO Cloud`}
-      onStartBackup={() => (stage = "disclaimer")}
+      {onStartBackup}
     />
   </OnboardingStepModal>
 {:else if stage === "disclaimer"}
@@ -198,7 +206,7 @@
     onClose={onCancel}
   >
     <OnboardingStepBetaDisclaimer
-      onConfirm={onStartBackup}
+      onConfirm={onCreateBackup}
       loading={defaults.isPending}
     />
   </OnboardingStepModal>
