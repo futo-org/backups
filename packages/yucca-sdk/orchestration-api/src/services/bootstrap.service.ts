@@ -34,9 +34,9 @@ export class BootstrapService implements OnApplicationBootstrap {
   async onApplicationBootstrap() {
     try {
       if (this.moduleConfig.get().requireLock && !this.moduleConfig.hasLock()) {
-        const locked = await this.database.tryLock('futo_backups_module_config');
-        if (locked) {
-          this.moduleConfig.acquireLock();
+        const release = await this.database.holdLock('futo_backups_module_config');
+        if (release) {
+          this.moduleConfig.acquireLock(release);
         }
       }
 

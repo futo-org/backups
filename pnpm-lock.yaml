@@ -1356,6 +1356,12 @@ importers:
       kysely-pglite-dialect:
         specifier: 'catalog:'
         version: 1.4.0(@electric-sql/pglite@0.5.12)(kysely@0.29.5)
+      kysely-postgres-js:
+        specifier: 'catalog:'
+        version: 3.0.0(kysely@0.29.5)(postgres@3.4.8)
+      postgres:
+        specifier: 'catalog:'
+        version: 3.4.8
       ts-jest:
         specifier: 'catalog:'
         version: 29.4.14(@babel/core@7.29.13)(@jest/transform@30.5.2)(@jest/types@30.5.1)(babel-jest@30.5.2(@babel/core@7.29.13))(esbuild@0.27.7)(jest-util@30.5.1)(jest@30.5.2(@types/node@26.6.6)(ts-node@10.9.2(@types/node@26.6.6)(typescript@6.0.3)))(typescript@6.0.3)
