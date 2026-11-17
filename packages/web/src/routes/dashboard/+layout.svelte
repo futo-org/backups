@@ -17,6 +17,7 @@
     mdiBackupRestore,
     mdiConnection,
     mdiMenu,
+    mdiShieldAccountOutline,
     mdiViewDashboard,
   } from "@mdi/js";
   import { configureYucca, SkipLink } from "@futo-org/backups-orchestrator-ui";
@@ -25,6 +26,7 @@
   import { sidebarStore } from "$lib/stores/sidebar.svelte";
   import { beforeNavigate } from "$app/navigation";
   import FutoBackupsLogo from "$lib/components/FutoBackupsLogo.svelte";
+  import { ACCOUNT_URL } from "$lib/constants";
 
   const { data, children } = $props();
 
@@ -62,6 +64,22 @@
         />
         <Avatar name={data.user!.name} />
         <span class="sr-only">{data.user!.name}</span>
+        <Button
+          href={ACCOUNT_URL}
+          variant="ghost"
+          color="secondary"
+          leadingIcon={mdiShieldAccountOutline}
+          class="hidden sm:inline-flex">{$t`Manage account`}</Button
+        >
+        <IconButton
+          href={ACCOUNT_URL}
+          icon={mdiShieldAccountOutline}
+          aria-label={$t`Manage account`}
+          variant="ghost"
+          color="secondary"
+          shape="round"
+          class="sm:hidden"
+        />
         <Button href={defaults.baseUrl + "api/auth/logout"}>{$t`Logout`}</Button
         >
       </HStack>

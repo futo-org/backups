@@ -1599,6 +1599,11 @@ msgstr "Logs"
 msgid "Main"
 msgstr "Main"
 
+#: ../../web/src/routes/dashboard/+layout.svelte
+#: ../../web/src/routes/dashboard/+layout.svelte
+msgid "Manage account"
+msgstr "Manage account"
+
 #: src/lib/components/settings/SettingsNotifications.svelte
 msgid "Manage backup alerts."
 msgstr "Manage backup alerts."
