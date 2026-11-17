@@ -24,7 +24,7 @@
   };
 
   const prompts: Record<BackupStatusType, string> = {
-    backup: msg`Progress since the last snapshot will be lost.`,
+    backup: msg`Anything already uploaded will be kept and the next backup will resume from where this one stopped. No snapshot will be made until a complete backup is finished.`,
     restore: msg`The restore will stop and will need to be started again.`,
     forget: msg`Pruning will stop and will need to be started again.`,
   };
