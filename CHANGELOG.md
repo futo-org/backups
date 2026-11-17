@@ -1,5 +1,36 @@
 # Changelog
 
+## [1.18.0](https://github.com/futo-org/backups/compare/v1.17.0...v1.18.0) (2026-11-17)
+
+
+### Features
+
+* **web:** link to account and security settings in the dashboard header ([#282](https://github.com/futo-org/backups/issues/282)) ([7a22292](https://github.com/futo-org/backups/commit/7a22292a03288ec2b62ed0599b95eb4528617c2a))
+* **yucca sdk:** cache repository names locally ([#227](https://github.com/futo-org/backups/issues/227)) ([40be1ed](https://github.com/futo-org/backups/commit/40be1ed5683d21019068679ca3edbb313498b79b))
+* **yucca sdk:** deterministic default schedules based on installation id ([#218](https://github.com/futo-org/backups/issues/218)) ([ce7c0a8](https://github.com/futo-org/backups/commit/ce7c0a815e4762c9f9ac0c648adb32476a5fa1ad))
+* **yucca sdk:** gate the Immich database backup alert behind a feature flag ([#219](https://github.com/futo-org/backups/issues/219)) ([39e1250](https://github.com/futo-org/backups/commit/39e12505db4067ce162b70016691150d67cb3b7a))
+* **yucca sdk:** preview custom run times ([#288](https://github.com/futo-org/backups/issues/288)) ([a10ca90](https://github.com/futo-org/backups/commit/a10ca902421701641c73172882f9a58c121ced67))
+* **yucca sdk:** record skipped scheduled backups in metrics history ([#287](https://github.com/futo-org/backups/issues/287)) ([0360677](https://github.com/futo-org/backups/commit/036067723b2576fab3b33976a0f0259fc0ce1b26))
+* **yucca sdk:** show next backup time in setup modal ([#286](https://github.com/futo-org/backups/issues/286)) ([bd19fdf](https://github.com/futo-org/backups/commit/bd19fdfd8794213869467418ff46836a12185ff5))
+* **yucca sdk:** show the scheduler time zone alongside schedule times ([#284](https://github.com/futo-org/backups/issues/284)) ([e0010c1](https://github.com/futo-org/backups/commit/e0010c14d30c3964a3a96763185649a53db9745a))
+
+
+### Bug Fixes
+
+* **orchestration-ui:** clearer snapshot menu labels for roll back and restore ([#213](https://github.com/futo-org/backups/issues/213)) ([5951e96](https://github.com/futo-org/backups/commit/5951e96e09841393cd392374a4ffcbae4185c08e))
+* **yucca sdk:** always show active backup on Immich status card ([#279](https://github.com/futo-org/backups/issues/279)) ([83becff](https://github.com/futo-org/backups/commit/83becffdb22a150ed62a4c1f4289d8d258afe3bf))
+* **yucca sdk:** apply Immich library exclusion patterns to backups ([#226](https://github.com/futo-org/backups/issues/226)) ([38496bc](https://github.com/futo-org/backups/commit/38496bcd623407bfa6b26429d7d4880016726698))
+* **yucca sdk:** change cancel confirm dialog text ([#275](https://github.com/futo-org/backups/issues/275)) ([bda7d5e](https://github.com/futo-org/backups/commit/bda7d5ecd4ea8c64b27c0f63ee6bd6beee1ed215))
+* **yucca sdk:** keep the leader lock on its own connection ([#281](https://github.com/futo-org/backups/issues/281)) ([31ccd27](https://github.com/futo-org/backups/commit/31ccd276692f591952c1103ea716bccbe9a8853b))
+* **yucca sdk:** make 'X' skip starting a backup ([#276](https://github.com/futo-org/backups/issues/276)) ([71d4d8a](https://github.com/futo-org/backups/commit/71d4d8a4be71a68f1765d06a79453afd371e8b53))
+* **yucca sdk:** skip scheduled backups for repositories with running/q'd backup ([#278](https://github.com/futo-org/backups/issues/278)) ([c031fc4](https://github.com/futo-org/backups/commit/c031fc425c35875b567300f0be5f3ebe7119fd8d))
+* **yucca sdk:** use the same schedule description everywhere ([#283](https://github.com/futo-org/backups/issues/283)) ([9c3bc1c](https://github.com/futo-org/backups/commit/9c3bc1c70a54fc57aa617c8a90a20662316a995a))
+
+
+### Documentation
+
+* **legal:** cover support and Discord ticket data in the privacy policy ([#220](https://github.com/futo-org/backups/issues/220)) ([fa2578b](https://github.com/futo-org/backups/commit/fa2578b80d8cfd994a0f440ee9eae97c147fa683))
+
 ## [1.17.0](https://github.com/futo-org/backups/compare/v1.16.0...v1.17.0) (2026-11-12)
 
 
