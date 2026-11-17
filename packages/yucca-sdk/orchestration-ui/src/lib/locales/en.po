@@ -433,6 +433,10 @@ msgid "Backup service is offline"
 msgstr "Backup service is offline"
 
 #: src/lib/components/backups/metrics-history/MetricsHistoryModal.svelte
+msgid "Backup skipped"
+msgstr "Backup skipped"
+
+#: src/lib/components/backups/metrics-history/MetricsHistoryModal.svelte
 msgid "Backup started"
 msgstr "Backup started"
 

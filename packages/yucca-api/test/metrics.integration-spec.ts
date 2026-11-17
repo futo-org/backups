@@ -114,6 +114,27 @@ describe('MetricsController (e2e)', () => {
   });
 
   describe('GET /metrics/:repositoryId/history', () => {
+    it('records a skipped backup in history and counts it', async () => {
+      const counter = app.get(MetricService).getCounter('user_backup_skipped');
+
+      await request(app.getHttpServer())
+        .post(`/api/metrics/submit/${repository.id}/backup/end`)
+        .set('Cookie', `yucca-access-token=${session.accessToken}`)
+        .send({ status: 'skipped', durationMs: 0 })
+        .expect(204);
+
+      const { body } = await request(app.getHttpServer())
+        .get(`/api/metrics/${repository.id}/history`)
+        .set('Cookie', `yucca-access-token=${session.accessToken}`)
+        .expect(200);
+
+      expect(body).toEqual({
+        items: [expect.objectContaining({ repositoryId: repository.id, backupStatus: 'skipped' })],
+        nextCursor: null,
+      });
+      expect(counter.add).toHaveBeenCalledWith(1, { user_id: user.id, repository_id: repository.id });
+    });
+
     it('reflects submitted metric changes in history', async () => {
       await request(app.getHttpServer())
         .post(`/api/metrics/submit/${repository.id}/backup/start`)
@@ -253,6 +274,38 @@ describe('MetricsController (e2e)', () => {
           meter: expect.any(Object),
         },
       });
+    });
+
+    it('keeps the last backup on the repository when a backup is skipped', async () => {
+      await request(app.getHttpServer())
+        .post(`/api/metrics/submit/${repository.id}/backup/end`)
+        .set('Cookie', `yucca-access-token=${session.accessToken}`)
+        .send({ status: 'complete', durationMs: 1234 })
+        .expect(204);
+
+      const { body: before } = await request(app.getHttpServer())
+        .get(`/api/repository/${repository.id}`)
+        .set('Cookie', `yucca-access-token=${session.accessToken}`)
+        .expect(200);
+
+      await request(app.getHttpServer())
+        .post(`/api/metrics/submit/${repository.id}/backup/end`)
+        .set('Cookie', `yucca-access-token=${session.accessToken}`)
+        .send({ status: 'skipped', durationMs: 0 })
+        .expect(204);
+
+      const { body } = await request(app.getHttpServer())
+        .get(`/api/repository/${repository.id}`)
+        .set('Cookie', `yucca-access-token=${session.accessToken}`)
+        .expect(200);
+
+      expect(body.repository.metrics).toEqual(
+        expect.objectContaining({
+          lastBackup: before.repository.metrics.lastBackup,
+          lastBackupStatus: 'complete',
+          lastBackupDuration: 1234,
+        }),
+      );
     });
 
     it('reflects a cancelled backup on the repository', async () => {

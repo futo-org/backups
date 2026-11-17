@@ -14,4 +14,5 @@ export enum BackupStatus {
   Warn = 'warn',
   Failed = 'failed',
   Cancelled = 'cancelled',
+  Skipped = 'skipped',
 }

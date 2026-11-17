@@ -1,3 +1,4 @@
+import type { BackupStatus } from '@futo-org/backups-api-client';
 import { Reflector } from '@nestjs/core';
 import { SchedulerRegistry } from '@nestjs/schedule';
 import { Kysely } from 'kysely';
@@ -5,10 +6,12 @@ import { PGliteDialect } from 'kysely-pglite-dialect';
 import { createPGlite } from '../bin/pglite.js';
 import { BackendType, ConfigurationKey, JobName, JobStatus } from '../enum.js';
 import type { GatewayEvent } from '../events/events.gateway.js';
+import { BackendRepository } from '../repositories/backend.repository.js';
 import { ConfigRepository } from '../repositories/config.repository.js';
 import { DatabaseRepository } from '../repositories/database.repository.js';
 import { JobRepository } from '../repositories/job.repository.js';
 import { LoggingRepository } from '../repositories/logging.repository.js';
+import { RepositoryRepository } from '../repositories/repository.repository.js';
 import { RepositoryIntegrationImmichRepository } from '../repositories/repositoryIntegrationImmich.repository.js';
 import { ScheduleRepository } from '../repositories/schedule.repository.js';
 import { StorageRepository } from '../repositories/storage.repository.js';
@@ -19,7 +22,12 @@ type Events = { publish: (event: GatewayEvent) => void };
 
 const noEvents: Events = { publish: () => {} };
 
-const createService = (db: Kysely<DB>, registry: SchedulerRegistry, events = noEvents) =>
+const createService = (
+  db: Kysely<DB>,
+  registry: SchedulerRegistry,
+  events = noEvents,
+  backend: Pick<BackendRepository, 'getBackend'> = new BackendRepository(db),
+) =>
   new ScheduleService(
     events as never,
     new ScheduleRepository(db),
@@ -41,7 +49,25 @@ const createService = (db: Kysely<DB>, registry: SchedulerRegistry, events = noE
       {} as never,
     ),
     new ConfigRepository(db, { statePath: '/state' } as never, LoggingRepository.create()),
+    new RepositoryRepository(db),
+    backend as never,
   );
+
+const reportingBackend = (submitMetricBackupEnd: (remoteId: string, status: BackupStatus) => void) => {
+  const { promise: lastReported, resolve } = Promise.withResolvers<void>();
+  const backend = {
+    isMetricsCapable: () => true,
+    submitMetricBackupEnd: (remoteId: string, status: BackupStatus) => {
+      if (remoteId === 'queued') {
+        resolve();
+      }
+
+      submitMetricBackupEnd(remoteId, status);
+    },
+  };
+
+  return { lastReported, backendRepository: { getBackend: () => Promise.resolve({ backend } as never) } };
+};
 
 describe(ScheduleService.name, () => {
   let db: Kysely<DB>;
@@ -162,7 +188,7 @@ describe(ScheduleService.name, () => {
     expect(String(registry.getCronJob(id).cronTime.source)).toBe(defaults.daily);
   });
 
-  it('queues a scheduled backup only for repositories without one already queued or running', async () => {
+  const runScheduleWithActiveBackups = async (backendRepository?: Pick<BackendRepository, 'getBackend'>) => {
     const backend = await db
       .insertInto('futo_backups_backends')
       .values({ configuration: { type: BackendType.Local, path: '/test-backups' } })
@@ -188,13 +214,18 @@ describe(ScheduleService.name, () => {
       .execute();
 
     const { promise: jobCreated, resolve } = Promise.withResolvers<void>();
-    const scheduled = createService(db, registry, {
-      publish: (event) => {
-        if (event.type === 'JobCreate') {
-          resolve();
-        }
+    const scheduled = createService(
+      db,
+      registry,
+      {
+        publish: (event) => {
+          if (event.type === 'JobCreate') {
+            resolve();
+          }
+        },
       },
-    });
+      backendRepository,
+    );
     const { schedule } = await scheduled.createSchedule({
       name: 'Nightly',
       paused: true,
@@ -204,6 +235,12 @@ describe(ScheduleService.name, () => {
 
     await registry.getCronJob(schedule.id).fireOnTick();
     await jobCreated;
+
+    return { running, queued, idle };
+  };
+
+  it('queues a scheduled backup only for repositories without one already queued or running', async () => {
+    const { running, queued, idle } = await runScheduleWithActiveBackups();
 
     const jobs = await db
       .selectFrom('futo_backups_jobs')
@@ -216,5 +253,36 @@ describe(ScheduleService.name, () => {
       { repositoryId: queued.id, status: JobStatus.Queued },
       { repositoryId: idle.id, status: JobStatus.Queued },
     ]);
+  });
+
+  it('reports a skipped backup for each repository with one already queued or running', async () => {
+    const reported: [string, BackupStatus][] = [];
+    const { lastReported, backendRepository } = reportingBackend((remoteId, status) =>
+      reported.push([remoteId, status]),
+    );
+
+    await runScheduleWithActiveBackups(backendRepository);
+    await lastReported;
+
+    expect(reported).toEqual([
+      ['running', 'skipped'],
+      ['queued', 'skipped'],
+    ]);
+  });
+
+  it('keeps reporting skipped backups after one report fails', async () => {
+    const reported: string[] = [];
+    const { lastReported, backendRepository } = reportingBackend((remoteId) => {
+      if (remoteId === 'running') {
+        throw new Error('backend unavailable');
+      }
+
+      reported.push(remoteId);
+    });
+
+    await runScheduleWithActiveBackups(backendRepository);
+    await lastReported;
+
+    expect(reported).toEqual(['queued']);
   });
 });

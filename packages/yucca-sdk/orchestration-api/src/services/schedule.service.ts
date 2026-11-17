@@ -13,9 +13,11 @@ import {
 } from '../dto/schedule.dto.js';
 import { JobName } from '../enum.js';
 import { EventsGateway } from '../events/events.gateway.js';
+import { BackendRepository } from '../repositories/backend.repository.js';
 import { ConfigRepository } from '../repositories/config.repository.js';
 import { JobRepository } from '../repositories/job.repository.js';
 import { ModuleConfigRepository } from '../repositories/moduleConfig.repository.js';
+import { RepositoryRepository } from '../repositories/repository.repository.js';
 import { RepositoryIntegrationImmichRepository } from '../repositories/repositoryIntegrationImmich.repository.js';
 import { ScheduleRepository } from '../repositories/schedule.repository.js';
 import { ScheduleTable } from '../schema/tables/schedule.table.js';
@@ -32,6 +34,8 @@ export class ScheduleService {
     private readonly telemetry: TelemetryService,
     private readonly jobs: JobRepository,
     private readonly config: ConfigRepository,
+    private readonly repository: RepositoryRepository,
+    private readonly backend: BackendRepository,
   ) {}
 
   private readonly cronJobs = new Set<string>();
@@ -118,11 +122,29 @@ export class ScheduleService {
     }
 
     const active = await this.jobs.getActiveRepositoryIds(JobName.RepositoryBackup);
+    const skipped = repositories.filter((repositoryId) => active.includes(repositoryId));
+    const toQueue = repositories.filter((repositoryId) => !active.includes(repositoryId));
+
     const jobIds = await this.jobs.queueAll(
-      repositories
-        .filter((repositoryId) => !active.includes(repositoryId))
-        .map((repositoryId) => ({ name: JobName.RepositoryBackup, data: { repositoryId } })),
+      toQueue.map((repositoryId) => ({ name: JobName.RepositoryBackup, data: { repositoryId } })),
     );
+
+    for (const repositoryId of skipped) {
+      try {
+        const repository = await this.repository.get(repositoryId);
+        if (!repository) {
+          continue;
+        }
+
+        const result = await this.backend.getBackend(repository.backendId);
+        if (result?.backend.isMetricsCapable()) {
+          result.backend.submitMetricBackupEnd(repository.remoteId, 'skipped', 0);
+        }
+      } catch (error) {
+        this.telemetry.submitStructuredLog('Failed to report skipped backup', { scheduleId: id, repositoryId, error });
+      }
+    }
+
     await Promise.allSettled(jobIds.map((jobId) => this.jobs.wait(jobId)));
 
     const lastFinished = new Date();
