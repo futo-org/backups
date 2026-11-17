@@ -251,6 +251,10 @@ msgstr ""
 msgid "An unknown error occurred"
 msgstr ""
 
+#: src/lib/components/backups/dialogs/CancelJobModal.svelte
+msgid "Anything already uploaded will be kept and the next backup will resume from where this one stopped. No snapshot will be made until a complete backup is finished."
+msgstr ""
+
 #: ../../web/src/lib/components/onboarding/GetStartedChecklist.svelte
 msgid "Approve the connection from Immich and save your recovery key. FUTO cannot recover a lost key."
 msgstr ""
@@ -1995,8 +1999,8 @@ msgid "processed"
 msgstr ""
 
 #: src/lib/components/backups/dialogs/CancelJobModal.svelte
-msgid "Progress since the last snapshot will be lost."
-msgstr ""
+#~ msgid "Progress since the last snapshot will be lost."
+#~ msgstr ""
 
 #: src/lib/components/onboarding/upsell/UpsellProtectYourImmichLibrary.svelte
 msgid "Protect your Immich library"

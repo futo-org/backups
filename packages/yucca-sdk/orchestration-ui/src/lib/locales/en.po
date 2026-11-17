@@ -251,6 +251,10 @@ msgstr "An S3-compatible server"
 msgid "An unknown error occurred"
 msgstr "An unknown error occurred"
 
+#: src/lib/components/backups/dialogs/CancelJobModal.svelte
+msgid "Anything already uploaded will be kept and the next backup will resume from where this one stopped. No snapshot will be made until a complete backup is finished."
+msgstr "Anything already uploaded will be kept and the next backup will resume from where this one stopped. No snapshot will be made until a complete backup is finished."
+
 #: ../../web/src/lib/components/onboarding/GetStartedChecklist.svelte
 msgid "Approve the connection from Immich and save your recovery key. FUTO cannot recover a lost key."
 msgstr "Approve the connection from Immich and save your recovery key. FUTO cannot recover a lost key."
@@ -1995,8 +1999,8 @@ msgid "processed"
 msgstr "processed"
 
 #: src/lib/components/backups/dialogs/CancelJobModal.svelte
-msgid "Progress since the last snapshot will be lost."
-msgstr "Progress since the last snapshot will be lost."
+#~ msgid "Progress since the last snapshot will be lost."
+#~ msgstr "Progress since the last snapshot will be lost."
 
 #: src/lib/components/onboarding/upsell/UpsellProtectYourImmichLibrary.svelte
 msgid "Protect your Immich library"
