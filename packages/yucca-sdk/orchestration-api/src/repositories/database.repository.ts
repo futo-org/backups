@@ -21,6 +21,7 @@ export class DatabaseRepository {
   holdLock(key: string): Promise<(() => Promise<void>) | undefined> {
     const acquired = Promise.withResolvers<(() => Promise<void>) | undefined>();
     const released = Promise.withResolvers<void>();
+    const lost = Promise.withResolvers<void>();
 
     const session = this.db.connection().execute(async (connection) => {
       const {
@@ -44,13 +45,15 @@ export class DatabaseRepository {
 
       const { rows } = await sql`SELECT 1 FROM pg_stat_activity WHERE pid = ${pid}`.execute(this.db);
       if (rows.length === 0) {
-        return;
+        lost.resolve();
+        const keepTerminatedConnectionOutOfPool = new Promise<never>(() => {});
+        return keepTerminatedConnectionOutOfPool;
       }
 
       await sql`SELECT pg_advisory_unlock(hashtext(${key}))`.execute(connection);
     });
 
-    const settled = session.catch((error: unknown) => {
+    const settled = Promise.race([session, lost.promise]).catch((error: unknown) => {
       this.logger.warn('Advisory lock session failed', error);
       acquired.reject(error);
     });

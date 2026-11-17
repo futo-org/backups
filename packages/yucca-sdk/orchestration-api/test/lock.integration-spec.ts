@@ -48,6 +48,18 @@ const startWorker = (name = databaseName, onClose?: () => void) => {
   };
 };
 
+const terminateLockHolder = async (db: Kysely<DB>) => {
+  const { rows } = await sql<{ terminated: boolean }>`
+    SELECT pg_terminate_backend(pid) AS terminated
+    FROM pg_locks
+    WHERE locktype = 'advisory'
+      AND database = (SELECT oid FROM pg_database WHERE datname = current_database())
+      AND objid = hashtext(${LEADER_LOCK})::oid
+  `.execute(db);
+
+  expect(rows).toEqual([{ terminated: true }]);
+};
+
 afterEach(async () => {
   await Promise.all(releases.splice(0).map((release) => release()));
   await Promise.all(workers.splice(0).map((db) => db.destroy()));
@@ -81,18 +93,25 @@ describe('holdLock', () => {
     const release = await startWorker(databaseName, closed.resolve).holdLock();
     const other = startWorker();
 
-    await sql`
-      SELECT pg_terminate_backend(pid)
-      FROM pg_locks
-      WHERE locktype = 'advisory'
-        AND database = (SELECT oid FROM pg_database WHERE datname = current_database())
-        AND objid = hashtext(${LEADER_LOCK})::oid
-    `.execute(other.db);
-
+    await terminateLockHolder(other.db);
     await closed.promise;
 
     await expect(release!()).resolves.toBeUndefined();
     await expect(other.holdLock()).resolves.toBeInstanceOf(Function);
+  });
+
+  it('keeps the terminated lock connection out of the pool after release', async () => {
+    const closed = Promise.withResolvers<void>();
+    const worker = startWorker(databaseName, closed.resolve);
+    const release = await worker.holdLock();
+
+    await terminateLockHolder(worker.db);
+    await closed.promise;
+    await release!();
+
+    for (let query = 0; query < 3; query++) {
+      await expect(sql`SELECT 1`.execute(worker.db)).resolves.toBeDefined();
+    }
   });
 
   it('rejects when the database cannot be reached', async () => {
