@@ -24,8 +24,11 @@ export class DatabaseRepository {
 
     const session = this.db.connection().execute(async (connection) => {
       const {
-        rows: [{ locked }],
-      } = await sql<{ locked: boolean }>`SELECT pg_try_advisory_lock(hashtext(${key})) AS locked`.execute(connection);
+        rows: [{ locked, pid }],
+      } = await sql<{
+        locked: boolean;
+        pid: number;
+      }>`SELECT pg_try_advisory_lock(hashtext(${key})) AS locked, pg_backend_pid() AS pid`.execute(connection);
 
       if (!locked) {
         acquired.resolve(undefined);
@@ -38,6 +41,12 @@ export class DatabaseRepository {
       });
 
       await released.promise;
+
+      const { rows } = await sql`SELECT 1 FROM pg_stat_activity WHERE pid = ${pid}`.execute(this.db);
+      if (rows.length === 0) {
+        return;
+      }
+
       await sql`SELECT pg_advisory_unlock(hashtext(${key}))`.execute(connection);
     });
 

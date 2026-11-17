@@ -6,9 +6,10 @@ import { LoggingRepository } from '../src/repositories/logging.repository.js';
 import { StorageRepository } from '../src/repositories/storage.repository.js';
 import type { DB } from '../src/schema/index.js';
 
-const connectTo = (database: string) => {
+const connectTo = (database: string, onClose?: () => void) => {
   const dialect = new PostgresJSDialect({
     postgres: createPostgres({
+      onClose,
       connection: {
         connectionType: 'parts',
         host: process.env.POSTGRES_HOST ?? 'localhost',
@@ -29,8 +30,8 @@ const workers: Array<Kysely<DB>> = [];
 const releases: Array<() => Promise<void>> = [];
 const databaseName = process.env.POSTGRES_DATABASE ?? 'yucca';
 
-const startWorker = (name = databaseName) => {
-  const db = connectTo(name);
+const startWorker = (name = databaseName, onClose?: () => void) => {
+  const db = connectTo(name, onClose);
   const database = new DatabaseRepository(db, new StorageRepository(), LoggingRepository.create());
   workers.push(db);
 
@@ -73,6 +74,24 @@ describe('holdLock', () => {
     await release!();
 
     await expect(startWorker().holdLock()).resolves.toBeInstanceOf(Function);
+  });
+
+  it('releases cleanly after the database terminates the lock connection', async () => {
+    const closed = Promise.withResolvers<void>();
+    const release = await startWorker(databaseName, closed.resolve).holdLock();
+    const other = startWorker();
+
+    await sql`
+      SELECT pg_terminate_backend(pid)
+      FROM pg_locks
+      WHERE locktype = 'advisory'
+        AND objid = hashtext(${LEADER_LOCK})::oid
+    `.execute(other.db);
+
+    await closed.promise;
+
+    await expect(release!()).resolves.toBeUndefined();
+    await expect(other.holdLock()).resolves.toBeInstanceOf(Function);
   });
 
   it('rejects when the database cannot be reached', async () => {
