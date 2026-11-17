@@ -52,6 +52,10 @@ export type ModuleConfig = {
   externalBaseUrl?: string;
   requireWsAuth?: boolean;
   requireSession?: boolean;
+  /**
+   * Hold an advisory lock to elect one module instance as 'leader' for jobs.
+   * Do not use this with PGlite/any other single-connection dialect as this will saturate its only connection.
+   */
   requireLock?: boolean;
   developmentMode?: boolean;
   throttle?: ResticProxyThrottle;
