@@ -3,7 +3,7 @@
 ARG ALPINE_VERSION=3.23
 # Pinned alpine runtime base. NOTE: this digest is alpine:3.23's, so it must NOT
 # be appended to the golang base tags (which reuse ${ALPINE_VERSION}).
-ARG ALPINE_IMAGE=alpine:3.24@sha256:294b683cb724975bec92580e1e685676bd4b50bda910ddb8c51d4cabeaec77e6
+ARG ALPINE_IMAGE=alpine:3.24@sha256:f59abe656b692d901e184be3445e084786602108599d2a51d229c0f5a48c71bf
 
 FROM golang:1.27.3-alpine${ALPINE_VERSION} AS dev
 WORKDIR /src
