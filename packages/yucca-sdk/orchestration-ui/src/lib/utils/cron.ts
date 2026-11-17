@@ -62,14 +62,15 @@ export const describeCron = (expression: string, tz: string) => {
   );
 };
 
-export const padTime = (part: number) => String(part).padStart(2, '0');
+export const formatTime = (hour: number, minute: number) =>
+  [hour, minute].map((part) => String(part).padStart(2, '0')).join(':');
 
 export const toDefaultWindow = (expression: string) => {
   const [, hour, ...days] = expression.split(' ');
   const start = Number(hour);
   return {
-    start: `${padTime(start)}:00`,
-    end: `${padTime((start + 1) % 24)}:00`,
+    start: formatTime(start, 0),
+    end: formatTime((start + 1) % 24, 0),
     days: cronstrue
       .toString(['0', '0', ...days].join(' '), { verbose: true })
       .split(', ')

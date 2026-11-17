@@ -7,6 +7,7 @@
   import type { ScheduleDefaultsDto } from "$lib/fetch-client";
   import {
     describeSchedule,
+    formatTime,
     resolveCron,
     withTimeZone,
   } from "$lib/utils/cron";
@@ -46,7 +47,7 @@
     }
 
     const run = new CronTime(resolveCron(cron, defaults), tz).sendAt();
-    const time = run.toLocaleString(DateTime.TIME_SIMPLE);
+    const time = formatTime(run.hour, run.minute);
     return withTimeZone(
       run.hasSame(DateTime.now().setZone(tz), "day")
         ? $t`Next scheduled backup: today at ${time}`
