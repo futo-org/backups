@@ -1267,7 +1267,7 @@
           "lastBackupStatus": {
             "allOf": [
               {
-                "$ref": "#/components/schemas/BackupStatus"
+                "$ref": "#/components/schemas/RepositoryBackupStatus"
               }
             ],
             "nullable": true
@@ -1281,7 +1281,7 @@
           "sizeBytes"
         ]
       },
-      "BackupStatus": {
+      "RepositoryBackupStatus": {
         "type": "string",
         "enum": [
           "incomplete",
@@ -1611,6 +1611,17 @@
         },
         "required": [
           "discordUsername"
+        ]
+      },
+      "BackupStatus": {
+        "type": "string",
+        "enum": [
+          "incomplete",
+          "complete",
+          "warn",
+          "failed",
+          "cancelled",
+          "skipped"
         ]
       },
       "SubmitBackupEndRequestDto": {

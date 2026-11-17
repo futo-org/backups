@@ -1,6 +1,6 @@
 import { LoggerRepository, MetricService } from '@common/server/otel';
 import { Injectable } from '@nestjs/common';
-import { Gauge } from '@opentelemetry/api';
+import { Counter, Gauge } from '@opentelemetry/api';
 import { AuthDto } from 'src/dto/auth.dto.js';
 import {
   SubmitBackupEndRequestDto,
@@ -21,6 +21,7 @@ const toUnixSeconds = (date: Date) => Math.floor(date.getTime() / 1000);
 export class MetricsService {
   private readonly userRepositorySize: Gauge;
   private readonly userLastStarted: Gauge;
+  private readonly userBackupSkipped: Counter;
   private readonly userLastBackup: Gauge;
   private readonly userLastSuccessfulBackup: Gauge;
   private readonly userLastBackupDuration: Gauge;
@@ -37,6 +38,9 @@ export class MetricsService {
     });
     this.userLastStarted = metricService.getGauge('user_last_started', {
       description: 'Unix timestamp of the last backup start',
+    });
+    this.userBackupSkipped = metricService.getCounter('user_backup_skipped', {
+      description: 'Scheduled backups skipped because one was already queued or running',
     });
     this.userLastBackup = metricService.getGauge('user_last_backup', {
       description: 'Unix timestamp of the last backup attempt',
@@ -69,6 +73,12 @@ export class MetricsService {
 
   async submitBackupEnd(auth: AuthDto, repositoryId: string, { durationMs, status }: SubmitBackupEndRequestDto) {
     ensureOwned(await this.repositories.find(repositoryId), auth.id, repositoryId);
+
+    if (status === BackupStatus.Skipped) {
+      await this.history.create({ repositoryId, backupStatus: status });
+      this.userBackupSkipped.add(1, { user_id: auth.id, repository_id: repositoryId });
+      return;
+    }
 
     const now = new Date();
     await this.metrics.save(repositoryId, {

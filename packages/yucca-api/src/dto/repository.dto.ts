@@ -20,7 +20,10 @@ export const RepositoryMetricsSchema = z
     sizeBytes: z.number(),
     lastStarted: isoDatetimeToDate.nullable().optional(),
     lastBackup: isoDatetimeToDate.nullable().optional(),
-    lastBackupStatus: BackupStatusSchema.nullable().optional(),
+    lastBackupStatus: BackupStatusSchema.exclude(['Skipped'])
+      .meta({ id: 'RepositoryBackupStatus' })
+      .nullable()
+      .optional(),
     lastBackupDuration: z.number().nullable().optional(),
   })
   .meta({ id: 'RepositoryMetricsDto' });

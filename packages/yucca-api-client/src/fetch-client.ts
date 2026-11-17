@@ -80,12 +80,12 @@ export type TicketCreateResponseDto = {
     /** IdP URL the browser must be sent to */
     redirectTo: string;
 };
-export type BackupStatus = "incomplete" | "complete" | "warn" | "failed" | "cancelled";
+export type RepositoryBackupStatus = "incomplete" | "complete" | "warn" | "failed" | "cancelled";
 export type RepositoryMetricsDto = {
     sizeBytes: number;
     lastStarted?: string | null;
     lastBackup?: string | null;
-    lastBackupStatus?: (BackupStatus) | null;
+    lastBackupStatus?: (RepositoryBackupStatus) | null;
     lastBackupDuration?: number | null;
 };
 export type RepositoryMeterDto = {
@@ -170,6 +170,7 @@ export type DiscordInviteResponseDto = {
 export type DiscordLinkRequestResponseDto = {
     discordUsername: string;
 };
+export type BackupStatus = "incomplete" | "complete" | "warn" | "failed" | "cancelled" | "skipped";
 export type SubmitBackupEndRequestDto = {
     status?: BackupStatus;
     success?: boolean;

@@ -18,6 +18,7 @@
     mdiCloudAlertOutline,
     mdiCloudCancelOutline,
     mdiCloudCheckOutline,
+    mdiCloudClockOutline,
     mdiCloudUploadOutline,
     mdiDatabaseOutline,
     mdiTimerOutline,
@@ -79,6 +80,13 @@
         return {
           title: $t`Backup cancelled`,
           icon: mdiCloudCancelOutline,
+          color: "warning",
+        } as const;
+      }
+      case "skipped": {
+        return {
+          title: $t`Backup skipped`,
+          icon: mdiCloudClockOutline,
           color: "warning",
         } as const;
       }
