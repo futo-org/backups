@@ -1,6 +1,9 @@
 import ImmichOnboardingSetupFlow from './ImmichOnboardingSetupFlow.svelte';
 import '../../../../routes/layout.css';
-import type { OnboardingStatusResponseDto } from '$lib/fetch-client';
+import {
+  futoBackupsGetSchedules,
+  type OnboardingStatusResponseDto,
+} from '$lib/fetch-client';
 import { createRawSnippet } from 'svelte';
 import { page } from 'vitest/browser';
 import { render } from 'vitest-browser-svelte';

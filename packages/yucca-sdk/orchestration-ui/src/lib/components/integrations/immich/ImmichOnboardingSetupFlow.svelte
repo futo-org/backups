@@ -181,12 +181,12 @@
       onBack={() => (stage = "key")}
     />
   </OnboardingStepModal>
-{:else if stage === "backup" && schedules.data}
+{:else if stage === "backup"}
   <OnboardingStepModal title={$t`Start your first backup`} {onClose}>
     <OnboardingStepFirstBackup
       cron={IMMICH_DEFAULT_CRON}
-      defaults={schedules.data.defaults}
-      tz={schedules.data.tz}
+      defaults={schedules.data?.defaults}
+      tz={schedules.data?.tz}
       storageLocation={$t`FUTO Cloud`}
       {onStartBackup}
     />

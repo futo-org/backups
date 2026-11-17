@@ -16,8 +16,8 @@
 
   type Props = {
     cron: string;
-    defaults: ScheduleDefaultsDto;
-    tz: string;
+    defaults?: ScheduleDefaultsDto;
+    tz?: string;
     storageLocation: string;
     onStartBackup: () => void;
     loading?: boolean;
@@ -33,10 +33,18 @@
   }: Props = $props();
 
   const schedule = $derived.by(() => {
+    if (!defaults || !tz) {
+      return "";
+    }
+
     const description = describeSchedule(cron, defaults, tz);
     return description.charAt(0).toUpperCase() + description.slice(1);
   });
   const nextBackup = $derived.by(() => {
+    if (!defaults || !tz) {
+      return "";
+    }
+
     const run = new CronTime(resolveCron(cron, defaults), tz).sendAt();
     const time = run.toLocaleString(DateTime.TIME_SIMPLE);
     return withTimeZone(
