@@ -117,8 +117,11 @@ export class ScheduleService {
       return;
     }
 
+    const active = await this.jobs.getActiveRepositoryIds(JobName.RepositoryBackup);
     const jobIds = await this.jobs.queueAll(
-      repositories.map((repositoryId) => ({ name: JobName.RepositoryBackup, data: { repositoryId } })),
+      repositories
+        .filter((repositoryId) => !active.includes(repositoryId))
+        .map((repositoryId) => ({ name: JobName.RepositoryBackup, data: { repositoryId } })),
     );
     await Promise.allSettled(jobIds.map((jobId) => this.jobs.wait(jobId)));
 
