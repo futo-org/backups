@@ -2650,6 +2650,10 @@ msgid "This repository no longer exists on FUTO Backups. Remove it from this mac
 msgstr ""
 
 #: src/lib/components/schedules/ScheduleEditor.svelte
+msgid "This schedule never runs. Check the day and month."
+msgstr ""
+
+#: src/lib/components/schedules/ScheduleEditor.svelte
 msgid "This schedule runs more than once an hour. A * in the minute field runs a backup every minute."
 msgstr ""
 
@@ -2674,6 +2678,14 @@ msgstr ""
 #: src/lib/components/schedules/ScheduleEditor.svelte
 msgid "Thursday"
 msgstr ""
+
+#: src/lib/components/schedules/ScheduleEditor.svelte
+#~ msgid "Times are in {timeZone}."
+#~ msgstr ""
+
+#: src/lib/components/schedules/ScheduleEditor.svelte
+#~ msgid "Times are in {tz}."
+#~ msgstr ""
 
 #: ../../web/src/routes/dashboard/+layout.svelte
 msgid "Toggle dark theme"

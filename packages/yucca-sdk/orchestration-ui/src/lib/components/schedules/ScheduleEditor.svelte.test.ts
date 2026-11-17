@@ -14,6 +14,7 @@ const state = vi.hoisted(() => ({
     weekly: '23 3 * * 2',
     monthly: '23 3 12 * *',
   },
+  tz: Intl.DateTimeFormat().resolvedOptions().timeZone,
   create: vi.fn(),
   update: vi.fn(),
 }));
@@ -27,11 +28,7 @@ vi.mock('$lib/services/repository.service', () => ({
 
 vi.mock('$lib/services/schedule.service', () => ({
   useSchedules: () => ({
-    data: {
-      schedules: [],
-      defaults: state.defaults,
-      tz: Intl.DateTimeFormat().resolvedOptions().timeZone,
-    },
+    data: { schedules: [], defaults: state.defaults, tz: state.tz },
   }),
   useCreateSchedule: () => ({ mutate: state.create }),
   useUpdateSchedule: () => ({ mutate: state.update }),
@@ -84,10 +81,21 @@ const openCreate = async () => {
   await button('Add Immich').click();
 };
 
-const localRun = (day: number) =>
-  DateTime.local(2026, 1, day, 5).toLocaleString(
-    DateTime.DATETIME_MED_WITH_WEEKDAY,
-  );
+const localRun = (year: number, month: number, day: number) =>
+  DateTime.fromObject({ year, month, day, hour: 5 }, { zone: state.tz })
+    .toLocal()
+    .toLocaleString({ ...DateTime.DATETIME_MED_WITH_WEEKDAY, timeZoneName: 'short' });
+
+const fillCustom = async (cron: string) => {
+  state.tz = 'Pacific/Kiritimati';
+  vi.useFakeTimers({ toFake: ['Date'] });
+  vi.setSystemTime(Date.parse('2026-01-01T12:00:00Z'));
+  await openCreate();
+  await choose('Frequency', 'Custom');
+  await scheduleInput().fill(cron);
+};
+
+const nextRuns = () => page.getByRole('list', { name: 'Next runs' }).getByRole('listitem');
 
 const created = () => state.create.mock.lastCall?.[0];
 
@@ -99,6 +107,7 @@ describe('Schedule dialogs', () => {
 
   afterEach(() => {
     vi.useRealTimers();
+    state.tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
   });
 
   it('creates schedules on the installation daily default', async () => {
@@ -230,23 +239,36 @@ describe('Schedule dialogs', () => {
     expect(created()).toMatchObject({ cron: '*/30 1-5 * * 1-5' });
   });
 
-  it('lists the next three runs in local time', async () => {
-    vi.useFakeTimers({ toFake: ['Date'] });
-    vi.setSystemTime(new Date(2026, 0, 1, 12, 0));
-
-    await openCreate();
-    await choose('Frequency', 'Custom');
-    await scheduleInput().fill('0 5 * * 0');
-
-    const runs = page
-      .getByRole('list', { name: 'Next runs' })
-      .getByRole('listitem');
-    await expect.element(runs.first()).toHaveTextContent(localRun(4));
-    expect(runs.elements().map((run) => run.textContent?.trim())).toEqual([
-      localRun(4),
-      localRun(11),
-      localRun(18),
+  it("lists the next three runs from the scheduler's time zone in local time", async () => {
+    await fillCustom('0 5 * * 0');
+    await expect.element(page.getByText(/\(Pacific\/Kiritimati\)\./)).toBeVisible();
+    await expect.element(nextRuns().first()).toHaveTextContent(localRun(2026, 1, 4));
+    expect(nextRuns().elements().map((run) => run.textContent?.trim())).toEqual([
+      localRun(2026, 1, 4),
+      localRun(2026, 1, 11),
+      localRun(2026, 1, 18),
     ]);
+  });
+
+  it('lists only the runs a rare schedule has', async () => {
+    await fillCustom('0 5 29 2 *');
+
+    await expect.element(nextRuns().first()).toHaveTextContent(localRun(2028, 2, 29));
+    expect(nextRuns().elements().map((run) => run.textContent?.trim())).toEqual([
+      localRun(2028, 2, 29),
+      localRun(2032, 2, 29),
+    ]);
+  });
+
+  it('says when a schedule never runs and keeps the editor usable', async () => {
+    await fillCustom('0 5 31 2 *');
+
+    await expect
+      .element(page.getByText('This schedule never runs. Check the day and month.'))
+      .toBeVisible();
+
+    await scheduleInput().fill('0 5 * * 0');
+    await expect.element(nextRuns().first()).toHaveTextContent(localRun(2026, 1, 4));
   });
 
   it('keeps a default schedule to its window without exact run times', async () => {

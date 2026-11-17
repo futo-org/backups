@@ -79,8 +79,32 @@
     editingCustom ? "custom" : (preset ?? pattern ?? "custom"),
   );
   const cronInvalid = $derived(!isValidCron(cron));
-  const nextRuns = $derived(
-    cronInvalid ? [] : new CronTime(effectiveCron).sendAt(3),
+  const tz = $derived(schedules.data?.tz);
+  const nextRuns = $derived.by(() => {
+    if (cronInvalid || !tz) {
+      return [];
+    }
+
+    const time = new CronTime(effectiveCron, tz);
+    const runs: DateTime<boolean>[] = [];
+    let from: DateTime<boolean> = DateTime.now().setZone(tz);
+    while (runs.length < 3) {
+      try {
+        from = time.getNextDateFrom(from);
+      } catch {
+        break;
+      }
+
+      runs.push(from);
+    }
+
+    return runs;
+  });
+  const inLocalTz = $derived(tz === DateTime.local().zoneName);
+  const runFormat = $derived(
+    inLocalTz
+      ? DateTime.DATETIME_MED_WITH_WEEKDAY
+      : { ...DateTime.DATETIME_MED_WITH_WEEKDAY, timeZoneName: "short" as const },
   );
   const defaultExpression = $derived(
     frequency === "custom" ? undefined : schedules.data?.defaults[frequency],
@@ -265,20 +289,26 @@
     {/if}
   </HStack>
 
-  {#if !preset}
+  {#if !preset && tz}
     <Stack gap={1}>
       <Text id={nextRunsId} size="small" color="muted" fontWeight="bold"
         >{$t`Next runs`}</Text
       >
-      <ul aria-labelledby={nextRunsId}>
-        {#each nextRuns as run (run.toMillis())}
-          <li>
-            <Text size="small" color="muted"
-              >{run.toLocaleString(DateTime.DATETIME_MED_WITH_WEEKDAY)}</Text
-            >
-          </li>
-        {/each}
-      </ul>
+      {#if nextRuns.length === 0}
+        <Text size="small" color="warning"
+          >{$t`This schedule never runs. Check the day and month.`}</Text
+        >
+      {:else}
+        <ul aria-labelledby={nextRunsId}>
+          {#each nextRuns as run (run.toMillis())}
+            <li>
+              <Text size="small" color="muted"
+                >{run.toLocal().toLocaleString(runFormat)}</Text
+              >
+            </li>
+          {/each}
+        </ul>
+      {/if}
     </Stack>
   {/if}
 {/if}
