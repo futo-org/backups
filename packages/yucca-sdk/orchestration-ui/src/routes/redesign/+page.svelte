@@ -242,7 +242,9 @@
   <Heading>Backups Onboarding - Step 3</Heading>
   <FakeModal size="small" title="Start your first backup">
     <OnboardingStepFirstBackup
-      schedule="Every day at 3:00 AM"
+      cron="@daily"
+      defaults={{ daily: "0 3 * * *", weekly: "0 3 * * 0", monthly: "0 3 1 * *" }}
+      tz="UTC"
       storageLocation="FUTO Cloud"
       onStartBackup={() => void 0}
     />

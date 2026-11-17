@@ -4,7 +4,8 @@ import type { OnboardingStatusResponseDto } from '$lib/fetch-client';
 import { createRawSnippet } from 'svelte';
 import { page } from 'vitest/browser';
 import { render } from 'vitest-browser-svelte';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { DateTime, Settings } from 'luxon';
 import { handleStartYuccaLogin } from '$lib/services/backend.service';
 import { useConfigureAndStartImmichIntegration } from '$lib/services/integrations.service';
 import {
@@ -139,5 +140,73 @@ describe('Immich onboarding', () => {
     await button('Close').click();
     await expect.element(button('Set up backups')).toBeVisible();
     expect(configure).not.toHaveBeenCalled();
+  });
+
+  describe('first backup dialog', () => {
+    const zone = 'Europe/London';
+    const { defaultZone, defaultLocale } = Settings;
+
+    const openFirstBackupAt = async (
+      time: string,
+      daily: string,
+      tz = zone,
+    ) => {
+      vi.setSystemTime(DateTime.fromISO(time, { zone }).toJSDate());
+      queryClient.setQueryData(scheduleKeys.all, {
+        schedules: [],
+        defaults: { daily, weekly: daily, monthly: daily },
+        tz,
+      });
+      await openBetaDisclaimer();
+      await createBackup();
+    };
+
+    beforeEach(() => {
+      vi.useFakeTimers({ toFake: ['Date'] });
+      Settings.defaultZone = zone;
+      Settings.defaultLocale = 'en-GB';
+    });
+
+    afterEach(() => {
+      vi.useRealTimers();
+      Settings.defaultZone = defaultZone;
+      Settings.defaultLocale = defaultLocale;
+    });
+
+    it('says the next backup runs today when its time is still ahead', async () => {
+      await openFirstBackupAt('2026-11-17T01:00', '0 3 * * *');
+      await expect
+        .element(page.getByText('Next scheduled backup: today at 03:00'))
+        .toBeVisible();
+    });
+
+    it('says the next backup runs tomorrow when the time has passed today', async () => {
+      await openFirstBackupAt('2026-11-17T20:00', '0 3 * * *');
+      await expect
+        .element(page.getByText('Next scheduled backup: tomorrow at 03:00'))
+        .toBeVisible();
+    });
+
+    it('counts days in the server time zone and names it', async () => {
+      await openFirstBackupAt(
+        '2026-11-18T01:00',
+        '0 3 * * *',
+        'America/New_York',
+      );
+      await expect
+        .element(
+          page.getByText(
+            'Between 03:00 and 04:00, every day (America/New York)',
+          ),
+        )
+        .toBeVisible();
+      await expect
+        .element(
+          page.getByText(
+            'Next scheduled backup: tomorrow at 03:00 (America/New York)',
+          ),
+        )
+        .toBeVisible();
+    });
   });
 });

@@ -4,21 +4,48 @@
   import OnboardingStepLayout, {
     type OnboardingStepAction,
   } from "./OnboardingStepLayout.svelte";
+  import type { ScheduleDefaultsDto } from "$lib/fetch-client";
+  import {
+    describeSchedule,
+    resolveCron,
+    withTimeZone,
+  } from "$lib/utils/cron";
+  import { CronTime } from "cron";
+  import { DateTime } from "luxon";
   import { t } from "svelte-i18n-lingui";
 
   type Props = {
-    schedule: string;
+    cron: string;
+    defaults: ScheduleDefaultsDto;
+    tz: string;
     storageLocation: string;
     onStartBackup: () => void;
     loading?: boolean;
   };
 
   const {
-    schedule,
+    cron,
+    defaults,
+    tz,
     storageLocation,
     onStartBackup,
     loading = false,
   }: Props = $props();
+
+  const schedule = $derived.by(() => {
+    const description = describeSchedule(cron, defaults, tz);
+    return description.charAt(0).toUpperCase() + description.slice(1);
+  });
+  const nextBackup = $derived.by(() => {
+    const run = new CronTime(resolveCron(cron, defaults), tz).sendAt();
+    const time = run.toLocaleString(DateTime.TIME_SIMPLE);
+    return withTimeZone(
+      run.hasSame(DateTime.now().setZone(tz), "day")
+        ? $t`Next scheduled backup: today at ${time}`
+        : $t`Next scheduled backup: tomorrow at ${time}`,
+      tz,
+    );
+  });
 
   const settings = $derived([
     {
@@ -30,6 +57,7 @@
       icon: mdiClock,
       title: $t`Schedule`,
       value: schedule,
+      detail: nextBackup,
     },
     {
       icon: mdiDownloadBox,
@@ -60,6 +88,9 @@
         <Stack>
           <Text fontWeight="semi-bold">{setting.title}</Text>
           <Text>{setting.value}</Text>
+          {#if setting.detail}
+            <Text size="small" color="muted">{setting.detail}</Text>
+          {/if}
         </Stack>
       </HStack>
     {/each}

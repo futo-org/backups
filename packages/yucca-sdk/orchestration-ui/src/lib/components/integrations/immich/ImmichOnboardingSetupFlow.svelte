@@ -22,7 +22,6 @@
   } from "$lib/services/onboarding.service";
   import { handleCreateBackup } from "$lib/services/repository.service";
   import { useSchedules } from "$lib/services/schedule.service";
-  import { describeSchedule } from "$lib/utils/cron";
   import { LoadingSpinner } from "@immich/ui";
   import { onMount, type Snippet } from "svelte";
   import { t } from "svelte-i18n-lingui";
@@ -55,18 +54,6 @@
   const defaults = useConfigureAndStartImmichIntegration();
 
   const schedules = useSchedules();
-  const schedule = $derived.by(() => {
-    if (!schedules.data) {
-      return "";
-    }
-
-    const description = describeSchedule(
-      IMMICH_DEFAULT_CRON,
-      schedules.data.defaults,
-      schedules.data.tz,
-    );
-    return description.charAt(0).toUpperCase() + description.slice(1);
-  });
 
   onMount(() => {
     handleOnboardingStatus().then(async (data) => {
@@ -194,10 +181,12 @@
       onBack={() => (stage = "key")}
     />
   </OnboardingStepModal>
-{:else if stage === "backup"}
+{:else if stage === "backup" && schedules.data}
   <OnboardingStepModal title={$t`Start your first backup`} {onClose}>
     <OnboardingStepFirstBackup
-      {schedule}
+      cron={IMMICH_DEFAULT_CRON}
+      defaults={schedules.data.defaults}
+      tz={schedules.data.tz}
       storageLocation={$t`FUTO Cloud`}
       {onStartBackup}
     />

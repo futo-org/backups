@@ -1739,6 +1739,14 @@ msgstr ""
 msgid "Next page"
 msgstr ""
 
+#: src/lib/components/onboarding/steps/OnboardingStep4FirstBackup.svelte
+msgid "Next scheduled backup: today at {0}"
+msgstr ""
+
+#: src/lib/components/onboarding/steps/OnboardingStep4FirstBackup.svelte
+msgid "Next scheduled backup: tomorrow at {0}"
+msgstr ""
+
 #: src/lib/components/backups/run-history/RepositoryRunHistoryPage.svelte
 msgid "No backups found"
 msgstr ""
