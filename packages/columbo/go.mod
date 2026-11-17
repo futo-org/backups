@@ -3,7 +3,7 @@ module columbo
 go 1.27.3
 
 require (
-	github.com/cloudwego/eino v0.9.21
+	github.com/cloudwego/eino v0.9.23
 	github.com/cloudwego/eino-ext/components/model/openai v0.1.13
 	github.com/go-git/go-billy/v5 v5.9.2
 	github.com/go-git/go-git/v5 v5.19.3
