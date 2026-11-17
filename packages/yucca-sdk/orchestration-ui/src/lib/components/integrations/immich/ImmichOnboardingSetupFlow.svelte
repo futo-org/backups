@@ -63,6 +63,7 @@
     const description = describeSchedule(
       IMMICH_DEFAULT_CRON,
       schedules.data.defaults,
+      schedules.data.tz,
     );
     return description.charAt(0).toUpperCase() + description.slice(1);
   });

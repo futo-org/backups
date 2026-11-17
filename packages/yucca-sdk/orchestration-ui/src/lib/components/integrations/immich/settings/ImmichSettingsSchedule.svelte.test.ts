@@ -53,6 +53,7 @@ vi.mock('$lib/services/schedule.service', () => ({
         },
       ],
       defaults: state.defaults,
+      tz: Intl.DateTimeFormat().resolvedOptions().timeZone,
     },
   }),
   useScheduleEventHandler: () => ({}),

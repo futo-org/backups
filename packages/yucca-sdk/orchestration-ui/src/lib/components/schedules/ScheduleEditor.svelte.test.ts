@@ -26,7 +26,11 @@ vi.mock('$lib/services/repository.service', () => ({
 
 vi.mock('$lib/services/schedule.service', () => ({
   useSchedules: () => ({
-    data: { schedules: [], defaults: state.defaults },
+    data: {
+      schedules: [],
+      defaults: state.defaults,
+      tz: Intl.DateTimeFormat().resolvedOptions().timeZone,
+    },
   }),
   useCreateSchedule: () => ({ mutate: state.create }),
   useUpdateSchedule: () => ({ mutate: state.update }),

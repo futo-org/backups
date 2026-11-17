@@ -195,6 +195,7 @@ export class ScheduleService {
     return {
       schedules: await this.schedule.getAll(),
       defaults: await this.getScheduleDefaults(),
+      tz: Intl.DateTimeFormat().resolvedOptions().timeZone,
     };
   }
 

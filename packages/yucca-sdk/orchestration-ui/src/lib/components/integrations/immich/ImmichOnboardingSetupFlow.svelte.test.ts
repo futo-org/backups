@@ -99,6 +99,7 @@ describe('Immich onboarding', () => {
         weekly: '0 3 * * 0',
         monthly: '0 3 1 * *',
       },
+      tz: Intl.DateTimeFormat().resolvedOptions().timeZone,
     });
     vi.mocked(handleConfirmRecoveryKey).mockClear();
     vi.mocked(handleCreateBackup).mockClear();

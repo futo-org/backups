@@ -241,7 +241,7 @@
   <HStack gap={2} class="items-center justify-between">
     <Text size="small" color="muted">
       {$t`Backups will run`}
-      {describeSchedule(cron, schedules.data.defaults)}.
+      {describeSchedule(cron, schedules.data.defaults, schedules.data.tz)}.
       {#if frequency === "monthly" && Number(fields[2]) > 28}
         {$t`Days 29, 30 and 31 only run in months that have that day.`}
       {/if}

@@ -3197,11 +3197,15 @@
           },
           "defaults": {
             "$ref": "#/components/schemas/ScheduleDefaultsDto"
+          },
+          "tz": {
+            "type": "string"
           }
         },
         "required": [
           "schedules",
-          "defaults"
+          "defaults",
+          "tz"
         ]
       },
       "ScheduleUpdateRequestDto": {
