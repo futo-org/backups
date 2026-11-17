@@ -1,10 +1,12 @@
 <script lang="ts">
   import { useSchedules } from "$lib/services/schedule.service";
   import {
-    describeCron,
+    describeSchedule,
     isValidCron,
+    padTime,
     resolveCron,
     runsMoreThanHourly,
+    toDefaultWindow,
     toSchedulePreset,
     type SchedulePreset,
   } from "$lib/utils/cron";
@@ -72,7 +74,6 @@
   const frequency = $derived(
     editingCustom ? "custom" : (preset ?? pattern ?? "custom"),
   );
-  const waitingForDefaults = $derived(!!preset && !schedules.data?.defaults);
   const cronInvalid = $derived(!isValidCron(cron));
   const defaultExpression = $derived(
     frequency === "custom" ? undefined : schedules.data?.defaults[frequency],
@@ -107,23 +108,9 @@
     const [minute, hour] = defaultExpression?.split(" ") ?? [];
     return defaultExpression ? `${Number(hour)}:${Number(minute)}` : undefined;
   });
-  const pad = (part: number) => String(part).padStart(2, "0");
-  const defaultWindow = $derived.by(() => {
-    const [, hour, ...days] = defaultExpression?.split(" ") ?? [];
-    if (!defaultExpression) {
-      return undefined;
-    }
-
-    const start = Number(hour);
-    return {
-      start: `${pad(start)}:00`,
-      end: `${pad((start + 1) % 24)}:00`,
-      days: describeCron(["0", "0", ...days].join(" "))
-        .split(", ")
-        .slice(1)
-        .join(", "),
-    };
-  });
+  const defaultWindow = $derived(
+    defaultExpression ? toDefaultWindow(defaultExpression) : undefined,
+  );
   const startTimes = $derived(
     [
       ...new Set([
@@ -140,7 +127,7 @@
         const value = `${hour}:${minute}`;
         const options =
           minute === 0 || (!preset && value === startTime)
-            ? [{ value, label: `${pad(hour)}:${pad(minute)}` }]
+            ? [{ value, label: `${padTime(hour)}:${padTime(minute)}` }]
             : [];
         if (
           frequency === "daily" &&
@@ -179,7 +166,7 @@
   />
 </Field>
 
-{#if waitingForDefaults}
+{#if !schedules.data}
   {#if schedules.isError}
     <Text size="small" color="danger">{$t`Failed to load default schedule`}</Text>
   {:else}
@@ -250,18 +237,11 @@
   {/if}
 {/if}
 
-{#if !waitingForDefaults && !cronInvalid}
+{#if schedules.data && !cronInvalid}
   <HStack gap={2} class="items-center justify-between">
     <Text size="small" color="muted">
-      {#if preset && defaultWindow}
-        {$t({
-          message: "Backups will run between {start} and {end}, {days}.",
-          values: defaultWindow,
-        })}
-      {:else}
-        {$t`Backups will run`}
-        {describeCron(effectiveCron)}.
-      {/if}
+      {$t`Backups will run`}
+      {describeSchedule(cron, schedules.data.defaults)}.
       {#if frequency === "monthly" && Number(fields[2]) > 28}
         {$t`Days 29, 30 and 31 only run in months that have that day.`}
       {/if}

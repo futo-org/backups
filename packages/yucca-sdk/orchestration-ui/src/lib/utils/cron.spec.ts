@@ -1,5 +1,6 @@
 import {
   describeCron,
+  describeSchedule,
   isValidCron,
   resolveCron,
   runsMoreThanHourly,
@@ -76,5 +77,25 @@ describe('resolveCron', () => {
 describe('describeCron', () => {
   it('lowercases only the first letter so day names keep their capital', () => {
     expect(describeCron('23 3 * * 2')).toBe('at 03:23 AM, only on Tuesday');
+  });
+});
+
+describe('describeSchedule', () => {
+  const defaults = {
+    daily: '23 3 * * *',
+    weekly: '23 3 * * 2',
+    monthly: '23 3 12 * *',
+  };
+
+  it('describes a preset as the window its installation default falls in', () => {
+    expect(describeSchedule('@weekly', defaults)).toBe(
+      'between 03:00 and 04:00, only on Tuesday',
+    );
+  });
+
+  it('describes a custom expression at its exact time', () => {
+    expect(describeSchedule('17 4 * * *', defaults)).toBe(
+      'at 04:17 AM, every day',
+    );
   });
 });
