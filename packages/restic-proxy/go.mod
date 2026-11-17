@@ -3,7 +3,7 @@ module restic-proxy
 go 1.27.3
 
 require (
-	github.com/caarlos0/env/v11 v11.4.1 // direct
+	github.com/caarlos0/env/v11 v11.4.2 // direct
 	github.com/cornelk/hashmap v1.0.8 // direct
 	github.com/rs/zerolog v1.35.1
 	golang.org/x/sync v0.23.0
