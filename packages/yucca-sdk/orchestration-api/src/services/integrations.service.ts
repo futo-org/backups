@@ -102,7 +102,9 @@ export class IntegrationsService {
       this.repositoryService.getRepositories(),
       this.backendService.getBackends(),
       this.schedule.get(integration.scheduleId),
-      this.jobs.getLatest(integration.id, JobName.RepositoryBackup),
+      this.jobs
+        .getActiveForRepository(integration.id, JobName.RepositoryBackup)
+        .then((active) => active ?? this.jobs.getLatest(integration.id, JobName.RepositoryBackup)),
       immichIntegration.hooks.getImmichDatabaseDumpConfig(),
       this.config.hasIgnoredImmichDatabaseDumpWarning(),
       this.backendService.isCloudFeatureEnabled(IMMICH_DATABASE_DUMP_ALERT_FEATURE).catch(() => false),
