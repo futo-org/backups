@@ -30,8 +30,8 @@ const workers: Array<Kysely<DB>> = [];
 const releases: Array<() => Promise<void>> = [];
 let databaseName: string;
 
-const startWorker = () => {
-  const db = connectTo(databaseName);
+const startWorker = (name = databaseName) => {
+  const db = connectTo(name);
   const database = new DatabaseRepository(db, new StorageRepository(), LoggingRepository.create());
   workers.push(db);
 
@@ -87,5 +87,9 @@ describe('holdLock', () => {
     await release!();
 
     await expect(startWorker().holdLock()).resolves.toBeInstanceOf(Function);
+  });
+
+  it('rejects when the database cannot be reached', async () => {
+    await expect(startWorker('missing_database').holdLock()).rejects.toThrow(/does not exist/);
   });
 });

@@ -43,7 +43,7 @@ export class DatabaseRepository {
 
     const settled = session.catch((error: unknown) => {
       this.logger.warn('Advisory lock session failed', error);
-      acquired.resolve(undefined);
+      acquired.reject(error);
     });
 
     return acquired.promise;
