@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.18.1](https://github.com/futo-org/backups/compare/v1.18.0...v1.18.1) (2026-11-17)
+
+
+### Bug Fixes
+
+* **yucca sdk:** skip the leader unlock if connection was dropped ([#289](https://github.com/futo-org/backups/issues/289)) ([497fcc0](https://github.com/futo-org/backups/commit/497fcc02b55fa71f89dfc4d7b8ab461a9e23725f))
+
 ## [1.18.0](https://github.com/futo-org/backups/compare/v1.17.0...v1.18.0) (2026-11-17)
 
 
