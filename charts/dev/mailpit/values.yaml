@@ -6,7 +6,7 @@ fullnameOverride: yucca-mailpit
 
 image:
   repository: axllent/mailpit
-  tag: v1.31.3@sha256:ed9b00c609e77e99c79b93f1178255ebc271868920f2c69a8d166bd5634ed10d
+  tag: v1.33.1@sha256:aef2aacc11f075ec0fb6874275ee4a421e688e11a96ebb296134d1735c7761ce
   pullPolicy: IfNotPresent
 
 # 8025 serves both the web inbox and the REST API (SMTP on 1025 stays
