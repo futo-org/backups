@@ -1,6 +1,7 @@
 import { validateCronExpression } from 'cron';
 import cronstrue from 'cronstrue';
 import type { ScheduleDefaultsDto } from '$lib/fetch-client';
+import { DateTime } from 'luxon';
 import { gt } from 'svelte-i18n-lingui';
 
 const MINUTES_PER_HOUR = 60;
@@ -48,9 +49,17 @@ export const resolveCron = (
   return (preset && defaults?.[preset]) ?? cron;
 };
 
-export const describeCron = (expression: string) => {
+export const withTimeZone = (text: string, tz: string) =>
+  tz === DateTime.local().zoneName
+    ? text
+    : `${text} (${tz.replaceAll('_', ' ')})`;
+
+export const describeCron = (expression: string, tz: string) => {
   const description = cronstrue.toString(expression, { verbose: true });
-  return description.charAt(0).toLowerCase() + description.slice(1);
+  return withTimeZone(
+    description.charAt(0).toLowerCase() + description.slice(1),
+    tz,
+  );
 };
 
 export const padTime = (part: number) => String(part).padStart(2, '0');
@@ -72,14 +81,18 @@ export const toDefaultWindow = (expression: string) => {
 export const describeSchedule = (
   cron: string,
   defaults: ScheduleDefaultsDto,
+  tz: string,
 ) => {
   const preset = toSchedulePreset(cron);
   if (!preset) {
-    return describeCron(cron);
+    return describeCron(cron, tz);
   }
 
-  return gt({
-    message: 'between {start} and {end}, {days}',
-    values: toDefaultWindow(defaults[preset]),
-  });
+  return withTimeZone(
+    gt({
+      message: 'between {start} and {end}, {days}',
+      values: toDefaultWindow(defaults[preset]),
+    }),
+    tz,
+  );
 };

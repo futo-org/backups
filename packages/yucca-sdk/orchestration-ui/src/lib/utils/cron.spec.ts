@@ -5,7 +5,8 @@ import {
   resolveCron,
   runsMoreThanHourly,
 } from '$lib/utils/cron';
-import { describe, expect, it } from 'vitest';
+import { DateTime, Settings } from 'luxon';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 describe('runsMoreThanHourly', () => {
   it.each([
@@ -76,25 +77,48 @@ describe('resolveCron', () => {
 
 describe('describeCron', () => {
   it('lowercases only the first letter so day names keep their capital', () => {
-    expect(describeCron('23 3 * * 2')).toBe('at 03:23 AM, only on Tuesday');
+    expect(describeCron('23 3 * * 2', DateTime.local().zoneName)).toBe(
+      'at 03:23 AM, only on Tuesday',
+    );
   });
 });
 
-describe('describeSchedule', () => {
+describe('schedule descriptions in the server time zone', () => {
+  const { defaultZone } = Settings;
   const defaults = {
     daily: '23 3 * * *',
     weekly: '23 3 * * 2',
     monthly: '23 3 12 * *',
   };
 
+  beforeEach(() => {
+    Settings.defaultZone = 'Europe/London';
+  });
+
+  afterEach(() => {
+    Settings.defaultZone = defaultZone;
+  });
+
+  it('names the server time zone readably when it differs from the local one', () => {
+    expect(describeCron('0 3 * * *', 'America/New_York')).toBe(
+      'at 03:00 AM, every day (America/New York)',
+    );
+  });
+
+  it('leaves the description alone when the server shares the local time zone', () => {
+    expect(describeCron('0 3 * * *', 'Europe/London')).toBe(
+      'at 03:00 AM, every day',
+    );
+  });
+
   it('describes a preset as the window its installation default falls in', () => {
-    expect(describeSchedule('@weekly', defaults)).toBe(
-      'between 03:00 and 04:00, only on Tuesday',
+    expect(describeSchedule('@weekly', defaults, 'America/New_York')).toBe(
+      'between 03:00 and 04:00, only on Tuesday (America/New York)',
     );
   });
 
   it('describes a custom expression at its exact time', () => {
-    expect(describeSchedule('17 4 * * *', defaults)).toBe(
+    expect(describeSchedule('17 4 * * *', defaults, 'Europe/London')).toBe(
       'at 04:17 AM, every day',
     );
   });

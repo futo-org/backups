@@ -716,6 +716,7 @@ describe('Schedule', () => {
         weekly: expect.stringMatching(/^\d+ 3 \* \* [0-6]$/),
         monthly: expect.stringMatching(/^\d+ 3 \d+ \* \*$/),
       },
+      tz: expect.any(String),
       schedules: expect.arrayContaining([
         expect.objectContaining({
           id: schedule.id,

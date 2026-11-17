@@ -77,7 +77,7 @@
     {#if status.kind === "paused"}
       {$t`Backups paused`}
     {:else if schedules.data}
-      {describeSchedule(schedule.cron, schedules.data.defaults)}
+      {describeSchedule(schedule.cron, schedules.data.defaults, schedules.data.tz)}
     {/if}
 
     {#snippet trailing()}

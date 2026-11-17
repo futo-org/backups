@@ -133,6 +133,17 @@ describe(ScheduleService.name, () => {
     expect(String(registry.getCronJob(schedule.id).cronTime.source)).toBe(defaults.monthly);
   });
 
+  it('reports the time zone its schedules run in', async () => {
+    const { schedule } = await service.createSchedule({
+      name: 'Custom',
+      paused: true,
+      cron: '0 3 * * *',
+      repositories: [],
+    });
+    const { tz } = await service.getSchedules();
+    expect(registry.getCronJob(schedule.id).cronTime.sendAt().zoneName).toBe(tz);
+  });
+
   it('registers custom expressions as written', async () => {
     const { schedule } = await service.createSchedule({
       name: 'Custom',
