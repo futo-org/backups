@@ -475,8 +475,8 @@ msgid "Backups will run"
 msgstr ""
 
 #: src/lib/components/schedules/ScheduleEditor.svelte
-msgid "Backups will run between {start} and {end}, {days}."
-msgstr ""
+#~ msgid "Backups will run between {start} and {end}, {days}."
+#~ msgstr ""
 
 #: src/lib/components/integrations/immich/settings/ImmichSettingsBandwidth.svelte
 msgid "Bandwidth"
@@ -493,6 +493,10 @@ msgstr ""
 
 #: src/lib/components/schedules/ScheduleEditor.svelte
 msgid "Between {start} and {end} (default)"
+msgstr ""
+
+#: src/lib/utils/cron.ts
+msgid "between {start} and {end}, {days}"
 msgstr ""
 
 #: ../../web/src/routes/dashboard/connections/+page.svelte

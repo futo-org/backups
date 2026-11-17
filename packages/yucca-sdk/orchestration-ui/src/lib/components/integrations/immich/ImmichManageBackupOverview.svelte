@@ -11,7 +11,7 @@
     handleResumeSchedule,
     useSchedules,
   } from "$lib/services/schedule.service";
-  import { describeCron, resolveCron } from "$lib/utils/cron";
+  import { describeSchedule } from "$lib/utils/cron";
   import { Button, FormatBytes, Icon } from "@immich/ui";
   import {
     mdiAlert,
@@ -34,7 +34,6 @@
   const { repository, schedule, status, resticMissing = false }: Props = $props();
 
   const schedules = useSchedules();
-  const expression = $derived(resolveCron(schedule.cron, schedules.data?.defaults));
 
   const appearance = $derived.by(() => {
     switch (status.kind) {
@@ -77,8 +76,8 @@
     {/if} &middot;
     {#if status.kind === "paused"}
       {$t`Backups paused`}
-    {:else}
-      {describeCron(expression)}
+    {:else if schedules.data}
+      {describeSchedule(schedule.cron, schedules.data.defaults)}
     {/if}
 
     {#snippet trailing()}

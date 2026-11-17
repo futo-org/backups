@@ -59,32 +59,34 @@ vi.mock('$lib/services/schedule.service', () => ({
 }));
 
 vi.mock('svelte-i18n-lingui', async () => {
-  const { readable } = await import('svelte/store');
+  const { get, readable } = await import('svelte/store');
+  const t = readable(
+    (
+      input:
+        | TemplateStringsArray
+        | string
+        | { message: string; values: Record<string, string> },
+    ) => {
+      if (typeof input === 'string') {
+        return input;
+      }
+
+      if ('message' in input) {
+        let message = input.message;
+        for (const [key, value] of Object.entries(input.values)) {
+          message = message.replaceAll(`{${key}}`, value);
+        }
+
+        return message;
+      }
+
+      return input.join('');
+    },
+  );
   return {
     msg: (strings: TemplateStringsArray) => strings.join(''),
-    t: readable(
-      (
-        input:
-          | TemplateStringsArray
-          | string
-          | { message: string; values: Record<string, string> },
-      ) => {
-        if (typeof input === 'string') {
-          return input;
-        }
-
-        if ('message' in input) {
-          let message = input.message;
-          for (const [key, value] of Object.entries(input.values)) {
-            message = message.replaceAll(`{${key}}`, value);
-          }
-
-          return message;
-        }
-
-        return input.join('');
-      },
-    ),
+    t,
+    gt: get(t),
   };
 });
 

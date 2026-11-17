@@ -1,5 +1,7 @@
 import { validateCronExpression } from 'cron';
 import cronstrue from 'cronstrue';
+import type { ScheduleDefaultsDto } from '$lib/fetch-client';
+import { gt } from 'svelte-i18n-lingui';
 
 const MINUTES_PER_HOUR = 60;
 
@@ -49,4 +51,35 @@ export const resolveCron = (
 export const describeCron = (expression: string) => {
   const description = cronstrue.toString(expression, { verbose: true });
   return description.charAt(0).toLowerCase() + description.slice(1);
+};
+
+export const padTime = (part: number) => String(part).padStart(2, '0');
+
+export const toDefaultWindow = (expression: string) => {
+  const [, hour, ...days] = expression.split(' ');
+  const start = Number(hour);
+  return {
+    start: `${padTime(start)}:00`,
+    end: `${padTime((start + 1) % 24)}:00`,
+    days: cronstrue
+      .toString(['0', '0', ...days].join(' '), { verbose: true })
+      .split(', ')
+      .slice(1)
+      .join(', '),
+  };
+};
+
+export const describeSchedule = (
+  cron: string,
+  defaults: ScheduleDefaultsDto,
+) => {
+  const preset = toSchedulePreset(cron);
+  if (!preset) {
+    return describeCron(cron);
+  }
+
+  return gt({
+    message: 'between {start} and {end}, {days}',
+    values: toDefaultWindow(defaults[preset]),
+  });
 };
