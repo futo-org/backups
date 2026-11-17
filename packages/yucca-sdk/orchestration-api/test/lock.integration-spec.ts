@@ -85,6 +85,7 @@ describe('holdLock', () => {
       SELECT pg_terminate_backend(pid)
       FROM pg_locks
       WHERE locktype = 'advisory'
+        AND database = (SELECT oid FROM pg_database WHERE datname = current_database())
         AND objid = hashtext(${LEADER_LOCK})::oid
     `.execute(other.db);
 
