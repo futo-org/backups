@@ -1,7 +1,6 @@
 import { createPostgres } from '@immich/sql-tools';
 import { Kysely, sql } from 'kysely';
 import { PostgresJSDialect } from 'kysely-postgres-js';
-import { randomUUID } from 'node:crypto';
 import { DatabaseRepository } from '../src/repositories/database.repository.js';
 import { LoggingRepository } from '../src/repositories/logging.repository.js';
 import { StorageRepository } from '../src/repositories/storage.repository.js';
@@ -28,7 +27,7 @@ const LEADER_LOCK = 'futo_backups_module_config';
 
 const workers: Array<Kysely<DB>> = [];
 const releases: Array<() => Promise<void>> = [];
-let databaseName: string;
+const databaseName = process.env.POSTGRES_DATABASE ?? 'yucca';
 
 const startWorker = (name = databaseName) => {
   const db = connectTo(name);
@@ -48,22 +47,9 @@ const startWorker = (name = databaseName) => {
   };
 };
 
-beforeAll(async () => {
-  databaseName = `orchestrator_lock_${randomUUID().replaceAll('-', '')}`;
-  const server = connectTo(process.env.POSTGRES_DATABASE ?? 'yucca');
-  await sql`CREATE DATABASE ${sql.id(databaseName)}`.execute(server);
-  await server.destroy();
-});
-
 afterEach(async () => {
   await Promise.all(releases.splice(0).map((release) => release()));
   await Promise.all(workers.splice(0).map((db) => db.destroy()));
-});
-
-afterAll(async () => {
-  const server = connectTo(process.env.POSTGRES_DATABASE ?? 'yucca');
-  await sql`DROP DATABASE IF EXISTS ${sql.id(databaseName)} WITH (FORCE)`.execute(server);
-  await server.destroy();
 });
 
 describe('holdLock', () => {
