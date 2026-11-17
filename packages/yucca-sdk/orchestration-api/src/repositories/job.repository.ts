@@ -277,6 +277,18 @@ export class JobRepository implements OnModuleInit, BeforeApplicationShutdown {
     return job && toJobDto(job);
   }
 
+  async getActiveRepositoryIds(name: JobName) {
+    const jobs = await this.db
+      .selectFrom('futo_backups_jobs')
+      .select('repositoryId')
+      .distinct()
+      .where('name', '=', name)
+      .where('status', 'in', activeStatuses)
+      .execute();
+
+    return jobs.map(({ repositoryId }) => repositoryId);
+  }
+
   private find(id: string) {
     return this.db.selectFrom('futo_backups_jobs').selectAll().where('id', '=', id).executeTakeFirst();
   }

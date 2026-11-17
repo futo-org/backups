@@ -1,10 +1,13 @@
+import { Reflector } from '@nestjs/core';
 import { SchedulerRegistry } from '@nestjs/schedule';
 import { Kysely } from 'kysely';
 import { PGliteDialect } from 'kysely-pglite-dialect';
 import { createPGlite } from '../bin/pglite.js';
-import { ConfigurationKey } from '../enum.js';
+import { BackendType, ConfigurationKey, JobName, JobStatus } from '../enum.js';
+import type { GatewayEvent } from '../events/events.gateway.js';
 import { ConfigRepository } from '../repositories/config.repository.js';
 import { DatabaseRepository } from '../repositories/database.repository.js';
+import { JobRepository } from '../repositories/job.repository.js';
 import { LoggingRepository } from '../repositories/logging.repository.js';
 import { RepositoryIntegrationImmichRepository } from '../repositories/repositoryIntegrationImmich.repository.js';
 import { ScheduleRepository } from '../repositories/schedule.repository.js';
@@ -12,15 +15,31 @@ import { StorageRepository } from '../repositories/storage.repository.js';
 import type { DB } from '../schema/index.js';
 import { ScheduleService } from './schedule.service.js';
 
-const createService = (db: Kysely<DB>, registry: SchedulerRegistry) =>
+type Events = { publish: (event: GatewayEvent) => void };
+
+const noEvents: Events = { publish: () => {} };
+
+const createService = (db: Kysely<DB>, registry: SchedulerRegistry, events = noEvents) =>
   new ScheduleService(
-    { publish: () => {} } as never,
+    events as never,
     new ScheduleRepository(db),
     registry,
-    {} as never,
+    { hasLock: () => true } as never,
     new RepositoryIntegrationImmichRepository(db),
     { submitStructuredLog: () => {} } as never,
-    {} as never,
+    new JobRepository(
+      db,
+      {} as never,
+      new Reflector(),
+      { hasLock: () => false } as never,
+      {} as never,
+      events as never,
+      LoggingRepository.create(),
+      {} as never,
+      {} as never,
+      {} as never,
+      {} as never,
+    ),
     new ConfigRepository(db, { statePath: '/state' } as never, LoggingRepository.create()),
   );
 
@@ -39,6 +58,7 @@ describe(ScheduleService.name, () => {
     await db.deleteFrom('futo_backups_config').where('key', '=', ConfigurationKey.InstallationId).execute();
     await db.deleteFrom('futo_backups_integrations_immich_config').execute();
     await db.deleteFrom('futo_backups_schedule').execute();
+    await db.deleteFrom('futo_backups_jobs').execute();
     registry = new SchedulerRegistry();
     service = createService(db, registry);
   });
@@ -129,5 +149,61 @@ describe(ScheduleService.name, () => {
     await new ScheduleRepository(db).create({ id, name: 'Stored', paused: true, cron: '@daily', ordering: [] });
     await service.bootstrap();
     expect(String(registry.getCronJob(id).cronTime.source)).toBe(defaults.daily);
+  });
+
+  it('queues a scheduled backup only for repositories without one already queued or running', async () => {
+    const backend = await db
+      .insertInto('futo_backups_backends')
+      .values({ configuration: { type: BackendType.Local, path: '/test-backups' } })
+      .returningAll()
+      .executeTakeFirstOrThrow();
+    const [running, queued, idle] = await db
+      .insertInto('futo_backups_repositories')
+      .values(
+        ['running', 'queued', 'idle'].map((remoteId) => ({ backendId: backend.id, remoteId, retentionPolicy: {} })),
+      )
+      .returningAll()
+      .execute();
+    const backupJob = (repositoryId: string, status: JobStatus) => ({
+      name: JobName.RepositoryBackup,
+      repositoryId,
+      data: { repositoryId },
+      status,
+      logFilePath: 'logs/jobs/existing.jsonl',
+    });
+    await db
+      .insertInto('futo_backups_jobs')
+      .values([backupJob(running.id, JobStatus.Running), backupJob(queued.id, JobStatus.Queued)])
+      .execute();
+
+    const { promise: jobCreated, resolve } = Promise.withResolvers<void>();
+    const scheduled = createService(db, registry, {
+      publish: (event) => {
+        if (event.type === 'JobCreate') {
+          resolve();
+        }
+      },
+    });
+    const { schedule } = await scheduled.createSchedule({
+      name: 'Nightly',
+      paused: true,
+      cron: '@daily',
+      repositories: [running.id, queued.id, idle.id],
+    });
+
+    await registry.getCronJob(schedule.id).fireOnTick();
+    await jobCreated;
+
+    const jobs = await db
+      .selectFrom('futo_backups_jobs')
+      .select(['repositoryId', 'status'])
+      .where('name', '=', JobName.RepositoryBackup)
+      .orderBy('sequence')
+      .execute();
+    expect(jobs).toEqual([
+      { repositoryId: running.id, status: JobStatus.Running },
+      { repositoryId: queued.id, status: JobStatus.Queued },
+      { repositoryId: idle.id, status: JobStatus.Queued },
+    ]);
   });
 });
