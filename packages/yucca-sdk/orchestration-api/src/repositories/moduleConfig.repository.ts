@@ -1,11 +1,11 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { BeforeApplicationShutdown, Inject, Injectable } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { InternalEvent } from '../enum.js';
 import { type ModuleConfig, ModuleConfigProvider } from '../moduleConfig.js';
 
 @Injectable()
-export class ModuleConfigRepository {
-  private lock = false;
+export class ModuleConfigRepository implements BeforeApplicationShutdown {
+  private releaseLock?: () => Promise<void>;
   private config: ModuleConfig;
 
   constructor(
@@ -24,11 +24,15 @@ export class ModuleConfigRepository {
     this.eventEmitter.emit(InternalEvent.ModuleConfigUpdated, this.config);
   }
 
-  acquireLock() {
-    this.lock = true;
+  acquireLock(release: () => Promise<void>) {
+    this.releaseLock = release;
   }
 
   hasLock() {
-    return this.lock || !this.config.requireLock;
+    return this.releaseLock !== undefined || !this.config.requireLock;
+  }
+
+  async beforeApplicationShutdown() {
+    await this.releaseLock?.();
   }
 }

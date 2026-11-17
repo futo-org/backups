@@ -78,6 +78,8 @@
     "jest": "catalog:",
     "kysely": "catalog:",
     "kysely-pglite-dialect": "catalog:",
+    "kysely-postgres-js": "catalog:",
+    "postgres": "catalog:",
     "ts-jest": "catalog:",
     "ts-loader": "catalog:"
   },

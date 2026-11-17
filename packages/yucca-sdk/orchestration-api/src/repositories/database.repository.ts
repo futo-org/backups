@@ -18,11 +18,35 @@ export class DatabaseRepository {
     this.logger.setContext(DatabaseRepository.name);
   }
 
-  async tryLock(key: string): Promise<boolean> {
-    const {
-      rows: [{ locked }],
-    } = await sql<{ locked: boolean }>`SELECT pg_try_advisory_lock(hashtext(${key})) AS locked`.execute(this.db);
-    return locked;
+  holdLock(key: string): Promise<(() => Promise<void>) | undefined> {
+    const acquired = Promise.withResolvers<(() => Promise<void>) | undefined>();
+    const released = Promise.withResolvers<void>();
+
+    const session = this.db.connection().execute(async (connection) => {
+      const {
+        rows: [{ locked }],
+      } = await sql<{ locked: boolean }>`SELECT pg_try_advisory_lock(hashtext(${key})) AS locked`.execute(connection);
+
+      if (!locked) {
+        acquired.resolve(undefined);
+        return;
+      }
+
+      acquired.resolve(() => {
+        released.resolve();
+        return settled;
+      });
+
+      await released.promise;
+      await sql`SELECT pg_advisory_unlock(hashtext(${key}))`.execute(connection);
+    });
+
+    const settled = session.catch((error: unknown) => {
+      this.logger.warn('Advisory lock session failed', error);
+      acquired.resolve(undefined);
+    });
+
+    return acquired.promise;
   }
 
   withLock<R>(key: string, callback: (trx: Transaction<DB>) => Promise<R>): Promise<R> {
