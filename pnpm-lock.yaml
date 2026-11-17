@@ -28,8 +28,8 @@ catalogs:
       specifier: ^9.39.2
       version: 9.39.5
     '@futo-org/restic-wrapper':
-      specifier: 1.7.0
-      version: 1.7.0
+      specifier: 1.9.0
+      version: 1.9.0
     '@immich/sql-tools':
       specifier: ^0.7.0
       version: 0.7.0
@@ -534,7 +534,7 @@ importers:
         version: link:../yucca-sdk/orchestration-ui
       '@futo-org/restic-wrapper':
         specifier: 'catalog:'
-        version: 1.7.0
+        version: 1.9.0
       '@jest/globals':
         specifier: 'catalog:'
         version: 30.5.2
@@ -1255,7 +1255,7 @@ importers:
         version: link:../../yucca-api-client
       '@futo-org/restic-wrapper':
         specifier: 'catalog:'
-        version: 1.7.0
+        version: 1.9.0
       '@immich/sql-tools':
         specifier: 'catalog:'
         version: 0.7.0
@@ -2164,8 +2164,8 @@ packages:
   '@floating-ui/utils@0.2.10':
     resolution: {integrity: sha512-aGTxbpbg8/b5JfU1HXSrbH3wXZuLPJcNEcZQFMxLs3oSzgtVu6nFPkbbGGUvBcUjKV2YyB9Wxxabo+HEH9tcRQ==}
 
-  '@futo-org/restic-wrapper@1.7.0':
-    resolution: {integrity: sha512-z27pVTOZA7h755RcZi7MCcCNh6o9lqmk55lRsAxV2gVWBQWfuPpdWVrpRI5Or3IgbYR4B82t7ICHBgtgcWvYrg==}
+  '@futo-org/restic-wrapper@1.9.0':
+    resolution: {integrity: sha512-mxPSH7DBJYkeCv3BdYMz5jyBIrLvMAAo0VSNKnS/UkIpmFNgXEkDAZ9bDMDFnlCi2PbjPlRU4e7KYutHzVhWTA==}
     engines: {node: '>=20'}
 
   '@grpc/grpc-js@1.14.3':
@@ -8507,7 +8507,7 @@ snapshots:
 
   '@floating-ui/utils@0.2.10': {}
 
-  '@futo-org/restic-wrapper@1.7.0':
+  '@futo-org/restic-wrapper@1.9.0':
     dependencies:
       zod: 4.6.1
 

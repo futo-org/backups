@@ -23,6 +23,7 @@ import { RepositoryPathRepository } from '../repositories/repositoryPath.reposit
 import { ResticRepository } from '../repositories/restic.repository.js';
 import { ScheduleRepository } from '../repositories/schedule.repository.js';
 import { ImmichRepositoryConfig } from '../schema/tables/repositoryIntegrationImmich.table.js';
+import { getSelectedImmichLibraries } from '../utils/immich.js';
 import { BackendService } from './backend.service.js';
 import { RepositoryService } from './repository.service.js';
 import { ScheduleService } from './schedule.service.js';
@@ -255,17 +256,8 @@ export class IntegrationsService {
       paths.push(this.moduleConfig.get().statePath);
     }
 
-    if (config.libraries.includes('all')) {
-      for (const library of immich.libraries) {
-        paths.push(...library.importPaths);
-      }
-    } else {
-      const selectedIds = new Set(config.libraries);
-      for (const library of immich.libraries) {
-        if (selectedIds.has(library.id)) {
-          paths.push(...library.importPaths);
-        }
-      }
+    for (const library of getSelectedImmichLibraries(config.libraries, immich.libraries)) {
+      paths.push(...library.importPaths);
     }
 
     return [...new Set(paths)];

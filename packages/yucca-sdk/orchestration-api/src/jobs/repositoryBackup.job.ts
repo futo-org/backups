@@ -13,6 +13,7 @@ import { ResticRepository } from '../repositories/restic.repository.js';
 import { RepositoryService } from '../services/repository.service.js';
 import { TelemetryService } from '../services/telemetry.service.js';
 import { getTaskStatus, TaskWarningsError } from '../utils/errors.js';
+import { getSelectedImmichLibraries } from '../utils/immich.js';
 import type { JobHandler } from '../utils/types.js';
 import { JobContext } from './jobContext.js';
 
@@ -64,10 +65,16 @@ export class RepositoryBackupJob implements JobHandler<RepositoryBackupData> {
       const warnings: Error[] = [];
       const tags = [];
 
-      const { databaseHooks, statePath } = this.moduleConfig.get();
+      const { databaseHooks, statePath, immichIntegration: immichState } = this.moduleConfig.get();
       const immichIntegration = await this.repositoryIntegrationImmich.get();
       const pathsIncludeState = paths.some((path) => !relative(resolve(path), resolve(statePath)).startsWith('..'));
       const dumpDatabase = repositoryId === immichIntegration?.id || pathsIncludeState;
+      const excludeScopes =
+        repositoryId === immichIntegration?.id && immichState
+          ? getSelectedImmichLibraries(immichIntegration.configuration.libraries, immichState.libraries).map(
+              ({ importPaths, exclusionPatterns }) => ({ paths: importPaths, patterns: exclusionPatterns }),
+            )
+          : [];
       if (databaseHooks && dumpDatabase) {
         this.telemetry.submitStructuredLog('Creating database backup', {
           repositoryId,
@@ -109,6 +116,7 @@ export class RepositoryBackupJob implements JobHandler<RepositoryBackupData> {
           tags,
           parent?.id,
           previousBytes !== undefined,
+          excludeScopes,
         );
       } catch (backupError) {
         if (!(backupError instanceof ResticBackupCommandCouldNotReadSourceDataError)) {

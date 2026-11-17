@@ -280,6 +280,7 @@ describe('Repository', () => {
         ['yucca.v1.immichBackupFileName=dump.sql.gz'],
         undefined,
         false,
+        [],
       );
     });
 
@@ -335,6 +336,7 @@ describe('Repository', () => {
         [],
         undefined,
         false,
+        [],
       );
     });
 

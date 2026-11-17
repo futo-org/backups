@@ -153,7 +153,11 @@ describe(ResticRepository.name, () => {
     expect(attach).not.toHaveBeenCalled();
   }, 30_000);
 
-  const backupCommandLine = async (resticWalkConcurrency?: number, totalKnown = false) => {
+  const backupCommandLine = async (
+    resticWalkConcurrency?: number,
+    totalKnown = false,
+    excludeScopes: { paths: string[]; patterns: string[] }[] = [],
+  ) => {
     const attach = jest.spyOn(SupportSession.prototype, 'attach');
     const configured = new ResticRepository(
       { getResticOptions: () => Promise.resolve({ connections: 2, packSizeMib: undefined }) } as never,
@@ -164,7 +168,7 @@ describe(ResticRepository.name, () => {
     // Only the command line matters here; the restic on PATH may not know the flag.
     await recordedLines(() =>
       configured
-        .backup(repository, key, placement, [source], undefined, undefined, [], undefined, totalKnown)
+        .backup(repository, key, placement, [source], undefined, undefined, [], undefined, totalKnown, excludeScopes)
         .catch(() => null),
     );
 
@@ -183,6 +187,30 @@ describe(ResticRepository.name, () => {
 
   it('keeps the walk serial with an upstream restic', async () => {
     await expect(withRestic('0.19.1', () => backupCommandLine())).resolves.not.toContain('--walk-concurrency');
+  }, 30_000);
+
+  it.each([
+    { paths: ['/photos'], patterns: [] },
+    { paths: [], patterns: ['**/*.jpg'] },
+  ])(
+    'omits scoped exclusions without paths or patterns on upstream restic: %j',
+    async (scope) => {
+      await expect(withRestic('0.19.1', () => backupCommandLine(undefined, false, [scope]))).resolves.not.toContain(
+        '--iexclude-scoped-glob',
+      );
+    },
+    30_000,
+  );
+
+  it('preserves unrestricted libraries alongside scoped exclusions', async () => {
+    const scopes = [
+      { paths: [source], patterns: ['**/*.jpg'] },
+      { paths: [source], patterns: [] },
+    ];
+    const args = await backupCommandLine(undefined, false, [...scopes, { paths: [], patterns: ['**/*.png'] }]);
+    const emittedScopes = args.flatMap((arg, index) => (arg === '--iexclude-scoped-glob' ? [args[index + 1]] : []));
+
+    expect(emittedScopes.map((scope) => JSON.parse(scope))).toEqual(scopes);
   }, 30_000);
 
   it("walks 64 entries at a time with FUTO's restic", async () => {
