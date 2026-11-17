@@ -82,7 +82,7 @@ catalog:
   eslint: ^9.39.2
   eslint-config-prettier: ^10.1.8
   eslint-plugin-prettier: ^5.5.4
-  eslint-plugin-unicorn: ^62.0.0
+  eslint-plugin-unicorn: ^79.0.0
   event-iterator: ^2.0.0
   express: ^5.2.1
   front-matter: ^4.0.2
