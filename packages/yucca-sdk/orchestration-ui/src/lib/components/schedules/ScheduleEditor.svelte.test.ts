@@ -2,9 +2,10 @@ import CreateScheduleModal from '$lib/components/schedules/dialogs/CreateSchedul
 import ConfigureScheduleModal from '$lib/components/schedules/dialogs/ConfigureScheduleModal.svelte';
 import type { ScheduleDto } from '$lib/fetch-client';
 import '../../../routes/layout.css';
+import { DateTime } from 'luxon';
 import { page } from 'vitest/browser';
 import { render } from 'vitest-browser-svelte';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const state = vi.hoisted(() => ({
   id: '1cbf642b-c244-42f2-a886-77ad1d3ae343',
@@ -83,12 +84,21 @@ const openCreate = async () => {
   await button('Add Immich').click();
 };
 
+const localRun = (day: number) =>
+  DateTime.local(2026, 1, day, 5).toLocaleString(
+    DateTime.DATETIME_MED_WITH_WEEKDAY,
+  );
+
 const created = () => state.create.mock.lastCall?.[0];
 
 describe('Schedule dialogs', () => {
   beforeEach(() => {
     state.create.mockClear();
     state.update.mockClear();
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
   });
 
   it('creates schedules on the installation daily default', async () => {
@@ -218,6 +228,37 @@ describe('Schedule dialogs', () => {
     await scheduleInput().fill('*/30 1-5 * * 1-5');
     await button('Save').click();
     expect(created()).toMatchObject({ cron: '*/30 1-5 * * 1-5' });
+  });
+
+  it('lists the next three runs in local time', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date(2026, 0, 1, 12, 0));
+
+    await openCreate();
+    await choose('Frequency', 'Custom');
+    await scheduleInput().fill('0 5 * * 0');
+
+    const runs = page
+      .getByRole('list', { name: 'Next runs' })
+      .getByRole('listitem');
+    await expect.element(runs.first()).toHaveTextContent(localRun(4));
+    expect(runs.elements().map((run) => run.textContent?.trim())).toEqual([
+      localRun(4),
+      localRun(11),
+      localRun(18),
+    ]);
+  });
+
+  it('keeps a default schedule to its window without exact run times', async () => {
+    await openCreate();
+    await expect
+      .element(
+        page.getByText('Backups will run between 03:00 and 04:00, every day.'),
+      )
+      .toBeVisible();
+    await expect
+      .element(page.getByRole('list', { name: 'Next runs' }))
+      .not.toBeInTheDocument();
   });
 
   it('resolves a preset typed as a custom expression', async () => {

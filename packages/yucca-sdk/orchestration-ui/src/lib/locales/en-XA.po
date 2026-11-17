@@ -1743,6 +1743,10 @@ msgstr ""
 msgid "Next page"
 msgstr ""
 
+#: src/lib/components/schedules/ScheduleEditor.svelte
+msgid "Next runs"
+msgstr ""
+
 #: src/lib/components/onboarding/steps/OnboardingStep4FirstBackup.svelte
 msgid "Next scheduled backup: today at {0}"
 msgstr ""

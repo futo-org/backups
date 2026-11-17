@@ -10,6 +10,8 @@
     toSchedulePreset,
     type SchedulePreset,
   } from "$lib/utils/cron";
+  import { CronTime } from "cron";
+  import { DateTime } from "luxon";
   import {
     Button,
     Field,
@@ -18,6 +20,7 @@
     Input,
     LoadingSpinner,
     Select,
+    Stack,
     Text,
   } from "@immich/ui";
   import { msg, t } from "svelte-i18n-lingui";
@@ -54,6 +57,7 @@
   const isNumber = (field: string | undefined) => /^\d+$/.test(field ?? "");
 
   const schedules = useSchedules();
+  const nextRunsId = $props.id();
   let editingCustom = $state(false);
 
   const preset = $derived(toSchedulePreset(cron));
@@ -75,6 +79,9 @@
     editingCustom ? "custom" : (preset ?? pattern ?? "custom"),
   );
   const cronInvalid = $derived(!isValidCron(cron));
+  const nextRuns = $derived(
+    cronInvalid ? [] : new CronTime(effectiveCron).sendAt(3),
+  );
   const defaultExpression = $derived(
     frequency === "custom" ? undefined : schedules.data?.defaults[frequency],
   );
@@ -257,4 +264,21 @@
       >
     {/if}
   </HStack>
+
+  {#if !preset}
+    <Stack gap={1}>
+      <Text id={nextRunsId} size="small" color="muted" fontWeight="bold"
+        >{$t`Next runs`}</Text
+      >
+      <ul aria-labelledby={nextRunsId}>
+        {#each nextRuns as run (run.toMillis())}
+          <li>
+            <Text size="small" color="muted"
+              >{run.toLocaleString(DateTime.DATETIME_MED_WITH_WEEKDAY)}</Text
+            >
+          </li>
+        {/each}
+      </ul>
+    </Stack>
+  {/if}
 {/if}
