@@ -29,6 +29,7 @@ import { BackendRepository } from '../repositories/backend.repository.js';
 import { ConfigRepository, ResticPlacement } from '../repositories/config.repository.js';
 import { JobRepository } from '../repositories/job.repository.js';
 import { LoggingRepository } from '../repositories/logging.repository.js';
+import { ModuleConfigRepository } from '../repositories/moduleConfig.repository.js';
 import { RepositoryRepository } from '../repositories/repository.repository.js';
 import { RepositoryLocalMetricsRepository } from '../repositories/repositoryLocalMetrics.repository.js';
 import { RepositoryPathRepository } from '../repositories/repositoryPath.repository.js';
@@ -51,6 +52,7 @@ export class RepositoryService {
     private readonly repositoryLocalMetrics: RepositoryLocalMetricsRepository,
     private readonly telemetry: TelemetryService,
     private readonly logger: LoggingRepository,
+    private readonly moduleConfig: ModuleConfigRepository,
   ) {
     this.logger.setContext(RepositoryService.name);
   }
@@ -106,6 +108,7 @@ export class RepositoryService {
     await this.repository.create({
       id,
       remoteId: remote.id,
+      name: remote.name,
       backendId,
       retentionPolicy,
       siteCode: remote.siteCode,
@@ -171,7 +174,7 @@ export class RepositoryService {
     const localPaths = await this.repositoryPath.getAll();
     const localMetrics = await this.repositoryLocalMetrics.getAll();
 
-    for (const { id, remoteId, backendId, retentionPolicy, siteCode, storageClusterCode } of localRepositories) {
+    for (const { id, remoteId, name, backendId, retentionPolicy, siteCode, storageClusterCode } of localRepositories) {
       const remoteRepository = remoteRepositories[backendId][remoteId];
 
       const configuration: RepositoryConfigurationDto = {
@@ -182,8 +185,13 @@ export class RepositoryService {
       const metrics = localMetrics.get(id);
 
       if (remoteRepository) {
-        if (remoteRepository.siteCode !== siteCode || remoteRepository.storageClusterCode !== storageClusterCode) {
+        if (
+          remoteRepository.name !== name ||
+          remoteRepository.siteCode !== siteCode ||
+          remoteRepository.storageClusterCode !== storageClusterCode
+        ) {
           await this.repository.update(id, {
+            name: remoteRepository.name,
             siteCode: remoteRepository.siteCode,
             storageClusterCode: remoteRepository.storageClusterCode,
           });
@@ -206,7 +214,7 @@ export class RepositoryService {
       } else {
         repositories.push({
           id,
-          name: 'Unknown',
+          name: name ?? 'Unknown',
           worm: false,
           siteCode,
           storageClusterCode,
@@ -335,9 +343,7 @@ export class RepositoryService {
       }
     }
 
-    if (dto.retentionPolicy !== undefined) {
-      await this.repository.update(id, { retentionPolicy: dto.retentionPolicy });
-    }
+    await this.repository.update(id, { name: remote.name, retentionPolicy: dto.retentionPolicy });
 
     const metrics = await this.repositoryLocalMetrics.get(id);
 
@@ -585,6 +591,7 @@ export class RepositoryService {
       await this.repository.create({
         id: localId,
         remoteId: remote.id,
+        name: remote.name,
         backendId,
         retentionPolicy: DEFAULT_RETENTION_POLICY,
         siteCode: remote.siteCode,
@@ -640,7 +647,7 @@ export class RepositoryService {
 
     const { backend, configuration } = await this.getBackendOrThrow(dto.backendId);
 
-    let name = 'Restored Repository';
+    let name = local.name ?? (this.moduleConfig.get().immichIntegration ? 'Immich' : 'Restored Repository');
     try {
       const { backend: previous } = await this.getBackendOrThrow(local.backendId);
       const { repository: previousRemote } = await previous.getRepository(local.remoteId);
@@ -664,6 +671,7 @@ export class RepositoryService {
 
     await this.repository.update(id, {
       remoteId: remote.id,
+      name: remote.name,
       backendId: dto.backendId,
       siteCode: remote.siteCode,
       storageClusterCode: remote.storageClusterCode,

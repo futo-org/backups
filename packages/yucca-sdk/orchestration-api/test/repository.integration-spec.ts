@@ -6,6 +6,7 @@ import {
   getRepository,
   submitMetricBackupEnd,
   submitMetricBackupStart,
+  updateRepository,
 } from '@futo-org/backups-api-client';
 import { ResticBackupCommandCouldNotReadSourceDataError } from '@futo-org/restic-wrapper';
 import { jest } from '@jest/globals';
@@ -604,7 +605,7 @@ describe('Repository', () => {
 
     expect(offlineRepo).toBeDefined();
     expect(offlineRepo?.backends?.primary.online).toBe(false);
-    expect(offlineRepo?.name).toBe('Unknown');
+    expect(offlineRepo?.name).toBe('Offline Test');
 
     await backendRepository.updateBackend(ctx.backendId, {
       type: 'local' as any,
@@ -641,12 +642,12 @@ describe('Repository', () => {
 
     const isKnownLocally = async () => Boolean(await ctx.module.get(RepositoryRepository).get(repositoryId));
 
-    it('lists the leftover repository as unknown and offline', async () => {
+    it('lists the leftover repository under its cached name and offline', async () => {
       (getRepositories as jest.Mock).mockResolvedValueOnce({ repositories: [] });
 
       const { repositories } = await ctx.module.get(RepositoryService).getRepositories();
       expect(repositories.find(({ id }) => id === repositoryId)).toMatchObject({
-        name: 'Unknown',
+        name: 'Deleted',
         backends: { primary: { online: false } },
       });
     });
@@ -752,6 +753,7 @@ describe('Repository', () => {
       const { repositories } = await repositoryService.getRepositories();
 
       expect(repository.name).toBe('Immich');
+      expect(await ctx.module.get(RepositoryRepository).get(repository.id)).toMatchObject({ name: 'Immich' });
       expect(repositories.find((repo) => repo.id === repository.id)?.name).toBe('Immich');
     });
   });
@@ -775,10 +777,13 @@ describe('Primary backend reconfiguration', () => {
     ctx.resticMock.init.mockReset();
     jest.spyOn(ResticProxyPool.prototype, 'isAvailable').mockResolvedValue(false);
     (createResticUrl as jest.Mock).mockResolvedValue({ url: 'rest:http://yucca.test/restic' });
+    (getRepositories as jest.Mock).mockResolvedValue({ repositories: [] });
   });
 
   afterEach(() => {
     jest.restoreAllMocks();
+    ctx.module.get(ModuleConfigRepository).update({ immichIntegration: undefined, externalBaseUrl: undefined });
+    (getRepositories as jest.Mock).mockReset();
   });
 
   it('keeps the repository name when moving to another backend', async () => {
@@ -797,6 +802,7 @@ describe('Primary backend reconfiguration', () => {
       { name: 'Family Photos', worm: false },
       yuccaBackendId,
     );
+    await ctx.module.get(RepositoryRepository).update(repository.id, { name: 'Stale cache' });
 
     const { repository: moved } = await repositoryService.reconfigureRepositoryPrimaryBackend(repository.id, {
       backendId: ctx.backendId,
@@ -808,6 +814,15 @@ describe('Primary backend reconfiguration', () => {
 
   it('keeps the name of a local repository when moving to another backend', async () => {
     const repositoryService = ctx.module.get(RepositoryService);
+    ctx.module.get(ModuleConfigRepository).update({
+      immichIntegration: {
+        dataPath: '/data/immich',
+        dataFolders: ['upload'],
+        libraries: [],
+        hooks: newImmichHooksMock(),
+      },
+      externalBaseUrl: 'https://photos.example',
+    });
 
     const { repository } = await repositoryService.createRepository({ name: 'Local Only', worm: false }, ctx.backendId);
 
@@ -816,6 +831,39 @@ describe('Primary backend reconfiguration', () => {
     });
 
     expect(moved.name).toBe('Local Only');
+  });
+
+  it('defaults to Immich when the previous name cannot be read', async () => {
+    const repositoryService = ctx.module.get(RepositoryService);
+    ctx.module.get(ModuleConfigRepository).update({
+      immichIntegration: {
+        dataPath: '/data/immich',
+        dataFolders: ['upload'],
+        libraries: [],
+        hooks: newImmichHooksMock(),
+      },
+      externalBaseUrl: 'https://my.immich.app',
+    });
+
+    const yuccaBackendId = randomUUID();
+    await ctx.module.get(BackendRepository).updateBackend(yuccaBackendId, {
+      type: BackendType.Yucca,
+      url: 'http://yucca.test',
+      accessToken: 'test-token',
+    });
+
+    (createRepository as jest.Mock).mockResolvedValueOnce(remoteRepository(randomUUID(), 'Immich'));
+    (getRepository as jest.Mock).mockRejectedValueOnce(new Error('Backend is offline'));
+    const { repository } = await repositoryService.createRepository({ name: 'Immich', worm: false }, yuccaBackendId);
+    await ctx.module.get(RepositoryRepository).update(repository.id, { name: null });
+
+    const { repository: connected } = await repositoryService.reconfigureRepositoryPrimaryBackend(repository.id, {
+      backendId: ctx.backendId,
+    });
+
+    expect(connected.name).toBe('Immich');
+    const { repositories } = await repositoryService.getRepositories();
+    expect(repositories.find((entry) => entry.id === repository.id)?.name).toBe('Immich');
   });
 
   it('names the repository as restored when the old backend cannot report its name', async () => {
@@ -833,12 +881,87 @@ describe('Primary backend reconfiguration', () => {
       { name: 'Unreachable', worm: false },
       yuccaBackendId,
     );
+    await ctx.module.get(RepositoryRepository).update(repository.id, { name: null });
 
     const { repository: moved } = await repositoryService.reconfigureRepositoryPrimaryBackend(repository.id, {
       backendId: ctx.backendId,
     });
 
     expect(moved.name).toBe('Restored Repository');
+  });
+
+  it.each(['created', 'renamed', 'failed rename'])(
+    'preserves the cached remote name while offline (%s)',
+    async (state) => {
+      const repositoryService = ctx.module.get(RepositoryService);
+      const yuccaBackendId = randomUUID();
+      await ctx.module.get(BackendRepository).updateBackend(yuccaBackendId, {
+        type: BackendType.Yucca,
+        url: 'http://yucca.test',
+        accessToken: 'test-token',
+      });
+
+      const remoteId = randomUUID();
+      (createRepository as jest.Mock).mockResolvedValueOnce(remoteRepository(remoteId, 'Family Photos'));
+      const { repository } = await repositoryService.createRepository(
+        { name: 'Family Photos', worm: false },
+        yuccaBackendId,
+      );
+      const name = state === 'renamed' ? 'Holiday Photos' : 'Family Photos';
+      if (state === 'renamed') {
+        (updateRepository as jest.Mock).mockResolvedValueOnce(remoteRepository(remoteId, name));
+        await repositoryService.updateRepository(repository.id, { name });
+      }
+
+      if (state === 'failed rename') {
+        (updateRepository as jest.Mock).mockRejectedValueOnce(new Error('Backend is offline'));
+        await expect(repositoryService.updateRepository(repository.id, { name: 'Unsaved name' })).rejects.toThrow(
+          'Backend is offline',
+        );
+      }
+
+      const { repositories } = await repositoryService.getRepositories();
+      expect(repositories.find((entry) => entry.id === repository.id)).toMatchObject({
+        name,
+        backends: { primary: { online: false } },
+      });
+
+      (getRepository as jest.Mock).mockRejectedValueOnce(new Error('Backend is offline'));
+      const { repository: moved } = await repositoryService.reconfigureRepositoryPrimaryBackend(repository.id, {
+        backendId: ctx.backendId,
+      });
+      expect(moved.name).toBe(name);
+      expect(await ctx.module.get(RepositoryRepository).get(repository.id)).toMatchObject({ name });
+    },
+  );
+
+  it('refreshes an existing repository name from the backend and retains it while offline', async () => {
+    const repositoryService = ctx.module.get(RepositoryService);
+    const yuccaBackendId = randomUUID();
+    await ctx.module.get(BackendRepository).updateBackend(yuccaBackendId, {
+      type: BackendType.Yucca,
+      url: 'http://yucca.test',
+      accessToken: 'test-token',
+    });
+
+    const remoteId = randomUUID();
+    (createRepository as jest.Mock).mockResolvedValueOnce(remoteRepository(remoteId, 'Family Photos'));
+    const { repository } = await repositoryService.createRepository(
+      { name: 'Family Photos', worm: false },
+      yuccaBackendId,
+    );
+    await ctx.module.get(RepositoryRepository).update(repository.id, { name: null });
+    (getRepositories as jest.Mock).mockResolvedValue({
+      repositories: [remoteRepository(remoteId, 'Renamed remotely').repository],
+    });
+    await repositoryService.getRepositories();
+
+    (getRepositories as jest.Mock).mockResolvedValue({ repositories: [] });
+    const { repositories } = await repositoryService.getRepositories();
+    expect(repositories.find((entry) => entry.id === repository.id)).toMatchObject({
+      name: 'Renamed remotely',
+      backends: { primary: { online: false } },
+    });
   });
 
   it('rejects an unknown repository before creating anything on the new backend', async () => {

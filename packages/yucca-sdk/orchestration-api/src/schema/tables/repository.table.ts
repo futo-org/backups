@@ -10,6 +10,9 @@ export class RepositoryTable {
   @Column({ type: 'text' })
   remoteId!: string;
 
+  @Column({ type: 'text', nullable: true })
+  name!: string | null;
+
   @ForeignKeyColumn(() => BackendTable, { onDelete: 'RESTRICT', onUpdate: 'CASCADE' })
   backendId!: string;
 
