@@ -2,8 +2,8 @@
   import { useSchedules } from "$lib/services/schedule.service";
   import {
     describeSchedule,
+    formatTime,
     isValidCron,
-    padTime,
     resolveCron,
     runsMoreThanHourly,
     toDefaultWindow,
@@ -127,7 +127,7 @@
         const value = `${hour}:${minute}`;
         const options =
           minute === 0 || (!preset && value === startTime)
-            ? [{ value, label: `${padTime(hour)}:${padTime(minute)}` }]
+            ? [{ value, label: formatTime(hour, minute) }]
             : [];
         if (
           frequency === "daily" &&

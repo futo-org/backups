@@ -1743,6 +1743,14 @@ msgstr "Next Billing Date"
 msgid "Next page"
 msgstr "Next page"
 
+#: src/lib/components/onboarding/steps/OnboardingStep4FirstBackup.svelte
+msgid "Next scheduled backup: today at {0}"
+msgstr "Next scheduled backup: today at {0}"
+
+#: src/lib/components/onboarding/steps/OnboardingStep4FirstBackup.svelte
+msgid "Next scheduled backup: tomorrow at {0}"
+msgstr "Next scheduled backup: tomorrow at {0}"
+
 #: src/lib/components/backups/run-history/RepositoryRunHistoryPage.svelte
 msgid "No backups found"
 msgstr "No backups found"
