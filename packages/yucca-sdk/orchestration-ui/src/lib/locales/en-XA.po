@@ -2286,6 +2286,10 @@ msgstr ""
 msgid "Run History for {name}"
 msgstr ""
 
+#: src/lib/components/schedules/ScheduleEditor.svelte
+msgid "Run times can't be shown because this browser doesn't recognise the {tz} time zone."
+msgstr ""
+
 #: src/lib/components/settings/SettingsSupportMode.svelte
 msgid "Runs in support mode"
 msgstr ""

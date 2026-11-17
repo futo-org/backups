@@ -2286,6 +2286,10 @@ msgstr "Run backups automatically"
 msgid "Run History for {name}"
 msgstr "Run History for {name}"
 
+#: src/lib/components/schedules/ScheduleEditor.svelte
+msgid "Run times can't be shown because this browser doesn't recognise the {tz} time zone."
+msgstr "Run times can't be shown because this browser doesn't recognise the {tz} time zone."
+
 #: src/lib/components/settings/SettingsSupportMode.svelte
 msgid "Runs in support mode"
 msgstr "Runs in support mode"

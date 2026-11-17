@@ -84,7 +84,10 @@ const openCreate = async () => {
 const localRun = (year: number, month: number, day: number) =>
   DateTime.fromObject({ year, month, day, hour: 5 }, { zone: state.tz })
     .toLocal()
-    .toLocaleString({ ...DateTime.DATETIME_MED_WITH_WEEKDAY, timeZoneName: 'short' });
+    .toLocaleString({
+      ...DateTime.DATETIME_MED_WITH_WEEKDAY,
+      timeZoneName: 'short',
+    });
 
 const fillCustom = async (cron: string) => {
   state.tz = 'Pacific/Kiritimati';
@@ -95,7 +98,8 @@ const fillCustom = async (cron: string) => {
   await scheduleInput().fill(cron);
 };
 
-const nextRuns = () => page.getByRole('list', { name: 'Next runs' }).getByRole('listitem');
+const nextRuns = () =>
+  page.getByRole('list', { name: 'Next runs' }).getByRole('listitem');
 
 const created = () => state.create.mock.lastCall?.[0];
 
@@ -241,9 +245,17 @@ describe('Schedule dialogs', () => {
 
   it("lists the next three runs from the scheduler's time zone in local time", async () => {
     await fillCustom('0 5 * * 0');
-    await expect.element(page.getByText(/\(Pacific\/Kiritimati\)\./)).toBeVisible();
-    await expect.element(nextRuns().first()).toHaveTextContent(localRun(2026, 1, 4));
-    expect(nextRuns().elements().map((run) => run.textContent?.trim())).toEqual([
+    await expect
+      .element(page.getByText(/\(Pacific\/Kiritimati\)\./))
+      .toBeVisible();
+    await expect
+      .element(nextRuns().first())
+      .toHaveTextContent(localRun(2026, 1, 4));
+    expect(
+      nextRuns()
+        .elements()
+        .map((run) => run.textContent?.trim()),
+    ).toEqual([
       localRun(2026, 1, 4),
       localRun(2026, 1, 11),
       localRun(2026, 1, 18),
@@ -253,22 +265,51 @@ describe('Schedule dialogs', () => {
   it('lists only the runs a rare schedule has', async () => {
     await fillCustom('0 5 29 2 *');
 
-    await expect.element(nextRuns().first()).toHaveTextContent(localRun(2028, 2, 29));
-    expect(nextRuns().elements().map((run) => run.textContent?.trim())).toEqual([
-      localRun(2028, 2, 29),
-      localRun(2032, 2, 29),
-    ]);
+    await expect
+      .element(nextRuns().first())
+      .toHaveTextContent(localRun(2028, 2, 29));
+    expect(
+      nextRuns()
+        .elements()
+        .map((run) => run.textContent?.trim()),
+    ).toEqual([localRun(2028, 2, 29), localRun(2032, 2, 29)]);
   });
 
   it('says when a schedule never runs and keeps the editor usable', async () => {
     await fillCustom('0 5 31 2 *');
 
     await expect
-      .element(page.getByText('This schedule never runs. Check the day and month.'))
+      .element(
+        page.getByText('This schedule never runs. Check the day and month.'),
+      )
       .toBeVisible();
 
     await scheduleInput().fill('0 5 * * 0');
-    await expect.element(nextRuns().first()).toHaveTextContent(localRun(2026, 1, 4));
+    await expect
+      .element(nextRuns().first())
+      .toHaveTextContent(localRun(2026, 1, 4));
+  });
+
+  it("says run times are unavailable when the browser does not know the scheduler's time zone", async () => {
+    state.tz = 'Mars/Olympus_Mons';
+    await openCreate();
+    await choose('Frequency', 'Custom');
+    await scheduleInput().fill('0 5 * * 0');
+    await scheduleInput().fill('0 6 * * 0');
+
+    await expect
+      .element(
+        page.getByText(
+          "Run times can't be shown because this browser doesn't recognise the Mars/Olympus_Mons time zone.",
+        ),
+      )
+      .toBeVisible();
+    await expect
+      .element(
+        page.getByText('This schedule never runs. Check the day and month.'),
+      )
+      .not.toBeInTheDocument();
+    await expect.element(scheduleInput()).toHaveValue('0 6 * * 0');
   });
 
   it('keeps a default schedule to its window without exact run times', async () => {

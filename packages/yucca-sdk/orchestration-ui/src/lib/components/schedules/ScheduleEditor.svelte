@@ -85,9 +85,13 @@
       return [];
     }
 
+    let from: DateTime<boolean> = DateTime.now().setZone(tz);
+    if (!from.isValid) {
+      return undefined;
+    }
+
     const time = new CronTime(effectiveCron, tz);
     const runs: DateTime<boolean>[] = [];
-    let from: DateTime<boolean> = DateTime.now().setZone(tz);
     while (runs.length < 3) {
       try {
         from = time.getNextDateFrom(from);
@@ -294,7 +298,15 @@
       <Text id={nextRunsId} size="small" color="muted" fontWeight="bold"
         >{$t`Next runs`}</Text
       >
-      {#if nextRuns.length === 0}
+      {#if nextRuns === undefined}
+        <Text size="small" color="muted"
+          >{$t({
+            message:
+              "Run times can't be shown because this browser doesn't recognise the {tz} time zone.",
+            values: { tz },
+          })}</Text
+        >
+      {:else if nextRuns.length === 0}
         <Text size="small" color="warning"
           >{$t`This schedule never runs. Check the day and month.`}</Text
         >
