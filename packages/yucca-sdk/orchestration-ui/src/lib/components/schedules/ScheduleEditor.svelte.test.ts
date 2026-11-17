@@ -2,9 +2,10 @@ import CreateScheduleModal from '$lib/components/schedules/dialogs/CreateSchedul
 import ConfigureScheduleModal from '$lib/components/schedules/dialogs/ConfigureScheduleModal.svelte';
 import type { ScheduleDto } from '$lib/fetch-client';
 import '../../../routes/layout.css';
+import { DateTime } from 'luxon';
 import { page } from 'vitest/browser';
 import { render } from 'vitest-browser-svelte';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const state = vi.hoisted(() => ({
   id: '1cbf642b-c244-42f2-a886-77ad1d3ae343',
@@ -13,6 +14,7 @@ const state = vi.hoisted(() => ({
     weekly: '23 3 * * 2',
     monthly: '23 3 12 * *',
   },
+  tz: Intl.DateTimeFormat().resolvedOptions().timeZone,
   create: vi.fn(),
   update: vi.fn(),
 }));
@@ -26,11 +28,7 @@ vi.mock('$lib/services/repository.service', () => ({
 
 vi.mock('$lib/services/schedule.service', () => ({
   useSchedules: () => ({
-    data: {
-      schedules: [],
-      defaults: state.defaults,
-      tz: Intl.DateTimeFormat().resolvedOptions().timeZone,
-    },
+    data: { schedules: [], defaults: state.defaults, tz: state.tz },
   }),
   useCreateSchedule: () => ({ mutate: state.create }),
   useUpdateSchedule: () => ({ mutate: state.update }),
@@ -83,12 +81,37 @@ const openCreate = async () => {
   await button('Add Immich').click();
 };
 
+const localRun = (year: number, month: number, day: number) =>
+  DateTime.fromObject({ year, month, day, hour: 5 }, { zone: state.tz })
+    .toLocal()
+    .toLocaleString({
+      ...DateTime.DATETIME_MED_WITH_WEEKDAY,
+      timeZoneName: 'short',
+    });
+
+const fillCustom = async (cron: string) => {
+  state.tz = 'Pacific/Kiritimati';
+  vi.useFakeTimers({ toFake: ['Date'] });
+  vi.setSystemTime(Date.parse('2026-01-01T12:00:00Z'));
+  await openCreate();
+  await choose('Frequency', 'Custom');
+  await scheduleInput().fill(cron);
+};
+
+const nextRuns = () =>
+  page.getByRole('list', { name: 'Next runs' }).getByRole('listitem');
+
 const created = () => state.create.mock.lastCall?.[0];
 
 describe('Schedule dialogs', () => {
   beforeEach(() => {
     state.create.mockClear();
     state.update.mockClear();
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+    state.tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
   });
 
   it('creates schedules on the installation daily default', async () => {
@@ -218,6 +241,87 @@ describe('Schedule dialogs', () => {
     await scheduleInput().fill('*/30 1-5 * * 1-5');
     await button('Save').click();
     expect(created()).toMatchObject({ cron: '*/30 1-5 * * 1-5' });
+  });
+
+  it("lists the next three runs from the scheduler's time zone in local time", async () => {
+    await fillCustom('0 5 * * 0');
+    await expect
+      .element(page.getByText(/\(Pacific\/Kiritimati\)\./))
+      .toBeVisible();
+    await expect
+      .element(nextRuns().first())
+      .toHaveTextContent(localRun(2026, 1, 4));
+    expect(
+      nextRuns()
+        .elements()
+        .map((run) => run.textContent?.trim()),
+    ).toEqual([
+      localRun(2026, 1, 4),
+      localRun(2026, 1, 11),
+      localRun(2026, 1, 18),
+    ]);
+  });
+
+  it('lists only the runs a rare schedule has', async () => {
+    await fillCustom('0 5 29 2 *');
+
+    await expect
+      .element(nextRuns().first())
+      .toHaveTextContent(localRun(2028, 2, 29));
+    expect(
+      nextRuns()
+        .elements()
+        .map((run) => run.textContent?.trim()),
+    ).toEqual([localRun(2028, 2, 29), localRun(2032, 2, 29)]);
+  });
+
+  it('says when a schedule never runs and keeps the editor usable', async () => {
+    await fillCustom('0 5 31 2 *');
+
+    await expect
+      .element(
+        page.getByText('This schedule never runs. Check the day and month.'),
+      )
+      .toBeVisible();
+
+    await scheduleInput().fill('0 5 * * 0');
+    await expect
+      .element(nextRuns().first())
+      .toHaveTextContent(localRun(2026, 1, 4));
+  });
+
+  it("says run times are unavailable when the browser does not know the scheduler's time zone", async () => {
+    state.tz = 'Mars/Olympus_Mons';
+    await openCreate();
+    await choose('Frequency', 'Custom');
+    await scheduleInput().fill('0 5 * * 0');
+    await scheduleInput().fill('0 6 * * 0');
+
+    await expect
+      .element(
+        page.getByText(
+          "Run times can't be shown because this browser doesn't recognise the Mars/Olympus_Mons time zone.",
+        ),
+      )
+      .toBeVisible();
+    await expect
+      .element(
+        page.getByText('This schedule never runs. Check the day and month.'),
+      )
+      .not.toBeInTheDocument();
+    await expect.element(scheduleInput()).toHaveValue('0 6 * * 0');
+  });
+
+  it('keeps a default schedule to its window without exact run times', async () => {
+    await openCreate();
+    await expect
+      .element(
+        page.getByText('Backups will run between 03:00 and 04:00, every day.'),
+      )
+      .toBeVisible();
+    await expect
+      .element(page.getByRole('list', { name: 'Next runs' }))
+      .not.toBeInTheDocument();
   });
 
   it('resolves a preset typed as a custom expression', async () => {

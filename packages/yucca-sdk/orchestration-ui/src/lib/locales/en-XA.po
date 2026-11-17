@@ -1743,6 +1743,10 @@ msgstr ""
 msgid "Next page"
 msgstr ""
 
+#: src/lib/components/schedules/ScheduleEditor.svelte
+msgid "Next runs"
+msgstr ""
+
 #: src/lib/components/onboarding/steps/OnboardingStep4FirstBackup.svelte
 msgid "Next scheduled backup: today at {0}"
 msgstr ""
@@ -2282,6 +2286,10 @@ msgstr ""
 msgid "Run History for {name}"
 msgstr ""
 
+#: src/lib/components/schedules/ScheduleEditor.svelte
+msgid "Run times can't be shown because this browser doesn't recognise the {tz} time zone."
+msgstr ""
+
 #: src/lib/components/settings/SettingsSupportMode.svelte
 msgid "Runs in support mode"
 msgstr ""
@@ -2646,6 +2654,10 @@ msgid "This repository no longer exists on FUTO Backups. Remove it from this mac
 msgstr ""
 
 #: src/lib/components/schedules/ScheduleEditor.svelte
+msgid "This schedule never runs. Check the day and month."
+msgstr ""
+
+#: src/lib/components/schedules/ScheduleEditor.svelte
 msgid "This schedule runs more than once an hour. A * in the minute field runs a backup every minute."
 msgstr ""
 
@@ -2670,6 +2682,14 @@ msgstr ""
 #: src/lib/components/schedules/ScheduleEditor.svelte
 msgid "Thursday"
 msgstr ""
+
+#: src/lib/components/schedules/ScheduleEditor.svelte
+#~ msgid "Times are in {timeZone}."
+#~ msgstr ""
+
+#: src/lib/components/schedules/ScheduleEditor.svelte
+#~ msgid "Times are in {tz}."
+#~ msgstr ""
 
 #: ../../web/src/routes/dashboard/+layout.svelte
 msgid "Toggle dark theme"

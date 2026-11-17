@@ -10,6 +10,8 @@
     toSchedulePreset,
     type SchedulePreset,
   } from "$lib/utils/cron";
+  import { CronTime } from "cron";
+  import { DateTime } from "luxon";
   import {
     Button,
     Field,
@@ -18,6 +20,7 @@
     Input,
     LoadingSpinner,
     Select,
+    Stack,
     Text,
   } from "@immich/ui";
   import { msg, t } from "svelte-i18n-lingui";
@@ -54,6 +57,7 @@
   const isNumber = (field: string | undefined) => /^\d+$/.test(field ?? "");
 
   const schedules = useSchedules();
+  const nextRunsId = $props.id();
   let editingCustom = $state(false);
 
   const preset = $derived(toSchedulePreset(cron));
@@ -75,6 +79,37 @@
     editingCustom ? "custom" : (preset ?? pattern ?? "custom"),
   );
   const cronInvalid = $derived(!isValidCron(cron));
+  const tz = $derived(schedules.data?.tz);
+  const nextRuns = $derived.by(() => {
+    if (cronInvalid || !tz) {
+      return [];
+    }
+
+    let from: DateTime<boolean> = DateTime.now().setZone(tz);
+    if (!from.isValid) {
+      return undefined;
+    }
+
+    const time = new CronTime(effectiveCron, tz);
+    const runs: DateTime<boolean>[] = [];
+    while (runs.length < 3) {
+      try {
+        from = time.getNextDateFrom(from);
+      } catch {
+        break;
+      }
+
+      runs.push(from);
+    }
+
+    return runs;
+  });
+  const inLocalTz = $derived(tz === DateTime.local().zoneName);
+  const runFormat = $derived(
+    inLocalTz
+      ? DateTime.DATETIME_MED_WITH_WEEKDAY
+      : { ...DateTime.DATETIME_MED_WITH_WEEKDAY, timeZoneName: "short" as const },
+  );
   const defaultExpression = $derived(
     frequency === "custom" ? undefined : schedules.data?.defaults[frequency],
   );
@@ -257,4 +292,35 @@
       >
     {/if}
   </HStack>
+
+  {#if !preset && tz}
+    <Stack gap={1}>
+      <Text id={nextRunsId} size="small" color="muted" fontWeight="bold"
+        >{$t`Next runs`}</Text
+      >
+      {#if nextRuns === undefined}
+        <Text size="small" color="muted"
+          >{$t({
+            message:
+              "Run times can't be shown because this browser doesn't recognise the {tz} time zone.",
+            values: { tz },
+          })}</Text
+        >
+      {:else if nextRuns.length === 0}
+        <Text size="small" color="warning"
+          >{$t`This schedule never runs. Check the day and month.`}</Text
+        >
+      {:else}
+        <ul aria-labelledby={nextRunsId}>
+          {#each nextRuns as run (run.toMillis())}
+            <li>
+              <Text size="small" color="muted"
+                >{run.toLocal().toLocaleString(runFormat)}</Text
+              >
+            </li>
+          {/each}
+        </ul>
+      {/if}
+    </Stack>
+  {/if}
 {/if}
