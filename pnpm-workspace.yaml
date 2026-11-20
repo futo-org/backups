@@ -20,12 +20,12 @@ catalog:
   '@eslint/js': ^9.39.2
   '@futo-org/restic-wrapper': 1.9.0
   '@immich/sql-tools': ^0.7.0
-  '@immich/svelte-markdown-preprocess': ^0.7.0
+  '@immich/svelte-markdown-preprocess': ^0.8.0
   '@immich/ui': ^0.90.0
   '@jest/globals': ^30.2.0
   '@lingui/cli': ^5.8.0
   '@lingui/core': ^5.8.0
-  '@material-symbols/svg-400': ^0.48.1
+  '@material-symbols/svg-400': ^0.49.0
   '@mdi/js': ^7.4.47
   '@nestjs/cli': ^12.0.8
   '@nestjs/common': ^12.1.2
@@ -43,14 +43,14 @@ catalog:
   '@opentelemetry/api': ^1.9.0
   '@opentelemetry/context-async-hooks': ^2.5.0
   '@opentelemetry/core': ^2.5.0
-  '@opentelemetry/exporter-logs-otlp-proto': ^0.211.0
-  '@opentelemetry/exporter-metrics-otlp-proto': ^0.211.0
-  '@opentelemetry/exporter-trace-otlp-proto': ^0.211.0
-  '@opentelemetry/instrumentation-pino': ^0.57.0
+  '@opentelemetry/exporter-logs-otlp-proto': ^0.301.0
+  '@opentelemetry/exporter-metrics-otlp-proto': ^0.301.0
+  '@opentelemetry/exporter-trace-otlp-proto': ^0.301.0
+  '@opentelemetry/instrumentation-pino': ^0.71.0
   '@opentelemetry/propagator-b3': ^2.5.0
   '@opentelemetry/propagator-jaeger': ^2.5.0
   '@opentelemetry/resources': ^2.5.0
-  '@opentelemetry/sdk-node': ^0.217.0
+  '@opentelemetry/sdk-node': ^0.301.0
   '@playwright/test': 1.63.0
   '@sveltejs/adapter-auto': ^7.0.1
   '@sveltejs/adapter-node': ^5.5.7
