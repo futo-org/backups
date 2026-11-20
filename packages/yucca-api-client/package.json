@@ -16,7 +16,7 @@
   "keywords": [],
   "author": "",
   "license": "Source First License 1.1",
-  "packageManager": "pnpm@10.27.0",
+  "packageManager": "pnpm@12.21.0",
   "devDependencies": {
     "oazapfts": "catalog:",
     "typescript": "catalog:"
