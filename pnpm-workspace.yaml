@@ -17,7 +17,7 @@ catalog:
   '@electric-sql/pglite': 0.5.12
   '@electric-sql/pglite-prepopulatedfs': 0.5.12
   '@electric-sql/pglite-socket': 0.2.15
-  '@eslint/js': ^9.39.2
+  '@eslint/js': ^10.0.0
   '@futo-org/restic-wrapper': 1.9.0
   '@immich/sql-tools': ^0.7.0
   '@immich/svelte-markdown-preprocess': ^0.7.0
@@ -79,7 +79,7 @@ catalog:
   cron: ^4.4.0
   cronstrue: ^3.27.0
   discord.js: ^14.16.3
-  eslint: ^9.39.2
+  eslint: ^10.0.0
   eslint-config-prettier: ^10.1.8
   eslint-plugin-prettier: ^5.5.4
   eslint-plugin-unicorn: ^62.0.0
