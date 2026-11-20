@@ -262,8 +262,8 @@ catalogs:
       specifier: ^18.0.0
       version: 18.0.11
     nestjs-kysely:
-      specifier: ^3.1.4
-      version: 3.1.4
+      specifier: ^4.0.0
+      version: 4.0.0
     nestjs-otel:
       specifier: ^8.1.1
       version: 8.1.1
@@ -930,7 +930,7 @@ importers:
         version: 3.7.2
       nestjs-kysely:
         specifier: 'catalog:'
-        version: 3.1.4(@nestjs/common@12.1.2(class-transformer@0.5.1)(class-validator@0.14.3)(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@12.1.2)(kysely@0.29.5)(reflect-metadata@0.2.2)
+        version: 4.0.0(@nestjs/common@12.1.2(class-transformer@0.5.1)(class-validator@0.14.3)(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@12.1.2)(kysely@0.29.5)
       nestjs-zod:
         specifier: 'catalog:'
         version: 5.5.0(@nestjs/common@12.1.2(class-transformer@0.5.1)(class-validator@0.14.3)(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/swagger@12.0.2(@nestjs/common@12.1.2(class-transformer@0.5.1)(class-validator@0.14.3)(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@12.1.2)(class-transformer@0.5.1)(class-validator@0.14.3)(reflect-metadata@0.2.2)(typescript@6.0.3))(rxjs@7.8.2)(zod@4.4.3)
@@ -1057,7 +1057,7 @@ importers:
         version: 3.7.2
       nestjs-kysely:
         specifier: 'catalog:'
-        version: 3.1.4(@nestjs/common@12.1.2(class-transformer@0.5.1)(class-validator@0.14.3)(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@12.1.2)(kysely@0.29.5)(reflect-metadata@0.2.2)
+        version: 4.0.0(@nestjs/common@12.1.2(class-transformer@0.5.1)(class-validator@0.14.3)(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@12.1.2)(kysely@0.29.5)
       nestjs-zod:
         specifier: 'catalog:'
         version: 5.5.0(@nestjs/common@12.1.2(class-transformer@0.5.1)(class-validator@0.14.3)(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/swagger@12.0.2(@nestjs/common@12.1.2(class-transformer@0.5.1)(class-validator@0.14.3)(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@12.1.2)(class-transformer@0.5.1)(class-validator@0.14.3)(reflect-metadata@0.2.2)(typescript@6.0.3))(rxjs@7.8.2)(zod@4.4.3)
@@ -1188,7 +1188,7 @@ importers:
         version: 3.0.0(kysely@0.29.5)(postgres@3.4.8)
       nestjs-kysely:
         specifier: 'catalog:'
-        version: 3.1.4(@nestjs/common@12.1.2(class-transformer@0.5.1)(class-validator@0.14.3)(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@12.1.2)(kysely@0.29.5)(reflect-metadata@0.2.2)
+        version: 4.0.0(@nestjs/common@12.1.2(class-transformer@0.5.1)(class-validator@0.14.3)(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@12.1.2)(kysely@0.29.5)
       postgres:
         specifier: 'catalog:'
         version: 3.4.8
@@ -1279,7 +1279,7 @@ importers:
         version: 5.2.1
       nestjs-kysely:
         specifier: 'catalog:'
-        version: 3.1.4(@nestjs/common@12.1.2(class-transformer@0.5.1)(class-validator@0.14.3)(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@12.1.2)(kysely@0.29.5)(reflect-metadata@0.2.2)
+        version: 4.0.0(@nestjs/common@12.1.2(class-transformer@0.5.1)(class-validator@0.14.3)(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@12.1.2)(kysely@0.29.5)
       nestjs-zod:
         specifier: 'catalog:'
         version: 5.5.0(@nestjs/common@12.1.2(class-transformer@0.5.1)(class-validator@0.14.3)(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/swagger@12.0.2(@nestjs/common@12.1.2(class-transformer@0.5.1)(class-validator@0.14.3)(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@12.1.2)(class-transformer@0.5.1)(class-validator@0.14.3)(reflect-metadata@0.2.2)(typescript@6.0.3))(rxjs@7.8.2)(zod@4.4.3)
@@ -3528,6 +3528,7 @@ packages:
   '@sapphire/shapeshift@4.0.0':
     resolution: {integrity: sha512-d9dUmWVA7MMiKobL3VpLF8P2aeanRTu6ypG2OIaEv/ZHH/SUQ2iHOVyi5wAPjQ+HmnMuL0whK9ez8I/raWbtIg==}
     engines: {node: '>=v16'}
+    deprecated: Shapeshift was created when other validation libraries had significant limitations in performance and error reporting. Those advantages have diminished as libraries such as Zod have become faster and improved their error messages, while also gaining broader environment support, a larger community, and custom error printers.
 
   '@sapphire/snowflake@3.5.5':
     resolution: {integrity: sha512-xzvBr1Q1c4lCe7i6sRnrofxeO1QTP/LKQ6A6qy0iB4x5yfiSfARMEQEghojzTNALDTcv8En04qYNIco9/K9eZQ==}
@@ -6371,13 +6372,13 @@ packages:
   neo-async@2.6.2:
     resolution: {integrity: sha512-Yd3UES5mWCSqR+qNT93S3UoYUkqAZ9lLg8a7g9rimsWmYGK8cVToA4/sF3RrshdyV3sAGMXVUmpMYOw+dLpOuw==}
 
-  nestjs-kysely@3.1.4:
-    resolution: {integrity: sha512-fZ1MFqXPkcxAKuaWbxEKNW9pn2QLaseCDd0cL6yiXtob2nvjCU+JJC7ma44YvH1GvddxL9+x/3M5IHEWzXAkeA==}
+  nestjs-kysely@4.0.0:
+    resolution: {integrity: sha512-EYvYOD7N8ri2+mgAVpRnMAAx8rA9tBosQgblQkWLDKhELjln5vx3/J5ofAFOW8EBZveaysWb3IWsMgiebJ89jg==}
+    engines: {node: '>=24'}
     peerDependencies:
-      '@nestjs/common': ^8.0.0 || ^9.0.0 || ^10.0.0 || ^11.0.0 || ^12.0.0
-      '@nestjs/core': ^8.0.0 || ^9.0.0 || ^10.0.0 || ^11.0.0 || ^12.0.0
-      kysely: 0.x
-      reflect-metadata: ^0.1.13 || ^0.2.2
+      '@nestjs/common': ^11.0.0 || ^12.0.0
+      '@nestjs/core': ^11.0.0 || ^12.0.0
+      kysely: '>=0.28 <1'
 
   nestjs-otel@8.1.1:
     resolution: {integrity: sha512-7JJuMCJcamiNC0xgDh745PZt8LQDaF6WmK+FaTEu74G1BM9Sbo4rTw4CHVKkHbxKynIUqzeaYN5m+rRdGsoRSg==}
@@ -13153,12 +13154,11 @@ snapshots:
 
   neo-async@2.6.2: {}
 
-  nestjs-kysely@3.1.4(@nestjs/common@12.1.2(class-transformer@0.5.1)(class-validator@0.14.3)(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@12.1.2)(kysely@0.29.5)(reflect-metadata@0.2.2):
+  nestjs-kysely@4.0.0(@nestjs/common@12.1.2(class-transformer@0.5.1)(class-validator@0.14.3)(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@12.1.2)(kysely@0.29.5):
     dependencies:
       '@nestjs/common': 12.1.2(class-transformer@0.5.1)(class-validator@0.14.3)(reflect-metadata@0.2.2)(rxjs@7.8.2)
       '@nestjs/core': 12.1.2(@nestjs/common@12.1.2(class-transformer@0.5.1)(class-validator@0.14.3)(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/platform-express@12.1.2)(@nestjs/websockets@12.1.2)(reflect-metadata@0.2.2)(rxjs@7.8.2)
       kysely: 0.29.5
-      reflect-metadata: 0.2.2
 
   nestjs-otel@8.1.1(@nestjs/common@12.1.2(class-transformer@0.5.1)(class-validator@0.14.3)(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@12.1.2)(rxjs@7.8.2):
     dependencies:
