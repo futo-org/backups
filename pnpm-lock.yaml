@@ -199,8 +199,8 @@ catalogs:
       specifier: ^12.11.1
       version: 12.11.1
     cookie:
-      specifier: ^1.1.1
-      version: 1.1.1
+      specifier: ^2.0.0
+      version: 2.0.2
     cron:
       specifier: ^4.4.0
       version: 4.4.0
@@ -549,7 +549,7 @@ importers:
         version: 26.6.6
       cookie:
         specifier: 'catalog:'
-        version: 1.1.1
+        version: 2.0.2
       jest:
         specifier: 'catalog:'
         version: 30.5.2(@types/node@26.6.6)(ts-node@10.9.2(@types/node@26.6.6)(typescript@6.0.3))
@@ -915,7 +915,7 @@ importers:
         version: 1.9.0
       cookie:
         specifier: 'catalog:'
-        version: 1.1.1
+        version: 2.0.2
       event-iterator:
         specifier: 'catalog:'
         version: 2.0.0
@@ -1042,7 +1042,7 @@ importers:
         version: 1.9.0
       cookie:
         specifier: 'catalog:'
-        version: 1.1.1
+        version: 2.0.2
       event-iterator:
         specifier: 'catalog:'
         version: 2.0.0
@@ -1270,7 +1270,7 @@ importers:
         version: 12.11.1
       cookie:
         specifier: 'catalog:'
-        version: 1.1.1
+        version: 2.0.2
       cron:
         specifier: 'catalog:'
         version: 4.4.0
@@ -3528,6 +3528,7 @@ packages:
   '@sapphire/shapeshift@4.0.0':
     resolution: {integrity: sha512-d9dUmWVA7MMiKobL3VpLF8P2aeanRTu6ypG2OIaEv/ZHH/SUQ2iHOVyi5wAPjQ+HmnMuL0whK9ez8I/raWbtIg==}
     engines: {node: '>=v16'}
+    deprecated: Shapeshift was created when other validation libraries had significant limitations in performance and error reporting. Those advantages have diminished as libraries such as Zod have become faster and improved their error messages, while also gaining broader environment support, a larger community, and custom error printers.
 
   '@sapphire/snowflake@3.5.5':
     resolution: {integrity: sha512-xzvBr1Q1c4lCe7i6sRnrofxeO1QTP/LKQ6A6qy0iB4x5yfiSfARMEQEghojzTNALDTcv8En04qYNIco9/K9eZQ==}
@@ -4807,9 +4808,9 @@ packages:
     resolution: {integrity: sha512-yki5XnKuf750l50uGTllt6kKILY4nQ1eNIQatoXEByZ5dWgnKqbnqmTrBE5B4N7lrMJKQ2ytWMiTO2o0v6Ew/w==}
     engines: {node: '>= 0.6'}
 
-  cookie@1.1.1:
-    resolution: {integrity: sha512-ei8Aos7ja0weRpFzJnEA9UHJ/7XQmqglbRwnf2ATjcB9Wq874VKH9kfjjirM6UhU2/E5fFYadylyhFldcqSidQ==}
-    engines: {node: '>=18'}
+  cookie@2.0.2:
+    resolution: {integrity: sha512-SL0cVuEdETEp7pN0FuZb01toc3vnODEfVUCooxG1SJN0yIirh7JMb9X9bvfCFf0vzzbT68RdbKDHYTiWy7a7iw==}
+    engines: {node: '>=22'}
 
   cookiejar@2.1.4:
     resolution: {integrity: sha512-LDx6oHrK+PhzLKJU9j5S7/Y3jM/mUHvD/DeI1WQmJn652iPC5Y4TBzC9l+5OMOXlyTTA+SmVUPm0HQUwpD5Jqw==}
@@ -11392,7 +11393,7 @@ snapshots:
 
   cookie@0.7.2: {}
 
-  cookie@1.1.1: {}
+  cookie@2.0.2: {}
 
   cookiejar@2.1.4: {}
 
