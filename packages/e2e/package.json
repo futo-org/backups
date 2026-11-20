@@ -9,7 +9,7 @@
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "packageManager": "pnpm@10.27.0",
+  "packageManager": "pnpm@12.21.0",
   "devDependencies": {
     "@common/server": "workspace:^",
     "@futo-org/restic-wrapper": "catalog:",
