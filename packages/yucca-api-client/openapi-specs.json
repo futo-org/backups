@@ -1103,7 +1103,7 @@
             "description": "Device verification code"
           },
           "connectionType": {
-            "description": "immich | standalone | restic",
+            "description": "immich | standalone | restic | macos",
             "type": "string"
           },
           "connectionName": {
@@ -1468,7 +1468,8 @@
             "enum": [
               "immich",
               "standalone",
-              "restic"
+              "restic",
+              "macos"
             ]
           },
           "name": {
@@ -1537,7 +1538,8 @@
             "enum": [
               "immich",
               "standalone",
-              "restic"
+              "restic",
+              "macos"
             ]
           },
           "name": {

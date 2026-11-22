@@ -44,7 +44,7 @@ const DeviceFlowIdentityPollRequestSchema = z
   .meta({ id: 'DeviceFlowIdentityPollRequestDto' });
 
 const DeviceFlowPollRequestSchema = DeviceFlowIdentityPollRequestSchema.extend({
-  connectionType: z.string().optional().describe('immich | standalone | restic'),
+  connectionType: z.string().optional().describe('immich | standalone | restic | macos'),
   connectionName: z.string().optional().describe('Instance name, e.g. a hostname'),
 }).meta({ id: 'DeviceFlowPollRequestDto' });
 
