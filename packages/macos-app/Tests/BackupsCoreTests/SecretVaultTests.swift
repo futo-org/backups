@@ -132,3 +132,26 @@ func vaultPropagatesStoreErrors() async {
     try await vault.delete(.accessToken)
   }
 }
+
+struct ConditionalDeleteCase: Sendable {
+  var stored: String?
+  var expected: String
+  var deleted: Bool
+}
+
+@Test(
+  "delete(ifEquals:) only removes the matching value",
+  arguments: [
+    ConditionalDeleteCase(stored: "token", expected: "token", deleted: true),
+    ConditionalDeleteCase(stored: "token", expected: "other", deleted: false),
+    ConditionalDeleteCase(stored: nil, expected: "token", deleted: false),
+  ])
+func deleteIfEquals(case deleteCase: ConditionalDeleteCase) async throws {
+  let store = InMemorySecretStore()
+  if let stored = deleteCase.stored {
+    try store.set(stored, for: .accessToken)
+  }
+  let vault = SecretVault(store: store)
+  #expect(try await vault.delete(.accessToken, ifEquals: deleteCase.expected) == deleteCase.deleted)
+  #expect(try await vault.get(.accessToken) == (deleteCase.deleted ? nil : deleteCase.stored))
+}

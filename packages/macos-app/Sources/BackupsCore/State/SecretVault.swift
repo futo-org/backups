@@ -32,4 +32,19 @@ public final class SecretVault: Sendable {
       }
     }
   }
+
+  public func delete(_ key: SecretKey, ifEquals expected: String) async throws -> Bool {
+    try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Bool, any Error>) in
+      queue.async {
+        continuation.resume(
+          with: Result {
+            guard try self.store.get(key) == expected else {
+              return false
+            }
+            try self.store.delete(key)
+            return true
+          })
+      }
+    }
+  }
 }

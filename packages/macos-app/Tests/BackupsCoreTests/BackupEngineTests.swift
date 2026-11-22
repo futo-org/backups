@@ -434,16 +434,29 @@ func missingMasterKeyThrowsAndIsNeverGenerated(
   #expect(fixture.proxy.starts.isEmpty)
 }
 
-@Test func ensureRepositoryGeneratesMasterKeyBeforeCreateAndDerivesInitPassword() async throws {
+@Test func ensureRepositoryWithoutStoredKeyThrowsAndNeverCreates() async throws {
   let fixture = makeFixture(masterKey: nil)
   let engine = BackupEngine(environment: fixture.environment)
-  let created = try await engine.ensureRepository(config: testConfig(repositoryId: nil))
-  #expect(created == "new-repo")
-  let generated = try #require(try fixture.secrets.get(.masterKey))
-  #expect(RepositoryKeys.isValidMasterKey(generated))
-  #expect(await fixture.api.calls == [.create(name: "test-host")])
+  await #expect(throws: EngineError.missingMasterKey) {
+    _ = try await engine.ensureRepository(config: testConfig(repositoryId: nil))
+  }
+  #expect(await fixture.api.calls.isEmpty)
+  #expect(try fixture.secrets.get(.masterKey) == nil)
+  #expect(fixture.restic.commands().isEmpty)
+  #expect(fixture.proxy.starts.isEmpty)
+}
+
+@Test func ensureRepositoryHasStoredKeyWhenCreateRepositoryIsCalled() async throws {
+  let fixture = makeFixture()
+  let secrets = fixture.secrets
+  await fixture.api.setMasterKeyProbe {
+    (try? secrets.get(.masterKey)) != nil
+  }
+  let engine = BackupEngine(environment: fixture.environment)
+  #expect(try await engine.ensureRepository(config: testConfig(repositoryId: nil)) == "new-repo")
+  #expect(await fixture.api.sawMasterKeyAtCreate == true)
   let initInvocation = try #require(fixture.restic.invocations().first { $0.arguments.first == "init" })
-  let expectedPassword = try RepositoryKeys.password(masterKey: generated, repositoryId: "new-repo")
+  let expectedPassword = try RepositoryKeys.password(masterKey: testMasterKey, repositoryId: "new-repo")
   #expect(initInvocation.environment["RESTIC_PASSWORD"] == expectedPassword)
   #expect(fixture.proxy.stopCount == 1)
 }
@@ -560,4 +573,54 @@ func missingMasterKeyThrowsAndIsNeverGenerated(
   let record = try await task.value
   #expect(record.status == .complete)
   #expect(try fixture.secrets.get(.masterKey) == testMasterKey)
+}
+
+@Test func snapshotsUsesTokenReadBeforeProxyStart() async throws {
+  let fixture = makeFixture(token: "tok-original")
+  fixture.restic.set(ResticScript(stdout: "[]"), for: "snapshots")
+  let secrets = fixture.secrets
+  fixture.proxy.setOnStart {
+    _ = try? secrets.set("tok-swapped", for: .accessToken)
+  }
+  let engine = BackupEngine(environment: fixture.environment)
+  #expect(try await engine.snapshots(config: testConfig()).isEmpty)
+  let invocation = try #require(
+    fixture.restic.invocations().first { $0.arguments.first == "snapshots" })
+  let repository = try #require(invocation.environment["RESTIC_REPOSITORY"])
+  #expect(repository.contains("tok-original"))
+  #expect(!repository.contains("tok-swapped"))
+}
+
+@Test func verifyMasterKeyUsesTokenReadBeforeProxyStart() async throws {
+  let fixture = makeFixture(token: "tok-original")
+  let secrets = fixture.secrets
+  fixture.proxy.setOnStart {
+    _ = try? secrets.set("tok-swapped", for: .accessToken)
+  }
+  let engine = BackupEngine(environment: fixture.environment)
+  #expect(
+    try await engine.verifyMasterKey(
+      testMasterKey, config: testConfig(), repositoryId: "repo-1"))
+  let invocation = try #require(fixture.restic.invocations().first { $0.arguments.first == "cat" })
+  let repository = try #require(invocation.environment["RESTIC_REPOSITORY"])
+  #expect(repository.contains("tok-original"))
+  #expect(!repository.contains("tok-swapped"))
+}
+
+@Test func backupUsesTokenReadBeforeSubmitBackupStart() async throws {
+  let fixture = makeFixture(token: "tok-original")
+  fixture.restic.set(ResticScript(lines: [summaryLine]), for: "backup")
+  let secrets = fixture.secrets
+  await fixture.api.setOnBackupStart {
+    _ = try? secrets.set("tok-swapped", for: .accessToken)
+  }
+  let engine = BackupEngine(environment: fixture.environment)
+  let record = try await engine.backup(config: testConfig()) { _ in }
+  #expect(record.status == .complete)
+  #expect(try fixture.secrets.get(.accessToken) == "tok-swapped")
+  let invocation = try #require(
+    fixture.restic.invocations().first { $0.arguments.first == "backup" })
+  let repository = try #require(invocation.environment["RESTIC_REPOSITORY"])
+  #expect(repository.contains("tok-original"))
+  #expect(!repository.contains("tok-swapped"))
 }

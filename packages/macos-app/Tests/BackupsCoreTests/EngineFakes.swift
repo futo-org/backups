@@ -15,6 +15,17 @@ actor FakeAPI: YuccaRepositoryAPI {
   var created = RemoteRepository(id: "new-repo", name: "created", worm: false)
   var submitFailures = false
   var repositories: [RemoteRepository] = []
+  private var masterKeyProbe: (@Sendable () -> Bool)?
+  private var onBackupStart: (@Sendable () -> Void)?
+  private(set) var sawMasterKeyAtCreate: Bool?
+
+  func setMasterKeyProbe(_ probe: @escaping @Sendable () -> Bool) {
+    masterKeyProbe = probe
+  }
+
+  func setOnBackupStart(_ hook: @escaping @Sendable () -> Void) {
+    onBackupStart = hook
+  }
 
   func listRepositories() async throws -> [RemoteRepository] {
     calls.append(.list)
@@ -22,12 +33,14 @@ actor FakeAPI: YuccaRepositoryAPI {
   }
 
   func createRepository(name: String) async throws -> RemoteRepository {
+    sawMasterKeyAtCreate = masterKeyProbe?()
     calls.append(.create(name: name))
     return created
   }
 
   func submitBackupStart(repositoryId: String) async throws {
     calls.append(.start(repositoryId: repositoryId))
+    onBackupStart?()
     if submitFailures {
       throw APIError.submit
     }
@@ -151,9 +164,14 @@ final class FakeProxyLauncher: ResticProxyLaunching, @unchecked Sendable {
   private var started: [ProxyStartArg] = []
   private var stops = 0
   private var failure: (any Error)?
+  private var onStartHook: (@Sendable () -> Void)?
 
   func setStartFailure(_ error: any Error) {
     lock.withLock { failure = error }
+  }
+
+  func setOnStart(_ hook: @escaping @Sendable () -> Void) {
+    lock.withLock { onStartHook = hook }
   }
 
   var starts: [ProxyStartArg] {
@@ -169,13 +187,14 @@ final class FakeProxyLauncher: ResticProxyLaunching, @unchecked Sendable {
   }
 
   func start(apiRoot: URL, throttle: Throttle) async throws -> any ResticProxyHandle {
-    let failure = lock.withLock { () -> (any Error)? in
+    let result = lock.withLock { () -> (failure: (any Error)?, hook: (@Sendable () -> Void)?) in
       started.append(ProxyStartArg(apiRoot: apiRoot, throttle: throttle))
-      return failure
+      return (failure, onStartHook)
     }
-    if let failure {
+    if let failure = result.failure {
       throw failure
     }
+    result.hook?()
     return FakeProxyHandle(launcher: self)
   }
 }

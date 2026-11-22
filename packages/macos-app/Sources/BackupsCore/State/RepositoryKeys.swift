@@ -17,7 +17,7 @@ public enum RepositoryKeys {
 
   public static func isValidMasterKey(_ hex: String) -> Bool {
     guard hex.count == 64 else { return false }
-    return hex.allSatisfy { $0.hexDigitValue != nil }
+    return hex.allSatisfy { $0.isASCII && $0.isHexDigit }
   }
 
   public static func normalizedMasterKey(_ input: String) -> String? {
@@ -56,7 +56,7 @@ public enum RepositoryKeys {
     var nibbles: [UInt8] = []
     nibbles.reserveCapacity(64)
     for character in hex {
-      guard let nibble = character.hexDigitValue else { return nil }
+      guard character.isASCII, let nibble = character.hexDigitValue else { return nil }
       nibbles.append(UInt8(nibble))
     }
     guard nibbles.count == 64 else { return nil }

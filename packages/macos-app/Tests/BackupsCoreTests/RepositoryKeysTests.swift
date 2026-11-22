@@ -56,6 +56,21 @@ func invalidMasterKeys(hex: String) {
 }
 
 @Test(
+  "non-ASCII hex-like digits are rejected",
+  arguments: [
+    String(repeating: "１", count: 64),
+    String(repeating: "٣", count: 64),
+    String(testVectorMasterKey.dropLast()) + "１",
+  ])
+func nonASCIIMasterKeysRejected(key: String) {
+  #expect(!RepositoryKeys.isValidMasterKey(key))
+  #expect(RepositoryKeys.normalizedMasterKey(key) == nil)
+  #expect(throws: RepositoryKeysError.invalidMasterKey) {
+    _ = try RepositoryKeys.password(masterKey: key, repositoryId: testVectorRepositoryId)
+  }
+}
+
+@Test(
   "normalizedMasterKey accepts the displayed and pasted forms",
   arguments: [
     testVectorMasterKey,

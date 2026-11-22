@@ -49,10 +49,10 @@ public actor BackupEngine {
     let token = try accessToken()
     let server = try await serverInfo(for: config.serverURL)
     let api = environment.makeAPI(server.apiRoot, token)
-    _ = try masterKey()
+    let masterKey = try requireMasterKey()
     let created = try await api.createRepository(name: config.host)
     let session = try await startSession(
-      config: config, repositoryId: created.id, masterKey: try requireMasterKey())
+      config: config, repositoryId: created.id, masterKey: masterKey, token: token)
     let result: ResticResult
     do {
       result = try await environment.restic.run(ResticCommand.initialize(session.context), onLine: { _ in })
@@ -96,7 +96,8 @@ public actor BackupEngine {
       let madeAPI = environment.makeAPI(server.apiRoot, token)
       api = madeAPI
       try? await madeAPI.submitBackupStart(repositoryId: repositoryId)
-      let session = try await startSession(config: config, repositoryId: repositoryId, masterKey: masterKey)
+      let session = try await startSession(
+        config: config, repositoryId: repositoryId, masterKey: masterKey, token: token)
       do {
         _ = try await environment.restic.run(ResticCommand.unlock(session.context), onLine: { _ in })
         try Task.checkCancellation()
@@ -181,7 +182,9 @@ public actor BackupEngine {
     guard let repositoryId = config.repositoryId else {
       throw EngineError.noRepository
     }
-    let session = try await startSession(config: config, repositoryId: repositoryId, masterKey: try requireMasterKey())
+    let token = try accessToken()
+    let session = try await startSession(
+      config: config, repositoryId: repositoryId, masterKey: try requireMasterKey(), token: token)
     let result: ResticResult
     do {
       result = try await environment.restic.run(ResticCommand.snapshots(session.context), onLine: { _ in })
@@ -208,10 +211,12 @@ public actor BackupEngine {
     guard let repositoryId = config.repositoryId else {
       throw EngineError.noRepository
     }
+    let token = try accessToken()
     let masterKey = try requireMasterKey()
     running = true
     defer { running = false }
-    let session = try await startSession(config: config, repositoryId: repositoryId, masterKey: masterKey)
+    let session = try await startSession(
+      config: config, repositoryId: repositoryId, masterKey: masterKey, token: token)
     onActivity(.restoring)
     let result: ResticResult
     do {
@@ -261,9 +266,11 @@ public actor BackupEngine {
     guard let normalized = RepositoryKeys.normalizedMasterKey(masterKey) else {
       throw RepositoryKeysError.invalidMasterKey
     }
+    let token = try accessToken()
     running = true
     defer { running = false }
-    let session = try await startSession(config: config, repositoryId: repositoryId, masterKey: normalized)
+    let session = try await startSession(
+      config: config, repositoryId: repositoryId, masterKey: normalized, token: token)
     let result: ResticResult
     do {
       result = try await environment.restic.run(ResticCommand.catConfig(session.context), onLine: { _ in })
@@ -325,9 +332,8 @@ public actor BackupEngine {
   }
 
   private func startSession(
-    config: AppConfig, repositoryId: String, masterKey: String
+    config: AppConfig, repositoryId: String, masterKey: String, token: String
   ) async throws -> Session {
-    let token = try accessToken()
     let server = try await serverInfo(for: config.serverURL)
     let proxy = try await environment.proxyLauncher.start(apiRoot: server.apiRoot, throttle: config.throttle)
     do {
