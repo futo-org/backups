@@ -31,9 +31,11 @@ final class AppModel {
   var signedIn = false
   var restoredFolder: URL?
   var recoveryKeyStep: RecoveryKeyStep?
+  var sessionLoaded = false
+  var hasSession = false
 
   private let store = ConfigStore.standard()
-  private let secrets = KeychainSecretStore()
+  private let vault = SecretVault(store: KeychainSecretStore())
   private let discovery: Discovery
   private let transport: URLSessionTransport
   private let engine: BackupEngine?
@@ -92,21 +94,19 @@ final class AppModel {
     config = loaded
     lastError = loadFailure
     nextRun = loaded.schedule.nextRun(after: loaded.scheduleReference, now: .now, calendar: .current)
-    signedIn = isLoggedIn && loaded.repositoryId != nil && loaded.recoveryKeyConfirmedAt != nil
     scheduler = Scheduler(model: self)
     scheduler?.start()
-    if isLoggedIn && !signedIn {
-      continueSetup()
-    }
-    if isLoggedIn {
-      Task {
-        await self.refreshAccount()
+    Task { @MainActor in
+      hasSession = ((try? await vault.get(.accessToken)) ?? nil) != nil
+      signedIn = hasSession && config.repositoryId != nil && config.recoveryKeyConfirmedAt != nil
+      if hasSession && !signedIn {
+        continueSetup()
+      }
+      sessionLoaded = true
+      if hasSession {
+        await refreshAccount()
       }
     }
-  }
-
-  var isLoggedIn: Bool {
-    ((try? secrets.get(.accessToken)) ?? nil) != nil
   }
 
   var launchAtLogin: Bool {
@@ -126,7 +126,7 @@ final class AppModel {
 
   func tick() {
     recomputeNextRun()
-    guard engine != nil, isLoggedIn, config.repositoryId != nil, !config.folders.isEmpty, operationTask == nil
+    guard engine != nil, hasSession, config.repositoryId != nil, !config.folders.isEmpty, operationTask == nil
     else { return }
     if config.scheduleReference == nil {
       config.scheduleAnchor = Date()
@@ -162,7 +162,8 @@ final class AppModel {
         let token = try await deviceLogin.waitForToken(
           authorization, connectionType: "macos", connectionName: self.config.host)
         guard generation == self.loginGeneration else { return }
-        try self.secrets.set(token, for: .accessToken)
+        try await self.vault.set(token, for: .accessToken)
+        self.hasSession = true
         self.login = .finishing
         let accountClient = YuccaClient(apiRoot: server.apiRoot, transport: self.transport, accessToken: token)
         self.account = try await accountClient.me()
@@ -255,19 +256,20 @@ final class AppModel {
 
   func logout() {
     let serverURL = config.serverURL
-    let token = (try? secrets.get(.accessToken)) ?? nil
     account = nil
     snapshots = []
     signedIn = false
+    hasSession = false
     restoredFolder = nil
     recoveryKeyStep = nil
     loginGeneration += 1
     loginTask?.cancel()
     loginTask = nil
     login = .idle
-    try? secrets.delete(.accessToken)
-    guard let token else { return }
     Task {
+      let token = try? await self.vault.get(.accessToken)
+      try? await self.vault.delete(.accessToken)
+      guard let token else { return }
       guard let server = try? await self.discovery.resolve(serverURL) else { return }
       let client = YuccaClient(apiRoot: server.apiRoot, transport: self.transport, accessToken: token)
       try? await client.logout()
@@ -314,7 +316,7 @@ final class AppModel {
       lastError = missingHelperText
       return
     }
-    guard isLoggedIn else {
+    guard hasSession else {
       lastError = "Not logged in"
       return
     }
@@ -419,8 +421,8 @@ final class AppModel {
 
   private func makeAPIClient() async throws -> YuccaClient {
     let server = try await discovery.resolve(config.serverURL)
-    return YuccaClient(
-      apiRoot: server.apiRoot, transport: transport, accessToken: (try? secrets.get(.accessToken)) ?? nil)
+    let token = try? await vault.get(.accessToken)
+    return YuccaClient(apiRoot: server.apiRoot, transport: transport, accessToken: token)
   }
 
   private func finishOperation() {

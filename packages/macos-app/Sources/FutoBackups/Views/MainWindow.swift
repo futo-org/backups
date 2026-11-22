@@ -28,7 +28,9 @@ struct MainWindow: View {
 
   var body: some View {
     Group {
-      if model.signedIn {
+      if !model.sessionLoaded {
+        LaunchView()
+      } else if model.signedIn {
         NavigationSplitView {
           sidebar
         } detail: {
