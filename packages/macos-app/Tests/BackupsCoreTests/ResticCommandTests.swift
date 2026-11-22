@@ -1,0 +1,110 @@
+import Foundation
+import Testing
+
+@testable import BackupsCore
+
+private let plainContext = ResticContext(
+  repository: "rest:http://repo-id:token@127.0.0.1:54321",
+  password: "secret",
+  cacheDirectory: URL(fileURLWithPath: "/cache"),
+  home: "/home/user",
+  connections: 3)
+
+private let packedContext = ResticContext(
+  repository: "rest:http://repo-id:token@127.0.0.1:54321",
+  password: "secret",
+  cacheDirectory: URL(fileURLWithPath: "/cache"),
+  home: "/home/user",
+  connections: 3,
+  packSizeMiB: 4,
+  walkConcurrency: 2)
+
+private let common = ["--option", "rest.connections=3", "--cache-dir", "/cache"]
+
+private let standardEnvironment = [
+  "RESTIC_REPOSITORY": "rest:http://repo-id:token@127.0.0.1:54321",
+  "RESTIC_PASSWORD": "secret",
+  "HOME": "/home/user",
+  "PATH": "/usr/bin:/bin:/usr/sbin:/sbin",
+]
+
+struct CommandCase: Sendable {
+  var name: String
+  var invocation: ResticInvocation
+  var arguments: [String]
+}
+
+private let commandCases: [CommandCase] = [
+  CommandCase(
+    name: "init",
+    invocation: ResticCommand.initialize(plainContext),
+    arguments: ["init", "--json"] + common),
+  CommandCase(
+    name: "unlock",
+    invocation: ResticCommand.unlock(plainContext),
+    arguments: ["unlock", "--json"] + common + ["--remove-all"]),
+  CommandCase(
+    name: "snapshots",
+    invocation: ResticCommand.snapshots(plainContext),
+    arguments: ["snapshots", "--json"] + common + ["--no-lock"]),
+  CommandCase(
+    name: "stats",
+    invocation: ResticCommand.stats(plainContext),
+    arguments: ["stats", "--json"] + common + ["--mode", "raw-data"]),
+  CommandCase(
+    name: "backup minimal",
+    invocation: ResticCommand.backup(plainContext, paths: ["/p/one", "/p/two"], excludes: [], host: "host-a"),
+    arguments: ["backup", "--json"] + common
+      + ["--host", "host-a", "--exclude-caches", "/p/one", "/p/two"]),
+  CommandCase(
+    name: "backup full",
+    invocation: ResticCommand.backup(
+      packedContext,
+      paths: ["/p/one"],
+      excludes: ["/p/skip-a", "/p/skip-b"],
+      host: "host-a"),
+    arguments: ["backup", "--json"] + common
+      + [
+        "--host", "host-a", "--exclude-caches", "--exclude", "/p/skip-a", "--exclude", "/p/skip-b",
+        "--pack-size", "4", "--walk-concurrency", "2", "/p/one",
+      ]),
+  CommandCase(
+    name: "forget without pack size",
+    invocation: ResticCommand.forget(plainContext, host: "host-a", keepWithin: "1h"),
+    arguments: ["forget", "--json"] + common
+      + ["--host", "host-a", "--group-by", "paths", "--keep-within", "1h", "--prune"]),
+  CommandCase(
+    name: "forget with pack size",
+    invocation: ResticCommand.forget(packedContext, host: "host-a", keepWithin: "30d"),
+    arguments: ["forget", "--json"] + common
+      + ["--host", "host-a", "--group-by", "paths", "--keep-within", "30d", "--prune", "--pack-size", "4"]),
+  CommandCase(
+    name: "restore without includes",
+    invocation: ResticCommand.restore(plainContext, snapshotId: "abc123", target: "/target", include: []),
+    arguments: ["restore", "--json"] + common + ["--target", "/target", "abc123"]),
+  CommandCase(
+    name: "restore with includes",
+    invocation: ResticCommand.restore(
+      plainContext,
+      snapshotId: "abc123",
+      target: "/target",
+      include: ["/p/one", "/p/two"]),
+    arguments: ["restore", "--json"] + common
+      + ["--target", "/target", "--include", "/p/one", "--include", "/p/two", "abc123"]),
+]
+
+@Test(arguments: commandCases)
+func argumentsMatch(_ testCase: CommandCase) {
+  #expect(testCase.invocation.arguments == testCase.arguments, "\(testCase.name)")
+}
+
+@Test(arguments: commandCases)
+func environmentIsReplacedWithExactlyFourVariables(_ testCase: CommandCase) {
+  #expect(testCase.invocation.environment == standardEnvironment, "\(testCase.name)")
+}
+
+@Test func versionInvocation() {
+  let invocation = ResticCommand.version(home: "/version-home")
+  #expect(invocation.arguments == ["version", "--json"])
+  #expect(invocation.environment == ["HOME": "/version-home", "PATH": "/usr/bin:/bin:/usr/sbin:/sbin"])
+}
