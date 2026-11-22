@@ -17,7 +17,7 @@ struct TelemetryConsentView: View {
           .padding(.bottom, 22)
         Card {
           VStack(alignment: .leading, spacing: 16) {
-            HStack(alignment: .firstTextBaseline, spacing: 12) {
+            HStack(alignment: .center, spacing: 12) {
               IconTile(systemName: "chart.bar.xaxis", tint: Brand.blue)
               Text(
                 "We collect usage and diagnostic data to understand how FUTO Backups is used and to find problems."
@@ -25,7 +25,7 @@ struct TelemetryConsentView: View {
               .font(.system(size: 13))
               .fixedSize(horizontal: false, vertical: true)
             }
-            HStack(alignment: .firstTextBaseline, spacing: 12) {
+            HStack(alignment: .center, spacing: 12) {
               IconTile(systemName: "eye.slash", tint: .green)
               Text(
                 "Your photos, files, and recovery key are never collected and never leave your device unencrypted."
