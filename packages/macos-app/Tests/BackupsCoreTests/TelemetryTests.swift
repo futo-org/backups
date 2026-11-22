@@ -76,3 +76,66 @@ func telemetryValueEncodesToBareJSON(value: TelemetryValue, json: String) throws
   #expect(data["version"] as? String == "1.0.0")
   #expect(data["client"] as? String == "macos")
 }
+
+private let redactionCases: [(input: String, output: String)] = [
+  (
+    input: #"Fatal: --exclude: invalid pattern(s) provided: [invalid-/Users/alice/private-client/tax.pdf"#,
+    output: #"Fatal: --exclude: invalid pattern(s) provided: [invalid-<path>"#
+  ),
+  (
+    input: "cannot create target directory: mkdir /tmp/x/private-restore: not a directory",
+    output: "cannot create target directory: mkdir <path>: not a directory"
+  ),
+  (
+    input: #"""
+    Error Domain=NSCocoaErrorDomain Code=4 “The file “x.txt” couldn’t be opened.” \
+    UserInfo={NSFilePath=/Users/alice/private/x.txt, NSURL=file:///Users/alice/private/x.txt}
+    """#,
+    output: #"""
+    Error Domain=NSCocoaErrorDomain Code=4 “The file “x.txt” couldn’t be opened.” \
+    UserInfo={NSFilePath=<path>, NSURL=<path>}
+    """#
+  ),
+  (
+    input: "cannot open file:///var/db/repo/config failed",
+    output: "cannot open <path> failed"
+  ),
+  (input: "https://user:secret@host/x", output: "https://***@host/x"),
+  (input: "could not read ~/Documents/a.txt from the queue", output: "could not read <path> from the queue"),
+  (input: "no space left on device", output: "no space left on device"),
+  (
+    input: "7e4c1a52-0b6d-4f2a-9c3e-8d51f6b7a290",
+    output: "7e4c1a52-0b6d-4f2a-9c3e-8d51f6b7a290"
+  ),
+]
+
+@Test(arguments: redactionCases)
+func redactReplacesPathsWithPlaceholder(input: String, output: String) {
+  #expect(StructuredLog.redact(input) == output)
+}
+
+@Test func structuredLogRedactsNestedStringValuesButNotSummaryVersionClient() {
+  let log = StructuredLog(
+    summary: "Backup finished after /Users/alice/secrets.txt changed",
+    data: [
+      "error": .string("cannot open /tmp/a/b.dat: denied"),
+      "items": .array([.string("mkdir /var/x failed"), .int(3), .array([.string("~/y")])]),
+      "context": .object([
+        "path": .string("file:///private/etc/z"),
+        "ok": .bool(true),
+        "at": .date(Date(timeIntervalSince1970: 0)),
+      ]),
+    ],
+    version: "/Applications/Futo.app")
+  #expect(log.summary == "Backup finished after /Users/alice/secrets.txt changed")
+  #expect(log.data["error"] == .string("cannot open <path>: denied"))
+  #expect(
+    log.data["items"] == .array([.string("mkdir <path> failed"), .int(3), .array([.string("<path>")])]))
+  #expect(
+    log.data["context"]
+      == .object([
+        "path": .string("<path>"), "ok": .bool(true), "at": .date(Date(timeIntervalSince1970: 0)),
+      ]))
+  #expect(log.data["version"] == .string("/Applications/Futo.app"))
+  #expect(log.data["client"] == .string("macos"))
+}

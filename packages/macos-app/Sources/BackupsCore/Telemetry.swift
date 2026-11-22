@@ -38,14 +38,49 @@ public enum TelemetryValue: Encodable, Equatable, Sendable {
 public struct StructuredLog: Encodable, Equatable, Sendable {
   public static let client = "macos"
 
+  private static let credentialURL = try! NSRegularExpression(pattern: #"://[^/\s@]+@"#)
+  private static let fileURL = try! NSRegularExpression(pattern: #"file://[^\s"',)\]:}]*"#)
+  private static let foundationPathKeys = try! NSRegularExpression(
+    pattern: #"(NSFilePathErrorKey|NSFilePath|NSURL)=[^,}\s]*"#)
+  private static let absolutePath = try! NSRegularExpression(
+    pattern: #"(?:^|(?<=[\s(\["'=:-]))~?/[^/\s"',)\]:}]+(?:/[^/\s"',)\]:}]+)*"#)
+
   public var summary: String
   public var data: [String: TelemetryValue]
 
   public init(summary: String, data: [String: TelemetryValue] = [:], version: String) {
     self.summary = summary
-    var merged = data
+    var merged = data.mapValues(Self.redacted)
     merged["version"] = .string(version)
     merged["client"] = .string(Self.client)
     self.data = merged
+  }
+
+  public static func redact(_ text: String) -> String {
+    var result = replace(credentialURL, with: "://***@", in: text)
+    result = replace(fileURL, with: "<path>", in: result)
+    result = replace(foundationPathKeys, with: "$1=<path>", in: result)
+    result = replace(absolutePath, with: "<path>", in: result)
+    return result
+  }
+
+  private static func replace(
+    _ expression: NSRegularExpression, with template: String, in text: String
+  ) -> String {
+    expression.stringByReplacingMatches(
+      in: text, range: NSRange(text.startIndex..., in: text), withTemplate: template)
+  }
+
+  private static func redacted(_ value: TelemetryValue) -> TelemetryValue {
+    switch value {
+    case .string(let text):
+      .string(redact(text))
+    case .array(let items):
+      .array(items.map(redacted))
+    case .object(let entries):
+      .object(entries.mapValues(redacted))
+    default:
+      value
+    }
   }
 }

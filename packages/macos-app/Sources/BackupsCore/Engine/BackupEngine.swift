@@ -8,13 +8,53 @@ public actor BackupEngine {
     var context: ResticContext
   }
 
+  private final class Outbox: @unchecked Sendable {
+    private let continuation: AsyncStream<@Sendable () async -> Void>.Continuation
+    private let consumer: Task<Void, Never>
+
+    init(timeout: Duration) {
+      let (stream, continuation) = AsyncStream<@Sendable () async -> Void>.makeStream()
+      self.continuation = continuation
+      self.consumer = Task {
+        for await job in stream {
+          await withTaskGroup(of: Void.self) { group in
+            group.addTask { await job() }
+            group.addTask { try? await Task.sleep(for: timeout) }
+            _ = await group.next()
+            group.cancelAll()
+          }
+        }
+      }
+    }
+
+    func enqueue(_ job: @escaping @Sendable () async -> Void) {
+      continuation.yield(job)
+    }
+
+    func flush() async {
+      await withCheckedContinuation { (wait: CheckedContinuation<Void, Never>) in
+        continuation.yield { wait.resume() }
+      }
+    }
+
+    deinit {
+      continuation.finish()
+    }
+  }
+
   private let environment: EngineEnvironment
+  private let outbox: Outbox
   private var running = false
   private var serverCache: [URL: ServerInfo] = [:]
   private var futoResticCache: Bool?
 
   public init(environment: EngineEnvironment) {
     self.environment = environment
+    self.outbox = Outbox(timeout: environment.telemetryTimeout)
+  }
+
+  public func flushOutbox() async {
+    await outbox.flush()
   }
 
   public func masterKey() throws -> String {
@@ -99,7 +139,9 @@ public actor BackupEngine {
       api = madeAPI
       await report(
         madeAPI, config: config, "Running backup", ["repositoryId": .string(repositoryId)])
-      try? await madeAPI.submitBackupStart(repositoryId: repositoryId)
+      outbox.enqueue {
+        try? await madeAPI.submitBackupStart(repositoryId: repositoryId)
+      }
       let session = try await startSession(
         config: config, repositoryId: repositoryId, masterKey: masterKey, token: token)
       do {
@@ -196,8 +238,10 @@ public actor BackupEngine {
               ["repositoryId": .string(repositoryId), "error": .string(statsError)])
           }
           if let totalSize {
-            try? await madeAPI.submitRepositorySize(
-              repositoryId: repositoryId, sizeBytes: totalSize)
+            outbox.enqueue {
+              try? await madeAPI.submitRepositorySize(
+                repositoryId: repositoryId, sizeBytes: totalSize)
+            }
           }
         }
       } catch {
@@ -215,15 +259,13 @@ public actor BackupEngine {
     }
     let finishedAt = environment.now()
     let durationMs = Int(finishedAt.timeIntervalSince(startedAt) * 1000)
-    let endAPI = api
     let endStatus = status
     let endMessage = (status == .failed || status == .warn) ? message : nil
-    await Task {
-      guard let endAPI else {
-        return
+    if let endAPI = api {
+      outbox.enqueue {
+        try? await endAPI.submitBackupEnd(
+          repositoryId: repositoryId, status: endStatus, durationMs: durationMs)
       }
-      try? await endAPI.submitBackupEnd(
-        repositoryId: repositoryId, status: endStatus, durationMs: durationMs)
       var data: [String: TelemetryValue] = [
         "repositoryId": .string(repositoryId),
         "lastBackupStatus": .string(endStatus.rawValue),
@@ -233,7 +275,7 @@ public actor BackupEngine {
         data["error"] = .string(endMessage)
       }
       await report(endAPI, config: config, "Backup finished", data)
-    }.value
+    }
     return RunRecord(
       startedAt: startedAt, finishedAt: finishedAt, status: status, snapshotId: summary?.snapshotId,
       filesNew: summary?.filesNew, dataAdded: summary?.dataAdded, message: message)
@@ -410,9 +452,9 @@ public actor BackupEngine {
       return
     }
     let log = StructuredLog(summary: summary, data: data, version: environment.appVersion)
-    await Task {
+    outbox.enqueue {
       try? await api.submitStructuredLog(log)
-    }.value
+    }
   }
 
   private func isFutoRestic() async -> Bool {

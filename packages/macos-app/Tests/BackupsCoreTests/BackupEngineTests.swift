@@ -43,7 +43,7 @@ private let backupLines = [statusLineOne, statusLineTwo, summaryLine]
   let fixture = makeFixture()
   let engine = BackupEngine(environment: fixture.environment)
   #expect(try await engine.ensureRepository(config: testConfig()) == "repo-1")
-  #expect(await fixture.api.calls.isEmpty)
+  #expect(await fixture.deliveredCalls(engine).isEmpty)
   #expect(fixture.restic.commands().isEmpty)
   #expect(fixture.proxy.starts.isEmpty)
   #expect(fixture.discoverCount.value == 0)
@@ -54,7 +54,7 @@ private let backupLines = [statusLineOne, statusLineTwo, summaryLine]
   let engine = BackupEngine(environment: fixture.environment)
   let config = testConfig(repositoryId: nil)
   #expect(try await engine.ensureRepository(config: config) == "new-repo")
-  #expect(await fixture.api.calls == [.create(name: "test-host")])
+  #expect(await fixture.deliveredCalls(engine) == [.create(name: "test-host")])
   #expect(fixture.restic.commands() == ["version", "init"])
   let startArgs = fixture.proxy.starts
   #expect(startArgs == [ProxyStartArg(apiRoot: testAPIRoot, throttle: config.throttle)])
@@ -93,7 +93,7 @@ private let backupLines = [statusLineOne, statusLineTwo, summaryLine]
   await #expect(throws: EngineError.notLoggedIn) {
     _ = try await loggedOutEngine.backup(config: testConfig(), onActivity: { _ in })
   }
-  #expect(await fixture.api.calls.isEmpty)
+  #expect(await fixture.deliveredCalls(engine).isEmpty)
   #expect(fixture.restic.commands().isEmpty)
   #expect(fixture.proxy.starts.isEmpty)
   #expect(fixture.discoverCount.value == 0)
@@ -134,7 +134,7 @@ private let backupLines = [statusLineOne, statusLineTwo, summaryLine]
           BackupProgress(percentDone: 100, totalFiles: 10, filesDone: 10, totalBytes: 100, bytesDone: 100)),
         .pruning,
       ])
-  var calls = await fixture.api.calls
+  var calls = await fixture.deliveredCalls(engine)
   #expect(calls.count == 3)
   #expect(calls[0] == .start(repositoryId: "repo-1"))
   #expect(calls[1] == .size(repositoryId: "repo-1", sizeBytes: 4321))
@@ -151,7 +151,7 @@ private let backupLines = [statusLineOne, statusLineTwo, summaryLine]
   #expect(second.status == .complete)
   #expect(fixture.restic.commands().filter { $0 == "version" }.count == 1)
   #expect(fixture.discoverCount.value == 1)
-  calls = await fixture.api.calls
+  calls = await fixture.deliveredCalls(engine)
   #expect(calls.count == 6)
 }
 
@@ -185,11 +185,12 @@ private let backupLines = [statusLineOne, statusLineTwo, summaryLine]
   #expect(fixture.restic.commands() == ["version", "unlock", "backup", "stats"])
   #expect(log.all == [.preparing])
   #expect(
-    await fixture.api.calls == [
-      .start(repositoryId: "repo-1"),
-      .size(repositoryId: "repo-1", sizeBytes: 4321),
-      .end(repositoryId: "repo-1", status: .warn, durationMs: 1000),
-    ])
+    await fixture.deliveredCalls(engine)
+      == [
+        .start(repositoryId: "repo-1"),
+        .size(repositoryId: "repo-1", sizeBytes: 4321),
+        .end(repositoryId: "repo-1", status: .warn, durationMs: 1000),
+      ])
   #expect(fixture.proxy.stopCount == 1)
 }
 
@@ -205,10 +206,11 @@ private let backupLines = [statusLineOne, statusLineTwo, summaryLine]
   #expect(record.snapshotId == nil)
   #expect(fixture.restic.commands() == ["version", "unlock", "backup"])
   #expect(
-    await fixture.api.calls == [
-      .start(repositoryId: "repo-1"),
-      .end(repositoryId: "repo-1", status: .failed, durationMs: 1000),
-    ])
+    await fixture.deliveredCalls(engine)
+      == [
+        .start(repositoryId: "repo-1"),
+        .end(repositoryId: "repo-1", status: .failed, durationMs: 1000),
+      ])
 }
 
 @Test func backupForgetFailureKeepsCompleteWithPruneMessage() async throws {
@@ -222,7 +224,8 @@ private let backupLines = [statusLineOne, statusLineTwo, summaryLine]
   #expect(record.status == .complete)
   #expect(record.message == "Prune failed: prune boom")
   #expect(fixture.restic.commands() == ["version", "unlock", "backup", "forget", "stats"])
-  #expect(await fixture.api.calls.last == .end(repositoryId: "repo-1", status: .complete, durationMs: 1000))
+  #expect(
+    await fixture.deliveredCalls(engine).last == .end(repositoryId: "repo-1", status: .complete, durationMs: 1000))
 }
 
 @Test func backupForgetThrowKeepsCompleteWithPruneMessage() async throws {
@@ -237,11 +240,12 @@ private let backupLines = [statusLineOne, statusLineTwo, summaryLine]
   #expect(message.hasPrefix("Prune failed: "))
   #expect(fixture.restic.commands() == ["version", "unlock", "backup", "forget", "stats"])
   #expect(
-    await fixture.api.calls == [
-      .start(repositoryId: "repo-1"),
-      .size(repositoryId: "repo-1", sizeBytes: 4321),
-      .end(repositoryId: "repo-1", status: .complete, durationMs: 1000),
-    ])
+    await fixture.deliveredCalls(engine)
+      == [
+        .start(repositoryId: "repo-1"),
+        .size(repositoryId: "repo-1", sizeBytes: 4321),
+        .end(repositoryId: "repo-1", status: .complete, durationMs: 1000),
+      ])
   #expect(fixture.proxy.stopCount == 1)
 }
 
@@ -257,10 +261,11 @@ private let backupLines = [statusLineOne, statusLineTwo, summaryLine]
   #expect(log.all == [.preparing, .pruning])
   #expect(fixture.restic.commands() == ["version", "unlock", "backup", "forget"])
   #expect(
-    await fixture.api.calls == [
-      .start(repositoryId: "repo-1"),
-      .end(repositoryId: "repo-1", status: .cancelled, durationMs: 1000),
-    ])
+    await fixture.deliveredCalls(engine)
+      == [
+        .start(repositoryId: "repo-1"),
+        .end(repositoryId: "repo-1", status: .cancelled, durationMs: 1000),
+      ])
   #expect(fixture.proxy.stopCount == 1)
 }
 
@@ -275,10 +280,11 @@ private let backupLines = [statusLineOne, statusLineTwo, summaryLine]
   #expect(log.all == [.preparing])
   #expect(fixture.restic.commands() == ["version", "unlock", "backup"])
   #expect(
-    await fixture.api.calls == [
-      .start(repositoryId: "repo-1"),
-      .end(repositoryId: "repo-1", status: .cancelled, durationMs: 1000),
-    ])
+    await fixture.deliveredCalls(engine)
+      == [
+        .start(repositoryId: "repo-1"),
+        .end(repositoryId: "repo-1", status: .cancelled, durationMs: 1000),
+      ])
   #expect(fixture.proxy.stopCount == 1)
 }
 
@@ -301,10 +307,11 @@ private let backupLines = [statusLineOne, statusLineTwo, summaryLine]
   #expect(record.status == .failed)
   #expect(record.message == String(describing: ResticProxyError.notReady("proxy down")))
   #expect(
-    await fixture.api.calls == [
-      .start(repositoryId: "repo-1"),
-      .end(repositoryId: "repo-1", status: .failed, durationMs: 1000),
-    ])
+    await fixture.deliveredCalls(engine)
+      == [
+        .start(repositoryId: "repo-1"),
+        .end(repositoryId: "repo-1", status: .failed, durationMs: 1000),
+      ])
   #expect(fixture.restic.commands().isEmpty)
   #expect(fixture.proxy.stopCount == 0)
 }
@@ -440,7 +447,7 @@ func missingMasterKeyThrowsAndIsNeverGenerated(
   await #expect(throws: EngineError.missingMasterKey) {
     _ = try await engine.ensureRepository(config: testConfig(repositoryId: nil))
   }
-  #expect(await fixture.api.calls.isEmpty)
+  #expect(await fixture.deliveredCalls(engine).isEmpty)
   #expect(try fixture.secrets.get(.masterKey) == nil)
   #expect(fixture.restic.commands().isEmpty)
   #expect(fixture.proxy.starts.isEmpty)
@@ -477,7 +484,7 @@ func missingMasterKeyThrowsAndIsNeverGenerated(
   let engine = BackupEngine(environment: fixture.environment)
   let listed = try await engine.macRepositories(config: testConfig())
   #expect(listed.map(\.id) == ["tie-alpha", "tie-zulu", "older", "never"])
-  #expect(await fixture.api.calls == [.list])
+  #expect(await fixture.deliveredCalls(engine) == [.list])
   #expect(fixture.discoverCount.value == 1)
   let loggedOut = makeFixture(token: nil)
   await loggedOut.api.setRepositories([tieAlpha])
@@ -485,7 +492,7 @@ func missingMasterKeyThrowsAndIsNeverGenerated(
   await #expect(throws: EngineError.notLoggedIn) {
     _ = try await loggedOutEngine.macRepositories(config: testConfig())
   }
-  #expect(await loggedOut.api.calls.isEmpty)
+  #expect(await loggedOut.deliveredCalls(loggedOutEngine).isEmpty)
 }
 
 @Test func verifyMasterKeyUsesGivenKeyAndMapsExitCode() async throws {
@@ -617,6 +624,7 @@ func missingMasterKeyThrowsAndIsNeverGenerated(
   let engine = BackupEngine(environment: fixture.environment)
   let record = try await engine.backup(config: testConfig()) { _ in }
   #expect(record.status == .complete)
+  await engine.flushOutbox()
   #expect(try fixture.secrets.get(.accessToken) == "tok-swapped")
   let invocation = try #require(
     fixture.restic.invocations().first { $0.arguments.first == "backup" })
@@ -632,7 +640,7 @@ func missingMasterKeyThrowsAndIsNeverGenerated(
   let engine = BackupEngine(environment: fixture.environment)
   let record = try await engine.backup(config: testConfig()) { _ in }
   #expect(record.status == .complete)
-  let logs = await fixture.api.logs
+  let logs = await fixture.deliveredLogs(engine)
   #expect(
     logs.map(\.summary)
       == [
@@ -665,7 +673,7 @@ func missingMasterKeyThrowsAndIsNeverGenerated(
   let engine = BackupEngine(environment: fixture.environment)
   let record = try await engine.backup(config: testConfig()) { _ in }
   #expect(record.status == .failed)
-  let logs = await fixture.api.logs
+  let logs = await fixture.deliveredLogs(engine)
   #expect(logs.map(\.summary) == ["Running backup", "Backup finished"])
   let finished = try #require(logs.last)
   #expect(finished.data["lastBackupStatus"] == .string("failed"))
@@ -683,7 +691,7 @@ func missingMasterKeyThrowsAndIsNeverGenerated(
   let record = try await engine.backup(config: testConfig()) { _ in }
   #expect(record.status == .complete)
   #expect(record.message == "Prune failed: prune boom")
-  let logs = await fixture.api.logs
+  let logs = await fixture.deliveredLogs(engine)
   let finishedPrune = try #require(logs.first { $0.summary == "Finished repository prune" })
   #expect(finishedPrune.data["repositoryId"] == .string("repo-1"))
   #expect(finishedPrune.data["error"] == .string("prune boom"))
@@ -702,12 +710,12 @@ func missingMasterKeyThrowsAndIsNeverGenerated(
   let engine = BackupEngine(environment: fixture.environment)
   let record = try await engine.backup(config: testConfig()) { _ in }
   #expect(record.status == .complete)
-  let logs = await fixture.api.logs
+  let logs = await fixture.deliveredLogs(engine)
   let stats = try #require(logs.first { $0.summary == "Failed to read repository stats" })
   #expect(stats.data["repositoryId"] == .string("repo-1"))
   #expect(stats.data["error"] == .string("stats gone"))
   #expect(
-    await fixture.api.calls
+    await fixture.deliveredCalls(engine)
       == [
         .start(repositoryId: "repo-1"),
         .end(repositoryId: "repo-1", status: .complete, durationMs: 1000),
@@ -721,9 +729,9 @@ func missingMasterKeyThrowsAndIsNeverGenerated(
   let engine = BackupEngine(environment: fixture.environment)
   let record = try await engine.backup(config: testConfig(consented: false)) { _ in }
   #expect(record.status == .complete)
-  #expect(await fixture.api.logs.isEmpty)
+  #expect(await fixture.deliveredLogs(engine).isEmpty)
   #expect(
-    await fixture.api.calls
+    await fixture.deliveredCalls(engine)
       == [
         .start(repositoryId: "repo-1"),
         .size(repositoryId: "repo-1", sizeBytes: 4321),
@@ -731,17 +739,34 @@ func missingMasterKeyThrowsAndIsNeverGenerated(
       ])
 }
 
-@Test func cancelledBackupWithThrowingTransportStillDeliversEndAndFinished() async throws {
+@Test func genuinelyCancelledBackupWithThrowingTransportDeliversCancelledEndAndFinished() async throws {
   let fixture = makeFixture()
   await fixture.api.setThrowIfCancelled(true)
-  fixture.restic.set(ResticScript(error: CancellationError()), for: "backup")
+  fixture.restic.set(ResticScript(lines: [summaryLine]), for: "backup")
+  fixture.restic.gateNextBackup(checkingCancellation: true)
   let engine = BackupEngine(environment: fixture.environment)
-  let record = try await engine.backup(config: testConfig()) { _ in }
+  let task = Task {
+    try await engine.backup(config: testConfig()) { _ in }
+  }
+  var waited = 0
+  while !fixture.restic.commands().contains("backup") {
+    waited += 1
+    if waited > 500 {
+      Issue.record("backup never reached restic fake")
+      break
+    }
+    try await Task.sleep(for: .milliseconds(2))
+  }
+  task.cancel()
+  fixture.restic.releaseBackups()
+  let record = try await task.value
   #expect(record.status == .cancelled)
-  let calls = await fixture.api.calls
+  #expect(record.message == nil)
+  let calls = await fixture.deliveredCalls(engine)
   #expect(calls.contains(.end(repositoryId: "repo-1", status: .cancelled, durationMs: 1000)))
-  let logs = await fixture.api.logs
-  let finished = try #require(logs.first { $0.summary == "Backup finished" })
+  let logs = await fixture.deliveredLogs(engine)
+  #expect(logs.map(\.summary) == ["Running backup", "Backup finished"])
+  let finished = try #require(logs.last)
   #expect(finished.data["lastBackupStatus"] == .string("cancelled"))
   #expect(finished.data["error"] == nil)
 }
@@ -770,13 +795,13 @@ func missingMasterKeyThrowsAndIsNeverGenerated(
   let record = try await task.value
   #expect(record.status == .complete)
   #expect(
-    await fixture.api.calls
+    await fixture.deliveredCalls(engine)
       == [
         .start(repositoryId: "repo-1"),
         .size(repositoryId: "repo-1", sizeBytes: 4321),
         .end(repositoryId: "repo-1", status: .complete, durationMs: 1000),
       ])
-  let logs = await fixture.api.logs
+  let logs = await fixture.deliveredLogs(engine)
   #expect(
     logs.map(\.summary)
       == [
@@ -791,7 +816,7 @@ func missingMasterKeyThrowsAndIsNeverGenerated(
   let fixture = makeFixture()
   let engine = BackupEngine(environment: fixture.environment)
   #expect(try await engine.ensureRepository(config: testConfig(repositoryId: nil)) == "new-repo")
-  let logs = await fixture.api.logs
+  let logs = await fixture.deliveredLogs(engine)
   #expect(logs.count == 1)
   let created = try #require(logs.first)
   #expect(created.summary == "Created repository")
@@ -805,7 +830,7 @@ func missingMasterKeyThrowsAndIsNeverGenerated(
   try await engine.restore(
     config: testConfig(), snapshotId: "snap-1", target: URL(fileURLWithPath: "/tmp/out"), include: []
   ) { _ in }
-  var logs = await fixture.api.logs
+  var logs = await fixture.deliveredLogs(engine)
   #expect(
     logs.map(\.summary)
       == ["Running repository snapshot restore", "Finished repository snapshot restore"])
@@ -823,7 +848,7 @@ func missingMasterKeyThrowsAndIsNeverGenerated(
       config: testConfig(), snapshotId: "snap-2", target: URL(fileURLWithPath: "/tmp/out"), include: []
     ) { _ in }
   }
-  logs = await fixture.api.logs
+  logs = await fixture.deliveredLogs(engine)
   let failure = logs.dropFirst(2)
   #expect(
     failure.map(\.summary)
@@ -843,7 +868,7 @@ func missingMasterKeyThrowsAndIsNeverGenerated(
   await #expect(throws: EngineError.restic(code: 12, message: "wrong password")) {
     _ = try await engine.snapshots(config: testConfig())
   }
-  let logs = await fixture.api.logs
+  let logs = await fixture.deliveredLogs(engine)
   #expect(logs.count == 1)
   let log = try #require(logs.first)
   #expect(log.summary == "Failed to get repository snapshot listing")
@@ -858,5 +883,53 @@ func missingMasterKeyThrowsAndIsNeverGenerated(
   await #expect(throws: CancellationError.self) {
     _ = try await engine.snapshots(config: testConfig())
   }
+  #expect(await fixture.deliveredLogs(engine).isEmpty)
+}
+
+@Test func backupCompletesAndReturnsWhileLogSendBlocksThenDeliversInOrder() async throws {
+  let fixture = makeFixture()
+  await fixture.api.blockLogs()
+  fixture.restic.set(ResticScript(lines: backupLines), for: "backup")
+  fixture.restic.set(ResticScript(stdout: statsStdout), for: "stats")
+  let engine = BackupEngine(environment: fixture.environment)
+  let record = try await engine.backup(config: testConfig()) { _ in }
+  #expect(record.status == .complete)
+  #expect(fixture.restic.commands() == ["version", "unlock", "backup", "forget", "stats"])
+  #expect(fixture.proxy.stopCount == 1)
+  await fixture.api.releaseLogs()
+  #expect(
+    await fixture.deliveredCalls(engine)
+      == [
+        .start(repositoryId: "repo-1"),
+        .size(repositoryId: "repo-1", sizeBytes: 4321),
+        .end(repositoryId: "repo-1", status: .complete, durationMs: 1000),
+      ])
+  let logs = await fixture.api.logs
+  #expect(
+    logs.map(\.summary)
+      == [
+        "Running backup",
+        "Running repository prune",
+        "Finished repository prune",
+        "Backup finished",
+      ])
+}
+
+@Test func outboxTimeoutDropsHangedSendAndLaterJobsStillRun() async throws {
+  let fixture = makeFixture(telemetryTimeout: .milliseconds(50))
+  await fixture.api.hangStructuredLogs()
+  fixture.restic.set(ResticScript(lines: [summaryLine]), for: "backup")
+  fixture.restic.set(ResticScript(stdout: statsStdout), for: "stats")
+  let engine = BackupEngine(environment: fixture.environment)
+  let record = try await engine.backup(config: testConfig()) { _ in }
+  #expect(record.status == .complete)
+  await engine.flushOutbox()
   #expect(await fixture.api.logs.isEmpty)
+  #expect(
+    await fixture.api.calls
+      == [
+        .start(repositoryId: "repo-1"),
+        .size(repositoryId: "repo-1", sizeBytes: 4321),
+        .end(repositoryId: "repo-1", status: .complete, durationMs: 1000),
+      ])
 }

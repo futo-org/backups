@@ -11,6 +11,7 @@ public struct EngineEnvironment: Sendable {
   public var processorCount: Int
   public var now: @Sendable () -> Date
   public var appVersion: String
+  public var telemetryTimeout: Duration
 
   public init(
     secrets: any SecretStore,
@@ -22,7 +23,8 @@ public struct EngineEnvironment: Sendable {
     home: String,
     processorCount: Int,
     now: @escaping @Sendable () -> Date,
-    appVersion: String = "dev"
+    appVersion: String = "dev",
+    telemetryTimeout: Duration = .seconds(10)
   ) {
     self.secrets = secrets
     self.discover = discover
@@ -34,6 +36,7 @@ public struct EngineEnvironment: Sendable {
     self.processorCount = processorCount
     self.now = now
     self.appVersion = appVersion
+    self.telemetryTimeout = telemetryTimeout
   }
 }
 

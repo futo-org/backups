@@ -17,6 +17,9 @@ actor FakeAPI: YuccaRepositoryAPI {
   var submitFailures = false
   var throwIfCancelled = false
   var repositories: [RemoteRepository] = []
+  private var logsBlocked = false
+  private var logsHanging = false
+  private var logWaits: [CheckedContinuation<Void, Never>] = []
   private var masterKeyProbe: (@Sendable () -> Bool)?
   private var onBackupStart: (@Sendable () -> Void)?
   private(set) var sawMasterKeyAtCreate: Bool?
@@ -59,6 +62,14 @@ actor FakeAPI: YuccaRepositoryAPI {
   }
 
   func submitStructuredLog(_ log: StructuredLog) async throws {
+    if logsBlocked {
+      await withCheckedContinuation { (wait: CheckedContinuation<Void, Never>) in
+        logWaits.append(wait)
+      }
+    }
+    if logsHanging {
+      try await Task.sleep(for: .seconds(3600))
+    }
     if throwIfCancelled {
       try Task.checkCancellation()
     }
@@ -78,6 +89,23 @@ actor FakeAPI: YuccaRepositoryAPI {
 
   func setThrowIfCancelled(_ value: Bool) {
     throwIfCancelled = value
+  }
+
+  func blockLogs() {
+    logsBlocked = true
+  }
+
+  func releaseLogs() {
+    logsBlocked = false
+    let waits = logWaits
+    logWaits = []
+    for wait in waits {
+      wait.resume()
+    }
+  }
+
+  func hangStructuredLogs() {
+    logsHanging = true
   }
 
   func setRepositories(_ value: [RemoteRepository]) {
@@ -102,6 +130,7 @@ final class FakeRestic: ResticExecuting, @unchecked Sendable {
     "version": ResticScript(stdout: "{\"version\":\"0.19.1+futo.3\"}")
   ]
   private var gateActive = false
+  private var gateChecksCancellation = false
   private var gateWaits: [CheckedContinuation<Void, Never>] = []
 
   func set(_ script: ResticScript, for command: String) {
@@ -116,8 +145,11 @@ final class FakeRestic: ResticExecuting, @unchecked Sendable {
     invocations().map { $0.arguments.first ?? "" }
   }
 
-  func gateNextBackup() {
-    lock.withLock { gateActive = true }
+  func gateNextBackup(checkingCancellation: Bool = false) {
+    lock.withLock {
+      gateActive = true
+      gateChecksCancellation = checkingCancellation
+    }
   }
 
   func releaseBackups() {
@@ -136,13 +168,18 @@ final class FakeRestic: ResticExecuting, @unchecked Sendable {
     -> ResticResult
   {
     let command = invocation.arguments.first ?? ""
-    let (script, gated) = lock.withLock { () -> (ResticScript, Bool) in
+    let (script, gated, checksCancellation) = lock.withLock { () -> (ResticScript, Bool, Bool) in
       recorded.append(invocation)
-      return (scripts[command] ?? ResticScript(), gateActive && command == "backup")
+      return (
+        scripts[command] ?? ResticScript(), gateActive && command == "backup", gateChecksCancellation
+      )
     }
     if gated {
       await withCheckedContinuation { (wait: CheckedContinuation<Void, Never>) in
         lock.withLock { gateWaits.append(wait) }
+      }
+      if checksCancellation {
+        try Task.checkCancellation()
       }
     }
     for line in script.lines {
@@ -267,9 +304,21 @@ struct EngineFixture {
   var discoverCount: Counter
 }
 
+extension EngineFixture {
+  func deliveredCalls(_ engine: BackupEngine) async -> [APICall] {
+    await engine.flushOutbox()
+    return await api.calls
+  }
+
+  func deliveredLogs(_ engine: BackupEngine) async -> [StructuredLog] {
+    await engine.flushOutbox()
+    return await api.logs
+  }
+}
+
 func makeFixture(
   connectionsMath: String = "16", token: String? = "tok", masterKey: String? = testMasterKey,
-  appVersion: String = "dev"
+  appVersion: String = "dev", telemetryTimeout: Duration = .seconds(10)
 ) -> EngineFixture {
   let api = FakeAPI()
   let restic = FakeRestic()
@@ -298,7 +347,8 @@ func makeFixture(
     home: "/Users/test",
     processorCount: 8,
     now: { clock.now() },
-    appVersion: appVersion)
+    appVersion: appVersion,
+    telemetryTimeout: telemetryTimeout)
   return EngineFixture(
     environment: environment, api: api, restic: restic, proxy: proxy, secrets: secrets,
     discoverCount: discoverCount)
