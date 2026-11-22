@@ -23,3 +23,12 @@ run = "swift format --in-place --recursive Package.swift Sources Tests"
 [tasks."mac:check"]
 description = "Lint, build and test the macOS app"
 run = [{ task = "mac:lint" }, { task = "mac:build" }, { task = "mac:test" }]
+
+[tasks."mac:bundle"]
+description = "Build build/FUTO Backups.app with bundled restic and restic-proxy"
+run = "scripts/bundle.sh"
+
+[tasks."mac:open"]
+description = "Bundle and launch the app"
+depends = ["mac:bundle"]
+run = "open 'build/FUTO Backups.app'"
