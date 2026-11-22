@@ -114,6 +114,48 @@ private struct Control: Decodable {
     ])
 }
 
+@Test func throttleAfterProxyGoneThrowsAndStopReturns() async throws {
+  let directory = try makeTempDirectory()
+  defer { try? FileManager.default.removeItem(at: directory) }
+  let marker = directory.appendingPathComponent("closed")
+  let script = try makeScript(
+    "printf '{\"address\":\"127.0.0.1:5555\",\"port\":5555}\\n' >&3\nexec 3>&-\ntouch '" + marker.path
+      + "'\nexit 0\n",
+    in: directory)
+  let launcher = ResticProxyLauncher(executable: script, readyTimeout: .seconds(10))
+  let handle = try await launcher.start(
+    apiRoot: URL(string: "http://127.0.0.1:9/api")!,
+    throttle: .unthrottled)
+  #expect(handle.address == "127.0.0.1:5555")
+  let deadline = ContinuousClock.now.advanced(by: .seconds(5))
+  while !FileManager.default.fileExists(atPath: marker.path), ContinuousClock.now < deadline {
+    try await Task.sleep(for: .milliseconds(20))
+  }
+  #expect(FileManager.default.fileExists(atPath: marker.path))
+  var thrown: (any Error)?
+  do {
+    try handle.setThrottle(Throttle(bytesPerSec: 100, quietHours: ""))
+  } catch {
+    thrown = error
+  }
+  #expect(thrown != nil)
+  await handle.stop()
+}
+
+@Test(
+  "pollTimeoutMilliseconds table",
+  arguments: [
+    (Duration.zero, Int32(0)),
+    (Duration.milliseconds(-500), Int32(0)),
+    (Duration.seconds(-2), Int32(0)),
+    (Duration.nanoseconds(1), Int32(1)),
+    (Duration.milliseconds(250), Int32(250)),
+    (Duration.seconds(1_000_000_000), Int32.max),
+  ])
+func pollTimeoutMillisecondsTable(_ input: (Duration, Int32)) {
+  #expect(ResticProxyLauncher.pollTimeoutMilliseconds(input.0) == input.1)
+}
+
 @Test func repositoryURLFormat() {
   #expect(
     resticProxyRepositoryURL(address: "127.0.0.1:54321", repositoryId: "repo-id", accessToken: "access token")

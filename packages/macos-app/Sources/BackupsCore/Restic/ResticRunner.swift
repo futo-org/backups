@@ -29,47 +29,64 @@ public struct ResticRunner: ResticExecuting {
     let errorPipe = Pipe()
     process.value.standardOutput = outputPipe
     process.value.standardError = errorPipe
-    let outputHandle = outputPipe.fileHandleForReading
-    let errorHandle = errorPipe.fileHandleForReading
-    let outputDescriptor = outputHandle.fileDescriptor
-    let errorDescriptor = errorHandle.fileDescriptor
+    let outputReadHandle = outputPipe.fileHandleForReading
+    let outputWriteHandle = outputPipe.fileHandleForWriting
+    let errorReadHandle = errorPipe.fileHandleForReading
+    let errorWriteHandle = errorPipe.fileHandleForWriting
+    let outputDescriptor = outputReadHandle.fileDescriptor
+    let errorDescriptor = errorReadHandle.fileDescriptor
+    let state = LaunchState()
+    let join = RunnerJoin()
 
     return try await withTaskCancellationHandler {
       let result = try await withCheckedThrowingContinuation {
         (continuation: CheckedContinuation<ResticResult, Error>) in
-        let outputTask = Task.detached(priority: .utility) {
-          PipeReader.readLines(descriptor: outputDescriptor, onLine: onLine)
+        join.attach(continuation)
+        if state.finishIfCancelled(taskCancelled: Task.isCancelled) {
+          join.detach()?.resume(throwing: CancellationError())
+          closeHandles(outputReadHandle, outputWriteHandle, errorReadHandle, errorWriteHandle)
+          return
         }
-        let errorTask = Task.detached(priority: .utility) {
-          String(decoding: PipeReader.readAll(descriptor: errorDescriptor), as: UTF8.self)
-        }
-        process.value.terminationHandler = { _ in
-          Task.detached(priority: .utility) {
-            let stdoutData = await outputTask.value
-            let stderrText = await errorTask.value
-            continuation.resume(
-              returning: ResticResult(
-                exitCode: process.value.terminationStatus,
-                stdout: stdoutData,
-                stderr: stderrText))
-          }
+        process.value.terminationHandler = { finished in
+          let status = finished.terminationStatus
+          finished.terminationHandler = nil
+          join.deliver(exitCode: status)
         }
         do {
-          if Task.isCancelled { throw CancellationError() }
           try process.value.run()
         } catch {
-          try? outputHandle.close()
-          try? errorHandle.close()
-          continuation.resume(throwing: error)
+          process.value.terminationHandler = nil
+          _ = state.markFinished()
+          join.detach()?.resume(throwing: error)
+          closeHandles(outputReadHandle, outputWriteHandle, errorReadHandle, errorWriteHandle)
+          return
         }
+        if state.markRunning() {
+          process.value.terminate()
+        }
+        let outputThread = Thread {
+          join.deliver(stdout: PipeReader.readLines(descriptor: outputDescriptor, onLine: onLine))
+        }
+        outputThread.start()
+        let errorThread = Thread {
+          join.deliver(stderr: String(decoding: PipeReader.readAll(descriptor: errorDescriptor), as: UTF8.self))
+        }
+        errorThread.start()
       }
-      if Task.isCancelled { throw CancellationError() }
+      let cancelled = state.markFinished()
+      if cancelled || Task.isCancelled { throw CancellationError() }
       return result
     } onCancel: {
-      if process.value.isRunning {
+      if state.requestCancel() {
         process.value.terminate()
       }
     }
+  }
+}
+
+private func closeHandles(_ handles: FileHandle...) {
+  for handle in handles {
+    try? handle.close()
   }
 }
 
@@ -77,26 +94,135 @@ private final class ProcessBox: @unchecked Sendable {
   let value = Process()
 }
 
+private final class LaunchState: @unchecked Sendable {
+  enum Phase {
+    case notStarted
+    case running
+    case finished
+  }
+
+  private let lock = NSLock()
+  private var phase = Phase.notStarted
+  private var cancelRequested = false
+
+  func finishIfCancelled(taskCancelled: Bool) -> Bool {
+    lock.lock()
+    let cancelled = cancelRequested || taskCancelled
+    if cancelled {
+      phase = .finished
+    }
+    lock.unlock()
+    return cancelled
+  }
+
+  func markRunning() -> Bool {
+    lock.lock()
+    phase = .running
+    let cancelRequested = self.cancelRequested
+    lock.unlock()
+    return cancelRequested
+  }
+
+  func markFinished() -> Bool {
+    lock.lock()
+    phase = .finished
+    let cancelRequested = self.cancelRequested
+    lock.unlock()
+    return cancelRequested
+  }
+
+  func requestCancel() -> Bool {
+    lock.lock()
+    cancelRequested = true
+    let shouldTerminate = phase == .running
+    lock.unlock()
+    return shouldTerminate
+  }
+}
+
+private final class RunnerJoin: @unchecked Sendable {
+  private let lock = NSLock()
+  private var exitCode: Int32?
+  private var stdoutData: Data?
+  private var stderrText: String?
+  private var continuation: CheckedContinuation<ResticResult, Error>?
+
+  func attach(_ continuation: CheckedContinuation<ResticResult, Error>) {
+    lock.lock()
+    self.continuation = continuation
+    let result = resultLocked()
+    if result != nil {
+      self.continuation = nil
+    }
+    lock.unlock()
+    if let result {
+      continuation.resume(returning: result)
+    }
+  }
+
+  func detach() -> CheckedContinuation<ResticResult, Error>? {
+    lock.lock()
+    let continuation = self.continuation
+    self.continuation = nil
+    lock.unlock()
+    return continuation
+  }
+
+  func deliver(exitCode: Int32) {
+    settle { self.exitCode = exitCode }
+  }
+
+  func deliver(stdout: Data) {
+    settle { self.stdoutData = stdout }
+  }
+
+  func deliver(stderr: String) {
+    settle { self.stderrText = stderr }
+  }
+
+  private func settle(_ record: () -> Void) {
+    var continuationToResume: CheckedContinuation<ResticResult, Error>?
+    var resumedResult: ResticResult?
+    lock.lock()
+    record()
+    let result = resultLocked()
+    if result != nil {
+      continuationToResume = continuation
+      continuation = nil
+      resumedResult = result
+    }
+    lock.unlock()
+    if let continuationToResume, let resumedResult {
+      continuationToResume.resume(returning: resumedResult)
+    }
+  }
+
+  private func resultLocked() -> ResticResult? {
+    guard let exitCode, let stdoutData, let stderrText else { return nil }
+    return ResticResult(exitCode: exitCode, stdout: stdoutData, stderr: stderrText)
+  }
+}
+
 private enum PipeReader {
   static func readLines(descriptor: Int32, onLine: @escaping @Sendable (String) -> Void) -> Data {
+    var raw = Data()
     var pending: [UInt8] = []
-    var lines: [String] = []
+    var searched = 0
     consume(descriptor: descriptor) { chunk in
+      raw.append(contentsOf: chunk)
       pending.append(contentsOf: chunk)
-      while let index = pending.firstIndex(of: 0x0A) {
+      while pending.count > searched, let index = pending[searched...].firstIndex(of: 0x0A) {
         let line = String(decoding: Data(pending[..<index]), as: UTF8.self)
         pending.removeSubrange(pending.startIndex...index)
-        lines.append(line)
+        searched = 0
         onLine(line)
       }
+      searched = pending.count
     }
     if !pending.isEmpty {
-      let line = String(decoding: pending, as: UTF8.self)
-      lines.append(line)
-      onLine(line)
+      onLine(String(decoding: pending, as: UTF8.self))
     }
-    guard !lines.isEmpty else { return Data() }
-    return Data((lines.joined(separator: "\n") + "\n").utf8)
+    return raw
   }
 
   static func readAll(descriptor: Int32) -> Data {

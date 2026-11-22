@@ -49,7 +49,7 @@ private let sh = URL(fileURLWithPath: "/bin/sh")
   }
   #expect(result.exitCode == 0)
   #expect(sink.snapshot() == ["x", "y"])
-  #expect(String(decoding: result.stdout, as: UTF8.self) == "x\ny\n")
+  #expect(String(decoding: result.stdout, as: UTF8.self) == "x\ny")
 }
 
 @Test func environmentIsReplacedNotInherited() async throws {
@@ -72,6 +72,96 @@ private let sh = URL(fileURLWithPath: "/bin/sh")
   await #expect(throws: (any Error).self) {
     _ = try await runner.run(shInvocation("true"), onLine: { _ in })
   }
+}
+
+private func openDescriptorCount() throws -> Int {
+  try FileManager.default.contentsOfDirectory(atPath: "/dev/fd").count
+}
+
+private let bigPipeScript = #"head -c 4194304 /dev/zero | tr "\0" a >&2; head -c 4194304 /dev/zero | tr "\0" b"#
+
+@Test func failedLaunchesDoNotLeakDescriptors() async throws {
+  let runner = ResticRunner(executable: URL(fileURLWithPath: "/nonexistent/restic-binary"))
+  let deadline = ContinuousClock.now.advanced(by: .seconds(10))
+  var delta = 0
+  var stable = false
+  while ContinuousClock.now < deadline {
+    let before = try openDescriptorCount()
+    for _ in 0..<20 {
+      do {
+        _ = try await runner.run(shInvocation("true"), onLine: { _ in })
+        Issue.record("launch unexpectedly succeeded")
+      } catch {}
+    }
+    delta = try openDescriptorCount() - before
+    if delta == 0 {
+      stable = true
+      break
+    }
+    try await Task.sleep(for: .milliseconds(200))
+  }
+  #expect(stable, "descriptor delta \(delta) persisted across 20 failed launches")
+}
+
+@Test func largeStdoutAndStderrComplete() async throws {
+  let runner = ResticRunner(executable: sh)
+  let start = ContinuousClock.now
+  let result = try await runner.run(shInvocation(bigPipeScript), onLine: { _ in })
+  let elapsed = ContinuousClock.now - start
+  #expect(result.exitCode == 0)
+  #expect(result.stderr.count == 4_194_304)
+  #expect(result.stdout.count == 4_194_304)
+  #expect(elapsed < .seconds(20), "elapsed \(elapsed.components.seconds)s")
+}
+
+@Test func fourConcurrentLargePipeRuns() async throws {
+  let runner = ResticRunner(executable: sh)
+  let start = ContinuousClock.now
+  let results = try await withThrowingTaskGroup(of: ResticResult.self) { group in
+    for _ in 0..<4 {
+      group.addTask {
+        try await runner.run(shInvocation(bigPipeScript), onLine: { _ in })
+      }
+    }
+    var collected: [ResticResult] = []
+    for try await result in group {
+      collected.append(result)
+    }
+    return collected
+  }
+  let elapsed = ContinuousClock.now - start
+  #expect(results.count == 4)
+  for result in results {
+    #expect(result.exitCode == 0)
+    #expect(result.stderr.count == 4_194_304)
+    #expect(result.stdout.count == 4_194_304)
+  }
+  #expect(elapsed < .seconds(30), "elapsed \(elapsed.components.seconds)s")
+}
+
+@Test func cancellationBeforeLaunchThrowsAndChildNeverRuns() async throws {
+  let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+  try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+  defer { try? FileManager.default.removeItem(at: directory) }
+  let marker = directory.appendingPathComponent("marker")
+  let runner = ResticRunner(executable: sh)
+  let task = Task {
+    try await runner.run(shInvocation("touch '" + marker.path + "'"), onLine: { _ in })
+  }
+  task.cancel()
+  await #expect(throws: CancellationError.self) {
+    _ = try await task.value
+  }
+  try await Task.sleep(for: .seconds(1))
+  #expect(!FileManager.default.fileExists(atPath: marker.path))
+}
+
+@Test func rawStdoutBytesPreserved() async throws {
+  let runner = ResticRunner(executable: sh)
+  let withoutNewline = try await runner.run(shInvocation("printf 'ab'"), onLine: { _ in })
+  #expect(withoutNewline.stdout == Data([0x61, 0x62]))
+  let invalidUTF8 = try await runner.run(shInvocation(#"printf '\377\376'"#), onLine: { _ in })
+  #expect(invalidUTF8.stdout == Data([0xFF, 0xFE]))
 }
 
 @Test func cancellationThrowsCancellationError() async throws {

@@ -32,6 +32,8 @@ public struct ResticProxyLauncher: ResticProxyLaunching {
     }
     let parentDescriptor = descriptors[0]
     let childDescriptor = descriptors[1]
+    var noSigpipe: Int32 = 1
+    _ = setsockopt(parentDescriptor, SOL_SOCKET, SO_NOSIGPIPE, &noSigpipe, socklen_t(MemoryLayout<Int32>.size))
 
     var fileActions: posix_spawn_file_actions_t?
     posix_spawn_file_actions_init(&fileActions)
@@ -74,14 +76,18 @@ public struct ResticProxyLauncher: ResticProxyLaunching {
       throw ResticProxyError.spawnFailed(Int32(spawnResult))
     }
 
-    let ready = await Task.detached {
-      Self.readReadyLine(descriptor: parentDescriptor, timeout: readyTimeout)
-    }.value
+    let ready: Result<String, ResticProxyError> = await withCheckedContinuation {
+      (continuation: CheckedContinuation<Result<String, ResticProxyError>, Never>) in
+      let thread = Thread {
+        continuation.resume(returning: Self.readReadyLine(descriptor: parentDescriptor, timeout: readyTimeout))
+      }
+      thread.start()
+    }
     let address: String
     switch ready {
     case .failure(let error):
       _ = kill(pid, SIGKILL)
-      _ = waitpid(pid, nil, 0)
+      await reapProcess(pid)
       close(parentDescriptor)
       throw error
     case .success(let line):
@@ -89,7 +95,7 @@ public struct ResticProxyLauncher: ResticProxyLaunching {
         let decoded = try? JSONDecoder().decode(ReadyLine.self, from: data)
       else {
         _ = kill(pid, SIGKILL)
-        _ = waitpid(pid, nil, 0)
+        await reapProcess(pid)
         close(parentDescriptor)
         throw ResticProxyError.notReady("invalid ready line")
       }
@@ -106,20 +112,33 @@ public struct ResticProxyLauncher: ResticProxyLaunching {
     return text
   }
 
+  static func pollTimeoutMilliseconds(_ remaining: Duration) -> Int32 {
+    guard remaining > .zero else { return 0 }
+    let seconds = remaining.components.seconds
+    if seconds >= Int64(Int32.max) / 1000 {
+      return Int32.max
+    }
+    let milliseconds =
+      seconds * 1000 + (remaining.components.attoseconds + 999_999_999_999_999) / 1_000_000_000_000_000
+    return Int32(min(max(milliseconds, 1), Int64(Int32.max)))
+  }
+
   private static func readReadyLine(descriptor: Int32, timeout: Duration) -> Result<String, ResticProxyError> {
     let clock = ContinuousClock()
     let deadline = clock.now.advanced(by: timeout)
+    let flags = fcntl(descriptor, F_GETFL)
+    _ = fcntl(descriptor, F_SETFL, flags | O_NONBLOCK)
+    defer {
+      _ = fcntl(descriptor, F_SETFL, flags)
+    }
     var bytes: [UInt8] = []
     while true {
       let remaining = deadline - clock.now
-      if remaining.components.seconds < 0 {
+      if remaining <= .zero {
         return .failure(.notReady("timeout"))
       }
-      let milliseconds =
-        UInt64(remaining.components.seconds) * 1000
-        + UInt64(remaining.components.attoseconds / 1_000_000_000_000_000)
       var pollEntry = pollfd(fd: descriptor, events: Int16(POLLIN), revents: 0)
-      let readyCount = poll(&pollEntry, 1, Int32(min(milliseconds, UInt64(Int32.max))))
+      let readyCount = poll(&pollEntry, 1, pollTimeoutMilliseconds(remaining))
       if readyCount == 0 {
         return .failure(.notReady("timeout"))
       }
@@ -133,7 +152,7 @@ public struct ResticProxyLauncher: ResticProxyLaunching {
         return .failure(.notReady("exited before ready"))
       }
       if readCount < 0 {
-        if errno == EINTR { continue }
+        if errno == EINTR || errno == EAGAIN || errno == EWOULDBLOCK { continue }
         return .failure(.notReady("exited before ready"))
       }
       if byte == 0x0A {
@@ -169,9 +188,19 @@ final class ProxyHandle: ResticProxyHandle, @unchecked Sendable {
     var data = try JSONEncoder().encode(control)
     data.append(0x0A)
     lock.lock()
-    defer { lock.unlock() }
-    guard let descriptor else { throw posixError(EBADF) }
-    try Self.writeAll(descriptor: descriptor, data: data)
+    guard let source = descriptor else {
+      lock.unlock()
+      throw posixError(EBADF)
+    }
+    let target = dup(source)
+    lock.unlock()
+    guard target >= 0 else {
+      throw posixError(errno)
+    }
+    defer {
+      close(target)
+    }
+    try Self.writeAll(descriptor: target, data: data)
   }
 
   func stop() async {
@@ -183,7 +212,7 @@ final class ProxyHandle: ResticProxyHandle, @unchecked Sendable {
     _ = kill(processIdentifier, SIGTERM)
     close(descriptor)
     let identifier = processIdentifier
-    let task = Task.detached { _ = waitpid(identifier, nil, 0) }
+    let task = Task { await reapProcess(identifier) }
     storeReapTask(task)
     await task.value
   }
@@ -220,6 +249,16 @@ final class ProxyHandle: ResticProxyHandle, @unchecked Sendable {
         offset += written
       }
     }
+  }
+}
+
+private func reapProcess(_ identifier: pid_t) async {
+  await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
+    let thread = Thread {
+      _ = waitpid(identifier, nil, 0)
+      continuation.resume()
+    }
+    thread.start()
   }
 }
 
