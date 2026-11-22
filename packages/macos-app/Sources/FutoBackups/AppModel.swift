@@ -50,6 +50,8 @@ final class AppModel {
   private var sessionToken: String?
   private var sessionGeneration = 0
   private var onboardingGeneration = 0
+  private let appVersion: String
+  private let bootstrapError: String?
 
   init() {
     let home = NSHomeDirectory()
@@ -61,6 +63,7 @@ final class AppModel {
     } catch {
       loadFailure = "Could not load config: \(error)"
     }
+    let appVersion = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "dev"
     let cacheDirectory = URL(fileURLWithPath: home)
       .appendingPathComponent("Library")
       .appendingPathComponent("Caches")
@@ -84,7 +87,8 @@ final class AppModel {
           cacheDirectory: cacheDirectory,
           home: home,
           processorCount: ProcessInfo.processInfo.activeProcessorCount,
-          now: { Date() }))
+          now: { Date() },
+          appVersion: appVersion))
       missingHelperText = nil
     } else {
       engine = nil
@@ -97,6 +101,8 @@ final class AppModel {
     self.transport = transport
     self.engine = engine
     self.missingHelperText = missingHelperText
+    self.appVersion = appVersion
+    self.bootstrapError = loadFailure ?? missingHelperText
     config = loaded
     lastError = loadFailure
     nextRun = loaded.schedule.nextRun(after: loaded.scheduleReference, now: .now, calendar: .current)
@@ -106,6 +112,9 @@ final class AppModel {
       let storedToken: String? = (try? await vault.get(.accessToken)) ?? nil
       hasSession = storedToken != nil
       sessionToken = storedToken
+      if let bootstrapError {
+        report("Bootstrap error", ["error": .string(bootstrapError)], force: true)
+      }
       hasMasterKey = ((try? await engine?.storedMasterKey()) ?? nil) != nil
       signedIn = hasSession && config.repositoryId != nil && config.recoveryKeyConfirmedAt != nil
       if hasSession && isRecoveringLostKey {
@@ -148,7 +157,7 @@ final class AppModel {
       return
     }
     if config.schedule.isDue(lastRun: config.scheduleReference, now: .now, calendar: .current) {
-      backupNow()
+      backupNow(scheduled: true)
     }
   }
 
@@ -186,6 +195,7 @@ final class AppModel {
         let accountClient = YuccaClient(apiRoot: server.apiRoot, transport: self.transport, accessToken: token)
         self.account = try await accountClient.me()
         guard generation == self.loginGeneration else { return }
+        report("Connected FUTO Backups backend")
         self.loginTask = nil
         self.login = .idle
         self.continueSetup()
@@ -235,20 +245,34 @@ final class AppModel {
     guard let normalized = RepositoryKeys.normalizedMasterKey(input) else {
       return "That isn't a valid recovery key."
     }
-    if isRecoveringLostKey {
+    if isRecoveringLostKey, let repositoryId = config.repositoryId {
+      report("Running repository import", ["repositoryId": .string(repositoryId)])
       do {
         let verified = try await engine.verifyMasterKey(
-          normalized, config: config, repositoryId: config.repositoryId!)
+          normalized, config: config, repositoryId: repositoryId)
         guard generation == onboardingGeneration, hasSession else { return nil }
         guard verified else {
+          report(
+            "Finished repository import",
+            [
+              "repositoryId": .string(repositoryId),
+              "error": .string("wrong recovery key"),
+            ])
           return "That key doesn't open this Mac's backup."
         }
         try await engine.importMasterKey(normalized)
         guard generation == onboardingGeneration, hasSession else { return nil }
       } catch {
         guard generation == onboardingGeneration, hasSession else { return nil }
+        report(
+          "Finished repository import",
+          [
+            "repositoryId": .string(repositoryId),
+            "error": .string(message(for: error)),
+          ])
         return message(for: error)
       }
+      report("Finished repository import", ["repositoryId": .string(repositoryId)])
       hasMasterKey = true
       markRecoveryKeyConfirmed()
       return nil
@@ -278,18 +302,32 @@ final class AppModel {
     let generation = onboardingGeneration
     guard let engine else { return missingHelperText ?? "Setup incomplete" }
     guard let key = pendingRecoveryKey else { return "No recovery key to use." }
+    report("Running repository import", ["repositoryId": .string(repository.id)])
     do {
       let verified = try await engine.verifyMasterKey(key, config: config, repositoryId: repository.id)
       guard generation == onboardingGeneration, hasSession else { return nil }
       guard verified else {
+        report(
+          "Finished repository import",
+          [
+            "repositoryId": .string(repository.id),
+            "error": .string("wrong recovery key"),
+          ])
         return "This backup uses a different recovery key."
       }
       try await engine.importMasterKey(key)
       guard generation == onboardingGeneration, hasSession else { return nil }
     } catch {
       guard generation == onboardingGeneration, hasSession else { return nil }
+      report(
+        "Finished repository import",
+        [
+          "repositoryId": .string(repository.id),
+          "error": .string(message(for: error)),
+        ])
       return message(for: error)
     }
+    report("Finished repository import", ["repositoryId": .string(repository.id)])
     hasMasterKey = true
     pendingRecoveryKey = nil
     config.repositoryId = repository.id
@@ -419,11 +457,13 @@ final class AppModel {
       config.scheduleAnchor = Date()
     }
     saveConfig()
+    reportRepositoryChange()
   }
 
   func removeFolder(_ path: String) {
     config.folders.removeAll { $0 == path }
     saveConfig()
+    reportRepositoryChange()
   }
 
   func setSchedule(_ schedule: Schedule) {
@@ -431,6 +471,13 @@ final class AppModel {
     config.scheduleAnchor = Date()
     saveConfig()
     recomputeNextRun()
+    report("Updated schedule", ["schedule": .string(scheduleDescription(schedule))])
+  }
+
+  func grantTelemetryConsent() {
+    config.telemetryConsentedAt = Date()
+    saveConfig()
+    report("Telemetry consent granted")
   }
 
   func setThrottle(_ throttle: Throttle) {
@@ -445,7 +492,7 @@ final class AppModel {
     saveConfig()
   }
 
-  func backupNow() {
+  func backupNow(scheduled: Bool = false) {
     guard activity == nil, operationTask == nil else { return }
     guard engine != nil else {
       lastError = missingHelperText
@@ -472,6 +519,11 @@ final class AppModel {
     let generation = sessionGeneration
     activity = .preparing
     operationTask = Task {
+      defer {
+        if scheduled {
+          report("Finished running schedule for 1 repositories", ["lastFinished": .date(Date())])
+        }
+      }
       do {
         let record = try await engine.backup(config: configSnapshot) { activity in
           Task { @MainActor in
@@ -499,6 +551,14 @@ final class AppModel {
         self.finishOperation()
         self.lastError = self.message(for: error)
       }
+    }
+    if scheduled, let repositoryId = config.repositoryId {
+      report(
+        "Running schedule for 1 repositories",
+        [
+          "lastRun": .date(Date()),
+          "repositories": .array([.string(repositoryId)]),
+        ])
     }
   }
 
@@ -595,6 +655,39 @@ final class AppModel {
     let server = try await discovery.resolve(config.serverURL)
     let token = try? await vault.get(.accessToken)
     return YuccaClient(apiRoot: server.apiRoot, transport: transport, accessToken: token)
+  }
+
+  private func report(
+    _ summary: String, _ data: [String: TelemetryValue] = [:], force: Bool = false
+  ) {
+    guard force || config.telemetryConsentedAt != nil, let token = sessionToken else { return }
+    let serverURL = config.serverURL
+    let generation = sessionGeneration
+    let version = appVersion
+    Task {
+      guard let server = try? await discovery.resolve(serverURL) else { return }
+      guard generation == sessionGeneration else { return }
+      let client = YuccaClient(apiRoot: server.apiRoot, transport: transport, accessToken: token)
+      try? await client.submitStructuredLog(StructuredLog(summary: summary, data: data, version: version))
+    }
+  }
+
+  private func reportRepositoryChange() {
+    guard let repositoryId = config.repositoryId else { return }
+    report(
+      "Updated repository",
+      [
+        "repositoryId": .string(repositoryId),
+        "pathCount": .int(Int64(config.folders.count)),
+      ])
+  }
+
+  private func scheduleDescription(_ schedule: Schedule) -> String {
+    switch schedule {
+    case .manual: return "manual"
+    case .hourly: return "hourly"
+    case .daily(let hour, let minute): return String(format: "daily %02d:%02d", hour, minute)
+    }
   }
 
   private func finishOperation() {

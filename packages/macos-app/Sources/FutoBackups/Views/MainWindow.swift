@@ -30,6 +30,8 @@ struct MainWindow: View {
     Group {
       if !model.sessionLoaded {
         LaunchView()
+      } else if model.config.telemetryConsentedAt == nil {
+        TelemetryConsentView()
       } else if model.signedIn {
         NavigationSplitView {
           sidebar

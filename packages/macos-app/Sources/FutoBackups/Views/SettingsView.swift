@@ -96,6 +96,13 @@ struct SettingsView: View {
         }
         .padding(.vertical, 4)
       }
+      Section("Diagnostics") {
+        SettingLabel(
+          systemName: "stethoscope", tint: Brand.blue, title: "Usage and diagnostic data",
+          detail: "Shared with FUTO to find problems. Required during the closed beta."
+        )
+        .padding(.vertical, 4)
+      }
       Section("Updates") {
         if updater.isAvailable {
           Toggle(isOn: automaticUpdatesBinding) {

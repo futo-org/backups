@@ -850,3 +850,13 @@ func missingMasterKeyThrowsAndIsNeverGenerated(
   #expect(log.data["repositoryId"] == .string("repo-1"))
   #expect(log.data["error"] == .string("wrong password"))
 }
+
+@Test func snapshotsCancellationRethrowsWithoutListingFailureEvent() async throws {
+  let fixture = makeFixture()
+  fixture.restic.set(ResticScript(error: CancellationError()), for: "snapshots")
+  let engine = BackupEngine(environment: fixture.environment)
+  await #expect(throws: CancellationError.self) {
+    _ = try await engine.snapshots(config: testConfig())
+  }
+  #expect(await fixture.api.logs.isEmpty)
+}
