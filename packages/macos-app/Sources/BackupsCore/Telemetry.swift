@@ -43,7 +43,7 @@ public struct StructuredLog: Encodable, Equatable, Sendable {
   private static let foundationPathKeys = try! NSRegularExpression(
     pattern: #"(NSFilePathErrorKey|NSFilePath|NSURL)=[^,}\s]*"#)
   private static let absolutePath = try! NSRegularExpression(
-    pattern: #"(?:^|(?<=[\s(\["'=:-]))~?/[^/\s"',)\]:}]+(?:/[^/\s"',)\]:}]+)*"#)
+    pattern: #"(?:^|(?<=[\s(\["'=:-]))~?/(?!/)(?:(?!: )[^"',)\]}\n])+"#)
 
   public var summary: String
   public var data: [String: TelemetryValue]

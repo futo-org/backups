@@ -101,12 +101,28 @@ private let redactionCases: [(input: String, output: String)] = [
     output: "cannot open <path> failed"
   ),
   (input: "https://user:secret@host/x", output: "https://***@host/x"),
-  (input: "could not read ~/Documents/a.txt from the queue", output: "could not read <path> from the queue"),
+  (input: "could not read ~/Documents/a.txt from the queue", output: "could not read <path>"),
   (input: "no space left on device", output: "no space left on device"),
   (
     input: "7e4c1a52-0b6d-4f2a-9c3e-8d51f6b7a290",
     output: "7e4c1a52-0b6d-4f2a-9c3e-8d51f6b7a290"
   ),
+  (
+    input: "mkdir /Users/alice/My Folder/tax return.pdf: not a directory",
+    output: "mkdir <path>: not a directory"
+  ),
+  (
+    input: #"Fatal: --exclude: invalid pattern(s) provided: [invalid-/Users/alice/Client Files/tax.pdf"#,
+    output: #"Fatal: --exclude: invalid pattern(s) provided: [invalid-<path>"#
+  ),
+  (
+    input: #"open "/Users/alice/Secret Plans.txt": permission denied"#,
+    output: #"open "<path>": permission denied"#
+  ),
+  (input: "cannot read ~/Documents/My Taxes 2025.pdf", output: "cannot read <path>"),
+  (input: "two: /a b/c: first, /d e: second", output: "two: <path>: first, <path>: second"),
+  (input: "http://localhost:3020/api/meta failed", output: "http://localhost:3020/api/meta failed"),
+  (input: "keep-within 60d", output: "keep-within 60d"),
 ]
 
 @Test(arguments: redactionCases)
@@ -130,7 +146,7 @@ func redactReplacesPathsWithPlaceholder(input: String, output: String) {
   #expect(log.summary == "Backup finished after /Users/alice/secrets.txt changed")
   #expect(log.data["error"] == .string("cannot open <path>: denied"))
   #expect(
-    log.data["items"] == .array([.string("mkdir <path> failed"), .int(3), .array([.string("<path>")])]))
+    log.data["items"] == .array([.string("mkdir <path>"), .int(3), .array([.string("<path>")])]))
   #expect(
     log.data["context"]
       == .object([
