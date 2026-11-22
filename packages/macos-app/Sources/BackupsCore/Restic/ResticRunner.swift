@@ -55,6 +55,7 @@ public struct ResticRunner: ResticExecuting {
           }
         }
         do {
+          if Task.isCancelled { throw CancellationError() }
           try process.value.run()
         } catch {
           try? outputHandle.close()
@@ -65,7 +66,9 @@ public struct ResticRunner: ResticExecuting {
       if Task.isCancelled { throw CancellationError() }
       return result
     } onCancel: {
-      process.value.terminate()
+      if process.value.isRunning {
+        process.value.terminate()
+      }
     }
   }
 }
