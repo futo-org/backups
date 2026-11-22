@@ -28,6 +28,10 @@ run = [{ task = "mac:lint" }, { task = "mac:build" }, { task = "mac:test" }]
 description = "Build build/FUTO Backups.app with bundled restic and restic-proxy"
 run = "scripts/bundle.sh"
 
+[tasks."mac:release"]
+description = "Build, sign, notarize and package a release with its appcast"
+run = "scripts/release.sh"
+
 [tasks."mac:open"]
 description = "Bundle and launch the app"
 depends = ["mac:bundle"]

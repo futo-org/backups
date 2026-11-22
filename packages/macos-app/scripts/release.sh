@@ -1,0 +1,103 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+if [ $# -ne 1 ] || [ -z "${1:-}" ]; then
+  echo "usage: release.sh <version>" >&2
+  exit 1
+fi
+version=$1
+
+package=$(cd "$(dirname "$0")/.." && pwd)
+
+if [ -z "${SPARKLE_PUBLIC_KEY:-}" ]; then
+  echo "SPARKLE_PUBLIC_KEY is required" >&2
+  exit 1
+fi
+if [ -z "${SPARKLE_PRIVATE_KEY:-}" ]; then
+  echo "SPARKLE_PRIVATE_KEY is required" >&2
+  exit 1
+fi
+if [ -z "${DOWNLOAD_URL_PREFIX:-}" ]; then
+  echo "DOWNLOAD_URL_PREFIX is required" >&2
+  exit 1
+fi
+case "$DOWNLOAD_URL_PREFIX" in
+  */) ;;
+  *)
+    echo "DOWNLOAD_URL_PREFIX must end with /" >&2
+    exit 1
+    ;;
+esac
+
+notary_set=0
+for name in NOTARY_KEY_PATH NOTARY_KEY_ID NOTARY_ISSUER; do
+  if [ -n "${!name:-}" ]; then
+    notary_set=$((notary_set + 1))
+  fi
+done
+if [ "$notary_set" -ne 0 ] && [ "$notary_set" -ne 3 ]; then
+  echo "NOTARY_KEY_PATH, NOTARY_KEY_ID and NOTARY_ISSUER must all be set or all be unset" >&2
+  exit 1
+fi
+
+out_dir=${OUT_DIR:-build/release}
+case "$out_dir" in
+  /*) ;;
+  *) out_dir="$package/$out_dir" ;;
+esac
+mkdir -p "$out_dir"
+
+work=$(mktemp -d)
+trap 'rm -rf "$work"' EXIT
+
+"$package/scripts/build-helpers.sh" "$work/helpers"
+
+app=$(cd "$package" && UNIVERSAL=1 HELPERS_DIR="$work/helpers" MAC_APP_VERSION="$version" scripts/bundle.sh |
+  tail -n 1)
+
+if [ "$notary_set" -eq 3 ]; then
+  ditto -c -k --keepParent "$app" "$work/notarize.zip"
+  xcrun notarytool submit "$work/notarize.zip" \
+    --key "$NOTARY_KEY_PATH" --key-id "$NOTARY_KEY_ID" --issuer "$NOTARY_ISSUER" --wait
+  xcrun stapler staple "$app"
+else
+  echo "notary vars unset: skipping notarization"
+fi
+
+zip="$out_dir/FUTO-Backups-$version.zip"
+ditto -c -k --keepParent "$app" "$zip"
+
+sign_update=$(find "$package/.build/artifacts" -type f -path '*/bin/sign_update' | head -n 1)
+if [ -z "$sign_update" ]; then
+  echo "sign_update not found under $package/.build/artifacts" >&2
+  exit 1
+fi
+signed=$(printf '%s' "$SPARKLE_PRIVATE_KEY" | "$sign_update" --ed-key-file - "$zip")
+sig=$(printf '%s' "$signed" | sed -n 's/.*sparkle:edSignature="\([^"]*\)".*/\1/p')
+length=$(printf '%s' "$signed" | sed -n 's/.*length="\([0-9]*\)".*/\1/p')
+if [ -z "$sig" ] || [ -z "$length" ]; then
+  echo "could not read sparkle:edSignature and length from sign_update output" >&2
+  exit 1
+fi
+
+pub_date=$(LC_ALL=C date -u "+%a, %d %b %Y %H:%M:%S +0000")
+appcast="$out_dir/appcast.xml"
+cat >"$appcast" <<EOF
+<?xml version="1.0" encoding="utf-8"?>
+<rss version="2.0" xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle">
+  <channel>
+    <title>FUTO Backups</title>
+    <item>
+      <title>Version $version</title>
+      <pubDate>$pub_date</pubDate>
+      <sparkle:version>$version</sparkle:version>
+      <sparkle:shortVersionString>$version</sparkle:shortVersionString>
+      <sparkle:minimumSystemVersion>15.0</sparkle:minimumSystemVersion>
+      <enclosure url="${DOWNLOAD_URL_PREFIX}FUTO-Backups-$version.zip" length="$length" type="application/octet-stream" sparkle:edSignature="$sig"/>
+    </item>
+  </channel>
+</rss>
+EOF
+
+printf 'zip: %s\n' "$zip"
+printf 'appcast: %s\n' "$appcast"

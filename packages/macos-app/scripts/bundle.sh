@@ -10,20 +10,31 @@ root=$(cd "$package/../.." && pwd)
 work=$(mktemp -d)
 trap 'rm -rf "$work"' EXIT
 
-swift build -c release --product FutoBackups --package-path "$package"
-bin=$(swift build -c release --show-bin-path --package-path "$package")
+if [ "${UNIVERSAL:-}" = "1" ]; then
+  swift build -c release --arch arm64 --arch x86_64 --product FutoBackups --package-path "$package"
+  bin=$(swift build -c release --arch arm64 --arch x86_64 --show-bin-path --package-path "$package")
+else
+  swift build -c release --product FutoBackups --package-path "$package"
+  bin=$(swift build -c release --show-bin-path --package-path "$package")
+fi
 
-(cd "$root" && mise run restic:install)
-
-(cd "$root/packages/restic-proxy" &&
-  CGO_ENABLED=0 mise exec -- go build -trimpath -ldflags "-s -w" -o "$work/restic-proxy" .)
+if [ -n "${HELPERS_DIR:-}" ]; then
+  restic_bin="$HELPERS_DIR/restic"
+  proxy_bin="$HELPERS_DIR/restic-proxy"
+else
+  (cd "$root" && mise run restic:install)
+  (cd "$root/packages/restic-proxy" &&
+    CGO_ENABLED=0 mise exec -- go build -trimpath -ldflags "-s -w" -o "$work/restic-proxy" .)
+  restic_bin="$root/.mise/bin/restic"
+  proxy_bin="$work/restic-proxy"
+fi
 
 app="$package/build/FUTO Backups.app"
 rm -rf "$app"
 mkdir -p "$app/Contents/MacOS" "$app/Contents/Helpers" "$app/Contents/Frameworks" "$app/Contents/Resources"
 install -m 0755 "$bin/FutoBackups" "$app/Contents/MacOS/FutoBackups"
-install -m 0755 "$root/.mise/bin/restic" "$app/Contents/Helpers/restic"
-install -m 0755 "$work/restic-proxy" "$app/Contents/Helpers/restic-proxy"
+install -m 0755 "$restic_bin" "$app/Contents/Helpers/restic"
+install -m 0755 "$proxy_bin" "$app/Contents/Helpers/restic-proxy"
 install -m 0644 "$package/Resources/Info.plist" "$app/Contents/Info.plist"
 install -m 0644 "$package/Resources/AppIcon.icns" "$app/Contents/Resources/AppIcon.icns"
 install -m 0644 "$package/Resources/Wordmark.png" "$package/Resources/Wordmark-dark.png" "$app/Contents/Resources/"

@@ -37,3 +37,14 @@ variable: `SPARKLE_PUBLIC_KEY` (the matching public key, baked into the bundle).
 
 When secrets are missing or `packages/macos-app` is unchanged since the version in the current appcast, the job
 skips with a notice instead of failing.
+
+### Building a release locally
+
+```bash
+cd packages/macos-app
+SPARKLE_PUBLIC_KEY=… SPARKLE_PRIVATE_KEY=… DOWNLOAD_URL_PREFIX=https://example.com/apps/ \
+  mise run mac:release 1.2.3
+```
+
+Set `NOTARY_KEY_PATH`, `NOTARY_KEY_ID` and `NOTARY_ISSUER` (all three) to notarize and staple, and `CODESIGN_IDENTITY` to
+sign with a real identity; the zip and `appcast.xml` land in `OUT_DIR` (default `build/release`).
