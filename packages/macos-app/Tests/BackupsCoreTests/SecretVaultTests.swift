@@ -22,12 +22,12 @@ final class RecordingSecretStore: SecretStore, @unchecked Sendable {
 
   func set(_ value: String, for key: SecretKey) throws {
     begin()
-    defer { finish() }
+    finish()
   }
 
   func delete(_ key: SecretKey) throws {
     begin()
-    defer { finish() }
+    finish()
   }
 
   var recordedMainThreadFlags: [Bool] {
