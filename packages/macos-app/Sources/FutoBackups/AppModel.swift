@@ -242,22 +242,22 @@ final class AppModel {
       do {
         let record = try await engine.backup(config: configSnapshot) { activity in
           Task { @MainActor in
+            guard self.operationTask != nil else { return }
             self.activity = activity
           }
         }
         self.config.lastRun = record
         self.saveConfig()
-        self.activity = nil
+        self.finishOperation()
         if record.status == .failed || record.status == .warn {
           self.lastError = record.message
         }
         self.recomputeNextRun()
         await self.refreshSnapshots()
       } catch {
-        self.activity = nil
+        self.finishOperation()
         self.lastError = self.message(for: error)
       }
-      self.operationTask = nil
     }
   }
 
@@ -285,15 +285,15 @@ final class AppModel {
         try await engine.restore(config: configSnapshot, snapshotId: snapshot.id, target: url, include: []) {
           activity in
           Task { @MainActor in
+            guard self.operationTask != nil else { return }
             self.activity = activity
           }
         }
-        self.activity = nil
+        self.finishOperation()
       } catch {
-        self.activity = nil
+        self.finishOperation()
         self.lastError = self.message(for: error)
       }
-      self.operationTask = nil
     }
   }
 
@@ -328,6 +328,11 @@ final class AppModel {
     let server = try await discovery.resolve(config.serverURL)
     return YuccaClient(
       apiRoot: server.apiRoot, transport: transport, accessToken: (try? secrets.get(.accessToken)) ?? nil)
+  }
+
+  private func finishOperation() {
+    activity = nil
+    operationTask = nil
   }
 
   private func saveConfig() {
