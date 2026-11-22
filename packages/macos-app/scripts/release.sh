@@ -37,6 +37,23 @@ if ! [[ $DOWNLOAD_URL_PREFIX =~ ^https?://[A-Za-z0-9._~:/%-]+/$ ]]; then
   exit 1
 fi
 
+description=""
+notes_html=${RELEASE_NOTES_HTML_FILE:-}
+if [ -n "$notes_html" ]; then
+  if [ ! -f "$notes_html" ]; then
+    echo "RELEASE_NOTES_HTML_FILE not found: $notes_html" >&2
+    exit 1
+  fi
+  notes=$(cat "$notes_html")
+  case $notes in
+    *']]>'*)
+      echo "release notes must not contain ]]>" >&2
+      exit 1
+      ;;
+  esac
+  description=$(printf '\n      <description><![CDATA[%s]]></description>' "$notes")
+fi
+
 notary_set=0
 for name in NOTARY_KEY_PATH NOTARY_KEY_ID NOTARY_ISSUER; do
   if [ -n "${!name:-}" ]; then
@@ -108,7 +125,7 @@ cat >"$appcast" <<EOF
   <channel>
     <title>FUTO Backups</title>
     <item>
-      <title>Version $version</title>
+      <title>Version $version</title>$description
       <pubDate>$pub_date</pubDate>
       <sparkle:version>$build</sparkle:version>
       <sparkle:shortVersionString>$version</sparkle:shortVersionString>

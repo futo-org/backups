@@ -25,6 +25,7 @@ jobs:
   images:
     name: Publish release images and charts
     runs-on: ubuntu-latest
+    if: github.event_name != 'release' || startsWith(github.event.release.tag_name, 'v')
     # Covers the 60m wait bound plus a fully cold seven-app fallback with
     # margin; the loop probes per app, so a rerun finishes any remainder.
     timeout-minutes: 180

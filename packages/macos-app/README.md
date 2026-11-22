@@ -25,9 +25,10 @@ Config lives in `~/Library/Application Support/FUTO Backups/config.json`; the se
 
 ## Releases
 
-Publishing a `v<version>` release (release-please) runs `.github/workflows/macos-release.yml`: it builds the
-universal app, signs, notarizes and attaches `FUTO-Backups-<version>.zip` to that release, and replaces the
-`appcast.xml` on the rolling `macos-appcast` release — the feed at
+Publishing a `v<version>` release (release-please) runs `.github/workflows/macos-release.yml`, which builds the Mac
+app only when its inputs (`packages/macos-app`, `packages/restic-proxy`, the `RESTIC_IMAGE` pin) changed since the
+version in the current appcast, and publishes it as its own release `macos-v<version>` — same version number, never an
+asset of the server release — with notes filtered to Mac commits. The feed is unchanged:
 `https://github.com/futo-org/backups/releases/download/macos-appcast/appcast.xml`.
 
 Release versions must be plain `MAJOR.MINOR.PATCH`: `CFBundleVersion` is `MAJOR*1000000+MINOR*1000+PATCH`, and a
@@ -38,8 +39,8 @@ Configure as repository secrets: `MACOS_CERTIFICATE_P12` (base64 Developer ID ce
 `APPLE_NOTARY_KEY_ID`, `APPLE_NOTARY_ISSUER`, `SPARKLE_PRIVATE_KEY` (base64 Ed25519 seed); and as a repository
 variable: `SPARKLE_PUBLIC_KEY` (the matching public key, baked into the bundle).
 
-When secrets are missing or `packages/macos-app` is unchanged since the version in the current appcast, the job
-skips with a notice instead of failing.
+When secrets are missing or the Mac inputs are unchanged since the version in the current appcast, the gate job skips
+with a notice instead of failing.
 
 ### Building a release locally
 
@@ -50,4 +51,6 @@ SPARKLE_PUBLIC_KEY=… SPARKLE_PRIVATE_KEY=… DOWNLOAD_URL_PREFIX=https://examp
 ```
 
 Set `NOTARY_KEY_PATH`, `NOTARY_KEY_ID` and `NOTARY_ISSUER` (all three) to notarize and staple, and `CODESIGN_IDENTITY` to
-sign with a real identity; the zip and `appcast.xml` land in `OUT_DIR` (default `build/release`).
+sign with a real identity; the zip and `appcast.xml` land in `OUT_DIR` (default `build/release`). Set
+`RELEASE_NOTES_HTML_FILE` to notes HTML (`scripts/release-notes.sh html …`) to embed them in the appcast item's
+`<description>`, so Sparkle's update dialog shows them.

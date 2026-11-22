@@ -1,9 +1,10 @@
 name: macOS Release
 
-# Builds, signs, notarizes and publishes the macOS app for a release tag
-#. The archive rides the versioned release; the Sparkle appcast rides
-# a rolling prerelease `macos-appcast` that is never latest, so the
-# feed URL is stable and the release list keeps showing real versions.
+# Builds, signs, notarizes and publishes the macOS app for a release tag when its
+# inputs changed since the feed's version. The archive rides its own
+# `macos-v<version>` release; the Sparkle appcast rides a rolling prerelease
+# `macos-appcast` that is never latest, so the feed URL is stable and the
+# release list keeps showing real versions.
 on:
   release:
     types: [published]
@@ -22,13 +23,16 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  release:
-    name: Build, notarize and publish the macOS app
-    runs-on: macos-15
-    timeout-minutes: 90
-    if: startsWith(github.event.release.tag_name || inputs.tag, 'v')
+  gate:
+    name: Decide whether this release needs a macOS build
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
     permissions:
-      contents: write
+      contents: read
+    outputs:
+      run: ${{ steps.decision.outputs.run }}
+      version: ${{ steps.decision.outputs.version }}
+      previous: ${{ steps.decision.outputs.previous }}
     env:
       TAG: ${{ github.event.release.tag_name || inputs.tag }}
       GH_TOKEN: ${{ github.token }}
@@ -41,8 +45,8 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
 
-      - name: Decide whether this release needs a macOS build
-        id: gate
+      - name: Check the release against the macOS inputs
+        id: decision
         env:
           MACOS_CERTIFICATE_P12: ${{ secrets.MACOS_CERTIFICATE_P12 }}
           MACOS_CERTIFICATE_PASSWORD: ${{ secrets.MACOS_CERTIFICATE_PASSWORD }}
@@ -71,6 +75,9 @@ jobs:
             done
             printf '%s\n' 0
           }
+          restic_image() {
+            git show "$1:packages/standalone-app/Dockerfile" | sed -n 's/^ARG RESTIC_IMAGE=//p'
+          }
           version=${TAG#v}
           if ! [[ $version =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
             echo "run=false" >> "$GITHUB_OUTPUT"
@@ -91,7 +98,12 @@ jobs:
             echo "::notice::macOS release is not configured; missing:${missing}"
             exit 0
           fi
-          echo "version=$version" >> "$GITHUB_OUTPUT"
+          if gh release view "macos-v$version" > /dev/null 2>&1; then
+            echo "run=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::macos-v$version is already published"
+            exit 0
+          fi
+          previous=
           # A download failure just means no macos-appcast release exists yet,
           # i.e. this would be the first macOS release.
           if gh release download macos-appcast -p appcast.xml -D "$RUNNER_TEMP/feed"; then
@@ -108,17 +120,56 @@ jobs:
                 exit 0
               fi
               if git rev-parse -q --verify "refs/tags/v$previous" > /dev/null &&
-                git diff --quiet "v$previous" "$TAG" -- packages/macos-app packages/restic-proxy packages/standalone-app/Dockerfile .mise/config.toml .mise/tasks/restic; then
+                git diff --quiet "v$previous" "$TAG" -- packages/macos-app packages/restic-proxy &&
+                [ "$(restic_image "v$previous")" = "$(restic_image "$TAG")" ]; then
                 echo "run=false" >> "$GITHUB_OUTPUT"
                 echo "::notice::macOS app inputs unchanged since v$previous"
                 exit 0
               fi
             fi
           fi
-          echo "run=true" >> "$GITHUB_OUTPUT"
+          printf 'run=true\nversion=%s\nprevious=%s\n' "$version" "$previous" >> "$GITHUB_OUTPUT"
+
+  release:
+    name: Build, notarize and publish the macOS app
+    needs: gate
+    if: needs.gate.outputs.run == 'true'
+    runs-on: macos-15
+    timeout-minutes: 90
+    permissions:
+      contents: write
+    env:
+      TAG: ${{ github.event.release.tag_name || inputs.tag }}
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+    steps:
+      - name: Checkout release tree
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          ref: refs/tags/${{ github.event.release.tag_name || inputs.tag }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Point the build at the runner's selected Xcode
+        run: echo "DEVELOPER_DIR=$(xcode-select -p)" >> "$GITHUB_ENV"
+
+      - name: Generate release notes filtered to the Mac app
+        env:
+          VERSION: ${{ needs.gate.outputs.version }}
+          PREVIOUS: ${{ needs.gate.outputs.previous }}
+        run: |
+          set -euo pipefail
+          notes="$GITHUB_WORKSPACE/packages/macos-app/scripts/release-notes.sh"
+          if [ -n "$PREVIOUS" ] && git rev-parse -q --verify "refs/tags/v$PREVIOUS" > /dev/null; then
+            "$notes" markdown "$TAG" "v$PREVIOUS" > "$RUNNER_TEMP/macos-notes.md"
+            "$notes" html "$TAG" "v$PREVIOUS" > "$RUNNER_TEMP/macos-notes.html"
+          else
+            "$notes" markdown "$TAG" > "$RUNNER_TEMP/macos-notes.md"
+            "$notes" html "$TAG" > "$RUNNER_TEMP/macos-notes.html"
+          fi
+          printf '\nBuilt from v%s.\n' "$VERSION" >> "$RUNNER_TEMP/macos-notes.md"
 
       - name: Setup Mise
-        if: steps.gate.outputs.run == 'true'
         uses: jdx/mise-action@c2a87611a18de5b3828c5652fe268e992400cb5c # v4.3.0
         with:
           # The action caches by default; a poisoned cache would end up in
@@ -126,7 +177,6 @@ jobs:
           cache: false
 
       - name: Import the signing certificate
-        if: steps.gate.outputs.run == 'true'
         env:
           MACOS_CERTIFICATE_P12: ${{ secrets.MACOS_CERTIFICATE_P12 }}
           MACOS_CERTIFICATE_PASSWORD: ${{ secrets.MACOS_CERTIFICATE_PASSWORD }}
@@ -152,25 +202,24 @@ jobs:
           printf '%s' "$APPLE_NOTARY_KEY_P8" | base64 --decode > "$RUNNER_TEMP/notary.p8"
 
       - name: Build, sign and notarize
-        if: steps.gate.outputs.run == 'true'
         env:
-          VERSION: ${{ steps.gate.outputs.version }}
+          VERSION: ${{ needs.gate.outputs.version }}
           CODESIGN_IDENTITY: ${{ secrets.MACOS_SIGNING_IDENTITY }}
           NOTARY_KEY_PATH: ${{ runner.temp }}/notary.p8
           NOTARY_KEY_ID: ${{ secrets.APPLE_NOTARY_KEY_ID }}
           NOTARY_ISSUER: ${{ secrets.APPLE_NOTARY_ISSUER }}
           SPARKLE_PUBLIC_KEY: ${{ vars.SPARKLE_PUBLIC_KEY }}
           SPARKLE_PRIVATE_KEY: ${{ secrets.SPARKLE_PRIVATE_KEY }}
-          DOWNLOAD_URL_PREFIX: https://github.com/${{ github.repository }}/releases/download/${{ github.event.release.tag_name || inputs.tag }}/
+          DOWNLOAD_URL_PREFIX: https://github.com/${{ github.repository }}/releases/download/macos-v${{ needs.gate.outputs.version }}/
+          RELEASE_NOTES_HTML_FILE: ${{ runner.temp }}/macos-notes.html
           OUT_DIR: ${{ runner.temp }}/macos-release
         run: |
           set -euo pipefail
           mise run //packages/macos-app:mac:release "$VERSION"
 
       - name: Publish the archive and the appcast
-        if: steps.gate.outputs.run == 'true'
         env:
-          VERSION: ${{ steps.gate.outputs.version }}
+          VERSION: ${{ needs.gate.outputs.version }}
           OUT_DIR: ${{ runner.temp }}/macos-release
         run: |
           set -euo pipefail
@@ -191,12 +240,15 @@ jobs:
             done
             printf '%s\n' 0
           }
-          assets=$(gh release view "$TAG" --json assets --jq '.assets[].name')
-          if printf '%s\n' "$assets" | grep -Fxq "FUTO-Backups-$VERSION.zip"; then
-            echo "::error::FUTO-Backups-$VERSION.zip already exists on $TAG; delete it to re-publish"
+          if gh release view "macos-v$VERSION" > /dev/null 2>&1; then
+            echo "::error::macos-v$VERSION already exists; delete it to re-publish"
             exit 1
           fi
-          gh release upload "$TAG" "$OUT_DIR/FUTO-Backups-$VERSION.zip"
+          gh release create "macos-v$VERSION" "$OUT_DIR/FUTO-Backups-$VERSION.zip" \
+            --target "$(git rev-parse "refs/tags/$TAG^{commit}")" \
+            --title "FUTO Backups for macOS $VERSION" \
+            --notes-file "$RUNNER_TEMP/macos-notes.md" \
+            --latest=false
           gh release view macos-appcast >/dev/null 2>&1 ||
             gh release create macos-appcast --prerelease --latest=false --title "macOS update feed" --notes "Sparkle appcast for the FUTO Backups macOS app. Do not delete."
           # A published zip is never replaced, so a feed that already advertises
