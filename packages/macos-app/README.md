@@ -22,3 +22,18 @@ Unbundled (`swift run FutoBackups`) needs `FUTO_BACKUPS_RESTIC` and `FUTO_BACKUP
 
 Config lives in `~/Library/Application Support/FUTO Backups/config.json`; the session token and the master key
 (the recovery key, compatible with the standalone app) live in the login Keychain under `org.futo.backups.mac`.
+
+## Releases
+
+Publishing a `v<version>` release (release-please) runs `.github/workflows/macos-release.yml`: it builds the
+universal app, signs, notarizes and attaches `FUTO-Backups-<version>.zip` to that release, and replaces the
+`appcast.xml` on the rolling `macos-appcast` release — the feed at
+`https://github.com/futo-org/backups/releases/download/macos-appcast/appcast.xml`.
+
+Configure as repository secrets: `MACOS_CERTIFICATE_P12` (base64 Developer ID certificate),
+`MACOS_CERTIFICATE_PASSWORD`, `MACOS_SIGNING_IDENTITY`, `APPLE_NOTARY_KEY_P8` (base64 notary API key),
+`APPLE_NOTARY_KEY_ID`, `APPLE_NOTARY_ISSUER`, `SPARKLE_PRIVATE_KEY` (base64 Ed25519 seed); and as a repository
+variable: `SPARKLE_PUBLIC_KEY` (the matching public key, baked into the bundle).
+
+When secrets are missing or `packages/macos-app` is unchanged since the version in the current appcast, the job
+skips with a notice instead of failing.
