@@ -12,8 +12,10 @@ enum APICall: Equatable {
 
 actor FakeAPI: YuccaRepositoryAPI {
   var calls: [APICall] = []
+  var logs: [StructuredLog] = []
   var created = RemoteRepository(id: "new-repo", name: "created", worm: false)
   var submitFailures = false
+  var throwIfCancelled = false
   var repositories: [RemoteRepository] = []
   private var masterKeyProbe: (@Sendable () -> Bool)?
   private var onBackupStart: (@Sendable () -> Void)?
@@ -47,10 +49,20 @@ actor FakeAPI: YuccaRepositoryAPI {
   }
 
   func submitBackupEnd(repositoryId: String, status: BackupStatus, durationMs: Int) async throws {
+    if throwIfCancelled {
+      try Task.checkCancellation()
+    }
     calls.append(.end(repositoryId: repositoryId, status: status, durationMs: durationMs))
     if submitFailures {
       throw APIError.submit
     }
+  }
+
+  func submitStructuredLog(_ log: StructuredLog) async throws {
+    if throwIfCancelled {
+      try Task.checkCancellation()
+    }
+    logs.append(log)
   }
 
   func submitRepositorySize(repositoryId: String, sizeBytes: Int64) async throws {
@@ -62,6 +74,10 @@ actor FakeAPI: YuccaRepositoryAPI {
 
   func setSubmitFailures(_ value: Bool) {
     submitFailures = value
+  }
+
+  func setThrowIfCancelled(_ value: Bool) {
+    throwIfCancelled = value
   }
 
   func setRepositories(_ value: [RemoteRepository]) {
@@ -251,9 +267,10 @@ struct EngineFixture {
   var discoverCount: Counter
 }
 
-func makeFixture(connectionsMath: String = "16", token: String? = "tok", masterKey: String? = testMasterKey)
-  -> EngineFixture
-{
+func makeFixture(
+  connectionsMath: String = "16", token: String? = "tok", masterKey: String? = testMasterKey,
+  appVersion: String = "dev"
+) -> EngineFixture {
   let api = FakeAPI()
   let restic = FakeRestic()
   let proxy = FakeProxyLauncher()
@@ -280,18 +297,24 @@ func makeFixture(connectionsMath: String = "16", token: String? = "tok", masterK
     cacheDirectory: URL(fileURLWithPath: "/tmp/cache"),
     home: "/Users/test",
     processorCount: 8,
-    now: { clock.now() })
+    now: { clock.now() },
+    appVersion: appVersion)
   return EngineFixture(
     environment: environment, api: api, restic: restic, proxy: proxy, secrets: secrets,
     discoverCount: discoverCount)
 }
 
-func testConfig(repositoryId: String? = "repo-1", folders: [String] = ["/data"]) -> AppConfig {
+func testConfig(
+  repositoryId: String? = "repo-1", folders: [String] = ["/data"], consented: Bool = true
+) -> AppConfig {
   var config = AppConfig.defaults(host: "test-host", home: "/Users/test")
   config.serverURL = testServerURL
   config.folders = folders
   config.excludes = []
   config.repositoryId = repositoryId
+  if consented {
+    config.telemetryConsentedAt = Date(timeIntervalSince1970: 1_690_000_000)
+  }
   return config
 }
 

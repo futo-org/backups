@@ -624,3 +624,229 @@ func missingMasterKeyThrowsAndIsNeverGenerated(
   #expect(repository.contains("tok-original"))
   #expect(!repository.contains("tok-swapped"))
 }
+
+@Test func backupSuccessEmitsTelemetryEventsInOrder() async throws {
+  let fixture = makeFixture(appVersion: "9.9.9")
+  fixture.restic.set(ResticScript(lines: backupLines), for: "backup")
+  fixture.restic.set(ResticScript(stdout: statsStdout), for: "stats")
+  let engine = BackupEngine(environment: fixture.environment)
+  let record = try await engine.backup(config: testConfig()) { _ in }
+  #expect(record.status == .complete)
+  let logs = await fixture.api.logs
+  #expect(
+    logs.map(\.summary)
+      == [
+        "Running backup",
+        "Running repository prune",
+        "Finished repository prune",
+        "Backup finished",
+      ])
+  for log in logs {
+    #expect(log.data["version"] == .string("9.9.9"), "summary: \(log.summary)")
+    #expect(log.data["client"] == .string("macos"), "summary: \(log.summary)")
+  }
+  #expect(logs[0].data["repositoryId"] == .string("repo-1"))
+  #expect(logs[1].data["repositoryId"] == .string("repo-1"))
+  #expect(logs[1].data["retentionPolicy"] == .string("keep-within 60d"))
+  #expect(logs[2].data["repositoryId"] == .string("repo-1"))
+  #expect(logs[2].data["error"] == nil)
+  let finished = logs[3]
+  #expect(finished.data["repositoryId"] == .string("repo-1"))
+  #expect(finished.data["lastBackupStatus"] == .string("complete"))
+  #expect(finished.data["durationMs"] == .int(1000))
+  #expect(finished.data["error"] == nil)
+}
+
+@Test func failedBackupEmitsFinishedEventWithFailure() async throws {
+  let fixture = makeFixture()
+  fixture.restic.set(
+    ResticScript(exitCode: 1, stderr: #"{"message_type":"exit_error","code":1,"message":"no space"}"#),
+    for: "backup")
+  let engine = BackupEngine(environment: fixture.environment)
+  let record = try await engine.backup(config: testConfig()) { _ in }
+  #expect(record.status == .failed)
+  let logs = await fixture.api.logs
+  #expect(logs.map(\.summary) == ["Running backup", "Backup finished"])
+  let finished = try #require(logs.last)
+  #expect(finished.data["lastBackupStatus"] == .string("failed"))
+  #expect(finished.data["durationMs"] == .int(1000))
+  #expect(finished.data["error"] == .string("no space"))
+}
+
+@Test func pruneFailureEmitsFinishedPruneWithErrorWithoutFinishedError() async throws {
+  let fixture = makeFixture()
+  fixture.restic.set(ResticScript(lines: [summaryLine]), for: "backup")
+  fixture.restic.set(
+    ResticScript(exitCode: 1, stderr: #"{"message_type":"exit_error","code":1,"message":"prune boom"}"#),
+    for: "forget")
+  let engine = BackupEngine(environment: fixture.environment)
+  let record = try await engine.backup(config: testConfig()) { _ in }
+  #expect(record.status == .complete)
+  #expect(record.message == "Prune failed: prune boom")
+  let logs = await fixture.api.logs
+  let finishedPrune = try #require(logs.first { $0.summary == "Finished repository prune" })
+  #expect(finishedPrune.data["repositoryId"] == .string("repo-1"))
+  #expect(finishedPrune.data["error"] == .string("prune boom"))
+  let finished = try #require(logs.last)
+  #expect(finished.summary == "Backup finished")
+  #expect(finished.data["lastBackupStatus"] == .string("complete"))
+  #expect(finished.data["error"] == nil)
+}
+
+@Test func statsNonZeroExitEmitsStatsFailureEventAndSkipsSize() async throws {
+  let fixture = makeFixture()
+  fixture.restic.set(ResticScript(lines: [summaryLine]), for: "backup")
+  fixture.restic.set(
+    ResticScript(exitCode: 1, stderr: #"{"message_type":"exit_error","code":1,"message":"stats gone"}"#),
+    for: "stats")
+  let engine = BackupEngine(environment: fixture.environment)
+  let record = try await engine.backup(config: testConfig()) { _ in }
+  #expect(record.status == .complete)
+  let logs = await fixture.api.logs
+  let stats = try #require(logs.first { $0.summary == "Failed to read repository stats" })
+  #expect(stats.data["repositoryId"] == .string("repo-1"))
+  #expect(stats.data["error"] == .string("stats gone"))
+  #expect(
+    await fixture.api.calls
+      == [
+        .start(repositoryId: "repo-1"),
+        .end(repositoryId: "repo-1", status: .complete, durationMs: 1000),
+      ])
+}
+
+@Test func withoutConsentNoLogsAreSentAndMetricsCallsUnchanged() async throws {
+  let fixture = makeFixture()
+  fixture.restic.set(ResticScript(lines: [summaryLine]), for: "backup")
+  fixture.restic.set(ResticScript(stdout: statsStdout), for: "stats")
+  let engine = BackupEngine(environment: fixture.environment)
+  let record = try await engine.backup(config: testConfig(consented: false)) { _ in }
+  #expect(record.status == .complete)
+  #expect(await fixture.api.logs.isEmpty)
+  #expect(
+    await fixture.api.calls
+      == [
+        .start(repositoryId: "repo-1"),
+        .size(repositoryId: "repo-1", sizeBytes: 4321),
+        .end(repositoryId: "repo-1", status: .complete, durationMs: 1000),
+      ])
+}
+
+@Test func cancelledBackupWithThrowingTransportStillDeliversEndAndFinished() async throws {
+  let fixture = makeFixture()
+  await fixture.api.setThrowIfCancelled(true)
+  fixture.restic.set(ResticScript(error: CancellationError()), for: "backup")
+  let engine = BackupEngine(environment: fixture.environment)
+  let record = try await engine.backup(config: testConfig()) { _ in }
+  #expect(record.status == .cancelled)
+  let calls = await fixture.api.calls
+  #expect(calls.contains(.end(repositoryId: "repo-1", status: .cancelled, durationMs: 1000)))
+  let logs = await fixture.api.logs
+  let finished = try #require(logs.first { $0.summary == "Backup finished" })
+  #expect(finished.data["lastBackupStatus"] == .string("cancelled"))
+  #expect(finished.data["error"] == nil)
+}
+
+@Test func deliversEndAndLogsWhenTaskCancelledDuringResticRun() async throws {
+  let fixture = makeFixture()
+  await fixture.api.setThrowIfCancelled(true)
+  fixture.restic.set(ResticScript(lines: [summaryLine]), for: "backup")
+  fixture.restic.set(ResticScript(stdout: statsStdout), for: "stats")
+  fixture.restic.gateNextBackup()
+  let engine = BackupEngine(environment: fixture.environment)
+  let task = Task {
+    try await engine.backup(config: testConfig()) { _ in }
+  }
+  var waited = 0
+  while !fixture.restic.commands().contains("backup") {
+    waited += 1
+    if waited > 500 {
+      Issue.record("backup never reached restic fake")
+      break
+    }
+    try await Task.sleep(for: .milliseconds(2))
+  }
+  task.cancel()
+  fixture.restic.releaseBackups()
+  let record = try await task.value
+  #expect(record.status == .complete)
+  #expect(
+    await fixture.api.calls
+      == [
+        .start(repositoryId: "repo-1"),
+        .size(repositoryId: "repo-1", sizeBytes: 4321),
+        .end(repositoryId: "repo-1", status: .complete, durationMs: 1000),
+      ])
+  let logs = await fixture.api.logs
+  #expect(
+    logs.map(\.summary)
+      == [
+        "Running backup",
+        "Running repository prune",
+        "Finished repository prune",
+        "Backup finished",
+      ])
+}
+
+@Test func ensureRepositoryCreationEmitsCreatedRepository() async throws {
+  let fixture = makeFixture()
+  let engine = BackupEngine(environment: fixture.environment)
+  #expect(try await engine.ensureRepository(config: testConfig(repositoryId: nil)) == "new-repo")
+  let logs = await fixture.api.logs
+  #expect(logs.count == 1)
+  let created = try #require(logs.first)
+  #expect(created.summary == "Created repository")
+  #expect(created.data["repositoryId"] == .string("new-repo"))
+  #expect(created.data["error"] == nil)
+}
+
+@Test func restoreEmitsStartAndFinishEventsOnSuccessAndFailure() async throws {
+  let fixture = makeFixture()
+  let engine = BackupEngine(environment: fixture.environment)
+  try await engine.restore(
+    config: testConfig(), snapshotId: "snap-1", target: URL(fileURLWithPath: "/tmp/out"), include: []
+  ) { _ in }
+  var logs = await fixture.api.logs
+  #expect(
+    logs.map(\.summary)
+      == ["Running repository snapshot restore", "Finished repository snapshot restore"])
+  for log in logs {
+    #expect(log.data["repositoryId"] == .string("repo-1"), "summary: \(log.summary)")
+    #expect(log.data["snapshotId"] == .string("snap-1"), "summary: \(log.summary)")
+  }
+  #expect(logs[1].data["error"] == nil)
+
+  fixture.restic.set(
+    ResticScript(exitCode: 1, stderr: #"{"message_type":"exit_error","code":1,"message":"restore failed"}"#),
+    for: "restore")
+  await #expect(throws: EngineError.restic(code: 1, message: "restore failed")) {
+    try await engine.restore(
+      config: testConfig(), snapshotId: "snap-2", target: URL(fileURLWithPath: "/tmp/out"), include: []
+    ) { _ in }
+  }
+  logs = await fixture.api.logs
+  let failure = logs.dropFirst(2)
+  #expect(
+    failure.map(\.summary)
+      == ["Running repository snapshot restore", "Finished repository snapshot restore"])
+  let finished = try #require(failure.last)
+  #expect(finished.data["snapshotId"] == .string("snap-2"))
+  #expect(finished.data["error"] == .string("restore failed"))
+}
+
+@Test func snapshotsFailureEmitsListingFailureEvent() async throws {
+  let fixture = makeFixture()
+  fixture.restic.set(
+    ResticScript(
+      exitCode: 12, stderr: #"{"message_type":"exit_error","code":12,"message":"wrong password"}"#),
+    for: "snapshots")
+  let engine = BackupEngine(environment: fixture.environment)
+  await #expect(throws: EngineError.restic(code: 12, message: "wrong password")) {
+    _ = try await engine.snapshots(config: testConfig())
+  }
+  let logs = await fixture.api.logs
+  #expect(logs.count == 1)
+  let log = try #require(logs.first)
+  #expect(log.summary == "Failed to get repository snapshot listing")
+  #expect(log.data["repositoryId"] == .string("repo-1"))
+  #expect(log.data["error"] == .string("wrong password"))
+}

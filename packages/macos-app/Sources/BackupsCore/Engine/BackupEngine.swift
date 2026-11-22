@@ -66,6 +66,8 @@ public actor BackupEngine {
         code: result.exitCode,
         message: ResticOutput.errorMessage(stderr: result.stderr, exitCode: result.exitCode))
     }
+    await report(
+      api, config: config, "Created repository", ["repositoryId": .string(created.id)])
     return created.id
   }
 
@@ -95,6 +97,8 @@ public actor BackupEngine {
       let server = try await serverInfo(for: config.serverURL)
       let madeAPI = environment.makeAPI(server.apiRoot, token)
       api = madeAPI
+      await report(
+        madeAPI, config: config, "Running backup", ["repositoryId": .string(repositoryId)])
       try? await madeAPI.submitBackupStart(repositoryId: repositoryId)
       let session = try await startSession(
         config: config, repositoryId: repositoryId, masterKey: masterKey, token: token)
@@ -130,29 +134,70 @@ public actor BackupEngine {
         }
         if status == .complete {
           onActivity(.pruning)
+          await report(
+            madeAPI, config: config, "Running repository prune",
+            [
+              "repositoryId": .string(repositoryId),
+              "retentionPolicy": .string("keep-within \(Self.keepWithin)"),
+            ])
+          var pruneError: String?
           do {
             let forget = try await environment.restic.run(
               ResticCommand.forget(session.context, host: config.host, keepWithin: Self.keepWithin),
               onLine: { _ in })
             if forget.exitCode != ResticExitCode.success {
-              message =
-                "Prune failed: "
-                + ResticOutput.errorMessage(
-                  stderr: forget.stderr, exitCode: forget.exitCode)
+              let detail = ResticOutput.errorMessage(
+                stderr: forget.stderr, exitCode: forget.exitCode)
+              pruneError = detail
+              message = "Prune failed: " + detail
             }
           } catch {
             if error is CancellationError {
               throw error
             }
-            message = "Prune failed: \(String(describing: error))"
+            let detail = String(describing: error)
+            pruneError = detail
+            message = "Prune failed: \(detail)"
+          }
+          if let pruneError {
+            await report(
+              madeAPI, config: config, "Finished repository prune",
+              ["repositoryId": .string(repositoryId), "error": .string(pruneError)])
+          } else {
+            await report(
+              madeAPI, config: config, "Finished repository prune",
+              ["repositoryId": .string(repositoryId)])
           }
         }
         if status == .complete || status == .warn {
-          if let stats = try? await environment.restic.run(ResticCommand.stats(session.context), onLine: { _ in }),
-            stats.exitCode == ResticExitCode.success,
-            let totalSize = try? ResticOutput.parseStatsTotalSize(stats.stdout)
-          {
-            try? await madeAPI.submitRepositorySize(repositoryId: repositoryId, sizeBytes: totalSize)
+          var totalSize: Int64?
+          var statsError: String?
+          do {
+            let stats = try await environment.restic.run(
+              ResticCommand.stats(session.context), onLine: { _ in })
+            if stats.exitCode == ResticExitCode.success {
+              do {
+                totalSize = try ResticOutput.parseStatsTotalSize(stats.stdout)
+              } catch {
+                statsError = String(describing: error)
+              }
+            } else {
+              statsError = ResticOutput.errorMessage(
+                stderr: stats.stderr, exitCode: stats.exitCode)
+            }
+          } catch {
+            if !(error is CancellationError) {
+              statsError = String(describing: error)
+            }
+          }
+          if let statsError {
+            await report(
+              madeAPI, config: config, "Failed to read repository stats",
+              ["repositoryId": .string(repositoryId), "error": .string(statsError)])
+          }
+          if let totalSize {
+            try? await madeAPI.submitRepositorySize(
+              repositoryId: repositoryId, sizeBytes: totalSize)
           }
         }
       } catch {
@@ -170,9 +215,25 @@ public actor BackupEngine {
     }
     let finishedAt = environment.now()
     let durationMs = Int(finishedAt.timeIntervalSince(startedAt) * 1000)
-    if let api {
-      try? await api.submitBackupEnd(repositoryId: repositoryId, status: status, durationMs: durationMs)
-    }
+    let endAPI = api
+    let endStatus = status
+    let endMessage = (status == .failed || status == .warn) ? message : nil
+    await Task {
+      guard let endAPI else {
+        return
+      }
+      try? await endAPI.submitBackupEnd(
+        repositoryId: repositoryId, status: endStatus, durationMs: durationMs)
+      var data: [String: TelemetryValue] = [
+        "repositoryId": .string(repositoryId),
+        "lastBackupStatus": .string(endStatus.rawValue),
+        "durationMs": .int(Int64(durationMs)),
+      ]
+      if let endMessage {
+        data["error"] = .string(endMessage)
+      }
+      await report(endAPI, config: config, "Backup finished", data)
+    }.value
     return RunRecord(
       startedAt: startedAt, finishedAt: finishedAt, status: status, snapshotId: summary?.snapshotId,
       filesNew: summary?.filesNew, dataAdded: summary?.dataAdded, message: message)
@@ -185,20 +246,34 @@ public actor BackupEngine {
     let token = try accessToken()
     let session = try await startSession(
       config: config, repositoryId: repositoryId, masterKey: try requireMasterKey(), token: token)
+    let server = try await serverInfo(for: config.serverURL)
+    let api = environment.makeAPI(server.apiRoot, token)
     let result: ResticResult
     do {
       result = try await environment.restic.run(ResticCommand.snapshots(session.context), onLine: { _ in })
     } catch {
       await session.proxy.stop()
+      await report(
+        api, config: config, "Failed to get repository snapshot listing",
+        ["repositoryId": .string(repositoryId), "error": .string(String(describing: error))])
       throw error
     }
     await session.proxy.stop()
     guard result.exitCode == ResticExitCode.success else {
-      throw EngineError.restic(
-        code: result.exitCode,
-        message: ResticOutput.errorMessage(stderr: result.stderr, exitCode: result.exitCode))
+      let detail = ResticOutput.errorMessage(stderr: result.stderr, exitCode: result.exitCode)
+      await report(
+        api, config: config, "Failed to get repository snapshot listing",
+        ["repositoryId": .string(repositoryId), "error": .string(detail)])
+      throw EngineError.restic(code: result.exitCode, message: detail)
     }
-    return try ResticOutput.parseSnapshots(result.stdout).sorted { $0.time > $1.time }
+    do {
+      return try ResticOutput.parseSnapshots(result.stdout).sorted { $0.time > $1.time }
+    } catch {
+      await report(
+        api, config: config, "Failed to get repository snapshot listing",
+        ["repositoryId": .string(repositoryId), "error": .string(String(describing: error))])
+      throw error
+    }
   }
 
   public func restore(
@@ -217,7 +292,14 @@ public actor BackupEngine {
     defer { running = false }
     let session = try await startSession(
       config: config, repositoryId: repositoryId, masterKey: masterKey, token: token)
+    let server = try await serverInfo(for: config.serverURL)
+    let api = environment.makeAPI(server.apiRoot, token)
     onActivity(.restoring)
+    var restoreData: [String: TelemetryValue] = [
+      "repositoryId": .string(repositoryId),
+      "snapshotId": .string(snapshotId),
+    ]
+    await report(api, config: config, "Running repository snapshot restore", restoreData)
     let result: ResticResult
     do {
       result = try await environment.restic.run(
@@ -225,14 +307,18 @@ public actor BackupEngine {
         onLine: { _ in })
     } catch {
       await session.proxy.stop()
+      restoreData["error"] = .string(error is CancellationError ? "cancelled" : String(describing: error))
+      await report(api, config: config, "Finished repository snapshot restore", restoreData)
       throw error
     }
     await session.proxy.stop()
     guard result.exitCode == ResticExitCode.success else {
-      throw EngineError.restic(
-        code: result.exitCode,
-        message: ResticOutput.errorMessage(stderr: result.stderr, exitCode: result.exitCode))
+      let detail = ResticOutput.errorMessage(stderr: result.stderr, exitCode: result.exitCode)
+      restoreData["error"] = .string(detail)
+      await report(api, config: config, "Finished repository snapshot restore", restoreData)
+      throw EngineError.restic(code: result.exitCode, message: detail)
     }
+    await report(api, config: config, "Finished repository snapshot restore", restoreData)
   }
 
   public func macRepositories(config: AppConfig) async throws -> [RemoteRepository] {
@@ -312,6 +398,19 @@ public actor BackupEngine {
     let server = try await environment.discover(url)
     serverCache[url] = server
     return server
+  }
+
+  private func report(
+    _ api: any YuccaRepositoryAPI, config: AppConfig, _ summary: String,
+    _ data: [String: TelemetryValue]
+  ) async {
+    guard config.telemetryConsentedAt != nil else {
+      return
+    }
+    let log = StructuredLog(summary: summary, data: data, version: environment.appVersion)
+    await Task {
+      try? await api.submitStructuredLog(log)
+    }.value
   }
 
   private func isFutoRestic() async -> Bool {

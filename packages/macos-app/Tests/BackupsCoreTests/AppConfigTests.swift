@@ -134,3 +134,35 @@ func anchorSemantics() throws {
   #expect(decoded.recoveryKeyConfirmedAt == nil)
   #expect(decoded == config)
 }
+
+@Test("config JSON without a telemetryConsentedAt key decodes with nil")
+func decodeWithoutTelemetryConsentedAt() throws {
+  var config = AppConfig.defaults(host: "book-pro", home: "/Users/test")
+  config.telemetryConsentedAt = Date(timeIntervalSince1970: 1_781_092_800)
+  let encoder = JSONEncoder()
+  encoder.dateEncodingStrategy = .iso8601
+  let object = try #require(JSONSerialization.jsonObject(with: encoder.encode(config)) as? [String: Any])
+  var stripped = object
+  stripped.removeValue(forKey: "telemetryConsentedAt")
+  let decoder = JSONDecoder()
+  decoder.dateDecodingStrategy = .iso8601
+  let decoded = try decoder.decode(AppConfig.self, from: JSONSerialization.data(withJSONObject: stripped))
+  #expect(decoded.telemetryConsentedAt == nil)
+  var expected = config
+  expected.telemetryConsentedAt = nil
+  #expect(decoded == expected)
+}
+
+@Test("round trip keeps a set telemetryConsentedAt and defaults leave it nil")
+func roundTripTelemetryConsentedAt() throws {
+  var config = AppConfig.defaults(host: "book-pro", home: "/Users/test")
+  #expect(config.telemetryConsentedAt == nil)
+  config.telemetryConsentedAt = Date(timeIntervalSince1970: 1_781_092_800)
+  let encoder = JSONEncoder()
+  encoder.dateEncodingStrategy = .iso8601
+  let decoder = JSONDecoder()
+  decoder.dateDecodingStrategy = .iso8601
+  let decoded = try decoder.decode(AppConfig.self, from: encoder.encode(config))
+  #expect(decoded == config)
+  #expect(decoded.telemetryConsentedAt == Date(timeIntervalSince1970: 1_781_092_800))
+}

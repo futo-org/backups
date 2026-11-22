@@ -301,6 +301,43 @@ func submitBackupEndSendsStatusRawValue(status: BackupStatus) async throws {
   #expect(!withoutType.contains("connectionType"))
 }
 
+@Test func submitStructuredLogRequest() async throws {
+  let (client, transport) = makeClient([jsonResponse(status: 204, "")])
+  let log = StructuredLog(
+    summary: "Backup finished",
+    data: ["repositoryId": .string("repo-1"), "lastBackupStatus": .string("complete"), "version": .string("caller")],
+    version: "0.4.0")
+  try await client.submitStructuredLog(log)
+  let request = try await singleRequest(transport)
+  #expect(request.method == "POST")
+  #expect(request.url == URL(string: "https://server.example/api/metrics/submit/log"))
+  #expect(request.headers == ["Cookie": "yucca-access-token=tok-1", "Content-Type": "application/json"])
+  let body = try #require(request.body)
+  let object = try #require(
+    JSONSerialization.jsonObject(with: body, options: [.allowFragments]) as? [String: Any])
+  #expect(Set(object.keys) == ["summary", "data"])
+  #expect(object["summary"] as? String == "Backup finished")
+  let data = try #require(object["data"] as? [String: Any])
+  #expect(data["repositoryId"] as? String == "repo-1")
+  #expect(data["lastBackupStatus"] as? String == "complete")
+  #expect(data["version"] as? String == "0.4.0")
+  #expect(data["client"] as? String == "macos")
+}
+
+@Test func submitStructuredLogOmitsCookieWithoutToken() async throws {
+  let (client, transport) = makeClient([jsonResponse(status: 204, "")], accessToken: nil)
+  try await client.submitStructuredLog(StructuredLog(summary: "x", version: "1"))
+  let request = try await singleRequest(transport)
+  #expect(request.headers == ["Content-Type": "application/json"])
+}
+
+@Test func submitStructuredLogUnauthorized() async throws {
+  let (client, _) = makeClient([jsonResponse(status: 401, #"{"error":"nope"}"#)])
+  await #expect(throws: YuccaError.unauthorized) {
+    try await client.submitStructuredLog(StructuredLog(summary: "x", version: "1"))
+  }
+}
+
 @Test func unauthorizedMapsToUnauthorized() async throws {
   let (client, _) = makeClient([jsonResponse(status: 401, #"{"error":"nope"}"#)])
   await #expect(throws: YuccaError.unauthorized) {

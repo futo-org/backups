@@ -34,6 +34,7 @@ public struct AppConfig: Codable, Equatable, Sendable {
   public var lastRun: RunRecord?
   public var scheduleAnchor: Date?
   public var recoveryKeyConfirmedAt: Date?
+  public var telemetryConsentedAt: Date?
 
   public var scheduleReference: Date? { lastRun?.startedAt ?? scheduleAnchor }
 

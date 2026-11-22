@@ -10,6 +10,7 @@ public struct EngineEnvironment: Sendable {
   public var home: String
   public var processorCount: Int
   public var now: @Sendable () -> Date
+  public var appVersion: String
 
   public init(
     secrets: any SecretStore,
@@ -20,7 +21,8 @@ public struct EngineEnvironment: Sendable {
     cacheDirectory: URL,
     home: String,
     processorCount: Int,
-    now: @escaping @Sendable () -> Date
+    now: @escaping @Sendable () -> Date,
+    appVersion: String = "dev"
   ) {
     self.secrets = secrets
     self.discover = discover
@@ -31,6 +33,7 @@ public struct EngineEnvironment: Sendable {
     self.home = home
     self.processorCount = processorCount
     self.now = now
+    self.appVersion = appVersion
   }
 }
 

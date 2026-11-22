@@ -117,6 +117,7 @@ public protocol YuccaRepositoryAPI: Sendable {
   func submitBackupStart(repositoryId: String) async throws
   func submitBackupEnd(repositoryId: String, status: BackupStatus, durationMs: Int) async throws
   func submitRepositorySize(repositoryId: String, sizeBytes: Int64) async throws
+  func submitStructuredLog(_ log: StructuredLog) async throws
 }
 
 public struct YuccaClient: YuccaRepositoryAPI {
@@ -197,6 +198,11 @@ public struct YuccaClient: YuccaRepositoryAPI {
   public func submitRepositorySize(repositoryId: String, sizeBytes: Int64) async throws {
     let body = try encodeJSON(RepositorySizeRequest(sizeBytes: sizeBytes))
     _ = try await send(method: "PATCH", path: "metrics/submit/\(repositoryId)/size", body: body)
+  }
+
+  public func submitStructuredLog(_ log: StructuredLog) async throws {
+    let body = try encodeJSON(log)
+    _ = try await send(method: "POST", path: "metrics/submit/log", body: body)
   }
 
   private func send(method: String, path: String, body: Data? = nil, sendsCookie: Bool = true) async throws
