@@ -141,7 +141,7 @@ final class AppModel {
 
   func startLogin() {
     guard loginTask == nil else { return }
-    guard let engine else {
+    guard engine != nil else {
       login = .failed(missingHelperText ?? "Setup incomplete")
       return
     }

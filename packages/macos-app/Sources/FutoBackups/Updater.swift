@@ -8,8 +8,7 @@ final class Updater {
   let isAvailable: Bool
   private(set) var canCheckForUpdates: Bool
   var automaticallyChecksForUpdates: Bool {
-    get { controller?.updater.automaticallyChecksForUpdates ?? false }
-    set { controller?.updater.automaticallyChecksForUpdates = newValue }
+    didSet { controller?.updater.automaticallyChecksForUpdates = automaticallyChecksForUpdates }
   }
 
   private var controller: SPUStandardUpdaterController?
@@ -20,10 +19,12 @@ final class Updater {
     let publicEDKey = Bundle.main.infoDictionary?["SUPublicEDKey"] as? String
     isAvailable = (feedURL?.isEmpty == false) && (publicEDKey?.isEmpty == false)
     canCheckForUpdates = false
+    automaticallyChecksForUpdates = false
     if isAvailable {
       let controller = SPUStandardUpdaterController(
         startingUpdater: isAvailable, updaterDelegate: nil, userDriverDelegate: nil)
       self.controller = controller
+      automaticallyChecksForUpdates = controller.updater.automaticallyChecksForUpdates
       observation = controller.updater.observe(
         \.canCheckForUpdates, options: [.initial, .new]
       ) { [weak self] _, change in
