@@ -7,6 +7,7 @@ import ServiceManagement
 enum LoginState: Equatable {
   case idle
   case waiting(userCode: String, url: String)
+  case finishing
   case failed(String)
 }
 
@@ -21,6 +22,8 @@ final class AppModel {
   var lastError: String?
   var nextRun: Date?
   var setupError: String?
+  var signedIn = false
+  var restoredFolder: URL?
 
   private let store = ConfigStore.standard()
   private let secrets = KeychainSecretStore()
@@ -82,6 +85,7 @@ final class AppModel {
     config = loaded
     lastError = loadFailure
     nextRun = loaded.schedule.nextRun(after: loaded.scheduleReference, now: .now, calendar: .current)
+    signedIn = isLoggedIn && loaded.repositoryId != nil
     scheduler = Scheduler(model: self)
     scheduler?.start()
     if isLoggedIn {
@@ -149,6 +153,7 @@ final class AppModel {
           authorization, connectionType: "macos", connectionName: self.config.host)
         guard generation == self.loginGeneration else { return }
         try self.secrets.set(token, for: .accessToken)
+        self.login = .finishing
         let accountClient = YuccaClient(apiRoot: server.apiRoot, transport: self.transport, accessToken: token)
         self.account = try await accountClient.me()
         let repositoryId = try await engine.ensureRepository(config: self.config)
@@ -156,6 +161,7 @@ final class AppModel {
         self.config.repositoryId = repositoryId
         self.saveConfig()
         self.login = .idle
+        self.signedIn = true
         self.recomputeNextRun()
         self.loginTask = nil
         await self.refreshSnapshots()
@@ -184,6 +190,8 @@ final class AppModel {
     let token = (try? secrets.get(.accessToken)) ?? nil
     account = nil
     snapshots = []
+    signedIn = false
+    restoredFolder = nil
     try? secrets.delete(.accessToken)
     guard let token else { return }
     Task {
@@ -290,6 +298,7 @@ final class AppModel {
     }
     let configSnapshot = config
     activity = .restoring
+    restoredFolder = nil
     operationTask = Task {
       do {
         try await engine.restore(config: configSnapshot, snapshotId: snapshot.id, target: url, include: []) {
@@ -300,6 +309,7 @@ final class AppModel {
           }
         }
         self.finishOperation()
+        self.restoredFolder = snapshot.paths.first.map { url.appendingPathComponent($0) } ?? url
       } catch {
         self.finishOperation()
         self.lastError = self.message(for: error)

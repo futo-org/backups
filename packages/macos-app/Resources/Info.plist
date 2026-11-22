@@ -6,6 +6,8 @@
 	<string>FutoBackups</string>
 	<key>CFBundleIdentifier</key>
 	<string>org.futo.backups.mac</string>
+	<key>CFBundleIconFile</key>
+	<string>AppIcon</string>
 	<key>CFBundleName</key>
 	<string>FUTO Backups</string>
 	<key>CFBundleDisplayName</key>

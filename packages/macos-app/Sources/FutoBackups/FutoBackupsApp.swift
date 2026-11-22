@@ -10,12 +10,19 @@ struct FutoBackupsApp: App {
     Window("FUTO Backups", id: "main") {
       MainWindow()
         .environment(model)
+        .tint(Brand.indigo)
     }
-    MenuBarExtra("FUTO Backups", systemImage: "externaldrive.badge.icloud") {
+    .windowStyle(.hiddenTitleBar)
+    .windowToolbarStyle(.unified)
+    .defaultSize(width: 980, height: 680)
+    MenuBarExtra {
       MenuBarContent()
         .environment(model)
+        .tint(Brand.indigo)
+    } label: {
+      Image(systemName: StatusSummary(model: model).menuBarSymbol)
     }
-    .menuBarExtraStyle(.menu)
+    .menuBarExtraStyle(.window)
   }
 }
 

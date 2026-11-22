@@ -1,10 +1,9 @@
 import SwiftUI
 
-private enum Section: String, CaseIterable, Identifiable {
-  case account
+enum SidebarItem: String, CaseIterable, Identifiable {
+  case overview
   case folders
-  case schedule
-  case snapshots
+  case history
   case settings
 
   var id: String { rawValue }
@@ -15,10 +14,9 @@ private enum Section: String, CaseIterable, Identifiable {
 
   var systemImage: String {
     switch self {
-    case .account: return "person.crop.circle"
+    case .overview: return "gauge.with.dots.needle.67percent"
     case .folders: return "folder"
-    case .schedule: return "clock"
-    case .snapshots: return "clock.arrow.circlepath"
+    case .history: return "clock.arrow.circlepath"
     case .settings: return "gearshape"
     }
   }
@@ -26,52 +24,97 @@ private enum Section: String, CaseIterable, Identifiable {
 
 struct MainWindow: View {
   @Environment(AppModel.self) private var model
-  @State private var selection: Section? = .account
+  @State private var selection: SidebarItem? = .overview
 
   var body: some View {
-    NavigationSplitView {
-      List(Section.allCases, selection: $selection) { section in
-        Label(section.title, systemImage: section.systemImage)
+    Group {
+      if model.signedIn {
+        NavigationSplitView {
+          sidebar
+        } detail: {
+          detail
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+        }
+      } else {
+        WelcomeView()
       }
-      .navigationSplitViewColumnWidth(min: 170, ideal: 190, max: 260)
-    } detail: {
-      VStack(spacing: 0) {
-        banner
-        detail
-      }
-      .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
-    .navigationTitle("FUTO Backups")
+    .frame(minWidth: 820, minHeight: 580)
+    .toolbar(removing: .title)
   }
 
-  @ViewBuilder
-  private var banner: some View {
-    if let text = model.setupError ?? model.lastError {
-      HStack(alignment: .firstTextBaseline, spacing: 8) {
-        Image(systemName: "exclamationmark.triangle.fill")
-          .foregroundStyle(.yellow)
-        Text(text)
-          .textSelection(.enabled)
-        Spacer()
-        Button("Dismiss") {
-          model.setupError = nil
-          model.lastError = nil
-        }
+  private var sidebar: some View {
+    List(selection: $selection) {
+      ForEach(SidebarItem.allCases) { item in
+        Label(item.title, systemImage: item.systemImage)
+          .badge(badge(for: item))
+          .tag(item)
       }
-      .padding(10)
-      .frame(maxWidth: .infinity)
-      .background(.red.opacity(0.12))
+    }
+    .navigationSplitViewColumnWidth(min: 210, ideal: 230, max: 280)
+    .safeAreaInset(edge: .bottom) {
+      AccountChip()
+        .padding(12)
     }
   }
 
   @ViewBuilder
   private var detail: some View {
-    switch selection ?? .account {
-    case .account: AccountView()
-    case .folders: FoldersView()
-    case .schedule: ScheduleView()
-    case .snapshots: SnapshotsView()
-    case .settings: SettingsView()
+    VStack(spacing: 0) {
+      if let text = model.setupError ?? model.lastError {
+        Banner(systemName: "exclamationmark.triangle.fill", tint: .orange, text: text) {
+          model.setupError = nil
+          model.lastError = nil
+        }
+        .padding(.horizontal, 28)
+        .padding(.top, 16)
+      }
+      switch selection ?? .overview {
+      case .overview: OverviewView(showFolders: { selection = .folders })
+      case .folders: FoldersView()
+      case .history: HistoryView()
+      case .settings: SettingsView()
+      }
     }
+  }
+
+  private func badge(for item: SidebarItem) -> Text? {
+    guard item == .overview, case .backingUp(let progress) = model.activity else { return nil }
+    return Text(progress.percentDone, format: .percent.precision(.fractionLength(0)))
+  }
+}
+
+struct AccountChip: View {
+  @Environment(AppModel.self) private var model
+
+  var body: some View {
+    HStack(spacing: 10) {
+      Circle()
+        .fill(Brand.gradient)
+        .frame(width: 30, height: 30)
+        .overlay(
+          Text(initial)
+            .font(.system(size: 13, weight: .bold, design: .rounded))
+            .foregroundStyle(.white))
+      VStack(alignment: .leading, spacing: 1) {
+        Text(model.account?.email ?? "Signed in")
+          .font(.system(size: 12, weight: .semibold))
+          .lineLimit(1)
+          .truncationMode(.middle)
+        Text(model.config.serverURL.host() ?? "")
+          .font(.system(size: 11))
+          .foregroundStyle(.secondary)
+          .lineLimit(1)
+      }
+      Spacer(minLength: 0)
+    }
+    .padding(10)
+    .background(
+      RoundedRectangle(cornerRadius: 10, style: .continuous)
+        .fill(Color.primary.opacity(0.05)))
+  }
+
+  private var initial: String {
+    String(model.account?.email.first ?? "F").uppercased()
   }
 }

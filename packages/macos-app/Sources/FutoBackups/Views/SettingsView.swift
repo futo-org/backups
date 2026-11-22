@@ -12,49 +12,116 @@ struct SettingsView: View {
 
   var body: some View {
     Form {
-      Section("Upload limit") {
-        TextField("KB/s", text: $limitDraft)
-          .textFieldStyle(.roundedBorder)
-          .frame(width: 120)
-        HStack {
-          Button("Apply") { applyLimit() }
-          Text("0 means unlimited")
-            .foregroundStyle(.secondary)
+      Section {
+        HStack(spacing: 12) {
+          Circle()
+            .fill(Brand.gradient)
+            .frame(width: 40, height: 40)
+            .overlay(
+              Text(String(model.account?.email.first ?? "F").uppercased())
+                .font(.system(size: 17, weight: .bold, design: .rounded))
+                .foregroundStyle(.white))
+          VStack(alignment: .leading, spacing: 2) {
+            Text(model.account?.email ?? "Signed in")
+              .font(.system(size: 13, weight: .semibold))
+            Text("\(model.config.host) · \(model.config.serverURL.host() ?? "")")
+              .font(.system(size: 12))
+              .foregroundStyle(.secondary)
+          }
+          Spacer()
+          Button("Sign Out", role: .destructive) { model.logout() }
+            .buttonStyle(SecondaryButtonStyle(tint: .red))
+        }
+        .padding(.vertical, 4)
+      }
+      Section("Bandwidth") {
+        LabeledContent {
+          HStack(spacing: 6) {
+            TextField("", text: $limitDraft, prompt: Text("Unlimited"))
+              .textFieldStyle(.roundedBorder)
+              .multilineTextAlignment(.trailing)
+              .frame(width: 90)
+              .onSubmit(applyLimit)
+            Text("KB/s")
+              .foregroundStyle(.secondary)
+            Button("Apply", action: applyLimit)
+              .disabled(limitDraft == currentLimitText)
+          }
+        } label: {
+          SettingLabel(
+            systemName: "speedometer", tint: .green, title: "Upload limit", detail: "Leave empty for no limit.")
+        }
+        Toggle(isOn: $quietEnabled) {
+          SettingLabel(
+            systemName: "moon.stars.fill", tint: .indigo, title: "Full speed at night",
+            detail: "Ignore the upload limit during these hours.")
+        }
+        .onChange(of: quietEnabled) { _, _ in applyQuiet() }
+        if quietEnabled {
+          HStack {
+            Spacer()
+            DatePicker("From", selection: $quietStart, displayedComponents: .hourAndMinute)
+              .onChange(of: quietStart) { _, _ in applyQuiet() }
+              .fixedSize()
+            DatePicker("to", selection: $quietEnd, displayedComponents: .hourAndMinute)
+              .onChange(of: quietEnd) { _, _ in applyQuiet() }
+              .fixedSize()
+          }
         }
       }
-      Section("Quiet hours") {
-        Toggle("Throttle during quiet hours", isOn: $quietEnabled)
-          .onChange(of: quietEnabled) { _, _ in applyQuiet() }
-        DatePicker("From", selection: $quietStart, displayedComponents: .hourAndMinute)
-          .onChange(of: quietStart) { _, _ in applyQuiet() }
-        DatePicker("To", selection: $quietEnd, displayedComponents: .hourAndMinute)
-          .onChange(of: quietEnd) { _, _ in applyQuiet() }
+      Section("General") {
+        Toggle(isOn: launchAtLoginBinding) {
+          SettingLabel(
+            systemName: "power", tint: .gray, title: "Open at login",
+            detail: "Keeps scheduled backups running from the menu bar.")
+        }
       }
-      Section("Startup") {
-        Toggle("Launch at login", isOn: launchAtLoginBinding)
-      }
-      Section("Recovery key") {
-        if let recoveryKey {
-          Text(recoveryKey)
-            .textSelection(.enabled)
-            .font(.system(.body, design: .monospaced))
-          Button("Copy") {
-            NSPasteboard.general.clearContents()
-            NSPasteboard.general.setString(recoveryKey, forType: .string)
-          }
-        } else {
-          Button("Reveal recovery key") {
-            Task {
-              self.recoveryKey = await self.model.recoveryKey()
+      Section("Security") {
+        VStack(alignment: .leading, spacing: 12) {
+          SettingLabel(
+            systemName: "key.fill", tint: .orange, title: "Recovery key",
+            detail: "Your backups are encrypted with this key. Without it, a reinstalled Mac cannot read them.")
+          if let recoveryKey {
+            HStack(spacing: 10) {
+              Text(recoveryKey)
+                .font(.system(size: 12, design: .monospaced))
+                .textSelection(.enabled)
+                .lineLimit(2)
+                .padding(10)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(
+                  RoundedRectangle(cornerRadius: 8, style: .continuous).fill(Color.primary.opacity(0.06)))
+              Button("Copy") {
+                NSPasteboard.general.clearContents()
+                NSPasteboard.general.setString(recoveryKey, forType: .string)
+              }
+              .buttonStyle(SecondaryButtonStyle())
             }
+          } else {
+            Button("Reveal Recovery Key") {
+              Task {
+                self.recoveryKey = await self.model.recoveryKey()
+              }
+            }
+            .buttonStyle(SecondaryButtonStyle())
           }
-          Text("Store it somewhere safe. You need it to restore your backups after reinstalling.")
-            .foregroundStyle(.secondary)
         }
+        .padding(.vertical, 4)
+      }
+      Section("Advanced") {
+        ServerEditor()
+          .padding(.vertical, 4)
       }
     }
     .formStyle(.grouped)
+    .scrollContentBackground(.hidden)
+    .frame(maxWidth: 720)
+    .frame(maxWidth: .infinity)
     .onAppear(perform: syncDrafts)
+  }
+
+  private var currentLimitText: String {
+    model.config.throttle.bytesPerSec > 0 ? String(model.config.throttle.bytesPerSec / 1024) : ""
   }
 
   private var launchAtLoginBinding: Binding<Bool> {
@@ -64,7 +131,7 @@ struct SettingsView: View {
   }
 
   private func syncDrafts() {
-    limitDraft = String(model.config.throttle.bytesPerSec / 1024)
+    limitDraft = currentLimitText
     let parts = model.config.throttle.quietHours.split(separator: "-", maxSplits: 1)
     if parts.count == 2,
       let start = SettingsView.parseClock(parts[0]),
@@ -106,5 +173,24 @@ struct SettingsView: View {
     let parts = text.split(separator: ":")
     guard parts.count == 2, let hour = Int(parts[0]), let minute = Int(parts[1]) else { return nil }
     return (hour, minute)
+  }
+}
+
+struct SettingLabel: View {
+  let systemName: String
+  let tint: Color
+  let title: String
+  let detail: String
+
+  var body: some View {
+    HStack(spacing: 12) {
+      IconTile(systemName: systemName, tint: tint, size: 26)
+      VStack(alignment: .leading, spacing: 2) {
+        Text(title)
+        Text(detail)
+          .font(.system(size: 11))
+          .foregroundStyle(.secondary)
+      }
+    }
   }
 }

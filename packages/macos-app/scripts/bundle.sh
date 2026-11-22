@@ -25,6 +25,7 @@ install -m 0755 "$bin/FutoBackups" "$app/Contents/MacOS/FutoBackups"
 install -m 0755 "$root/.mise/bin/restic" "$app/Contents/Helpers/restic"
 install -m 0755 "$work/restic-proxy" "$app/Contents/Helpers/restic-proxy"
 install -m 0644 "$package/Resources/Info.plist" "$app/Contents/Info.plist"
+install -m 0644 "$package/Resources/AppIcon.icns" "$app/Contents/Resources/AppIcon.icns"
 
 # Nested code must be signed before the bundle or the outer seal no longer matches.
 codesign --force --options runtime --timestamp=none --sign - "$app/Contents/Helpers/restic"
