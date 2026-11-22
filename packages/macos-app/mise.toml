@@ -1,6 +1,6 @@
 [env]
 # The Command Line Tools toolchain intermittently fails to load the Swift Testing macro plugin; Xcode's does not.
-DEVELOPER_DIR = "/Applications/Xcode.app/Contents/Developer"
+DEVELOPER_DIR = "{{ get_env(name='DEVELOPER_DIR', default='/Applications/Xcode.app/Contents/Developer') }}"
 
 # Task names carry a mac: prefix so the root build/test/check aggregates (run on Linux CI) never match them.
 

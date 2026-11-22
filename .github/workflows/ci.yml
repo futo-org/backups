@@ -180,3 +180,66 @@ jobs:
         run: |
           kubectl -n rook-ceph exec ds/rook-ceph-loop-device -- \
             sh -c 'losetup -d $(losetup -j /var/lib/rook/osd-loop.img | cut -d: -f1)'
+
+  macos-changes:
+    name: macOS app changes
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    outputs:
+      changed: ${{ steps.changes.outputs.changed }}
+    steps:
+      - uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3 # v6.0.0
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+
+      - name: Detect macOS app changes
+        id: changes
+        env:
+          PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          PUSH_BEFORE: ${{ github.event.before }}
+        run: |
+          if [ "$GITHUB_EVENT_NAME" = 'pull_request' ]; then
+            base="$PR_BASE_SHA"
+          else
+            base="$PUSH_BEFORE"
+          fi
+          # First push and force pushes report an all-zero before, and a base
+          # commit deleted after the PR opened is absent even at fetch-depth 0;
+          # a range that cannot be built must not skip the app's only check.
+          if [ -z "$base" ] || printf '%s' "$base" | grep -Eq '^0+$' || ! git cat-file -e "$base^{commit}" 2>/dev/null; then
+            changed=true
+          elif git diff --name-only "$base" HEAD | grep -Eq -e '^packages/macos-app/' -e '^packages/restic-proxy/' -e '^packages/standalone-app/Dockerfile$' -e '^\.mise/tasks/restic/' -e '^\.github/workflows/ci\.yml$'; then
+            changed=true
+          else
+            changed=false
+          fi
+          echo "changed=$changed" >> "$GITHUB_OUTPUT"
+
+  macos:
+    name: macOS app
+    needs: macos-changes
+    if: needs.macos-changes.outputs.changed == 'true'
+    runs-on: macos-15
+    timeout-minutes: 45
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3 # v6.0.0
+        with:
+          persist-credentials: false
+
+      # The fixed DEVELOPER_DIR default in packages/macos-app/mise.toml is a
+      # stock install's path; xcode-select knows what this runner picked.
+      - name: Select the runner's Xcode
+        run: echo "DEVELOPER_DIR=$(xcode-select -p)" >> "$GITHUB_ENV"
+
+      - name: Setup Mise
+        uses: jdx/mise-action@c2a87611a18de5b3828c5652fe268e992400cb5c # v4.3.0
+
+      - name: Run mac:check
+        working-directory: packages/macos-app
+        # mac:test drives real restic; this path is the FUTO build mise
+        # install compiles from source on macOS.
+        run: FUTO_BACKUPS_RESTIC="$GITHUB_WORKSPACE/.mise/bin/restic" mise run mac:check
