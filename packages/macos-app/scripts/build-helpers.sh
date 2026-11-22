@@ -20,7 +20,27 @@ trap 'rm -rf "$work"' EXIT
 source=$work/restic
 
 git clone -q --filter=blob:none --no-checkout https://github.com/futo-org/restic.git "$source"
-git -C "$source" checkout -q "$commit"
+if [ -n "$(git -C "$source" for-each-ref "refs/tags/$commit" "refs/heads/$commit" "refs/remotes/origin/$commit")" ]; then
+  echo "$commit is a ref name, not a commit id" >&2
+  exit 1
+fi
+full=$(git -C "$source" rev-parse --verify --quiet "$commit^{commit}") || full=
+if [ -z "$full" ]; then
+  echo "$commit does not resolve to a commit in futo-org/restic" >&2
+  exit 1
+fi
+case "$full" in
+  "$commit"*) ;;
+  *)
+    echo "$commit is not a prefix of $full" >&2
+    exit 1
+    ;;
+esac
+git -C "$source" checkout -q "$full"
+if [ "$(git -C "$source" rev-parse HEAD)" != "$full" ]; then
+  echo "checked out HEAD does not match $full" >&2
+  exit 1
+fi
 sed -i.orig -E "s/^const Version = \"([^\"]+)\"$/const Version = \"\1+futo.$commit\"/" "$source/internal/global/global.go"
 
 for arch in arm64 amd64; do

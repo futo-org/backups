@@ -17,7 +17,8 @@ on:
 permissions: {}
 
 concurrency:
-  group: macos-release-${{ github.event.release.tag_name || inputs.tag }}
+  # One global group so two releases can never publish the shared appcast concurrently.
+  group: macos-release
   cancel-in-progress: false
 
 jobs:
@@ -53,6 +54,29 @@ jobs:
           SPARKLE_PUBLIC_KEY: ${{ vars.SPARKLE_PUBLIC_KEY }}
         run: |
           set -euo pipefail
+          version_cmp() {
+            local IFS=.
+            local -a a b
+            read -ra a <<< "$1"
+            read -ra b <<< "$2"
+            [ "${#a[@]}" -eq 3 ] && [ "${#b[@]}" -eq 3 ] || return 2
+            local i
+            for i in 0 1 2; do
+              case "${a[$i]}" in '' | *[!0-9]*) return 2 ;; esac
+              case "${b[$i]}" in '' | *[!0-9]*) return 2 ;; esac
+            done
+            for i in 0 1 2; do
+              if [ "${a[$i]}" -lt "${b[$i]}" ]; then printf '%s\n' -1; return; fi
+              if [ "${a[$i]}" -gt "${b[$i]}" ]; then printf '%s\n' 1; return; fi
+            done
+            printf '%s\n' 0
+          }
+          version=${TAG#v}
+          if ! [[ $version =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "run=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::$TAG is not a plain MAJOR.MINOR.PATCH release tag"
+            exit 0
+          fi
           missing=
           [ -n "$MACOS_CERTIFICATE_P12" ] || missing="$missing MACOS_CERTIFICATE_P12"
           [ -n "$MACOS_CERTIFICATE_PASSWORD" ] || missing="$missing MACOS_CERTIFICATE_PASSWORD"
@@ -67,16 +91,28 @@ jobs:
             echo "::notice::macOS release is not configured; missing:${missing}"
             exit 0
           fi
-          echo "version=${TAG#v}" >> "$GITHUB_OUTPUT"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
           # A download failure just means no macos-appcast release exists yet,
           # i.e. this would be the first macOS release.
           if gh release download macos-appcast -p appcast.xml -D "$RUNNER_TEMP/feed"; then
             previous=$(sed -n 's|.*<sparkle:shortVersionString>\([^<]*\)</sparkle:shortVersionString>.*|\1|p' "$RUNNER_TEMP/feed/appcast.xml" | head -n 1)
-            if [ -n "$previous" ] && git rev-parse -q --verify "refs/tags/v${previous}" >/dev/null &&
-              git diff --quiet "v${previous}" "$TAG" -- packages/macos-app; then
-              echo "run=false" >> "$GITHUB_OUTPUT"
-              echo "::notice::packages/macos-app unchanged since v${previous}"
-              exit 0
+            if [ -n "$previous" ] && cmp=$(version_cmp "$previous" "$version"); then
+              if [ "$cmp" -eq 0 ]; then
+                echo "run=false" >> "$GITHUB_OUTPUT"
+                echo "::notice::v$version is already published"
+                exit 0
+              fi
+              if [ "$cmp" -eq 1 ]; then
+                echo "run=false" >> "$GITHUB_OUTPUT"
+                echo "::notice::a newer version (v$previous) is already published"
+                exit 0
+              fi
+              if git rev-parse -q --verify "refs/tags/v$previous" > /dev/null &&
+                git diff --quiet "v$previous" "$TAG" -- packages/macos-app packages/restic-proxy packages/standalone-app/Dockerfile .mise/config.toml .mise/tasks/restic; then
+                echo "run=false" >> "$GITHUB_OUTPUT"
+                echo "::notice::macOS app inputs unchanged since v$previous"
+                exit 0
+              fi
             fi
           fi
           echo "run=true" >> "$GITHUB_OUTPUT"
@@ -138,9 +174,40 @@ jobs:
           OUT_DIR: ${{ runner.temp }}/macos-release
         run: |
           set -euo pipefail
-          gh release upload "$TAG" "$OUT_DIR/FUTO-Backups-$VERSION.zip" --clobber
+          version_cmp() {
+            local IFS=.
+            local -a a b
+            read -ra a <<< "$1"
+            read -ra b <<< "$2"
+            [ "${#a[@]}" -eq 3 ] && [ "${#b[@]}" -eq 3 ] || return 2
+            local i
+            for i in 0 1 2; do
+              case "${a[$i]}" in '' | *[!0-9]*) return 2 ;; esac
+              case "${b[$i]}" in '' | *[!0-9]*) return 2 ;; esac
+            done
+            for i in 0 1 2; do
+              if [ "${a[$i]}" -lt "${b[$i]}" ]; then printf '%s\n' -1; return; fi
+              if [ "${a[$i]}" -gt "${b[$i]}" ]; then printf '%s\n' 1; return; fi
+            done
+            printf '%s\n' 0
+          }
+          assets=$(gh release view "$TAG" --json assets --jq '.assets[].name')
+          if printf '%s\n' "$assets" | grep -Fxq "FUTO-Backups-$VERSION.zip"; then
+            echo "::error::FUTO-Backups-$VERSION.zip already exists on $TAG; delete it to re-publish"
+            exit 1
+          fi
+          gh release upload "$TAG" "$OUT_DIR/FUTO-Backups-$VERSION.zip"
           gh release view macos-appcast >/dev/null 2>&1 ||
             gh release create macos-appcast --prerelease --latest=false --title "macOS update feed" --notes "Sparkle appcast for the FUTO Backups macOS app. Do not delete."
+          # A published zip is never replaced, so a feed that already advertises
+          # this version or a newer one must not move backwards.
+          if gh release download macos-appcast -p appcast.xml -D "$RUNNER_TEMP/current"; then
+            published=$(sed -n 's|.*<sparkle:shortVersionString>\([^<]*\)</sparkle:shortVersionString>.*|\1|p' "$RUNNER_TEMP/current/appcast.xml" | head -n 1)
+            if [ -n "$published" ] && cmp=$(version_cmp "$published" "$VERSION") && [ "$cmp" -ge 0 ]; then
+              echo "::notice::the feed already advertises v$published; leaving it unchanged"
+              exit 0
+            fi
+          fi
           gh release upload macos-appcast "$OUT_DIR/appcast.xml" --clobber
 
       - name: Remove the signing keychain and material

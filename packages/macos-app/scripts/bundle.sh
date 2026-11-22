@@ -41,9 +41,10 @@ install -m 0644 "$package/Resources/Wordmark.png" "$package/Resources/Wordmark-d
 
 plist="$app/Contents/Info.plist"
 version="${MAC_APP_VERSION:-0.0.0}"
+build="${MAC_APP_BUILD:-0}"
 feed_url="${SPARKLE_FEED_URL:-https://github.com/futo-org/backups/releases/download/macos-appcast/appcast.xml}"
 /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString $version" "$plist"
-/usr/libexec/PlistBuddy -c "Set :CFBundleVersion $version" "$plist"
+/usr/libexec/PlistBuddy -c "Set :CFBundleVersion $build" "$plist"
 if /usr/libexec/PlistBuddy -c "Print :SUFeedURL" "$plist" >/dev/null 2>&1; then
   /usr/libexec/PlistBuddy -c "Set :SUFeedURL $feed_url" "$plist"
 else

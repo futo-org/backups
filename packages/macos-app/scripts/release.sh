@@ -7,6 +7,17 @@ if [ $# -ne 1 ] || [ -z "${1:-}" ]; then
 fi
 version=$1
 
+if ! [[ $version =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+  echo "version must be MAJOR.MINOR.PATCH" >&2
+  exit 1
+fi
+IFS=. read -r major minor patch <<< "$version"
+if [ "$((10#$minor))" -ge 1000 ] || [ "$((10#$patch))" -ge 1000 ]; then
+  echo "minor and patch must be less than 1000" >&2
+  exit 1
+fi
+build=$((10#$major * 1000000 + 10#$minor * 1000 + 10#$patch))
+
 package=$(cd "$(dirname "$0")/.." && pwd)
 
 if [ -z "${SPARKLE_PUBLIC_KEY:-}" ]; then
@@ -21,13 +32,10 @@ if [ -z "${DOWNLOAD_URL_PREFIX:-}" ]; then
   echo "DOWNLOAD_URL_PREFIX is required" >&2
   exit 1
 fi
-case "$DOWNLOAD_URL_PREFIX" in
-  */) ;;
-  *)
-    echo "DOWNLOAD_URL_PREFIX must end with /" >&2
-    exit 1
-    ;;
-esac
+if ! [[ $DOWNLOAD_URL_PREFIX =~ ^https?://[A-Za-z0-9._~:/%-]+/$ ]]; then
+  echo "DOWNLOAD_URL_PREFIX must be an http(s) URL ending with / containing only URL-safe characters" >&2
+  exit 1
+fi
 
 notary_set=0
 for name in NOTARY_KEY_PATH NOTARY_KEY_ID NOTARY_ISSUER; do
@@ -37,6 +45,12 @@ for name in NOTARY_KEY_PATH NOTARY_KEY_ID NOTARY_ISSUER; do
 done
 if [ "$notary_set" -ne 0 ] && [ "$notary_set" -ne 3 ]; then
   echo "NOTARY_KEY_PATH, NOTARY_KEY_ID and NOTARY_ISSUER must all be set or all be unset" >&2
+  exit 1
+fi
+
+derived_key=$(printf '%s' "$SPARKLE_PRIVATE_KEY" | swift "$package/scripts/sparkle-key.swift" public)
+if [ "$derived_key" != "$SPARKLE_PUBLIC_KEY" ]; then
+  echo "SPARKLE_PUBLIC_KEY does not match SPARKLE_PRIVATE_KEY" >&2
   exit 1
 fi
 
@@ -52,7 +66,7 @@ trap 'rm -rf "$work"' EXIT
 
 "$package/scripts/build-helpers.sh" "$work/helpers"
 
-app=$(cd "$package" && UNIVERSAL=1 HELPERS_DIR="$work/helpers" MAC_APP_VERSION="$version" scripts/bundle.sh |
+app=$(cd "$package" && UNIVERSAL=1 HELPERS_DIR="$work/helpers" MAC_APP_VERSION="$version" MAC_APP_BUILD="$build" scripts/bundle.sh |
   tee /dev/stderr | tail -n 1)
 
 if [ "$notary_set" -eq 3 ]; then
@@ -80,6 +94,12 @@ if [ -z "$sig" ] || [ -z "$length" ]; then
   exit 1
 fi
 
+bundled_key=$(/usr/libexec/PlistBuddy -c "Print :SUPublicEDKey" "$app/Contents/Info.plist") || {
+  echo "SUPublicEDKey missing from $app/Contents/Info.plist" >&2
+  exit 1
+}
+swift "$package/scripts/sparkle-key.swift" verify "$zip" "$sig" "$bundled_key"
+
 pub_date=$(LC_ALL=C date -u "+%a, %d %b %Y %H:%M:%S +0000")
 appcast="$out_dir/appcast.xml"
 cat >"$appcast" <<EOF
@@ -90,7 +110,7 @@ cat >"$appcast" <<EOF
     <item>
       <title>Version $version</title>
       <pubDate>$pub_date</pubDate>
-      <sparkle:version>$version</sparkle:version>
+      <sparkle:version>$build</sparkle:version>
       <sparkle:shortVersionString>$version</sparkle:shortVersionString>
       <sparkle:minimumSystemVersion>15.0</sparkle:minimumSystemVersion>
       <enclosure url="${DOWNLOAD_URL_PREFIX}FUTO-Backups-$version.zip" length="$length" type="application/octet-stream" sparkle:edSignature="$sig"/>
@@ -98,6 +118,11 @@ cat >"$appcast" <<EOF
   </channel>
 </rss>
 EOF
+
+if ! xmllint --noout "$appcast"; then
+  echo "appcast is not well-formed XML" >&2
+  exit 1
+fi
 
 printf 'zip: %s\n' "$zip"
 printf 'appcast: %s\n' "$appcast"

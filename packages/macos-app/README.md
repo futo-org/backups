@@ -30,6 +30,9 @@ universal app, signs, notarizes and attaches `FUTO-Backups-<version>.zip` to tha
 `appcast.xml` on the rolling `macos-appcast` release — the feed at
 `https://github.com/futo-org/backups/releases/download/macos-appcast/appcast.xml`.
 
+Release versions must be plain `MAJOR.MINOR.PATCH`: `CFBundleVersion` is `MAJOR*1000000+MINOR*1000+PATCH`, and a
+published zip is never replaced.
+
 Configure as repository secrets: `MACOS_CERTIFICATE_P12` (base64 Developer ID certificate),
 `MACOS_CERTIFICATE_PASSWORD`, `MACOS_SIGNING_IDENTITY`, `APPLE_NOTARY_KEY_P8` (base64 notary API key),
 `APPLE_NOTARY_KEY_ID`, `APPLE_NOTARY_ISSUER`, `SPARKLE_PRIVATE_KEY` (base64 Ed25519 seed); and as a repository
