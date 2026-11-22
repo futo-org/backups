@@ -71,7 +71,7 @@ jobs:
           # A download failure just means no macos-appcast release exists yet,
           # i.e. this would be the first macOS release.
           if gh release download macos-appcast -p appcast.xml -D "$RUNNER_TEMP/feed"; then
-            previous=$(sed -n 's:.*<sparkle:shortVersionString>\(.*\)</sparkle:shortVersionString>.*:\1:p' "$RUNNER_TEMP/feed/appcast.xml" | head -n 1)
+            previous=$(sed -n 's|.*<sparkle:shortVersionString>\([^<]*\)</sparkle:shortVersionString>.*|\1|p' "$RUNNER_TEMP/feed/appcast.xml" | head -n 1)
             if [ -n "$previous" ] && git rev-parse -q --verify "refs/tags/v${previous}" >/dev/null &&
               git diff --quiet "v${previous}" "$TAG" -- packages/macos-app; then
               echo "run=false" >> "$GITHUB_OUTPUT"
