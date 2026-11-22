@@ -47,6 +47,9 @@ final class AppModel {
   private var loginGeneration = 0
   private var operationTask: Task<Void, Never>?
   private var pendingRecoveryKey: String?
+  private var sessionToken: String?
+  private var sessionGeneration = 0
+  private var onboardingGeneration = 0
 
   init() {
     let home = NSHomeDirectory()
@@ -100,7 +103,9 @@ final class AppModel {
     scheduler = Scheduler(model: self)
     scheduler?.start()
     Task { @MainActor in
-      hasSession = ((try? await vault.get(.accessToken)) ?? nil) != nil
+      let storedToken: String? = (try? await vault.get(.accessToken)) ?? nil
+      hasSession = storedToken != nil
+      sessionToken = storedToken
       hasMasterKey = ((try? await engine?.storedMasterKey()) ?? nil) != nil
       signedIn = hasSession && config.repositoryId != nil && config.recoveryKeyConfirmedAt != nil
       if hasSession && isRecoveringLostKey {
@@ -133,7 +138,8 @@ final class AppModel {
 
   func tick() {
     recomputeNextRun()
-    guard engine != nil, hasSession, config.repositoryId != nil, !config.folders.isEmpty, operationTask == nil
+    guard engine != nil, hasSession, signedIn, config.repositoryId != nil, !config.folders.isEmpty,
+      operationTask == nil
     else { return }
     if config.scheduleReference == nil {
       config.scheduleAnchor = Date()
@@ -170,6 +176,11 @@ final class AppModel {
           authorization, connectionType: "macos", connectionName: self.config.host)
         guard generation == self.loginGeneration else { return }
         try await self.vault.set(token, for: .accessToken)
+        guard generation == self.loginGeneration else {
+          _ = try? await self.vault.delete(.accessToken, ifEquals: token)
+          return
+        }
+        self.sessionToken = token
         self.hasSession = true
         self.login = .finishing
         let accountClient = YuccaClient(apiRoot: server.apiRoot, transport: self.transport, accessToken: token)
@@ -200,17 +211,25 @@ final class AppModel {
 
   func showRecoveryKeyStep(_ step: RecoveryKeyStep) {
     guard step != .importKey || canImportRecoveryKey else { return }
+    onboardingGeneration += 1
+    pendingRecoveryKey = nil
     recoveryKeyStep = step
   }
 
   func confirmRecoveryKey(_ input: String) async -> Bool {
-    guard let key = await recoveryKey(), RepositoryKeys.matches(input, masterKey: key) else { return false }
+    onboardingGeneration += 1
+    let generation = onboardingGeneration
+    guard let key = await recoveryKey() else { return false }
+    guard generation == onboardingGeneration, hasSession else { return false }
+    guard RepositoryKeys.matches(input, masterKey: key) else { return false }
     hasMasterKey = true
     markRecoveryKeyConfirmed()
     return true
   }
 
   func importRecoveryKey(_ input: String) async -> String? {
+    onboardingGeneration += 1
+    let generation = onboardingGeneration
     guard canImportRecoveryKey else { return "This Mac already has a recovery key." }
     guard let engine else { return missingHelperText ?? "Setup incomplete" }
     guard let normalized = RepositoryKeys.normalizedMasterKey(input) else {
@@ -218,13 +237,16 @@ final class AppModel {
     }
     if isRecoveringLostKey {
       do {
-        guard
-          try await engine.verifyMasterKey(normalized, config: config, repositoryId: config.repositoryId!)
-        else {
+        let verified = try await engine.verifyMasterKey(
+          normalized, config: config, repositoryId: config.repositoryId!)
+        guard generation == onboardingGeneration, hasSession else { return nil }
+        guard verified else {
           return "That key doesn't open this Mac's backup."
         }
         try await engine.importMasterKey(normalized)
+        guard generation == onboardingGeneration, hasSession else { return nil }
       } catch {
+        guard generation == onboardingGeneration, hasSession else { return nil }
         return message(for: error)
       }
       hasMasterKey = true
@@ -233,8 +255,11 @@ final class AppModel {
     }
     do {
       let repositories = try await engine.macRepositories(config: config)
+      guard generation == onboardingGeneration, hasSession else { return nil }
       if repositories.isEmpty {
+        guard config.repositoryId == nil else { return nil }
         try await engine.importMasterKey(normalized)
+        guard generation == onboardingGeneration, hasSession else { return nil }
         hasMasterKey = true
         markRecoveryKeyConfirmed()
         return nil
@@ -243,19 +268,26 @@ final class AppModel {
       recoveryKeyStep = .chooseRepository(repositories)
       return nil
     } catch {
+      guard generation == onboardingGeneration, hasSession else { return nil }
       return message(for: error)
     }
   }
 
   func chooseRepository(_ repository: RemoteRepository) async -> String? {
+    onboardingGeneration += 1
+    let generation = onboardingGeneration
     guard let engine else { return missingHelperText ?? "Setup incomplete" }
     guard let key = pendingRecoveryKey else { return "No recovery key to use." }
     do {
-      guard try await engine.verifyMasterKey(key, config: config, repositoryId: repository.id) else {
+      let verified = try await engine.verifyMasterKey(key, config: config, repositoryId: repository.id)
+      guard generation == onboardingGeneration, hasSession else { return nil }
+      guard verified else {
         return "This backup uses a different recovery key."
       }
       try await engine.importMasterKey(key)
+      guard generation == onboardingGeneration, hasSession else { return nil }
     } catch {
+      guard generation == onboardingGeneration, hasSession else { return nil }
       return message(for: error)
     }
     hasMasterKey = true
@@ -271,11 +303,15 @@ final class AppModel {
   }
 
   func startNewBackupWithPendingKey() async -> String? {
+    onboardingGeneration += 1
+    let generation = onboardingGeneration
     guard let engine else { return missingHelperText ?? "Setup incomplete" }
     guard let key = pendingRecoveryKey else { return "No recovery key to use." }
     do {
       try await engine.importMasterKey(key)
+      guard generation == onboardingGeneration, hasSession else { return nil }
     } catch {
+      guard generation == onboardingGeneration, hasSession else { return nil }
       return message(for: error)
     }
     hasMasterKey = true
@@ -293,6 +329,12 @@ final class AppModel {
   private func continueSetup() {
     if isRecoveringLostKey {
       recoveryKeyStep = .importKey
+      return
+    }
+    if config.repositoryId == nil && !hasMasterKey {
+      config.recoveryKeyConfirmedAt = nil
+      saveConfig()
+      recoveryKeyStep = .save
       return
     }
     guard config.recoveryKeyConfirmedAt != nil else {
@@ -320,6 +362,14 @@ final class AppModel {
       } catch {
         guard generation == self.loginGeneration else { return }
         self.loginTask = nil
+        if (error as? EngineError) == .missingMasterKey {
+          self.hasMasterKey = false
+          self.config.recoveryKeyConfirmedAt = nil
+          self.saveConfig()
+          self.recoveryKeyStep = .save
+          self.login = .idle
+          return
+        }
         self.login = .failed(self.message(for: error))
       }
     }
@@ -335,6 +385,11 @@ final class AppModel {
 
   func logout() {
     let serverURL = config.serverURL
+    let token = sessionToken
+    sessionToken = nil
+    sessionGeneration += 1
+    onboardingGeneration += 1
+    operationTask?.cancel()
     account = nil
     snapshots = []
     signedIn = false
@@ -347,12 +402,12 @@ final class AppModel {
     loginTask = nil
     login = .idle
     Task {
-      let token = try? await self.vault.get(.accessToken)
-      try? await self.vault.delete(.accessToken)
-      guard let token else { return }
-      guard let server = try? await self.discovery.resolve(serverURL) else { return }
-      let client = YuccaClient(apiRoot: server.apiRoot, transport: self.transport, accessToken: token)
-      try? await client.logout()
+      if let token {
+        _ = try? await self.vault.delete(.accessToken, ifEquals: token)
+        guard let server = try? await self.discovery.resolve(serverURL) else { return }
+        let client = YuccaClient(apiRoot: server.apiRoot, transport: self.transport, accessToken: token)
+        try? await client.logout()
+      }
     }
   }
 
@@ -400,6 +455,10 @@ final class AppModel {
       lastError = "Not logged in"
       return
     }
+    guard signedIn else {
+      lastError = "Finish setting up FUTO Backups first"
+      return
+    }
     guard config.repositoryId != nil else {
       lastError = "No repository yet"
       return
@@ -410,14 +469,19 @@ final class AppModel {
     }
     guard let engine else { return }
     let configSnapshot = config
+    let generation = sessionGeneration
     activity = .preparing
     operationTask = Task {
       do {
         let record = try await engine.backup(config: configSnapshot) { activity in
           Task { @MainActor in
-            guard self.operationTask != nil else { return }
+            guard self.operationTask != nil, generation == self.sessionGeneration else { return }
             self.activity = activity
           }
+        }
+        guard generation == self.sessionGeneration else {
+          self.finishOperation()
+          return
         }
         self.config.lastRun = record
         self.saveConfig()
@@ -428,6 +492,10 @@ final class AppModel {
         self.recomputeNextRun()
         await self.refreshSnapshots()
       } catch {
+        guard generation == self.sessionGeneration else {
+          self.finishOperation()
+          return
+        }
         self.finishOperation()
         self.lastError = self.message(for: error)
       }
@@ -447,11 +515,16 @@ final class AppModel {
       lastError = missingHelperText
       return
     }
+    guard signedIn else {
+      lastError = "Finish setting up FUTO Backups first"
+      return
+    }
     guard config.repositoryId != nil else {
       lastError = "No repository yet"
       return
     }
     let configSnapshot = config
+    let generation = sessionGeneration
     activity = .restoring
     restoredFolder = nil
     operationTask = Task {
@@ -459,13 +532,21 @@ final class AppModel {
         try await engine.restore(config: configSnapshot, snapshotId: snapshot.id, target: url, include: []) {
           activity in
           Task { @MainActor in
-            guard self.operationTask != nil else { return }
+            guard self.operationTask != nil, generation == self.sessionGeneration else { return }
             self.activity = activity
           }
+        }
+        guard generation == self.sessionGeneration else {
+          self.finishOperation()
+          return
         }
         self.finishOperation()
         self.restoredFolder = snapshot.paths.first.map { url.appendingPathComponent($0) } ?? url
       } catch {
+        guard generation == self.sessionGeneration else {
+          self.finishOperation()
+          return
+        }
         self.finishOperation()
         self.lastError = self.message(for: error)
       }
@@ -474,11 +555,15 @@ final class AppModel {
 
   func refreshSnapshots() async {
     guard let engine, config.repositoryId != nil else { return }
+    let generation = sessionGeneration
     do {
-      snapshots = try await engine.snapshots(config: config)
+      let result = try await engine.snapshots(config: config)
+      guard generation == sessionGeneration else { return }
+      snapshots = result
     } catch is CancellationError {
       return
     } catch {
+      guard generation == sessionGeneration else { return }
       lastError = message(for: error)
     }
   }
@@ -492,12 +577,16 @@ final class AppModel {
   }
 
   private func refreshAccount() async {
+    let generation = sessionGeneration
     do {
       let client = try await makeAPIClient()
-      account = try await client.me()
+      let info = try await client.me()
+      guard generation == sessionGeneration else { return }
+      account = info
     } catch is CancellationError {
       return
     } catch {
+      guard generation == sessionGeneration else { return }
       lastError = message(for: error)
     }
   }
