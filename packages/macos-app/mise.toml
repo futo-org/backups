@@ -1,0 +1,25 @@
+[env]
+# The Command Line Tools toolchain intermittently fails to load the Swift Testing macro plugin; Xcode's does not.
+DEVELOPER_DIR = "/Applications/Xcode.app/Contents/Developer"
+
+# Task names carry a mac: prefix so the root build/test/check aggregates (run on Linux CI) never match them.
+
+[tasks."mac:build"]
+description = "Build the macOS app (debug)"
+run = "swift build"
+
+[tasks."mac:test"]
+description = "Run the macOS app unit tests"
+run = "swift test"
+
+[tasks."mac:lint"]
+description = "Lint Swift sources"
+run = "swift format lint --strict --recursive Package.swift Sources Tests"
+
+[tasks."mac:format"]
+description = "Format Swift sources in place"
+run = "swift format --in-place --recursive Package.swift Sources Tests"
+
+[tasks."mac:check"]
+description = "Lint, build and test the macOS app"
+run = [{ task = "mac:lint" }, { task = "mac:build" }, { task = "mac:test" }]
