@@ -212,6 +212,45 @@ private let backupLines = [statusLineOne, statusLineTwo, summaryLine]
   #expect(await fixture.api.calls.last == .end(repositoryId: "repo-1", status: .complete, durationMs: 1000))
 }
 
+@Test func backupForgetThrowKeepsCompleteWithPruneMessage() async throws {
+  let fixture = makeFixture()
+  fixture.restic.set(ResticScript(lines: [summaryLine]), for: "backup")
+  fixture.restic.set(ResticScript(stdout: statsStdout), for: "stats")
+  fixture.restic.set(ResticScript(error: CocoaError(.fileNoSuchFile)), for: "forget")
+  let engine = BackupEngine(environment: fixture.environment)
+  let record = try await engine.backup(config: testConfig()) { _ in }
+  #expect(record.status == .complete)
+  let message = try #require(record.message)
+  #expect(message.hasPrefix("Prune failed: "))
+  #expect(fixture.restic.commands() == ["version", "unlock", "backup", "forget", "stats"])
+  #expect(
+    await fixture.api.calls == [
+      .start(repositoryId: "repo-1"),
+      .size(repositoryId: "repo-1", sizeBytes: 4321),
+      .end(repositoryId: "repo-1", status: .complete, durationMs: 1000),
+    ])
+  #expect(fixture.proxy.stopCount == 1)
+}
+
+@Test func backupForgetThrowCancellationProducesCancelledRecord() async throws {
+  let fixture = makeFixture()
+  fixture.restic.set(ResticScript(lines: [summaryLine]), for: "backup")
+  fixture.restic.set(ResticScript(error: CancellationError()), for: "forget")
+  let engine = BackupEngine(environment: fixture.environment)
+  let log = ActivityLog()
+  let record = try await engine.backup(config: testConfig()) { log.record($0) }
+  #expect(record.status == .cancelled)
+  #expect(record.message == nil)
+  #expect(log.all == [.preparing, .pruning])
+  #expect(fixture.restic.commands() == ["version", "unlock", "backup", "forget"])
+  #expect(
+    await fixture.api.calls == [
+      .start(repositoryId: "repo-1"),
+      .end(repositoryId: "repo-1", status: .cancelled, durationMs: 1000),
+    ])
+  #expect(fixture.proxy.stopCount == 1)
+}
+
 @Test func backupCancellationProducesCancelledRecord() async throws {
   let fixture = makeFixture()
   fixture.restic.set(ResticScript(error: CancellationError()), for: "backup")

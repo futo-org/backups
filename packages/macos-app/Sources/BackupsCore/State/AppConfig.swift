@@ -32,6 +32,9 @@ public struct AppConfig: Codable, Equatable, Sendable {
   public var host: String
   public var repositoryId: String?
   public var lastRun: RunRecord?
+  public var scheduleAnchor: Date?
+
+  public var scheduleReference: Date? { lastRun?.startedAt ?? scheduleAnchor }
 
   public static let devServerURL: URL = URL(string: "http://localhost:8080/.well-known/yucca.json")!
   public static let productionServerURL: URL = URL(string: "https://meta.futo.cloud/.well-known/yucca.json")!
@@ -55,7 +58,8 @@ public struct AppConfig: Codable, Equatable, Sendable {
       throttle: .unthrottled,
       host: host,
       repositoryId: nil,
-      lastRun: nil
+      lastRun: nil,
+      scheduleAnchor: nil
     )
   }
 }

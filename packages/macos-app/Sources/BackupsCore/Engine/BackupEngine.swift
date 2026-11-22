@@ -115,14 +115,21 @@ public actor BackupEngine {
         }
         if status == .complete {
           onActivity(.pruning)
-          let forget = try await environment.restic.run(
-            ResticCommand.forget(session.context, host: config.host, keepWithin: Self.keepWithin),
-            onLine: { _ in })
-          if forget.exitCode != ResticExitCode.success {
-            message =
-              "Prune failed: "
-              + ResticOutput.errorMessage(
-                stderr: forget.stderr, exitCode: forget.exitCode)
+          do {
+            let forget = try await environment.restic.run(
+              ResticCommand.forget(session.context, host: config.host, keepWithin: Self.keepWithin),
+              onLine: { _ in })
+            if forget.exitCode != ResticExitCode.success {
+              message =
+                "Prune failed: "
+                + ResticOutput.errorMessage(
+                  stderr: forget.stderr, exitCode: forget.exitCode)
+            }
+          } catch {
+            if error is CancellationError {
+              throw error
+            }
+            message = "Prune failed: \(String(describing: error))"
           }
         }
         if status == .complete || status == .warn {

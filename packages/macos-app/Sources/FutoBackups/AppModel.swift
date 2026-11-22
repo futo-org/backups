@@ -81,7 +81,7 @@ final class AppModel {
     self.missingHelperText = missingHelperText
     config = loaded
     lastError = loadFailure
-    nextRun = loaded.schedule.nextRun(after: loaded.lastRun?.startedAt, now: .now, calendar: .current)
+    nextRun = loaded.schedule.nextRun(after: loaded.scheduleReference, now: .now, calendar: .current)
     scheduler = Scheduler(model: self)
     scheduler?.start()
     if isLoggedIn {
@@ -114,7 +114,13 @@ final class AppModel {
     recomputeNextRun()
     guard engine != nil, isLoggedIn, config.repositoryId != nil, !config.folders.isEmpty, operationTask == nil
     else { return }
-    if config.schedule.isDue(lastRun: config.lastRun?.startedAt, now: .now, calendar: .current) {
+    if config.scheduleReference == nil {
+      config.scheduleAnchor = Date()
+      saveConfig()
+      recomputeNextRun()
+      return
+    }
+    if config.schedule.isDue(lastRun: config.scheduleReference, now: .now, calendar: .current) {
       backupNow()
     }
   }
@@ -191,6 +197,9 @@ final class AppModel {
     for path in urls.map(\.path) where !config.folders.contains(path) {
       config.folders.append(path)
     }
+    if config.scheduleAnchor == nil {
+      config.scheduleAnchor = Date()
+    }
     saveConfig()
   }
 
@@ -201,6 +210,7 @@ final class AppModel {
 
   func setSchedule(_ schedule: Schedule) {
     config.schedule = schedule
+    config.scheduleAnchor = Date()
     saveConfig()
     recomputeNextRun()
   }
@@ -344,7 +354,7 @@ final class AppModel {
   }
 
   private func recomputeNextRun() {
-    nextRun = config.schedule.nextRun(after: config.lastRun?.startedAt, now: .now, calendar: .current)
+    nextRun = config.schedule.nextRun(after: config.scheduleReference, now: .now, calendar: .current)
   }
 
   private func message(for error: Error) -> String {

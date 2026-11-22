@@ -24,6 +24,7 @@ func defaults() {
   #expect(config.host == "book-pro")
   #expect(config.repositoryId == nil)
   #expect(config.lastRun == nil)
+  #expect(config.scheduleAnchor == nil)
 }
 
 @Test("AppConfig round trips through JSON with a lastRun")
@@ -71,4 +72,54 @@ func roundTripBareRunRecord() throws {
   #expect(decoded.filesNew == nil)
   #expect(decoded.dataAdded == nil)
   #expect(decoded.message == nil)
+}
+
+@Test("scheduleReference prefers lastRun then anchor then nil")
+func scheduleReferencePrecedence() {
+  var config = AppConfig.defaults(host: "book-pro", home: "/Users/test")
+  #expect(config.scheduleReference == nil)
+  let anchor = Date(timeIntervalSince1970: 1_700_000_000)
+  config.scheduleAnchor = anchor
+  #expect(config.scheduleReference == anchor)
+  config.lastRun = RunRecord(
+    startedAt: Date(timeIntervalSince1970: 1_700_003_600),
+    finishedAt: Date(timeIntervalSince1970: 1_700_003_900),
+    status: .complete
+  )
+  #expect(config.scheduleReference == Date(timeIntervalSince1970: 1_700_003_600))
+}
+
+@Test("config decodes without a scheduleAnchor key")
+func decodeWithoutScheduleAnchor() throws {
+  var config = AppConfig.defaults(host: "book-pro", home: "/Users/test")
+  config.scheduleAnchor = Date(timeIntervalSince1970: 1_700_000_000)
+  let encoder = JSONEncoder()
+  encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
+  encoder.dateEncodingStrategy = .iso8601
+  let object = try #require(
+    try JSONSerialization.jsonObject(with: encoder.encode(config)) as? [String: Any])
+  var stripped = object
+  stripped.removeValue(forKey: "scheduleAnchor")
+  let decoder = JSONDecoder()
+  decoder.dateDecodingStrategy = .iso8601
+  let decoded = try decoder.decode(AppConfig.self, from: JSONSerialization.data(withJSONObject: stripped))
+  #expect(decoded.scheduleAnchor == nil)
+  #expect(decoded.scheduleReference == nil)
+  var expected = config
+  expected.scheduleAnchor = nil
+  #expect(decoded == expected)
+}
+
+@Test("anchoring the schedule defers the first run to the slot after the anchor")
+func anchorSemantics() throws {
+  var calendar = Calendar(identifier: .gregorian)
+  calendar.timeZone = try #require(TimeZone(identifier: "Europe/Paris"))
+  let anchor = try #require(
+    calendar.date(from: DateComponents(year: 2026, month: 6, day: 10, hour: 9, minute: 0)))
+  let noon = try #require(
+    calendar.date(from: DateComponents(year: 2026, month: 6, day: 10, hour: 12, minute: 0)))
+  let daily = Schedule.daily(hour: 12, minute: 0)
+  #expect(!daily.isDue(lastRun: anchor, now: anchor.addingTimeInterval(60), calendar: calendar))
+  #expect(daily.isDue(lastRun: anchor, now: noon, calendar: calendar))
+  #expect(Schedule.hourly.isDue(lastRun: noon, now: noon.addingTimeInterval(3660), calendar: calendar))
 }
