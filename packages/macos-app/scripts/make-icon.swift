@@ -5,23 +5,21 @@ struct IconView: View {
   var body: some View {
     ZStack {
       RoundedRectangle(cornerRadius: 185, style: .continuous)
-        .fill(
-          LinearGradient(
-            colors: [Color(red: 0.36, green: 0.42, blue: 1.0), Color(red: 0.63, green: 0.37, blue: 1.0)],
-            startPoint: .topLeading, endPoint: .bottomTrailing)
-        )
+        .fill(Color(red: 0.259, green: 0.349, blue: 0.722))
         .overlay(
           RoundedRectangle(cornerRadius: 185, style: .continuous)
-            .fill(
-              LinearGradient(
-                colors: [.white.opacity(0.16), .clear], startPoint: .top, endPoint: .center))
+            .fill(LinearGradient(colors: [.white.opacity(0.1), .clear], startPoint: .top, endPoint: .bottom))
         )
         .frame(width: 824, height: 824)
-        .shadow(color: .black.opacity(0.3), radius: 20, y: 12)
-      Image(systemName: "lock.icloud.fill")
-        .font(.system(size: 420, weight: .semibold))
-        .foregroundStyle(.white)
-        .shadow(color: .black.opacity(0.18), radius: 10, y: 6)
+        .shadow(color: .black.opacity(0.28), radius: 20, y: 12)
+      ZStack {
+        Image(systemName: "icloud")
+          .font(.system(size: 500, weight: .bold))
+        Image(systemName: "arrow.triangle.2.circlepath")
+          .font(.system(size: 250, weight: .black))
+          .offset(x: 4, y: 38)
+      }
+      .foregroundStyle(.white)
     }
     .frame(width: 1024, height: 1024)
   }

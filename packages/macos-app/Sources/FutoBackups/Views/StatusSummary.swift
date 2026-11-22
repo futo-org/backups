@@ -26,22 +26,22 @@ struct StatusSummary {
       var parts = ["\(Format.bytes(progress.bytesDone)) of \(Format.bytes(progress.totalBytes))"]
       if let seconds = progress.secondsRemaining { parts.append(Format.duration(seconds)) }
       self.init(
-        title: "Backing up", subtitle: parts.joined(separator: " · "), symbol: "arrow.up", tint: Brand.indigo,
+        title: "Backing up", subtitle: parts.joined(separator: " · "), symbol: "arrow.up", tint: Brand.blue,
         progress: progress.percentDone, action: .cancel, menuBarSymbol: "arrow.clockwise.icloud")
       return
     case .preparing:
       self.init(
         title: "Preparing backup", subtitle: "Looking for changes in your folders…", symbol: "magnifyingglass",
-        tint: Brand.indigo, busy: true, action: .cancel, menuBarSymbol: "arrow.clockwise.icloud")
+        tint: Brand.blue, busy: true, action: .cancel, menuBarSymbol: "arrow.clockwise.icloud")
       return
     case .pruning:
       self.init(
         title: "Tidying up", subtitle: "Removing snapshots older than 60 days…", symbol: "sparkles",
-        tint: Brand.indigo, busy: true, action: .none, menuBarSymbol: "arrow.clockwise.icloud")
+        tint: Brand.blue, busy: true, action: .none, menuBarSymbol: "arrow.clockwise.icloud")
       return
     case .restoring:
       self.init(
-        title: "Restoring", subtitle: "Bringing your files back…", symbol: "arrow.down", tint: Brand.indigo,
+        title: "Restoring", subtitle: "Bringing your files back…", symbol: "arrow.down", tint: Brand.blue,
         busy: true, action: .cancel, menuBarSymbol: "arrow.down.circle")
       return
     case nil:
@@ -50,7 +50,7 @@ struct StatusSummary {
     if model.config.folders.isEmpty {
       self.init(
         title: "Choose what to back up", subtitle: "Add the folders you want to keep safe.",
-        symbol: "folder.badge.plus", tint: Brand.indigo, action: .addFolders, menuBarSymbol: "icloud")
+        symbol: "folder.badge.plus", tint: Brand.blue, action: .addFolders, menuBarSymbol: "icloud")
       return
     }
     guard let lastRun = model.config.lastRun else {
@@ -58,7 +58,7 @@ struct StatusSummary {
       self.init(
         title: "Ready for your first backup",
         subtitle: "\(count) \(count == 1 ? "folder" : "folders") selected. Everything is encrypted on this Mac.",
-        symbol: "icloud.and.arrow.up", tint: Brand.indigo, action: .backUp, menuBarSymbol: "icloud")
+        symbol: "icloud.and.arrow.up", tint: Brand.blue, action: .backUp, menuBarSymbol: "icloud")
       return
     }
     let when = Format.relative(lastRun.finishedAt, inSentence: true)

@@ -8,16 +8,12 @@ struct WelcomeView: View {
 
   var body: some View {
     ZStack {
-      RadialGradient(
-        colors: [Brand.violet.opacity(0.22), .clear], center: .top, startRadius: 0, endRadius: 520
-      )
-      .ignoresSafeArea()
+      OnboardingBackground()
       VStack(spacing: 0) {
         Spacer(minLength: 24)
         AppGlyph(size: 96)
           .padding(.bottom, 26)
-        Text("FUTO Backups")
-          .font(.system(size: 34, weight: .bold, design: .rounded))
+        Wordmark(height: 40)
         Text("Automatic, end-to-end encrypted backups of the folders you care about.")
           .font(.system(size: 15))
           .foregroundStyle(.secondary)
@@ -127,7 +123,7 @@ struct DeviceCode: View {
                 .fill(Color.primary.opacity(0.06))
                 .overlay(
                   RoundedRectangle(cornerRadius: 10, style: .continuous)
-                    .strokeBorder(Brand.indigo.opacity(0.35), lineWidth: 1)))
+                    .strokeBorder(Brand.blue.opacity(0.35), lineWidth: 1)))
         }
       }
     }

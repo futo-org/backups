@@ -123,3 +123,14 @@ func anchorSemantics() throws {
   #expect(daily.isDue(lastRun: anchor, now: noon, calendar: calendar))
   #expect(Schedule.hourly.isDue(lastRun: noon, now: noon.addingTimeInterval(3660), calendar: calendar))
 }
+
+@Test func configWithoutRecoveryKeyConfirmationDecodesAsUnconfirmed() throws {
+  let config = AppConfig.defaults(host: "Mac", home: "/Users/test")
+  let encoder = JSONEncoder()
+  var object = try #require(JSONSerialization.jsonObject(with: encoder.encode(config)) as? [String: Any])
+  object.removeValue(forKey: "recoveryKeyConfirmedAt")
+  let legacy = try JSONSerialization.data(withJSONObject: object)
+  let decoded = try JSONDecoder().decode(AppConfig.self, from: legacy)
+  #expect(decoded.recoveryKeyConfirmedAt == nil)
+  #expect(decoded == config)
+}

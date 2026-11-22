@@ -10,7 +10,7 @@ struct FutoBackupsApp: App {
     Window("FUTO Backups", id: "main") {
       MainWindow()
         .environment(model)
-        .tint(Brand.indigo)
+        .tint(Brand.blue)
     }
     .windowStyle(.hiddenTitleBar)
     .windowToolbarStyle(.unified)
@@ -18,7 +18,7 @@ struct FutoBackupsApp: App {
     MenuBarExtra {
       MenuBarContent()
         .environment(model)
-        .tint(Brand.indigo)
+        .tint(Brand.blue)
     } label: {
       Image(systemName: StatusSummary(model: model).menuBarSymbol)
     }

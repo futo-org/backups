@@ -55,11 +55,11 @@ struct FoldersView: View {
     .padding(.vertical, 48)
     .background(
       RoundedRectangle(cornerRadius: 16, style: .continuous)
-        .fill(Brand.indigo.opacity(dropTargeted ? 0.12 : 0.04))
+        .fill(Brand.blue.opacity(dropTargeted ? 0.12 : 0.04))
         .overlay(
           RoundedRectangle(cornerRadius: 16, style: .continuous)
             .strokeBorder(
-              Brand.indigo.opacity(dropTargeted ? 0.8 : 0.35), style: StrokeStyle(lineWidth: 1.5, dash: [7, 5]))))
+              Brand.blue.opacity(dropTargeted ? 0.8 : 0.35), style: StrokeStyle(lineWidth: 1.5, dash: [7, 5]))))
   }
 
   private var skipped: some View {

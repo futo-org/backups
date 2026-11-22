@@ -82,21 +82,8 @@ struct SettingsView: View {
             systemName: "key.fill", tint: .orange, title: "Recovery key",
             detail: "Your backups are encrypted with this key. Without it, a reinstalled Mac cannot read them.")
           if let recoveryKey {
-            HStack(spacing: 10) {
-              Text(recoveryKey)
-                .font(.system(size: 12, design: .monospaced))
-                .textSelection(.enabled)
-                .lineLimit(2)
-                .padding(10)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .background(
-                  RoundedRectangle(cornerRadius: 8, style: .continuous).fill(Color.primary.opacity(0.06)))
-              Button("Copy") {
-                NSPasteboard.general.clearContents()
-                NSPasteboard.general.setString(recoveryKey, forType: .string)
-              }
-              .buttonStyle(SecondaryButtonStyle())
-            }
+            RecoveryKeyCard(key: recoveryKey)
+            RecoveryKeyActions(key: recoveryKey)
           } else {
             Button("Reveal Recovery Key") {
               Task {

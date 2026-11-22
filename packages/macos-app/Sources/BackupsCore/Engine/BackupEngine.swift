@@ -26,6 +26,13 @@ public actor BackupEngine {
     return generated
   }
 
+  public func importMasterKey(_ input: String) throws {
+    guard let key = RepositoryKeys.normalizedMasterKey(input) else {
+      throw RepositoryKeysError.invalidMasterKey
+    }
+    try environment.secrets.set(key, for: .masterKey)
+  }
+
   public func ensureRepository(config: AppConfig) async throws -> String {
     if running {
       throw EngineError.busy

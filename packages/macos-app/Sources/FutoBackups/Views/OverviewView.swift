@@ -18,7 +18,7 @@ struct OverviewView: View {
       VStack(alignment: .leading, spacing: 18) {
         hero(status)
         HStack(spacing: 14) {
-          StatTile(systemName: "calendar", tint: Brand.indigo, label: "Next backup", value: nextBackup)
+          StatTile(systemName: "calendar", tint: Brand.blue, label: "Next backup", value: nextBackup)
           StatTile(
             systemName: "externaldrive.fill", tint: .teal, label: "Protected",
             value: model.snapshots.first.map { Format.bytes($0.totalBytesProcessed) } ?? "—")

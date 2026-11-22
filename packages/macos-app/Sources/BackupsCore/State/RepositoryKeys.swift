@@ -20,6 +20,25 @@ public enum RepositoryKeys {
     return hex.allSatisfy { $0.hexDigitValue != nil }
   }
 
+  public static func normalizedMasterKey(_ input: String) -> String? {
+    let compact = String(input.filter { !$0.isWhitespace && $0 != "-" }).lowercased()
+    return isValidMasterKey(compact) ? compact : nil
+  }
+
+  public static func matches(_ input: String, masterKey: String) -> Bool {
+    normalizedMasterKey(input) == masterKey.lowercased()
+  }
+
+  public static func displayLines(_ masterKey: String) -> [String] {
+    let characters = Array(masterKey.uppercased())
+    return stride(from: 0, to: characters.count, by: 16).map { lineStart in
+      stride(from: lineStart, to: min(lineStart + 16, characters.count), by: 4).map { groupStart in
+        String(characters[groupStart..<min(groupStart + 4, characters.count)])
+      }
+      .joined(separator: " ")
+    }
+  }
+
   public static func password(masterKey: String, repositoryId: String) throws -> String {
     guard isValidMasterKey(masterKey), let bytes = bytes(fromHex: masterKey) else {
       throw RepositoryKeysError.invalidMasterKey

@@ -2,10 +2,23 @@ import AppKit
 import SwiftUI
 
 enum Brand {
-  static let indigo = Color(red: 0.36, green: 0.42, blue: 1.0)
-  static let violet = Color(red: 0.63, green: 0.37, blue: 1.0)
-  static let gradient = LinearGradient(colors: [indigo, violet], startPoint: .topLeading, endPoint: .bottomTrailing)
-  static let ringGradient = AngularGradient(colors: [indigo, violet, indigo], center: .center)
+  static let blue = Color(
+    nsColor: NSColor(name: nil) { appearance in
+      appearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua
+        ? NSColor(srgbRed: 0.49, green: 0.58, blue: 0.94, alpha: 1)
+        : NSColor(srgbRed: 0.259, green: 0.349, blue: 0.722, alpha: 1)
+    })
+  static let logo = Color(red: 0.259, green: 0.349, blue: 0.722)
+  static let deep = Color(red: 0.2, green: 0.27, blue: 0.6)
+  static let gradient = LinearGradient(
+    colors: [Color(red: 0.34, green: 0.44, blue: 0.84), Color(red: 0.23, green: 0.31, blue: 0.65)],
+    startPoint: .topLeading, endPoint: .bottomTrailing)
+  static let ringGradient = AngularGradient(
+    colors: [
+      Color(red: 0.34, green: 0.44, blue: 0.84), Color(red: 0.45, green: 0.62, blue: 1.0),
+      Color(red: 0.34, green: 0.44, blue: 0.84),
+    ],
+    center: .center)
 }
 
 struct Card<Content: View>: View {
@@ -36,7 +49,7 @@ struct CardBackground: View {
 
 struct IconTile: View {
   let systemName: String
-  var tint: Color = Brand.indigo
+  var tint: Color = Brand.blue
   var size: CGFloat = 28
 
   var body: some View {
@@ -54,16 +67,45 @@ struct AppGlyph: View {
   var size: CGFloat = 88
 
   var body: some View {
-    RoundedRectangle(cornerRadius: size * 0.24, style: .continuous)
-      .fill(Brand.gradient)
+    RoundedRectangle(cornerRadius: size * 0.225, style: .continuous)
+      .fill(Brand.logo)
       .frame(width: size, height: size)
-      .overlay(
-        Image(systemName: "lock.icloud.fill")
-          .font(.system(size: size * 0.46, weight: .semibold))
-          .foregroundStyle(.white)
-          .shadow(color: .black.opacity(0.15), radius: 2, y: 1)
-      )
-      .shadow(color: Brand.violet.opacity(0.35), radius: size * 0.2, y: size * 0.08)
+      .overlay(LogoMark(size: size))
+      .shadow(color: Brand.logo.opacity(0.35), radius: size * 0.18, y: size * 0.07)
+  }
+}
+
+struct LogoMark: View {
+  let size: CGFloat
+
+  var body: some View {
+    ZStack {
+      Image(systemName: "icloud")
+        .font(.system(size: size * 0.55, weight: .bold))
+      Image(systemName: "arrow.triangle.2.circlepath")
+        .font(.system(size: size * 0.275, weight: .black))
+        .offset(x: size * 0.005, y: size * 0.042)
+    }
+    .foregroundStyle(.white)
+  }
+}
+
+struct Wordmark: View {
+  var height: CGFloat = 40
+  @Environment(\.colorScheme) private var colorScheme
+
+  var body: some View {
+    if let image = NSImage(named: colorScheme == .dark ? "Wordmark-dark" : "Wordmark") {
+      Image(nsImage: image)
+        .resizable()
+        .interpolation(.high)
+        .aspectRatio(contentMode: .fit)
+        .frame(height: height)
+        .accessibilityLabel("FUTO Backups")
+    } else {
+      Text("FUTO Backups")
+        .font(.system(size: height * 0.85, weight: .bold, design: .rounded))
+    }
   }
 }
 
@@ -78,7 +120,7 @@ struct PrimaryButtonStyle: ButtonStyle {
       .padding(.horizontal, large ? 26 : 16)
       .padding(.vertical, large ? 11 : 7)
       .background(Capsule().fill(Brand.gradient))
-      .shadow(color: Brand.violet.opacity(configuration.isPressed ? 0.1 : 0.3), radius: 8, y: 3)
+      .shadow(color: Brand.deep.opacity(configuration.isPressed ? 0.1 : 0.3), radius: 8, y: 3)
       .opacity(isEnabled ? (configuration.isPressed ? 0.85 : 1) : 0.45)
       .scaleEffect(configuration.isPressed ? 0.98 : 1)
       .contentShape(Capsule())

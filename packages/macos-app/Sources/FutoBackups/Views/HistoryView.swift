@@ -29,7 +29,7 @@ struct HistoryView: View {
             dismiss: { model.restoredFolder = nil })
         }
         if case .restoring = model.activity {
-          Banner(systemName: "arrow.down.circle.fill", tint: Brand.indigo, text: "Restoring files…") {}
+          Banner(systemName: "arrow.down.circle.fill", tint: Brand.blue, text: "Restoring files…") {}
         }
         if model.snapshots.isEmpty {
           empty
@@ -122,10 +122,10 @@ struct SnapshotRow: View {
           if latest {
             Text("Latest")
               .font(.system(size: 10, weight: .bold))
-              .foregroundStyle(Brand.indigo)
+              .foregroundStyle(Brand.blue)
               .padding(.horizontal, 6)
               .padding(.vertical, 2)
-              .background(Capsule().fill(Brand.indigo.opacity(0.14)))
+              .background(Capsule().fill(Brand.blue.opacity(0.14)))
           }
         }
         Text(

@@ -54,3 +54,37 @@ func invalidMasterKeys(hex: String) {
     _ = try RepositoryKeys.password(masterKey: hex, repositoryId: testVectorRepositoryId)
   }
 }
+
+@Test(
+  "normalizedMasterKey accepts the displayed and pasted forms",
+  arguments: [
+    testVectorMasterKey,
+    testVectorMasterKey.uppercased(),
+    "0011 2233 4455 6677 8899 AABB CCDD EEFF\n0011 2233 4455 6677 8899 AABB CCDD EEFF",
+    "  0011-2233-4455-6677-8899-aabb-ccdd-eeff-0011-2233-4455-6677-8899-aabb-ccdd-eeff  ",
+  ])
+func normalizedMasterKeyAccepts(input: String) {
+  #expect(RepositoryKeys.normalizedMasterKey(input) == testVectorMasterKey)
+  #expect(RepositoryKeys.matches(input, masterKey: testVectorMasterKey))
+}
+
+@Test(
+  "normalizedMasterKey rejects malformed keys",
+  arguments: ["", "0011", String(testVectorMasterKey.dropLast()), String(testVectorMasterKey.dropLast()) + "g"])
+func normalizedMasterKeyRejects(input: String) {
+  #expect(RepositoryKeys.normalizedMasterKey(input) == nil)
+  #expect(!RepositoryKeys.matches(input, masterKey: testVectorMasterKey))
+}
+
+@Test("a different valid key does not match")
+func differentKeyDoesNotMatch() {
+  #expect(!RepositoryKeys.matches(String(repeating: "a", count: 64), masterKey: testVectorMasterKey))
+}
+
+@Test("displayLines splits the key into four lines of four uppercase groups")
+func displayLines() {
+  #expect(
+    RepositoryKeys.displayLines(testVectorMasterKey) == [
+      "0011 2233 4455 6677", "8899 AABB CCDD EEFF", "0011 2233 4455 6677", "8899 AABB CCDD EEFF",
+    ])
+}

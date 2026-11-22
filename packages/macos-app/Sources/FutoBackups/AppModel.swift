@@ -11,6 +11,12 @@ enum LoginState: Equatable {
   case failed(String)
 }
 
+enum RecoveryKeyStep: Equatable {
+  case save
+  case confirm
+  case importKey
+}
+
 @MainActor
 @Observable
 final class AppModel {
@@ -24,6 +30,7 @@ final class AppModel {
   var setupError: String?
   var signedIn = false
   var restoredFolder: URL?
+  var recoveryKeyStep: RecoveryKeyStep?
 
   private let store = ConfigStore.standard()
   private let secrets = KeychainSecretStore()
@@ -85,9 +92,12 @@ final class AppModel {
     config = loaded
     lastError = loadFailure
     nextRun = loaded.schedule.nextRun(after: loaded.scheduleReference, now: .now, calendar: .current)
-    signedIn = isLoggedIn && loaded.repositoryId != nil
+    signedIn = isLoggedIn && loaded.repositoryId != nil && loaded.recoveryKeyConfirmedAt != nil
     scheduler = Scheduler(model: self)
     scheduler?.start()
+    if isLoggedIn && !signedIn {
+      continueSetup()
+    }
     if isLoggedIn {
       Task {
         await self.refreshAccount()
@@ -156,15 +166,10 @@ final class AppModel {
         self.login = .finishing
         let accountClient = YuccaClient(apiRoot: server.apiRoot, transport: self.transport, accessToken: token)
         self.account = try await accountClient.me()
-        let repositoryId = try await engine.ensureRepository(config: self.config)
         guard generation == self.loginGeneration else { return }
-        self.config.repositoryId = repositoryId
-        self.saveConfig()
-        self.login = .idle
-        self.signedIn = true
-        self.recomputeNextRun()
         self.loginTask = nil
-        await self.refreshSnapshots()
+        self.login = .idle
+        self.continueSetup()
       } catch {
         guard generation == self.loginGeneration else { return }
         self.loginTask = nil
@@ -173,6 +178,69 @@ final class AppModel {
         } else {
           self.login = .failed(self.message(for: error))
         }
+      }
+    }
+  }
+
+  var canImportRecoveryKey: Bool {
+    config.repositoryId == nil
+  }
+
+  func showRecoveryKeyStep(_ step: RecoveryKeyStep) {
+    guard step != .importKey || canImportRecoveryKey else { return }
+    recoveryKeyStep = step
+  }
+
+  func confirmRecoveryKey(_ input: String) async -> Bool {
+    guard let key = await recoveryKey(), RepositoryKeys.matches(input, masterKey: key) else { return false }
+    markRecoveryKeyConfirmed()
+    return true
+  }
+
+  func importRecoveryKey(_ input: String) async -> Bool {
+    guard canImportRecoveryKey, let engine else { return false }
+    do {
+      try await engine.importMasterKey(input)
+    } catch {
+      return false
+    }
+    markRecoveryKeyConfirmed()
+    return true
+  }
+
+  private func markRecoveryKeyConfirmed() {
+    config.recoveryKeyConfirmedAt = Date()
+    saveConfig()
+    continueSetup()
+  }
+
+  private func continueSetup() {
+    guard config.recoveryKeyConfirmedAt != nil else {
+      recoveryKeyStep = .save
+      return
+    }
+    recoveryKeyStep = nil
+    guard let engine else {
+      login = .failed(missingHelperText ?? "Setup incomplete")
+      return
+    }
+    login = .finishing
+    let generation = loginGeneration
+    loginTask = Task {
+      do {
+        let repositoryId = try await engine.ensureRepository(config: self.config)
+        guard generation == self.loginGeneration else { return }
+        self.config.repositoryId = repositoryId
+        self.saveConfig()
+        self.loginTask = nil
+        self.login = .idle
+        self.signedIn = true
+        self.recomputeNextRun()
+        await self.refreshSnapshots()
+      } catch {
+        guard generation == self.loginGeneration else { return }
+        self.loginTask = nil
+        self.login = .failed(self.message(for: error))
       }
     }
   }
@@ -192,6 +260,11 @@ final class AppModel {
     snapshots = []
     signedIn = false
     restoredFolder = nil
+    recoveryKeyStep = nil
+    loginGeneration += 1
+    loginTask?.cancel()
+    loginTask = nil
+    login = .idle
     try? secrets.delete(.accessToken)
     guard let token else { return }
     Task {

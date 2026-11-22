@@ -35,6 +35,8 @@ struct MainWindow: View {
           detail
             .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
+      } else if model.recoveryKeyStep != nil {
+        RecoveryKeyOnboarding()
       } else {
         WelcomeView()
       }

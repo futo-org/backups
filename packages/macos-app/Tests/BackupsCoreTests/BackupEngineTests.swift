@@ -26,6 +26,19 @@ private let backupLines = [statusLineOne, statusLineTwo, summaryLine]
   #expect(try await freshEngine.masterKey() == generated)
 }
 
+@Test func importMasterKeyStoresNormalizedKeyAndRejectsInvalid() async throws {
+  let fixture = makeFixture(masterKey: nil)
+  let engine = BackupEngine(environment: fixture.environment)
+  let spaced = RepositoryKeys.displayLines(testMasterKey).joined(separator: "\n")
+  try await engine.importMasterKey(spaced)
+  #expect(try fixture.secrets.get(.masterKey) == testMasterKey.lowercased())
+  #expect(try await engine.masterKey() == testMasterKey.lowercased())
+  await #expect(throws: RepositoryKeysError.invalidMasterKey) {
+    try await engine.importMasterKey("not a key")
+  }
+  #expect(try fixture.secrets.get(.masterKey) == testMasterKey.lowercased())
+}
+
 @Test func ensureRepositoryReturnsExistingIdWithoutCalls() async throws {
   let fixture = makeFixture()
   let engine = BackupEngine(environment: fixture.environment)
