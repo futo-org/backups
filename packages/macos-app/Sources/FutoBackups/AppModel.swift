@@ -51,7 +51,8 @@ final class AppModel {
   private var sessionGeneration = 0
   private var onboardingGeneration = 0
   private let appVersion: String
-  private let bootstrapError: String?
+  private let configLoadFailure: String?
+  private var pendingBootstrapError: String? = nil
 
   init() {
     let home = NSHomeDirectory()
@@ -102,18 +103,24 @@ final class AppModel {
     self.engine = engine
     self.missingHelperText = missingHelperText
     self.appVersion = appVersion
-    self.bootstrapError = loadFailure ?? missingHelperText
+    self.configLoadFailure = loadFailure
+    if let loadFailure {
+      self.pendingBootstrapError =
+        missingHelperText.map { "\(loadFailure); \($0)" } ?? loadFailure
+    }
     config = loaded
     lastError = loadFailure
     nextRun = loaded.schedule.nextRun(after: loaded.scheduleReference, now: .now, calendar: .current)
     scheduler = Scheduler(model: self)
     scheduler?.start()
     Task { @MainActor in
-      let storedToken: String? = (try? await vault.get(.accessToken)) ?? nil
-      hasSession = storedToken != nil
-      sessionToken = storedToken
-      if let bootstrapError {
-        report("Bootstrap error", ["error": .string(bootstrapError)], force: true)
+      if configLoadFailure == nil {
+        let storedToken: String? = (try? await vault.get(.accessToken)) ?? nil
+        hasSession = storedToken != nil
+        sessionToken = storedToken
+        if let missingHelperText {
+          report("Bootstrap error", ["error": .string(missingHelperText)], force: true)
+        }
       }
       hasMasterKey = ((try? await engine?.storedMasterKey()) ?? nil) != nil
       signedIn = hasSession && config.repositoryId != nil && config.recoveryKeyConfirmedAt != nil
@@ -196,6 +203,10 @@ final class AppModel {
         self.account = try await accountClient.me()
         guard generation == self.loginGeneration else { return }
         report("Connected FUTO Backups backend")
+        if let pendingBootstrapError {
+          report("Bootstrap error", ["error": .string(pendingBootstrapError)], force: true)
+          self.pendingBootstrapError = nil
+        }
         self.loginTask = nil
         self.login = .idle
         self.continueSetup()
@@ -521,7 +532,10 @@ final class AppModel {
     operationTask = Task {
       defer {
         if scheduled {
-          report("Finished running schedule for 1 repositories", ["lastFinished": .date(Date())])
+          report(
+            "Finished running schedule for 1 repositories",
+            ["lastFinished": .date(Date())],
+            generation: generation)
         }
       }
       do {
@@ -658,15 +672,19 @@ final class AppModel {
   }
 
   private func report(
-    _ summary: String, _ data: [String: TelemetryValue] = [:], force: Bool = false
+    _ summary: String,
+    _ data: [String: TelemetryValue] = [:],
+    force: Bool = false,
+    generation: Int? = nil
   ) {
+    if let generation, generation != sessionGeneration { return }
     guard force || config.telemetryConsentedAt != nil, let token = sessionToken else { return }
     let serverURL = config.serverURL
-    let generation = sessionGeneration
+    let capturedGeneration = sessionGeneration
     let version = appVersion
     Task {
       guard let server = try? await discovery.resolve(serverURL) else { return }
-      guard generation == sessionGeneration else { return }
+      guard capturedGeneration == sessionGeneration else { return }
       let client = YuccaClient(apiRoot: server.apiRoot, transport: transport, accessToken: token)
       try? await client.submitStructuredLog(StructuredLog(summary: summary, data: data, version: version))
     }
