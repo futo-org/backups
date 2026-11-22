@@ -238,6 +238,12 @@ jobs:
       - name: Setup Mise
         uses: jdx/mise-action@c2a87611a18de5b3828c5652fe268e992400cb5c # v4.3.0
 
+      # The integration suite silently disables itself when the binary is missing.
+      - name: Build FUTO restic
+        run: |
+          mise run restic:install
+          test -x .mise/bin/restic
+
       - name: Run mac:check
         working-directory: packages/macos-app
         # mac:test drives real restic; this path is the FUTO build mise
