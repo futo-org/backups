@@ -99,11 +99,7 @@ struct SettingsView: View {
   }
 
   private static func clockDate(hour: Int, minute: Int) -> Date {
-    var components = DateComponents()
-    components.hour = hour
-    components.minute = minute
-    return Calendar.current.nextDate(
-      after: Date.distantPast, matching: components, matchingPolicy: .strict) ?? Date()
+    Calendar.current.date(bySettingHour: hour, minute: minute, second: 0, of: Date()) ?? Date()
   }
 
   private static func parseClock(_ text: Substring) -> (hour: Int, minute: Int)? {
