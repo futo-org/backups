@@ -26,6 +26,10 @@ public actor BackupEngine {
     return generated
   }
 
+  public func storedMasterKey() throws -> String? {
+    try environment.secrets.get(.masterKey)
+  }
+
   public func importMasterKey(_ input: String) throws {
     guard let key = RepositoryKeys.normalizedMasterKey(input) else {
       throw RepositoryKeysError.invalidMasterKey
@@ -45,8 +49,10 @@ public actor BackupEngine {
     let token = try accessToken()
     let server = try await serverInfo(for: config.serverURL)
     let api = environment.makeAPI(server.apiRoot, token)
+    _ = try masterKey()
     let created = try await api.createRepository(name: config.host)
-    let session = try await startSession(config: config, repositoryId: created.id)
+    let session = try await startSession(
+      config: config, repositoryId: created.id, masterKey: try requireMasterKey())
     let result: ResticResult
     do {
       result = try await environment.restic.run(ResticCommand.initialize(session.context), onLine: { _ in })
@@ -76,6 +82,7 @@ public actor BackupEngine {
       throw EngineError.noFolders
     }
     let token = try accessToken()
+    let masterKey = try requireMasterKey()
     running = true
     defer { running = false }
     let startedAt = environment.now()
@@ -89,7 +96,7 @@ public actor BackupEngine {
       let madeAPI = environment.makeAPI(server.apiRoot, token)
       api = madeAPI
       try? await madeAPI.submitBackupStart(repositoryId: repositoryId)
-      let session = try await startSession(config: config, repositoryId: repositoryId)
+      let session = try await startSession(config: config, repositoryId: repositoryId, masterKey: masterKey)
       do {
         _ = try await environment.restic.run(ResticCommand.unlock(session.context), onLine: { _ in })
         try Task.checkCancellation()
@@ -174,7 +181,7 @@ public actor BackupEngine {
     guard let repositoryId = config.repositoryId else {
       throw EngineError.noRepository
     }
-    let session = try await startSession(config: config, repositoryId: repositoryId)
+    let session = try await startSession(config: config, repositoryId: repositoryId, masterKey: try requireMasterKey())
     let result: ResticResult
     do {
       result = try await environment.restic.run(ResticCommand.snapshots(session.context), onLine: { _ in })
@@ -201,9 +208,10 @@ public actor BackupEngine {
     guard let repositoryId = config.repositoryId else {
       throw EngineError.noRepository
     }
+    let masterKey = try requireMasterKey()
     running = true
     defer { running = false }
-    let session = try await startSession(config: config, repositoryId: repositoryId)
+    let session = try await startSession(config: config, repositoryId: repositoryId, masterKey: masterKey)
     onActivity(.restoring)
     let result: ResticResult
     do {
@@ -222,11 +230,72 @@ public actor BackupEngine {
     }
   }
 
+  public func macRepositories(config: AppConfig) async throws -> [RemoteRepository] {
+    let token = try accessToken()
+    let server = try await serverInfo(for: config.serverURL)
+    let api = environment.makeAPI(server.apiRoot, token)
+    let repositories = try await api.listRepositories()
+    return repositories.filter { $0.connectionType == "macos" }.sorted { lhs, rhs in
+      switch (lhs.lastBackup, rhs.lastBackup) {
+      case let (left?, right?):
+        if left != right {
+          return left > right
+        }
+      case (.some, .none):
+        return true
+      case (.none, .some):
+        return false
+      case (.none, .none):
+        break
+      }
+      return lhs.name < rhs.name
+    }
+  }
+
+  public func verifyMasterKey(
+    _ masterKey: String, config: AppConfig, repositoryId: String
+  ) async throws -> Bool {
+    if running {
+      throw EngineError.busy
+    }
+    guard let normalized = RepositoryKeys.normalizedMasterKey(masterKey) else {
+      throw RepositoryKeysError.invalidMasterKey
+    }
+    running = true
+    defer { running = false }
+    let session = try await startSession(config: config, repositoryId: repositoryId, masterKey: normalized)
+    let result: ResticResult
+    do {
+      result = try await environment.restic.run(ResticCommand.catConfig(session.context), onLine: { _ in })
+    } catch {
+      await session.proxy.stop()
+      throw error
+    }
+    await session.proxy.stop()
+    switch result.exitCode {
+    case ResticExitCode.success:
+      return true
+    case ResticExitCode.wrongPassword:
+      return false
+    default:
+      throw EngineError.restic(
+        code: result.exitCode,
+        message: ResticOutput.errorMessage(stderr: result.stderr, exitCode: result.exitCode))
+    }
+  }
+
   private func accessToken() throws -> String {
     guard let token = try environment.secrets.get(.accessToken) else {
       throw EngineError.notLoggedIn
     }
     return token
+  }
+
+  private func requireMasterKey() throws -> String {
+    guard let masterKey = try storedMasterKey() else {
+      throw EngineError.missingMasterKey
+    }
+    return masterKey
   }
 
   private func serverInfo(for url: URL) async throws -> ServerInfo {
@@ -255,7 +324,9 @@ public actor BackupEngine {
     return futo
   }
 
-  private func startSession(config: AppConfig, repositoryId: String) async throws -> Session {
+  private func startSession(
+    config: AppConfig, repositoryId: String, masterKey: String
+  ) async throws -> Session {
     let token = try accessToken()
     let server = try await serverInfo(for: config.serverURL)
     let proxy = try await environment.proxyLauncher.start(apiRoot: server.apiRoot, throttle: config.throttle)
@@ -263,7 +334,7 @@ public actor BackupEngine {
       let context = ResticContext(
         repository: resticProxyRepositoryURL(
           address: proxy.address, repositoryId: repositoryId, accessToken: token),
-        password: try RepositoryKeys.password(masterKey: try masterKey(), repositoryId: repositoryId),
+        password: try RepositoryKeys.password(masterKey: masterKey, repositoryId: repositoryId),
         cacheDirectory: environment.cacheDirectory,
         home: environment.home,
         connections: max(

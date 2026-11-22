@@ -281,6 +281,26 @@ func submitBackupEndSendsStatusRawValue(status: BackupStatus) async throws {
       == RemoteRepository(id: "r2", name: "aux", worm: false))
 }
 
+@Test func remoteRepositoryDecodesConnectionTypeWhenPresentAndNilWhenAbsent() throws {
+  let withType = #"{"id":"r1","name":"main","worm":true,"connectionType":"macos"}"#
+  #expect(
+    try JSONDecoder().decode(RemoteRepository.self, from: Data(withType.utf8))
+      == RemoteRepository(id: "r1", name: "main", worm: true, connectionType: "macos"))
+  let withoutType = #"{"id":"r2","name":"aux","worm":false}"#
+  #expect(
+    try JSONDecoder().decode(RemoteRepository.self, from: Data(withoutType.utf8))
+      == RemoteRepository(id: "r2", name: "aux", worm: false))
+}
+
+@Test func remoteRepositoryEncodesConnectionTypeOnlyWhenPresent() throws {
+  var repository = RemoteRepository(id: "r1", name: "main", worm: false, connectionType: "macos")
+  let withType = try #require(String(data: try JSONEncoder().encode(repository), encoding: .utf8))
+  #expect(withType.contains(#""connectionType":"macos""#))
+  repository.connectionType = nil
+  let withoutType = try #require(String(data: try JSONEncoder().encode(repository), encoding: .utf8))
+  #expect(!withoutType.contains("connectionType"))
+}
+
 @Test func unauthorizedMapsToUnauthorized() async throws {
   let (client, _) = makeClient([jsonResponse(status: 401, #"{"error":"nope"}"#)])
   await #expect(throws: YuccaError.unauthorized) {

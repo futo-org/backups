@@ -53,6 +53,7 @@ public struct RemoteRepository: Codable, Equatable, Sendable, Identifiable {
   public var connectionId: String?
   public var sizeBytes: Int64?
   public var lastBackup: String?
+  public var connectionType: String?
 
   public init(
     id: String,
@@ -60,7 +61,8 @@ public struct RemoteRepository: Codable, Equatable, Sendable, Identifiable {
     worm: Bool,
     connectionId: String? = nil,
     sizeBytes: Int64? = nil,
-    lastBackup: String? = nil
+    lastBackup: String? = nil,
+    connectionType: String? = nil
   ) {
     self.id = id
     self.name = name
@@ -68,10 +70,11 @@ public struct RemoteRepository: Codable, Equatable, Sendable, Identifiable {
     self.connectionId = connectionId
     self.sizeBytes = sizeBytes
     self.lastBackup = lastBackup
+    self.connectionType = connectionType
   }
 
   private enum CodingKeys: String, CodingKey {
-    case id, name, worm, connectionId, metrics
+    case id, name, worm, connectionId, metrics, connectionType
   }
 
   private enum MetricsKeys: String, CodingKey {
@@ -84,6 +87,7 @@ public struct RemoteRepository: Codable, Equatable, Sendable, Identifiable {
     name = try container.decode(String.self, forKey: .name)
     worm = try container.decode(Bool.self, forKey: .worm)
     connectionId = try container.decodeIfPresent(String.self, forKey: .connectionId)
+    connectionType = try container.decodeIfPresent(String.self, forKey: .connectionType)
     sizeBytes = nil
     lastBackup = nil
     if let metrics = try? container.nestedContainer(keyedBy: MetricsKeys.self, forKey: .metrics) {
@@ -98,6 +102,7 @@ public struct RemoteRepository: Codable, Equatable, Sendable, Identifiable {
     try container.encode(name, forKey: .name)
     try container.encode(worm, forKey: .worm)
     try container.encodeIfPresent(connectionId, forKey: .connectionId)
+    try container.encodeIfPresent(connectionType, forKey: .connectionType)
     if sizeBytes != nil || lastBackup != nil {
       var metrics = container.nestedContainer(keyedBy: MetricsKeys.self, forKey: .metrics)
       try metrics.encodeIfPresent(sizeBytes, forKey: .sizeBytes)

@@ -14,10 +14,11 @@ actor FakeAPI: YuccaRepositoryAPI {
   var calls: [APICall] = []
   var created = RemoteRepository(id: "new-repo", name: "created", worm: false)
   var submitFailures = false
+  var repositories: [RemoteRepository] = []
 
   func listRepositories() async throws -> [RemoteRepository] {
     calls.append(.list)
-    return []
+    return repositories
   }
 
   func createRepository(name: String) async throws -> RemoteRepository {
@@ -48,6 +49,10 @@ actor FakeAPI: YuccaRepositoryAPI {
 
   func setSubmitFailures(_ value: Bool) {
     submitFailures = value
+  }
+
+  func setRepositories(_ value: [RemoteRepository]) {
+    repositories = value
   }
 }
 

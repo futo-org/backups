@@ -116,4 +116,37 @@ struct ResticIntegrationTests {
     #expect(versionResult.exitCode == ResticExitCode.success)
     #expect(try ResticOutput.parseVersion(versionResult.stdout).contains("+futo."))
   }
+
+  @Test func catConfigVerifiesRepositoryPassword() async throws {
+    let executable = try #require(resticExecutable)
+    let fileManager = FileManager.default
+    let tempRoot = fileManager.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+    defer { try? fileManager.removeItem(at: tempRoot) }
+    try fileManager.createDirectory(at: tempRoot, withIntermediateDirectories: true)
+    let cacheDirectory = tempRoot.appendingPathComponent("cache")
+    let homeDirectory = tempRoot.appendingPathComponent("home")
+    try fileManager.createDirectory(at: cacheDirectory, withIntermediateDirectories: true)
+    try fileManager.createDirectory(at: homeDirectory, withIntermediateDirectories: true)
+    let repositoryId = "repo-1"
+    let keyA = RepositoryKeys.generateMasterKey()
+    let keyB = RepositoryKeys.generateMasterKey()
+    let context = ResticContext(
+      repository: tempRoot.appendingPathComponent("repository").path,
+      password: try RepositoryKeys.password(masterKey: keyA, repositoryId: repositoryId),
+      cacheDirectory: cacheDirectory,
+      home: homeDirectory.path,
+      connections: 2)
+    let runner = ResticRunner(executable: executable)
+
+    let initialized = try await runner.run(ResticCommand.initialize(context), onLine: { _ in })
+    #expect(initialized.exitCode == ResticExitCode.success)
+
+    let withKeyA = try await runner.run(ResticCommand.catConfig(context), onLine: { _ in })
+    #expect(withKeyA.exitCode == ResticExitCode.success)
+
+    var wrongContext = context
+    wrongContext.password = try RepositoryKeys.password(masterKey: keyB, repositoryId: repositoryId)
+    let withKeyB = try await runner.run(ResticCommand.catConfig(wrongContext), onLine: { _ in })
+    #expect(withKeyB.exitCode == ResticExitCode.wrongPassword)
+  }
 }

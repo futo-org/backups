@@ -38,6 +38,7 @@ public enum EngineError: Error, Equatable, Sendable {
   case notLoggedIn
   case noRepository
   case noFolders
+  case missingMasterKey
   case busy
   case restic(code: Int32, message: String)
 }

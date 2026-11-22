@@ -83,6 +83,10 @@ public enum ResticCommand {
     invocation(context, ["stats"], ["--mode", "raw-data"])
   }
 
+  public static func catConfig(_ context: ResticContext) -> ResticInvocation {
+    invocation(context, ["cat", "config"], [])
+  }
+
   private static let standardPath = "/usr/bin:/bin:/usr/sbin:/sbin"
 
   private static func environment(_ context: ResticContext) -> [String: String] {

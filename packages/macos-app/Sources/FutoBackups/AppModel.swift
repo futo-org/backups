@@ -449,6 +449,7 @@ final class AppModel {
       case .noRepository: return "No repository yet"
       case .noFolders: return "No folders selected"
       case .busy: return "Another operation is running"
+      case .missingMasterKey: return "This Mac's recovery key is missing"
       case .restic(_, let message): return message
       }
     }

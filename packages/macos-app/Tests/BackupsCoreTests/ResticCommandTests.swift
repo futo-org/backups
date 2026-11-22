@@ -52,6 +52,10 @@ private let commandCases: [CommandCase] = [
     invocation: ResticCommand.stats(plainContext),
     arguments: ["stats", "--json"] + common + ["--mode", "raw-data"]),
   CommandCase(
+    name: "cat config",
+    invocation: ResticCommand.catConfig(plainContext),
+    arguments: ["cat", "config", "--json"] + common),
+  CommandCase(
     name: "backup minimal",
     invocation: ResticCommand.backup(plainContext, paths: ["/p/one", "/p/two"], excludes: [], host: "host-a"),
     arguments: ["backup", "--json"] + common
