@@ -253,9 +253,11 @@ public actor BackupEngine {
       result = try await environment.restic.run(ResticCommand.snapshots(session.context), onLine: { _ in })
     } catch {
       await session.proxy.stop()
-      await report(
-        api, config: config, "Failed to get repository snapshot listing",
-        ["repositoryId": .string(repositoryId), "error": .string(String(describing: error))])
+      if !(error is CancellationError) {
+        await report(
+          api, config: config, "Failed to get repository snapshot listing",
+          ["repositoryId": .string(repositoryId), "error": .string(String(describing: error))])
+      }
       throw error
     }
     await session.proxy.stop()
