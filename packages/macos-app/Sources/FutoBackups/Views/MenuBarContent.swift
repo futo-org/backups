@@ -4,6 +4,7 @@ import SwiftUI
 
 struct MenuBarContent: View {
   @Environment(AppModel.self) private var model
+  @Environment(Updater.self) private var updater
   @Environment(\.openWindow) private var openWindow
 
   var body: some View {
@@ -59,6 +60,10 @@ struct MenuBarContent: View {
         Button("Open FUTO Backups") {
           openWindow(id: "main")
           NSApp.activate()
+        }
+        if updater.isAvailable {
+          Button("Check for Updates…") { updater.checkForUpdates() }
+            .disabled(!updater.canCheckForUpdates)
         }
         Spacer()
         Button("Quit") { NSApp.terminate(nil) }

@@ -20,7 +20,7 @@ bin=$(swift build -c release --show-bin-path --package-path "$package")
 
 app="$package/build/FUTO Backups.app"
 rm -rf "$app"
-mkdir -p "$app/Contents/MacOS" "$app/Contents/Helpers" "$app/Contents/Resources"
+mkdir -p "$app/Contents/MacOS" "$app/Contents/Helpers" "$app/Contents/Frameworks" "$app/Contents/Resources"
 install -m 0755 "$bin/FutoBackups" "$app/Contents/MacOS/FutoBackups"
 install -m 0755 "$root/.mise/bin/restic" "$app/Contents/Helpers/restic"
 install -m 0755 "$work/restic-proxy" "$app/Contents/Helpers/restic-proxy"
@@ -28,10 +28,54 @@ install -m 0644 "$package/Resources/Info.plist" "$app/Contents/Info.plist"
 install -m 0644 "$package/Resources/AppIcon.icns" "$app/Contents/Resources/AppIcon.icns"
 install -m 0644 "$package/Resources/Wordmark.png" "$package/Resources/Wordmark-dark.png" "$app/Contents/Resources/"
 
+plist="$app/Contents/Info.plist"
+version="${MAC_APP_VERSION:-0.0.0}"
+feed_url="${SPARKLE_FEED_URL:-https://github.com/futo-org/backups/releases/download/macos-appcast/appcast.xml}"
+/usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString $version" "$plist"
+/usr/libexec/PlistBuddy -c "Set :CFBundleVersion $version" "$plist"
+if /usr/libexec/PlistBuddy -c "Print :SUFeedURL" "$plist" >/dev/null 2>&1; then
+  /usr/libexec/PlistBuddy -c "Set :SUFeedURL $feed_url" "$plist"
+else
+  /usr/libexec/PlistBuddy -c "Add :SUFeedURL string $feed_url" "$plist"
+fi
+if [ -n "${SPARKLE_PUBLIC_KEY:-}" ]; then
+  if /usr/libexec/PlistBuddy -c "Print :SUPublicEDKey" "$plist" >/dev/null 2>&1; then
+    /usr/libexec/PlistBuddy -c "Set :SUPublicEDKey $SPARKLE_PUBLIC_KEY" "$plist"
+  else
+    /usr/libexec/PlistBuddy -c "Add :SUPublicEDKey string $SPARKLE_PUBLIC_KEY" "$plist"
+  fi
+fi
+
+ditto "$bin/Sparkle.framework" "$app/Contents/Frameworks/Sparkle.framework"
+
+identity="${CODESIGN_IDENTITY:--}"
+if [ "$identity" = "-" ]; then
+  timestamp=(--timestamp=none)
+else
+  timestamp=(--timestamp)
+fi
+framework="$app/Contents/Frameworks/Sparkle.framework"
+
+codesign --force --options runtime "${timestamp[@]}" --sign "$identity" \
+  "$framework/Versions/B/XPCServices/Installer.xpc"
+codesign --force --options runtime "${timestamp[@]}" --preserve-metadata=entitlements --sign "$identity" \
+  "$framework/Versions/B/XPCServices/Downloader.xpc"
+codesign --force --options runtime "${timestamp[@]}" --sign "$identity" \
+  "$framework/Versions/B/Autoupdate"
+codesign --force --options runtime "${timestamp[@]}" --sign "$identity" \
+  "$framework/Versions/B/Updater.app"
+codesign --force --options runtime "${timestamp[@]}" --sign "$identity" \
+  "$framework"
+
 # Nested code must be signed before the bundle or the outer seal no longer matches.
-codesign --force --options runtime --timestamp=none --sign - "$app/Contents/Helpers/restic"
-codesign --force --options runtime --timestamp=none --sign - "$app/Contents/Helpers/restic-proxy"
-codesign --force --options runtime --timestamp=none --sign - "$app"
+codesign --force --options runtime "${timestamp[@]}" --sign "$identity" "$app/Contents/Helpers/restic"
+codesign --force --options runtime "${timestamp[@]}" --sign "$identity" "$app/Contents/Helpers/restic-proxy"
+if [ "$identity" = "-" ]; then
+  codesign --force --options runtime "${timestamp[@]}" --entitlements "$package/Resources/AdHoc.entitlements" \
+    --sign "$identity" "$app"
+else
+  codesign --force --options runtime "${timestamp[@]}" --sign "$identity" "$app"
+fi
 
 codesign --verify --deep --strict --verbose=2 "$app"
 printf '%s\n' "$app"

@@ -4,6 +4,7 @@ import SwiftUI
 
 struct SettingsView: View {
   @Environment(AppModel.self) private var model
+  @Environment(Updater.self) private var updater
   @State private var limitDraft = ""
   @State private var quietEnabled = false
   @State private var quietStart = SettingsView.clockDate(hour: 22, minute: 0)
@@ -95,6 +96,22 @@ struct SettingsView: View {
         }
         .padding(.vertical, 4)
       }
+      Section("Updates") {
+        if updater.isAvailable {
+          Toggle(isOn: automaticUpdatesBinding) {
+            SettingLabel(
+              systemName: "arrow.triangle.2.circlepath", tint: .teal, title: "Check for updates automatically",
+              detail: versionText)
+          }
+          Button("Check Now") { updater.checkForUpdates() }
+            .buttonStyle(SecondaryButtonStyle())
+            .disabled(!updater.canCheckForUpdates)
+        } else {
+          SettingLabel(
+            systemName: "arrow.triangle.2.circlepath", tint: .gray, title: "Updates",
+            detail: "Updates are off in development builds.")
+        }
+      }
       Section("Advanced") {
         ServerEditor()
           .padding(.vertical, 4)
@@ -115,6 +132,18 @@ struct SettingsView: View {
     Binding(
       get: { model.launchAtLogin },
       set: { model.launchAtLogin = $0 })
+  }
+
+  private var automaticUpdatesBinding: Binding<Bool> {
+    Binding(
+      get: { updater.automaticallyChecksForUpdates },
+      set: { updater.automaticallyChecksForUpdates = $0 })
+  }
+
+  private var versionText: String {
+    let shortVersion = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? ""
+    let buildVersion = Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? ""
+    return "Version \(shortVersion) (\(buildVersion))"
   }
 
   private func syncDrafts() {
