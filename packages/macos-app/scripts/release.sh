@@ -53,7 +53,7 @@ trap 'rm -rf "$work"' EXIT
 "$package/scripts/build-helpers.sh" "$work/helpers"
 
 app=$(cd "$package" && UNIVERSAL=1 HELPERS_DIR="$work/helpers" MAC_APP_VERSION="$version" scripts/bundle.sh |
-  tail -n 1)
+  tee /dev/stderr | tail -n 1)
 
 if [ "$notary_set" -eq 3 ]; then
   ditto -c -k --keepParent "$app" "$work/notarize.zip"
