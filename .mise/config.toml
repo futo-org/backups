@@ -28,7 +28,7 @@ golangci-lint = "2.14.0"
 # restic image with crane (see .mise/tasks/restic/install and [hooks] below).
 "aqua:google/go-containerregistry" = "0.22.1"
 
-gh = "2.102.0"
+gh = "2.105.0"
 
 k3d = "5.9.0"
 kubectl = "1.37.1"
