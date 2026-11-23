@@ -96,6 +96,31 @@ struct SettingsView: View {
         }
         .padding(.vertical, 4)
       }
+      Section("Disk snapshots") {
+        Toggle(isOn: diskSnapshotsBinding) {
+          SettingLabel(
+            systemName: "clock.arrow.circlepath", tint: Brand.blue, title: "Back up from a disk snapshot",
+            detail:
+              "Backs up a frozen copy of your Mac's disk, so files that change during a backup stay consistent. Needs Full Disk Access."
+          )
+        }
+        if model.config.usesDiskSnapshots && !model.hasFullDiskAccess {
+          HStack(spacing: 10) {
+            Image(systemName: "exclamationmark.triangle.fill")
+              .foregroundStyle(.orange)
+            Text("Backups will fail until FUTO Backups has Full Disk Access.")
+              .font(.system(size: 11))
+              .foregroundStyle(.secondary)
+            Spacer()
+            Button("Open Settings") {
+              if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_AllFiles") {
+                NSWorkspace.shared.open(url)
+              }
+            }
+            .buttonStyle(SecondaryButtonStyle())
+          }
+        }
+      }
       Section("Diagnostics") {
         SettingLabel(
           systemName: "stethoscope", tint: Brand.blue, title: "Usage and diagnostic data",
@@ -139,6 +164,12 @@ struct SettingsView: View {
     Binding(
       get: { model.launchAtLogin },
       set: { model.launchAtLogin = $0 })
+  }
+
+  private var diskSnapshotsBinding: Binding<Bool> {
+    Binding(
+      get: { model.config.usesDiskSnapshots },
+      set: { model.setDiskSnapshots($0) })
   }
 
   private var automaticUpdatesBinding: Binding<Bool> {

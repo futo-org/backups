@@ -92,22 +92,35 @@ struct FoldersView: View {
 
   private var fullDiskAccess: some View {
     Card {
-      HStack(spacing: 12) {
-        IconTile(systemName: "lock.shield.fill", tint: .blue)
-        VStack(alignment: .leading, spacing: 2) {
-          Text("Full Disk Access")
-            .font(.headline)
-          Text("Lets backups read protected folders like Mail, Messages and Safari.")
-            .font(.system(size: 12))
-            .foregroundStyle(.secondary)
-        }
-        Spacer()
-        Button("Open Settings") {
-          if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_AllFiles") {
-            NSWorkspace.shared.open(url)
+      if model.hasFullDiskAccess {
+        HStack(spacing: 12) {
+          IconTile(systemName: "checkmark.shield.fill", tint: .green)
+          VStack(alignment: .leading, spacing: 2) {
+            Text("Full Disk Access")
+              .font(.headline)
+            Text("Granted. Backups can read protected folders like Mail, Messages and Safari.")
+              .font(.system(size: 12))
+              .foregroundStyle(.secondary)
           }
         }
-        .buttonStyle(SecondaryButtonStyle())
+      } else {
+        HStack(spacing: 12) {
+          IconTile(systemName: "lock.shield.fill", tint: .blue)
+          VStack(alignment: .leading, spacing: 2) {
+            Text("Full Disk Access")
+              .font(.headline)
+            Text("Lets backups read protected folders like Mail, Messages and Safari.")
+              .font(.system(size: 12))
+              .foregroundStyle(.secondary)
+          }
+          Spacer()
+          Button("Open Settings") {
+            if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_AllFiles") {
+              NSWorkspace.shared.open(url)
+            }
+          }
+          .buttonStyle(SecondaryButtonStyle())
+        }
       }
     }
   }

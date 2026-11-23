@@ -35,6 +35,7 @@ final class AppModel {
   var sessionLoaded = false
   var hasSession = false
   var hasMasterKey = false
+  var hasFullDiskAccess = FullDiskAccess.isGranted()
 
   private let store = ConfigStore.standard()
   private let vault = SecretVault(store: KeychainSecretStore())
@@ -53,6 +54,7 @@ final class AppModel {
   private let appVersion: String
   private let configLoadFailure: String?
   private var pendingBootstrapError: String? = nil
+  private var appActiveObserver: (any NSObjectProtocol)?
 
   init() {
     let home = NSHomeDirectory()
@@ -71,6 +73,9 @@ final class AppModel {
       .appendingPathComponent("FUTO Backups")
       .appendingPathComponent("restic")
     try? FileManager.default.createDirectory(at: cacheDirectory, withIntermediateDirectories: true)
+    let snapshotDirectory = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
+      .appendingPathComponent("FUTO Backups")
+      .appendingPathComponent("Snapshot")
     let discovery = Discovery(transport: URLSessionTransport(timeout: 8))
     let transport = URLSessionTransport()
     let resticURL = HelperLocator.locate(.restic)
@@ -89,7 +94,11 @@ final class AppModel {
           home: home,
           processorCount: ProcessInfo.processInfo.activeProcessorCount,
           now: { Date() },
-          appVersion: appVersion))
+          appVersion: appVersion,
+          diskSnapshots: TimeMachineSnapshots.live(),
+          snapshotDirectory: snapshotDirectory,
+          dataVolumePath: { DataVolume.relativePath(of: $0) },
+          hasFullDiskAccess: { FullDiskAccess.isGranted() }))
       missingHelperText = nil
     } else {
       engine = nil
@@ -135,6 +144,17 @@ final class AppModel {
         await refreshAccount()
       }
     }
+    appActiveObserver = NotificationCenter.default.addObserver(
+      forName: NSApplication.didBecomeActiveNotification,
+      object: nil,
+      queue: .main
+    ) { [weak self] _ in
+      MainActor.assumeIsolated { self?.refreshFullDiskAccess() }
+    }
+  }
+
+  func refreshFullDiskAccess() {
+    hasFullDiskAccess = FullDiskAccess.isGranted()
   }
 
   var launchAtLogin: Bool {
@@ -483,6 +503,12 @@ final class AppModel {
     saveConfig()
     recomputeNextRun()
     report("Updated schedule", ["schedule": .string(scheduleDescription(schedule))])
+  }
+
+  func setDiskSnapshots(_ enabled: Bool) {
+    config.diskSnapshots = enabled
+    saveConfig()
+    report("Updated disk snapshots", ["enabled": .bool(enabled)])
   }
 
   func grantTelemetryConsent() {
