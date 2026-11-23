@@ -25,6 +25,9 @@ public struct ResticRunner: ResticExecuting {
     process.value.executableURL = executable
     process.value.arguments = invocation.arguments
     process.value.environment = invocation.environment
+    if let directory = invocation.currentDirectory {
+      process.value.currentDirectoryURL = URL(fileURLWithPath: directory)
+    }
     let outputPipe = Pipe()
     let errorPipe = Pipe()
     process.value.standardOutput = outputPipe

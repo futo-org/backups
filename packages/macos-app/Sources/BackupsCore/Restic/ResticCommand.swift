@@ -26,6 +26,7 @@ public struct ResticContext: Sendable, Equatable {
 public struct ResticInvocation: Sendable, Equatable {
   public var arguments: [String]
   public var environment: [String: String]
+  public var currentDirectory: String? = nil
 }
 
 public enum ResticCommand {

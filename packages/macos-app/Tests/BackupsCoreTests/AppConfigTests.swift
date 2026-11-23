@@ -25,6 +25,7 @@ func defaults() {
   #expect(config.repositoryId == nil)
   #expect(config.lastRun == nil)
   #expect(config.scheduleAnchor == nil)
+  #expect(config.diskSnapshots == nil)
 }
 
 @Test("AppConfig round trips through JSON with a lastRun")
@@ -165,4 +166,39 @@ func roundTripTelemetryConsentedAt() throws {
   let decoded = try decoder.decode(AppConfig.self, from: encoder.encode(config))
   #expect(decoded == config)
   #expect(decoded.telemetryConsentedAt == Date(timeIntervalSince1970: 1_781_092_800))
+}
+
+@Test("config JSON without a diskSnapshots key decodes with nil and uses disk snapshots")
+func decodeWithoutDiskSnapshots() throws {
+  var config = AppConfig.defaults(host: "book-pro", home: "/Users/test")
+  config.diskSnapshots = false
+  let encoder = JSONEncoder()
+  encoder.dateEncodingStrategy = .iso8601
+  let object = try #require(JSONSerialization.jsonObject(with: encoder.encode(config)) as? [String: Any])
+  var stripped = object
+  stripped.removeValue(forKey: "diskSnapshots")
+  let decoder = JSONDecoder()
+  decoder.dateDecodingStrategy = .iso8601
+  let decoded = try decoder.decode(AppConfig.self, from: JSONSerialization.data(withJSONObject: stripped))
+  #expect(decoded.diskSnapshots == nil)
+  #expect(decoded.usesDiskSnapshots)
+  var expected = config
+  expected.diskSnapshots = nil
+  #expect(decoded == expected)
+}
+
+@Test("diskSnapshots false round trips and defaults leave it nil")
+func roundTripDiskSnapshots() throws {
+  var config = AppConfig.defaults(host: "book-pro", home: "/Users/test")
+  #expect(config.diskSnapshots == nil)
+  #expect(config.usesDiskSnapshots)
+  config.diskSnapshots = false
+  let encoder = JSONEncoder()
+  encoder.dateEncodingStrategy = .iso8601
+  let decoder = JSONDecoder()
+  decoder.dateDecodingStrategy = .iso8601
+  let decoded = try decoder.decode(AppConfig.self, from: encoder.encode(config))
+  #expect(decoded == config)
+  #expect(decoded.diskSnapshots == false)
+  #expect(!decoded.usesDiskSnapshots)
 }

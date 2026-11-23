@@ -182,3 +182,34 @@ private let bigPipeScript = #"head -c 4194304 /dev/zero | tr "\0" a >&2; head -c
   #expect(thrown is CancellationError)
   #expect(elapsed < .seconds(5), "elapsed \(elapsed.components.seconds)s")
 }
+
+@Test func currentDirectorySetsWorkingDirectory() async throws {
+  let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+  try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+  defer { try? FileManager.default.removeItem(at: directory) }
+  let realPath = try #require(
+    realpath(directory.path, nil).map { pointer in
+      let value = String(cString: pointer)
+      free(pointer)
+      return value
+    })
+  let runner = ResticRunner(executable: URL(fileURLWithPath: "/bin/pwd"))
+  let result = try await runner.run(
+    ResticInvocation(
+      arguments: [], environment: ["PATH": "/usr/bin:/bin"], currentDirectory: directory.path),
+    onLine: { _ in }
+  )
+  #expect(result.exitCode == 0)
+  let printed = String(decoding: result.stdout, as: UTF8.self).trimmingCharacters(in: .whitespacesAndNewlines)
+  #expect(printed == realPath)
+}
+
+@Test func runWithoutCurrentDirectorySucceeds() async throws {
+  let runner = ResticRunner(executable: URL(fileURLWithPath: "/bin/pwd"))
+  let result = try await runner.run(
+    ResticInvocation(arguments: [], environment: ["PATH": "/usr/bin:/bin"]),
+    onLine: { _ in }
+  )
+  #expect(result.exitCode == 0)
+  #expect(!String(decoding: result.stdout, as: UTF8.self).isEmpty)
+}
