@@ -123,6 +123,19 @@ struct ResticScript {
   var error: (any Error)?
 }
 
+final class CallTimeline: @unchecked Sendable {
+  private let lock = NSLock()
+  private var stored: [String] = []
+
+  func record(_ entry: String) {
+    lock.withLock { stored.append(entry) }
+  }
+
+  var entries: [String] {
+    lock.withLock { stored }
+  }
+}
+
 final class FakeRestic: ResticExecuting, @unchecked Sendable {
   private let lock = NSLock()
   private var recorded: [ResticInvocation] = []
@@ -132,6 +145,11 @@ final class FakeRestic: ResticExecuting, @unchecked Sendable {
   private var gateActive = false
   private var gateChecksCancellation = false
   private var gateWaits: [CheckedContinuation<Void, Never>] = []
+  private var timeline: CallTimeline?
+
+  func setTimeline(_ value: CallTimeline) {
+    lock.withLock { timeline = value }
+  }
 
   func set(_ script: ResticScript, for command: String) {
     lock.withLock { scripts[command] = script }
@@ -170,6 +188,7 @@ final class FakeRestic: ResticExecuting, @unchecked Sendable {
     let command = invocation.arguments.first ?? ""
     let (script, gated, checksCancellation) = lock.withLock { () -> (ResticScript, Bool, Bool) in
       recorded.append(invocation)
+      timeline?.record(command)
       return (
         scripts[command] ?? ResticScript(), gateActive && command == "backup", gateChecksCancellation
       )
@@ -252,6 +271,105 @@ final class FakeProxyLauncher: ResticProxyLaunching, @unchecked Sendable {
   }
 }
 
+final class FakeDiskSnapshots: DiskSnapshotting, @unchecked Sendable {
+  private let lock = NSLock()
+  private var recorded: [String] = []
+  private var createFailure: DiskSnapshotError?
+  private var mountFailure: DiskSnapshotError?
+  private var unmountFailure: DiskSnapshotError?
+  private var deleteFailure: DiskSnapshotError?
+  private var mounted: Set<String> = []
+  private var timeline: CallTimeline?
+
+  var calls: [String] {
+    lock.withLock { recorded }
+  }
+
+  var createError: DiskSnapshotError? {
+    get { lock.withLock { createFailure } }
+    set { lock.withLock { createFailure = newValue } }
+  }
+
+  var mountError: DiskSnapshotError? {
+    get { lock.withLock { mountFailure } }
+    set { lock.withLock { mountFailure = newValue } }
+  }
+
+  var unmountError: DiskSnapshotError? {
+    get { lock.withLock { unmountFailure } }
+    set { lock.withLock { unmountFailure = newValue } }
+  }
+
+  var deleteError: DiskSnapshotError? {
+    get { lock.withLock { deleteFailure } }
+    set { lock.withLock { deleteFailure = newValue } }
+  }
+
+  var mountedPaths: Set<String> {
+    get { lock.withLock { mounted } }
+    set { lock.withLock { mounted = newValue } }
+  }
+
+  func setTimeline(_ value: CallTimeline) {
+    lock.withLock { timeline = value }
+  }
+
+  func create() async throws -> DiskSnapshot {
+    let failure = lock.withLock { () -> DiskSnapshotError? in
+      record("create")
+      return createFailure
+    }
+    if let failure {
+      throw failure
+    }
+    return DiskSnapshot(date: "2026-11-23-120000")
+  }
+
+  func mount(_ snapshot: DiskSnapshot, at mountPoint: URL) async throws {
+    let failure = lock.withLock { () -> DiskSnapshotError? in
+      record("mount \(snapshot.name) \(mountPoint.path)")
+      return mountFailure
+    }
+    if let failure {
+      throw failure
+    }
+    lock.withLock { mounted.insert(mountPoint.path) }
+  }
+
+  func unmount(_ mountPoint: URL) async throws {
+    let failure = lock.withLock { () -> DiskSnapshotError? in
+      record("unmount \(mountPoint.path)")
+      return unmountFailure
+    }
+    if let failure {
+      throw failure
+    }
+    lock.withLock { mounted.remove(mountPoint.path) }
+  }
+
+  func delete(_ snapshot: DiskSnapshot) async throws {
+    let failure = lock.withLock { () -> DiskSnapshotError? in
+      record("delete \(snapshot.date)")
+      return deleteFailure
+    }
+    if let failure {
+      throw failure
+    }
+  }
+
+  func isMounted(_ mountPoint: URL) -> Bool {
+    lock.withLock {
+      record("isMounted \(mountPoint.path)")
+      return mounted.contains(mountPoint.path)
+    }
+  }
+
+  private func record(_ entry: String) {
+    recorded.append(entry)
+    timeline?.record(entry)
+  }
+}
+
 final class Counter: @unchecked Sendable {
   private let lock = NSLock()
   private var stored = 0
@@ -302,6 +420,7 @@ struct EngineFixture {
   var proxy: FakeProxyLauncher
   var secrets: InMemorySecretStore
   var discoverCount: Counter
+  var diskSnapshots: FakeDiskSnapshots
 }
 
 extension EngineFixture {
@@ -318,7 +437,10 @@ extension EngineFixture {
 
 func makeFixture(
   connectionsMath: String = "16", token: String? = "tok", masterKey: String? = testMasterKey,
-  appVersion: String = "dev", telemetryTimeout: Duration = .seconds(10)
+  appVersion: String = "dev", telemetryTimeout: Duration = .seconds(10),
+  diskSnapshots: FakeDiskSnapshots = FakeDiskSnapshots(), snapshotDirectory: URL? = nil,
+  dataVolumePath: @escaping @Sendable (String) -> String? = { _ in nil },
+  hasFullDiskAccess: @escaping @Sendable () -> Bool = { true }
 ) -> EngineFixture {
   let api = FakeAPI()
   let restic = FakeRestic()
@@ -348,10 +470,14 @@ func makeFixture(
     processorCount: 8,
     now: { clock.now() },
     appVersion: appVersion,
-    telemetryTimeout: telemetryTimeout)
+    telemetryTimeout: telemetryTimeout,
+    diskSnapshots: diskSnapshots,
+    snapshotDirectory: snapshotDirectory,
+    dataVolumePath: dataVolumePath,
+    hasFullDiskAccess: hasFullDiskAccess)
   return EngineFixture(
     environment: environment, api: api, restic: restic, proxy: proxy, secrets: secrets,
-    discoverCount: discoverCount)
+    discoverCount: discoverCount, diskSnapshots: diskSnapshots)
 }
 
 func testConfig(

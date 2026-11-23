@@ -132,6 +132,7 @@ public actor BackupEngine {
     var status: BackupStatus = .failed
     var message: String?
     var summary: BackupSummary?
+    var snapshotMounted = false
     var api: (any YuccaRepositoryAPI)?
     do {
       let server = try await serverInfo(for: config.serverURL)
@@ -147,16 +148,97 @@ public actor BackupEngine {
       do {
         _ = try await environment.restic.run(ResticCommand.unlock(session.context), onLine: { _ in })
         try Task.checkCancellation()
-        let log = ResticLineLog()
-        let result = try await environment.restic.run(
-          ResticCommand.backup(
-            session.context, paths: config.folders, excludes: config.excludes, host: config.host),
-          onLine: { line in
-            log.append(line)
-            if case .status(let progress) = ResticOutput.parseLine(line) {
-              onActivity(.backingUp(progress))
+        let relatives = config.folders.map { environment.dataVolumePath($0) }
+        let snapshotMode = config.usesDiskSnapshots && relatives.contains { $0 != nil }
+        var createdSnapshot: DiskSnapshot?
+        var snapshotMountPoint: URL?
+        var snapshotMarker: URL?
+        var mounted = false
+        var snapshotCleanedUp = false
+        var backupPaths = config.folders
+        var backupExcludes = config.excludes
+        var backupCurrentDirectory: String?
+        func runSnapshotCleanup() async {
+          guard !snapshotCleanedUp, let createdSnapshot, let snapshotMountPoint else { return }
+          snapshotCleanedUp = true
+          let cleanupError = await Task {
+            await self.cleanUpSnapshot(
+              createdSnapshot, mountPoint: snapshotMountPoint, mounted: mounted, marker: snapshotMarker)
+          }.value
+          if let cleanupError {
+            await report(
+              madeAPI, config: config, "Failed to remove disk snapshot",
+              ["repositoryId": .string(repositoryId), "error": .string(cleanupError)])
+          }
+        }
+        if snapshotMode {
+          do {
+            guard let snapshotDirectory = environment.snapshotDirectory else {
+              throw DiskSnapshotError.unavailable
             }
-          })
+            guard environment.hasFullDiskAccess() else {
+              throw DiskSnapshotError.noFullDiskAccess
+            }
+            let mountPoint = snapshotDirectory.appendingPathComponent("Volume")
+            let marker = snapshotDirectory.appendingPathComponent("pending.json")
+            snapshotMountPoint = mountPoint
+            snapshotMarker = marker
+            if environment.diskSnapshots.isMounted(mountPoint) {
+              try? await environment.diskSnapshots.unmount(mountPoint)
+            }
+            if let stale = try? JSONDecoder().decode(DiskSnapshot.self, from: Data(contentsOf: marker)) {
+              try? await environment.diskSnapshots.delete(stale)
+            }
+            try? FileManager.default.removeItem(at: marker)
+            let snapshot = try await environment.diskSnapshots.create()
+            createdSnapshot = snapshot
+            try? FileManager.default.createDirectory(at: snapshotDirectory, withIntermediateDirectories: true)
+            try? JSONEncoder().encode(snapshot).write(to: marker, options: .atomic)
+            try await environment.diskSnapshots.mount(snapshot, at: mountPoint)
+            mounted = true
+            snapshotMounted = true
+            var snapshotPaths: [String] = []
+            for index in config.folders.indices {
+              snapshotPaths.append(relatives[index] ?? config.folders[index])
+            }
+            backupPaths = snapshotPaths
+            for exclude in config.excludes {
+              if let relative = DataVolume.snapshotRelativePath(exclude) {
+                backupExcludes.append(relative == "." ? mountPoint.path : mountPoint.path + "/" + relative)
+              }
+            }
+            backupCurrentDirectory = mountPoint.path
+          } catch {
+            await runSnapshotCleanup()
+            if !(error is CancellationError) {
+              await report(
+                madeAPI, config: config, "Failed to create disk snapshot",
+                [
+                  "repositoryId": .string(repositoryId),
+                  "error": .string(String(describing: error)),
+                ])
+            }
+            throw error
+          }
+        }
+        let log = ResticLineLog()
+        let result: ResticResult
+        do {
+          result = try await environment.restic.run(
+            ResticCommand.backup(
+              session.context, paths: backupPaths, excludes: backupExcludes, host: config.host,
+              currentDirectory: backupCurrentDirectory),
+            onLine: { line in
+              log.append(line)
+              if case .status(let progress) = ResticOutput.parseLine(line) {
+                onActivity(.backingUp(progress))
+              }
+            })
+        } catch {
+          await runSnapshotCleanup()
+          throw error
+        }
+        await runSnapshotCleanup()
         var lastError: String?
         for line in log.lines {
           switch ResticOutput.parseLine(line) {
@@ -270,6 +352,7 @@ public actor BackupEngine {
         "repositoryId": .string(repositoryId),
         "lastBackupStatus": .string(endStatus.rawValue),
         "durationMs": .int(Int64(durationMs)),
+        "diskSnapshot": .bool(snapshotMounted),
       ]
       if let endMessage {
         data["error"] = .string(endMessage)
@@ -279,6 +362,52 @@ public actor BackupEngine {
     return RunRecord(
       startedAt: startedAt, finishedAt: finishedAt, status: status, snapshotId: summary?.snapshotId,
       filesNew: summary?.filesNew, dataAdded: summary?.dataAdded, message: message)
+  }
+
+  private func cleanUpSnapshot(
+    _ snapshot: DiskSnapshot, mountPoint: URL, mounted: Bool, marker: URL?
+  ) async -> String? {
+    var firstError: String?
+    if mounted {
+      do {
+        try await environment.diskSnapshots.unmount(mountPoint)
+      } catch {
+        firstError = String(describing: error)
+      }
+    }
+    var deleteSucceeded = false
+    do {
+      try await environment.diskSnapshots.delete(snapshot)
+      deleteSucceeded = true
+    } catch {
+      if firstError == nil {
+        firstError = String(describing: error)
+      }
+    }
+    if deleteSucceeded, let marker {
+      try? FileManager.default.removeItem(at: marker)
+    }
+    return firstError
+  }
+
+  private func mapSnapshotPaths(_ snapshots: [Snapshot]) -> [Snapshot] {
+    guard let snapshotDirectory = environment.snapshotDirectory else {
+      return snapshots
+    }
+    let mount = snapshotDirectory.appendingPathComponent("Volume").path
+    return snapshots.map { snapshot in
+      var copy = snapshot
+      copy.paths = snapshot.paths.map { path in
+        if path == mount {
+          return "/"
+        }
+        if path.hasPrefix(mount + "/") {
+          return "/" + path.dropFirst(mount.count + 1)
+        }
+        return path
+      }
+      return copy
+    }
   }
 
   public func snapshots(config: AppConfig) async throws -> [Snapshot] {
@@ -311,7 +440,7 @@ public actor BackupEngine {
       throw EngineError.restic(code: result.exitCode, message: detail)
     }
     do {
-      return try ResticOutput.parseSnapshots(result.stdout).sorted { $0.time > $1.time }
+      return mapSnapshotPaths(try ResticOutput.parseSnapshots(result.stdout)).sorted { $0.time > $1.time }
     } catch {
       await report(
         api, config: config, "Failed to get repository snapshot listing",

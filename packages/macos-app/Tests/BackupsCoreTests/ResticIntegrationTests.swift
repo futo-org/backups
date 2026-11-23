@@ -1,3 +1,4 @@
+import Darwin
 import Foundation
 import Testing
 
@@ -9,6 +10,12 @@ private let resticExecutable: URL? = {
   else { return nil }
   return URL(fileURLWithPath: path)
 }()
+
+private func realPath(of path: String) -> String {
+  guard let resolved = realpath(path, nil) else { return path }
+  defer { free(resolved) }
+  return String(cString: resolved)
+}
 
 private func fileNameSet(in directory: URL) throws -> Set<String> {
   let walker = FileManager.default.enumerator(at: directory, includingPropertiesForKeys: [.isRegularFileKey])
@@ -115,6 +122,68 @@ struct ResticIntegrationTests {
     let versionResult = try await runner.run(ResticCommand.version(home: homeDirectory.path), onLine: { _ in })
     #expect(versionResult.exitCode == ResticExitCode.success)
     #expect(try ResticOutput.parseVersion(versionResult.stdout).contains("+futo."))
+  }
+
+  @Test func backupRunsFromCurrentDirectoryAndStoresTreeAsAbsolute() async throws {
+    let executable = try #require(resticExecutable)
+    let fileManager = FileManager.default
+    let tempRoot = fileManager.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+    try fileManager.createDirectory(at: tempRoot, withIntermediateDirectories: true)
+    let resolvedRoot = URL(fileURLWithPath: realPath(of: tempRoot.path))
+    defer { try? fileManager.removeItem(at: resolvedRoot) }
+    let cacheDirectory = resolvedRoot.appendingPathComponent("cache")
+    let homeDirectory = resolvedRoot.appendingPathComponent("home")
+    let mount = resolvedRoot.appendingPathComponent("mount")
+    let docs = mount.appendingPathComponent("Users/x/Docs")
+    let caches = docs.appendingPathComponent("Caches")
+    let restoreDirectory = resolvedRoot.appendingPathComponent("restore")
+    try fileManager.createDirectory(at: cacheDirectory, withIntermediateDirectories: true)
+    try fileManager.createDirectory(at: homeDirectory, withIntermediateDirectories: true)
+    try fileManager.createDirectory(at: caches, withIntermediateDirectories: true)
+    try fileManager.createDirectory(at: restoreDirectory, withIntermediateDirectories: true)
+    try Data(UUID().uuidString.utf8).write(to: docs.appendingPathComponent("a.txt"))
+    try Data("do not back up".utf8).write(to: caches.appendingPathComponent("c.txt"))
+
+    let context = ResticContext(
+      repository: resolvedRoot.appendingPathComponent("repository").path,
+      password: "pw-\(UUID().uuidString)",
+      cacheDirectory: cacheDirectory,
+      home: homeDirectory.path,
+      connections: 2)
+    let runner = ResticRunner(executable: executable)
+
+    let initialized = try await runner.run(ResticCommand.initialize(context), onLine: { _ in })
+    #expect(initialized.exitCode == ResticExitCode.success)
+
+    let summaries = SummaryCollector()
+    let backup = try await runner.run(
+      ResticCommand.backup(
+        context,
+        paths: ["Users/x/Docs"],
+        excludes: [caches.path],
+        host: "h",
+        currentDirectory: mount.path)
+    ) { line in
+      if case .summary(let summary) = ResticOutput.parseLine(line) {
+        summaries.set(summary)
+      }
+    }
+    #expect(backup.exitCode == ResticExitCode.success)
+    let snapshotId = try #require(summaries.get()?.snapshotId)
+
+    let restore = try await runner.run(
+      ResticCommand.restore(context, snapshotId: snapshotId, target: restoreDirectory.path, include: []),
+      onLine: { _ in })
+    #expect(restore.exitCode == ResticExitCode.success)
+    let restoredNames = try fileNameSet(in: restoreDirectory)
+    #expect(restoredNames.contains("a.txt"))
+    #expect(!restoredNames.contains("c.txt"))
+
+    let snapshotsResult = try await runner.run(ResticCommand.snapshots(context), onLine: { _ in })
+    #expect(snapshotsResult.exitCode == ResticExitCode.success)
+    let snapshots = try ResticOutput.parseSnapshots(snapshotsResult.stdout)
+    #expect(snapshots.count == 1)
+    #expect(snapshots[0].paths == [realPath(of: mount.path) + "/Users/x/Docs"])
   }
 
   @Test func catConfigVerifiesRepositoryPassword() async throws {

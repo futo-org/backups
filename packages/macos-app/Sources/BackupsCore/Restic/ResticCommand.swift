@@ -42,10 +42,11 @@ public enum ResticCommand {
     invocation(context, ["unlock"], ["--remove-all"])
   }
 
-  public static func backup(_ context: ResticContext, paths: [String], excludes: [String], host: String)
-    -> ResticInvocation
-  {
-    var flags = ["--host", host, "--exclude-caches"]
+  public static func backup(
+    _ context: ResticContext, paths: [String], excludes: [String], host: String,
+    currentDirectory: String? = nil
+  ) -> ResticInvocation {
+    var flags = ["--host", host, "--group-by", "host", "--exclude-caches"]
     for exclude in excludes {
       flags += ["--exclude", exclude]
     }
@@ -55,7 +56,9 @@ public enum ResticCommand {
     if let walkConcurrency = context.walkConcurrency {
       flags += ["--walk-concurrency", "\(walkConcurrency)"]
     }
-    return invocation(context, ["backup"], flags, positional: paths)
+    var result = invocation(context, ["backup"], flags, positional: paths)
+    result.currentDirectory = currentDirectory
+    return result
   }
 
   public static func snapshots(_ context: ResticContext) -> ResticInvocation {
@@ -63,7 +66,7 @@ public enum ResticCommand {
   }
 
   public static func forget(_ context: ResticContext, host: String, keepWithin: String) -> ResticInvocation {
-    var flags = ["--host", host, "--group-by", "paths", "--keep-within", keepWithin, "--prune"]
+    var flags = ["--host", host, "--group-by", "host", "--keep-within", keepWithin, "--prune"]
     if let packSizeMiB = context.packSizeMiB {
       flags += ["--pack-size", "\(packSizeMiB)"]
     }

@@ -59,7 +59,7 @@ private let commandCases: [CommandCase] = [
     name: "backup minimal",
     invocation: ResticCommand.backup(plainContext, paths: ["/p/one", "/p/two"], excludes: [], host: "host-a"),
     arguments: ["backup", "--json"] + common
-      + ["--host", "host-a", "--exclude-caches", "/p/one", "/p/two"]),
+      + ["--host", "host-a", "--group-by", "host", "--exclude-caches", "/p/one", "/p/two"]),
   CommandCase(
     name: "backup full",
     invocation: ResticCommand.backup(
@@ -69,19 +69,19 @@ private let commandCases: [CommandCase] = [
       host: "host-a"),
     arguments: ["backup", "--json"] + common
       + [
-        "--host", "host-a", "--exclude-caches", "--exclude", "/p/skip-a", "--exclude", "/p/skip-b",
-        "--pack-size", "4", "--walk-concurrency", "2", "/p/one",
+        "--host", "host-a", "--group-by", "host", "--exclude-caches", "--exclude", "/p/skip-a",
+        "--exclude", "/p/skip-b", "--pack-size", "4", "--walk-concurrency", "2", "/p/one",
       ]),
   CommandCase(
     name: "forget without pack size",
     invocation: ResticCommand.forget(plainContext, host: "host-a", keepWithin: "1h"),
     arguments: ["forget", "--json"] + common
-      + ["--host", "host-a", "--group-by", "paths", "--keep-within", "1h", "--prune"]),
+      + ["--host", "host-a", "--group-by", "host", "--keep-within", "1h", "--prune"]),
   CommandCase(
     name: "forget with pack size",
     invocation: ResticCommand.forget(packedContext, host: "host-a", keepWithin: "30d"),
     arguments: ["forget", "--json"] + common
-      + ["--host", "host-a", "--group-by", "paths", "--keep-within", "30d", "--prune", "--pack-size", "4"]),
+      + ["--host", "host-a", "--group-by", "host", "--keep-within", "30d", "--prune", "--pack-size", "4"]),
   CommandCase(
     name: "restore without includes",
     invocation: ResticCommand.restore(plainContext, snapshotId: "abc123", target: "/target", include: []),
@@ -111,4 +111,26 @@ func environmentIsReplacedWithExactlyFourVariables(_ testCase: CommandCase) {
   let invocation = ResticCommand.version(home: "/version-home")
   #expect(invocation.arguments == ["version", "--json"])
   #expect(invocation.environment == ["HOME": "/version-home", "PATH": "/usr/bin:/bin:/usr/sbin:/sbin"])
+}
+
+@Test func backupGroupsByHostAfterHostAndCarriesCurrentDirectory() {
+  let minimal = ResticCommand.backup(plainContext, paths: ["/p"], excludes: [], host: "host-a")
+  #expect(minimal.currentDirectory == nil)
+  guard let hostIndex = minimal.arguments.firstIndex(of: "--host") else {
+    Issue.record("missing --host in \(minimal.arguments)")
+    return
+  }
+  #expect(
+    Array(minimal.arguments[hostIndex...].prefix(5))
+      == ["--host", "host-a", "--group-by", "host", "--exclude-caches"])
+  let mounted = ResticCommand.backup(
+    plainContext, paths: ["/p"], excludes: [], host: "host-a", currentDirectory: "/mnt")
+  #expect(mounted.currentDirectory == "/mnt")
+  #expect(mounted.arguments == minimal.arguments)
+}
+
+@Test func forgetGroupsByHostNotPaths() {
+  let arguments = ResticCommand.forget(plainContext, host: "host-a", keepWithin: "60d").arguments
+  #expect(argumentAfter(arguments, "--group-by") == "host")
+  #expect(!arguments.contains("paths"))
 }
