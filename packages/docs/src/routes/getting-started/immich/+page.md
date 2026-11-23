@@ -41,7 +41,7 @@ That turns the feature on and takes you to the backups page. From then on the pa
 
 The first time you open the page you get an introduction to FUTO Backups with a **Get Started** button. After that the setup runs in a few short steps:
 
-1. **Telemetry.** The closed beta requires diagnostic data, so this step has no decline option and cannot be turned off later. Your photos, files and recovery key are never collected.
+1. **Telemetry.** To continue setup during the closed beta, you must agree to share FUTO Backups diagnostics. Turning off **Run backups automatically** pauses the schedule; it does not turn off diagnostics. Telemetry does not collect your photos, files or recovery key.
 2. **Connect FUTO account.** This links the Immich server to the account you signed up with.
 3. **Save your recovery key.** Your backups are encrypted with this key and FUTO cannot recover it for you. Read [your recovery key](/guides/recovery-key) before you click past this screen.
 4. **Start your first backup.**

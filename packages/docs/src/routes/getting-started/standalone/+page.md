@@ -101,7 +101,7 @@ Open the app and it walks you through setup. Some of the wording mentions Immich
 
 
 
-1. **Telemetry.** The closed beta requires diagnostic data, so this step has no decline option and cannot be turned off later. Your files and your recovery key are never collected.
+1. **Telemetry.** To continue setup during the closed beta, you must agree to share FUTO Backups diagnostics. Pausing schedules does not stop diagnostics. To stop sending diagnostics from this installation, stop the container with `docker compose stop backups` or `docker stop futo-backups`, depending on how you started it. Telemetry does not collect your files or recovery key.
 2. **Save your recovery key.** Your backups are encrypted with it and FUTO cannot recover it for you. Read [your recovery key](/guides/recovery-key) before continuing.
 3. **Connect your FUTO account.** This is where your backups will be stored.
 
