@@ -202,12 +202,13 @@ public actor BackupEngine {
               snapshotPaths.append(relatives[index] ?? config.folders[index])
             }
             backupPaths = snapshotPaths
+            let resolvedMount = DataVolume.resolvedPath(mountPoint.path)
             for exclude in config.excludes {
               if let relative = DataVolume.snapshotRelativePath(exclude) {
-                backupExcludes.append(relative == "." ? mountPoint.path : mountPoint.path + "/" + relative)
+                backupExcludes.append(relative == "." ? resolvedMount : resolvedMount + "/" + relative)
               }
             }
-            backupCurrentDirectory = mountPoint.path
+            backupCurrentDirectory = resolvedMount
           } catch {
             await runSnapshotCleanup()
             if !(error is CancellationError) {
@@ -395,14 +396,17 @@ public actor BackupEngine {
       return snapshots
     }
     let mount = snapshotDirectory.appendingPathComponent("Volume").path
+    let mounts = [mount, DataVolume.resolvedPath(mount)]
     return snapshots.map { snapshot in
       var copy = snapshot
       copy.paths = snapshot.paths.map { path in
-        if path == mount {
-          return "/"
-        }
-        if path.hasPrefix(mount + "/") {
-          return "/" + path.dropFirst(mount.count + 1)
+        for mount in mounts {
+          if path == mount {
+            return "/"
+          }
+          if path.hasPrefix(mount + "/") {
+            return "/" + path.dropFirst(mount.count + 1)
+          }
         }
         return path
       }

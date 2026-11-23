@@ -27,6 +27,12 @@ public enum DataVolume {
     return relativePath(realPath: realPath, volumeMountPath: mountName(of: status))
   }
 
+  public static func resolvedPath(_ path: String) -> String {
+    guard let resolved = realpath(path, nil) else { return path }
+    defer { free(resolved) }
+    return String(cString: resolved)
+  }
+
   public static func snapshotRelativePath(_ absolutePath: String) -> String? {
     guard absolutePath.hasPrefix("/") else { return nil }
     if absolutePath == mountPath {
