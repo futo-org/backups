@@ -278,7 +278,7 @@ final class FakeDiskSnapshots: DiskSnapshotting, @unchecked Sendable {
   private var mountFailure: DiskSnapshotError?
   private var unmountFailure: DiskSnapshotError?
   private var deleteFailure: DiskSnapshotError?
-  private var mounted: Set<String> = []
+  private var mounted: [String: String] = [:]
   private var timeline: CallTimeline?
 
   var calls: [String] {
@@ -305,7 +305,7 @@ final class FakeDiskSnapshots: DiskSnapshotting, @unchecked Sendable {
     set { lock.withLock { deleteFailure = newValue } }
   }
 
-  var mountedPaths: Set<String> {
+  var mountedNames: [String: String] {
     get { lock.withLock { mounted } }
     set { lock.withLock { mounted = newValue } }
   }
@@ -333,7 +333,7 @@ final class FakeDiskSnapshots: DiskSnapshotting, @unchecked Sendable {
     if let failure {
       throw failure
     }
-    lock.withLock { mounted.insert(mountPoint.path) }
+    lock.withLock { mounted[mountPoint.path] = snapshot.name }
   }
 
   func unmount(_ mountPoint: URL) async throws {
@@ -344,7 +344,9 @@ final class FakeDiskSnapshots: DiskSnapshotting, @unchecked Sendable {
     if let failure {
       throw failure
     }
-    lock.withLock { mounted.remove(mountPoint.path) }
+    lock.withLock {
+      _ = mounted.removeValue(forKey: mountPoint.path)
+    }
   }
 
   func delete(_ snapshot: DiskSnapshot) async throws {
@@ -357,10 +359,10 @@ final class FakeDiskSnapshots: DiskSnapshotting, @unchecked Sendable {
     }
   }
 
-  func isMounted(_ mountPoint: URL) -> Bool {
+  func mountedSnapshotName(at mountPoint: URL) -> String? {
     lock.withLock {
       record("isMounted \(mountPoint.path)")
-      return mounted.contains(mountPoint.path)
+      return mounted[mountPoint.path]
     }
   }
 

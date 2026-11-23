@@ -22,6 +22,7 @@ public enum DataVolume {
     guard let resolved = realpath(path, nil) else { return nil }
     defer { free(resolved) }
     let realPath = String(cString: resolved)
+    guard realPath == URL(fileURLWithPath: path).standardizedFileURL.path else { return nil }
     var status = statfs()
     guard statfs(realPath, &status) == 0 else { return nil }
     return relativePath(realPath: realPath, volumeMountPath: mountName(of: status))

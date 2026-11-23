@@ -1,3 +1,4 @@
+import Darwin
 import Foundation
 import Testing
 
@@ -29,6 +30,42 @@ private final class ScriptedRunner: ResticExecuting, @unchecked Sendable {
   }
 }
 
+private final class Gate: @unchecked Sendable {
+  private let condition = NSCondition()
+  private var open = false
+
+  func wait() {
+    condition.lock()
+    while !open {
+      condition.wait()
+    }
+    condition.unlock()
+  }
+
+  func signal() {
+    condition.lock()
+    open = true
+    condition.broadcast()
+    condition.unlock()
+  }
+}
+
+private struct HangingRunner: ResticExecuting {
+  var sleep: Duration = .seconds(5)
+  var gate: Gate?
+
+  func run(_ invocation: ResticInvocation, onLine: @escaping @Sendable (String) -> Void) async throws
+    -> ResticResult
+  {
+    if let gate {
+      gate.wait()
+      return result()
+    }
+    try await Task.sleep(for: sleep)
+    return result()
+  }
+}
+
 private func result(exitCode: Int32 = 0, stdout: String = "", stderr: String = "") -> ResticResult {
   ResticResult(exitCode: exitCode, stdout: Data(stdout.utf8), stderr: stderr)
 }
@@ -42,14 +79,32 @@ private let createOutput =
 private func makeSnapshots(
   tmutil: ScriptedRunner = ScriptedRunner(script: [result()]),
   mountAPFS: ScriptedRunner = ScriptedRunner(script: [result()]),
-  umount: ScriptedRunner = ScriptedRunner(script: [result()])
+  umount: ScriptedRunner = ScriptedRunner(script: [result()]),
+  timeout: Duration = .seconds(120)
 ) -> (TimeMachineSnapshots, ScriptedRunner, ScriptedRunner, ScriptedRunner) {
-  (TimeMachineSnapshots(tmutil: tmutil, mountAPFS: mountAPFS, umount: umount), tmutil, mountAPFS, umount)
+  (
+    TimeMachineSnapshots(tmutil: tmutil, mountAPFS: mountAPFS, umount: umount, timeout: timeout),
+    tmutil, mountAPFS, umount
+  )
 }
 
 private func freshMountPoint() -> (base: URL, mountPoint: URL) {
   let base = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
   return (base, base.appendingPathComponent("Volume"))
+}
+
+private func mode(of path: String) -> mode_t {
+  var info = stat()
+  guard stat(path, &info) == 0 else { return 0 }
+  return info.st_mode & 0o777
+}
+
+private func mountSource(of status: statfs) -> String {
+  withUnsafePointer(to: status.f_mntfromname) { tuple in
+    tuple.withMemoryRebound(to: CChar.self, capacity: 1024) { bytes in
+      String(cString: bytes)
+    }
+  }
 }
 
 @Test func createRunsLocalsnapshotAndParsesDate() async throws {
@@ -160,6 +215,16 @@ func mountFailures(script: ResticResult, expected: DiskSnapshotError) async {
   }
 }
 
+@Test func deleteRejectsInvalidDateWithoutRunning() async {
+  let (snapshots, tmutil, mountAPFS, umount) = makeSnapshots()
+  await #expect(throws: DiskSnapshotError.deleteFailed("invalid snapshot date")) {
+    try await snapshots.delete(DiskSnapshot(date: "--all"))
+  }
+  #expect(tmutil.invocations.isEmpty)
+  #expect(mountAPFS.invocations.isEmpty)
+  #expect(umount.invocations.isEmpty)
+}
+
 @Test func eachRunnerReceivesOnlyItsOwnCommands() async throws {
   let (base, mountPoint) = freshMountPoint()
   defer { try? FileManager.default.removeItem(at: base) }
@@ -198,7 +263,21 @@ func errorDescriptions(error: DiskSnapshotError, expected: String) {
   #expect(error.description == expected)
 }
 
-@Test func unavailableDiskSnapshotsThrowsAndReportsFalse() async {
+@Test(
+  "disk snapshot error telemetry codes",
+  arguments: [
+    (DiskSnapshotError.unavailable, "unavailable"),
+    (DiskSnapshotError.noFullDiskAccess, "no-full-disk-access"),
+    (DiskSnapshotError.createFailed("boom"), "create-failed"),
+    (DiskSnapshotError.mountFailed("boom"), "mount-failed"),
+    (DiskSnapshotError.unmountFailed("boom"), "unmount-failed"),
+    (DiskSnapshotError.deleteFailed("boom"), "delete-failed"),
+  ])
+func errorTelemetryCodes(error: DiskSnapshotError, expected: String) {
+  #expect(error.telemetryCode == expected)
+}
+
+@Test func unavailableDiskSnapshotsThrowsAndReportsNoName() async {
   let snapshots = UnavailableDiskSnapshots()
   await #expect(throws: DiskSnapshotError.unavailable) {
     _ = try await snapshots.create()
@@ -212,22 +291,140 @@ func errorDescriptions(error: DiskSnapshotError, expected: String) {
   await #expect(throws: DiskSnapshotError.unavailable) {
     try await snapshots.delete(DiskSnapshot(date: snapshotDate))
   }
-  #expect(!snapshots.isMounted(URL(fileURLWithPath: "/")))
+  #expect(snapshots.mountedSnapshotName(at: URL(fileURLWithPath: "/")) == nil)
 }
 
-@Test func isMountedIsFalseForFreshTempDirectory() throws {
+@Test(
+  "snapshot date validation",
+  arguments: [
+    ("2026-11-23-112124", true),
+    ("/", false),
+    ("2026-11-23", false),
+    ("2026-11-23-11212", false),
+    ("2026-11-23-112124x", false),
+    ("x2026-11-23-112124", false),
+    ("--all", false),
+    ("", false),
+  ])
+func snapshotDateValidation(date: String, expected: Bool) {
+  #expect(DiskSnapshot.isValidDate(date) == expected)
+}
+
+@Test func snapshotDecodingAndRoundTrip() throws {
+  let json = Data(#"{"date":"2026-11-23-112124"}"#.utf8)
+  let snapshot = try JSONDecoder().decode(DiskSnapshot.self, from: json)
+  #expect(snapshot == DiskSnapshot(date: snapshotDate))
+  let encoded = String(decoding: try JSONEncoder().encode(snapshot), as: UTF8.self)
+  #expect(encoded == #"{"date":"2026-11-23-112124"}"#)
+}
+
+@Test func decodingInvalidDateThrowsDataCorrupted() throws {
+  let json = Data(#"{"date":"/"}"#.utf8)
+  do {
+    _ = try JSONDecoder().decode(DiskSnapshot.self, from: json)
+    Issue.record("decoding an invalid date should have thrown")
+  } catch let error as DecodingError {
+    guard case .dataCorrupted(let context) = error else {
+      Issue.record("expected dataCorrupted, got \(error)")
+      return
+    }
+    #expect(context.codingPath.map(\.stringValue) == ["date"])
+    #expect(context.debugDescription == "invalid snapshot date")
+  }
+}
+
+@Test func mountUsesPrivatePermissions() async throws {
+  let (base, mountPoint) = freshMountPoint()
+  defer { try? FileManager.default.removeItem(at: base) }
+  let (snapshots, _, _, _) = makeSnapshots()
+  try await snapshots.mount(DiskSnapshot(date: snapshotDate), at: mountPoint)
+  #expect(mode(of: mountPoint.path) == 0o700)
+  #expect(mode(of: base.path) == 0o700)
+}
+
+@Test func createTimesOutAgainstSlowCommand() async throws {
+  let timeout = Duration.milliseconds(100)
+  let snapshots = TimeMachineSnapshots(
+    tmutil: HangingRunner(),
+    mountAPFS: ScriptedRunner(script: [result()]),
+    umount: ScriptedRunner(script: [result()]),
+    timeout: timeout
+  )
+  let start = ContinuousClock.now
+  await #expect(throws: DiskSnapshotError.createFailed("timed out after \(timeout.components.seconds) s")) {
+    _ = try await snapshots.create()
+  }
+  #expect(start.duration(to: .now) < .seconds(2))
+}
+
+@Test func timeoutDoesNotWaitForUncancellableCommand() async throws {
+  let gate = Gate()
+  defer { gate.signal() }
+  let timeout = Duration.milliseconds(100)
+  let snapshots = TimeMachineSnapshots(
+    tmutil: HangingRunner(gate: gate),
+    mountAPFS: ScriptedRunner(script: [result()]),
+    umount: ScriptedRunner(script: [result()]),
+    timeout: timeout
+  )
+  let start = ContinuousClock.now
+  await #expect(throws: DiskSnapshotError.createFailed("timed out after \(timeout.components.seconds) s")) {
+    _ = try await snapshots.create()
+  }
+  #expect(start.duration(to: .now) < .seconds(2))
+}
+
+@Test func callerCancellationWhileCommandRunsThrowsPromptly() async throws {
+  let snapshots = TimeMachineSnapshots(
+    tmutil: HangingRunner(),
+    mountAPFS: ScriptedRunner(script: [result()]),
+    umount: ScriptedRunner(script: [result()])
+  )
+  let start = ContinuousClock.now
+  let task = Task {
+    try await snapshots.create()
+  }
+  try await Task.sleep(for: .milliseconds(50))
+  task.cancel()
+  await #expect(throws: CancellationError.self) {
+    _ = try await task.value
+  }
+  #expect(start.duration(to: .now) < .seconds(2))
+}
+
+@Test func mountedSnapshotNameForRootMatchesStatfs() throws {
+  var status = statfs()
+  try #require(statfs("/", &status) == 0)
+  let source = mountSource(of: status)
+  let expected: String?
+  if let separator = source.firstIndex(of: "@") {
+    let prefix = String(source[source.startIndex..<separator])
+    expected = prefix.isEmpty ? nil : prefix
+  } else {
+    expected = nil
+  }
+  #expect(TimeMachineSnapshots.live().mountedSnapshotName(at: URL(fileURLWithPath: "/")) == expected)
+}
+
+@Test func mountedSnapshotNameIsNilForFreshTempDirectory() throws {
   let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
   try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
   defer { try? FileManager.default.removeItem(at: directory) }
-  #expect(!TimeMachineSnapshots.live().isMounted(directory))
+  #expect(TimeMachineSnapshots.live().mountedSnapshotName(at: directory) == nil)
 }
 
-@Test func isMountedIsTrueForRoot() {
-  #expect(TimeMachineSnapshots.live().isMounted(URL(fileURLWithPath: "/")))
+@Test func mountedSnapshotNameIsNilForSymlinkToRoot() throws {
+  let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+  try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+  defer { try? FileManager.default.removeItem(at: directory) }
+  let link = directory.appendingPathComponent("root")
+  try FileManager.default.createSymbolicLink(atPath: link.path, withDestinationPath: "/")
+  #expect(TimeMachineSnapshots.live().mountedSnapshotName(at: link) == nil)
 }
 
-@Test func isMountedIsFalseForMissingPath() {
-  #expect(!TimeMachineSnapshots.live().isMounted(URL(fileURLWithPath: "/nonexistent-\(UUID().uuidString)")))
+@Test func mountedSnapshotNameIsNilForMissingPath() {
+  let missing = URL(fileURLWithPath: "/nonexistent-\(UUID().uuidString)")
+  #expect(TimeMachineSnapshots.live().mountedSnapshotName(at: missing) == nil)
 }
 
 @Test(
@@ -240,10 +437,10 @@ func liveDiskSnapshotCycle() async throws {
   let snapshot = try await snapshots.create()
   do {
     try await snapshots.mount(snapshot, at: mountPoint)
-    #expect(snapshots.isMounted(mountPoint))
+    #expect(snapshots.mountedSnapshotName(at: mountPoint) == snapshot.name)
     #expect(FileManager.default.fileExists(atPath: mountPoint.appendingPathComponent("Users").path))
     try await snapshots.unmount(mountPoint)
-    #expect(!snapshots.isMounted(mountPoint))
+    #expect(snapshots.mountedSnapshotName(at: mountPoint) == nil)
   } catch {
     try? await snapshots.unmount(mountPoint)
     try? await snapshots.delete(snapshot)

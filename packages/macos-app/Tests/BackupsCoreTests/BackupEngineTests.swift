@@ -1177,7 +1177,9 @@ private func excludeValues(in arguments: [String]) -> [String] {
   defer { try? FileManager.default.removeItem(at: snapshot.directory) }
   try FileManager.default.createDirectory(at: snapshot.directory, withIntermediateDirectories: true)
   try JSONEncoder().encode(DiskSnapshot(date: "2026-01-01-000000")).write(to: snapshot.marker)
-  snapshots.mountedPaths = [snapshot.mountPoint.path]
+  snapshots.mountedNames = [
+    snapshot.mountPoint.path: DiskSnapshot(date: "2026-01-01-000000").name
+  ]
   let engine = BackupEngine(environment: snapshot.fixture.environment)
   let record = try await engine.backup(config: snapshot.config) { _ in }
   #expect(record.status == .complete)

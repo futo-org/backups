@@ -183,7 +183,7 @@ public actor BackupEngine {
             let marker = snapshotDirectory.appendingPathComponent("pending.json")
             snapshotMountPoint = mountPoint
             snapshotMarker = marker
-            if environment.diskSnapshots.isMounted(mountPoint) {
+            if environment.diskSnapshots.mountedSnapshotName(at: mountPoint) != nil {
               try? await environment.diskSnapshots.unmount(mountPoint)
             }
             if let stale = try? JSONDecoder().decode(DiskSnapshot.self, from: Data(contentsOf: marker)) {
