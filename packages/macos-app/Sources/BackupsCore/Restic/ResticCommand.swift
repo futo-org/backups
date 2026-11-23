@@ -44,9 +44,12 @@ public enum ResticCommand {
 
   public static func backup(
     _ context: ResticContext, paths: [String], excludes: [String], host: String,
-    currentDirectory: String? = nil
+    currentDirectory: String? = nil, tags: [String] = []
   ) -> ResticInvocation {
     var flags = ["--host", host, "--group-by", "host", "--exclude-caches"]
+    for tag in tags {
+      flags += ["--tag", tag]
+    }
     for exclude in excludes {
       flags += ["--exclude", exclude]
     }

@@ -78,6 +78,7 @@ public protocol DiskSnapshotting: Sendable {
   func unmount(_ mountPoint: URL) async throws
   func delete(_ snapshot: DiskSnapshot) async throws
   func mountedSnapshotName(at mountPoint: URL) -> String?
+  func existingSnapshotDates() async throws -> Set<String>
 }
 
 public struct UnavailableDiskSnapshots: DiskSnapshotting {
@@ -101,6 +102,10 @@ public struct UnavailableDiskSnapshots: DiskSnapshotting {
 
   public func mountedSnapshotName(at mountPoint: URL) -> String? {
     nil
+  }
+
+  public func existingSnapshotDates() async throws -> Set<String> {
+    throw DiskSnapshotError.unavailable
   }
 }
 
@@ -226,6 +231,27 @@ public struct TimeMachineSnapshots: DiskSnapshotting {
     guard let separator = source.firstIndex(of: "@") else { return nil }
     let name = String(source[source.startIndex..<separator])
     return name.isEmpty ? nil : name
+  }
+
+  public func existingSnapshotDates() async throws -> Set<String> {
+    let result: ResticResult
+    do {
+      result = try await run(tmutilRunner, ["listlocalsnapshotdates", "/"])
+    } catch is SnapshotCommandTimedOut {
+      throw DiskSnapshotError.deleteFailed(timeoutDetail)
+    }
+    guard result.exitCode == 0 else {
+      throw DiskSnapshotError.deleteFailed(failureDetail(result))
+    }
+    let output = String(decoding: result.stdout, as: UTF8.self)
+    var dates: Set<String> = []
+    for line in output.components(separatedBy: .newlines) {
+      let trimmed = line.trimmingCharacters(in: .whitespaces)
+      if DiskSnapshot.isValidDate(trimmed) {
+        dates.insert(trimmed)
+      }
+    }
+    return dates
   }
 
   private static let systemPath = "/usr/bin:/bin:/usr/sbin:/sbin"

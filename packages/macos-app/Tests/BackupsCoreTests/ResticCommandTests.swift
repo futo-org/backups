@@ -129,6 +129,21 @@ func environmentIsReplacedWithExactlyFourVariables(_ testCase: CommandCase) {
   #expect(mounted.arguments == minimal.arguments)
 }
 
+@Test func backupTagsFollowExcludeCachesAndDefaultToNone() {
+  let plain = ResticCommand.backup(plainContext, paths: ["/p"], excludes: [], host: "host-a")
+  #expect(!plain.arguments.contains("--tag"))
+  let tagged = ResticCommand.backup(
+    plainContext, paths: ["/p"], excludes: ["/skip"], host: "host-a",
+    tags: ["disk-snapshot", "beta"])
+  guard let cachesIndex = tagged.arguments.firstIndex(of: "--exclude-caches") else {
+    Issue.record("missing --exclude-caches in \(tagged.arguments)")
+    return
+  }
+  #expect(
+    Array(tagged.arguments[cachesIndex...].prefix(7))
+      == ["--exclude-caches", "--tag", "disk-snapshot", "--tag", "beta", "--exclude", "/skip"])
+}
+
 @Test func forgetGroupsByHostNotPaths() {
   let arguments = ResticCommand.forget(plainContext, host: "host-a", keepWithin: "60d").arguments
   #expect(argumentAfter(arguments, "--group-by") == "host")

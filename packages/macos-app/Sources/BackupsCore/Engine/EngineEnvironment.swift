@@ -15,7 +15,6 @@ public struct EngineEnvironment: Sendable {
   public var diskSnapshots: any DiskSnapshotting
   public var snapshotDirectory: URL?
   public var dataVolumePath: @Sendable (String) -> String?
-  public var hasFullDiskAccess: @Sendable () -> Bool
 
   public init(
     secrets: any SecretStore,
@@ -31,8 +30,7 @@ public struct EngineEnvironment: Sendable {
     telemetryTimeout: Duration = .seconds(10),
     diskSnapshots: any DiskSnapshotting = UnavailableDiskSnapshots(),
     snapshotDirectory: URL? = nil,
-    dataVolumePath: @escaping @Sendable (String) -> String? = { _ in nil },
-    hasFullDiskAccess: @escaping @Sendable () -> Bool = { true }
+    dataVolumePath: @escaping @Sendable (String) -> String? = { _ in nil }
   ) {
     self.secrets = secrets
     self.discover = discover
@@ -48,7 +46,6 @@ public struct EngineEnvironment: Sendable {
     self.diskSnapshots = diskSnapshots
     self.snapshotDirectory = snapshotDirectory
     self.dataVolumePath = dataVolumePath
-    self.hasFullDiskAccess = hasFullDiskAccess
   }
 }
 

@@ -97,8 +97,7 @@ final class AppModel {
           appVersion: appVersion,
           diskSnapshots: TimeMachineSnapshots.live(),
           snapshotDirectory: snapshotDirectory,
-          dataVolumePath: { DataVolume.relativePath(of: $0) },
-          hasFullDiskAccess: { FullDiskAccess.isGranted() }))
+          dataVolumePath: { DataVolume.relativePath(of: $0) }))
       missingHelperText = nil
     } else {
       engine = nil

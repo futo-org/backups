@@ -8,6 +8,11 @@ public actor BackupEngine {
     var context: ResticContext
   }
 
+  private struct SnapshotRemoval {
+    var error: DiskSnapshotError?
+    var deleted: Bool
+  }
+
   private final class Outbox: @unchecked Sendable {
     private let continuation: AsyncStream<@Sendable () async -> Void>.Continuation
     private let consumer: Task<Void, Never>
@@ -45,6 +50,7 @@ public actor BackupEngine {
   private let environment: EngineEnvironment
   private let outbox: Outbox
   private var running = false
+  private var staleCleanupTask: Task<Void, Never>?
   private var serverCache: [URL: ServerInfo] = [:]
   private var futoResticCache: Bool?
 
@@ -133,6 +139,7 @@ public actor BackupEngine {
     var message: String?
     var summary: BackupSummary?
     var snapshotMounted = false
+    var snapshotFailure: DiskSnapshotError?
     var api: (any YuccaRepositoryAPI)?
     do {
       let server = try await serverInfo(for: config.serverURL)
@@ -152,51 +159,87 @@ public actor BackupEngine {
         let snapshotMode = config.usesDiskSnapshots && relatives.contains { $0 != nil }
         var createdSnapshot: DiskSnapshot?
         var snapshotMountPoint: URL?
-        var snapshotMarker: URL?
+        var snapshotJournal: URL?
+        var snapshotLock: SnapshotLock?
         var mounted = false
         var snapshotCleanedUp = false
         var backupPaths = config.folders
         var backupExcludes = config.excludes
         var backupCurrentDirectory: String?
+        var backupTags: [String] = []
         func runSnapshotCleanup() async {
-          guard !snapshotCleanedUp, let createdSnapshot, let snapshotMountPoint else { return }
+          guard !snapshotCleanedUp, let createdSnapshot, let snapshotMountPoint, let snapshotJournal
+          else { return }
           snapshotCleanedUp = true
-          let cleanupError = await Task {
-            await self.cleanUpSnapshot(
-              createdSnapshot, mountPoint: snapshotMountPoint, mounted: mounted, marker: snapshotMarker)
+          let removal = await Task {
+            await self.removeSnapshot(createdSnapshot, mountPoint: snapshotMountPoint)
           }.value
-          if let cleanupError {
+          if removal.deleted {
+            try? writeJournal(
+              readJournal(snapshotJournal).filter { $0 != createdSnapshot }, to: snapshotJournal)
+          }
+          if let error = removal.error {
             await report(
               madeAPI, config: config, "Failed to remove disk snapshot",
-              ["repositoryId": .string(repositoryId), "error": .string(cleanupError)])
+              ["repositoryId": .string(repositoryId), "error": .string(error.telemetryCode)])
           }
+          snapshotLock?.release()
+          snapshotLock = nil
         }
         if snapshotMode {
           do {
             guard let snapshotDirectory = environment.snapshotDirectory else {
               throw DiskSnapshotError.unavailable
             }
-            guard environment.hasFullDiskAccess() else {
-              throw DiskSnapshotError.noFullDiskAccess
-            }
+            await staleCleanupTask?.value
             let mountPoint = snapshotDirectory.appendingPathComponent("Volume")
-            let marker = snapshotDirectory.appendingPathComponent("pending.json")
+            let journal = snapshotDirectory.appendingPathComponent("pending.json")
+            let lockFile = snapshotDirectory.appendingPathComponent("lock")
             snapshotMountPoint = mountPoint
-            snapshotMarker = marker
-            if environment.diskSnapshots.mountedSnapshotName(at: mountPoint) != nil {
-              try? await environment.diskSnapshots.unmount(mountPoint)
+            snapshotJournal = journal
+            try? FileManager.default.createDirectory(
+              at: snapshotDirectory,
+              withIntermediateDirectories: true,
+              attributes: [.posixPermissions: 0o700]
+            )
+            try? FileManager.default.setAttributes(
+              [.posixPermissions: 0o700], ofItemAtPath: snapshotDirectory.path)
+            guard let lock = SnapshotLock.acquire(at: lockFile) else {
+              throw DiskSnapshotError.createFailed("another backup is using disk snapshots")
             }
-            if let stale = try? JSONDecoder().decode(DiskSnapshot.self, from: Data(contentsOf: marker)) {
-              try? await environment.diskSnapshots.delete(stale)
+            snapshotLock = lock
+            let staleErrors = await Task {
+              await self.cleanUpStaleSnapshots(directory: snapshotDirectory)
+            }.value
+            for error in staleErrors {
+              await report(
+                madeAPI, config: config, "Failed to remove disk snapshot",
+                ["repositoryId": .string(repositoryId), "error": .string(error.telemetryCode)])
             }
-            try? FileManager.default.removeItem(at: marker)
-            let snapshot = try await environment.diskSnapshots.create()
+            let snapshot = try await Task {
+              try await self.environment.diskSnapshots.create()
+            }.value
             createdSnapshot = snapshot
-            try? FileManager.default.createDirectory(at: snapshotDirectory, withIntermediateDirectories: true)
-            try? JSONEncoder().encode(snapshot).write(to: marker, options: .atomic)
-            try await environment.diskSnapshots.mount(snapshot, at: mountPoint)
-            mounted = true
+            do {
+              try writeJournal(readJournal(journal) + [snapshot], to: journal)
+            } catch {
+              throw DiskSnapshotError.createFailed("could not record the snapshot")
+            }
+            do {
+              try await Task {
+                try await self.environment.diskSnapshots.mount(snapshot, at: mountPoint)
+              }.value
+            } catch {
+              mounted = environment.diskSnapshots.mountedSnapshotName(at: mountPoint) == snapshot.name
+              throw error
+            }
+            mounted = environment.diskSnapshots.mountedSnapshotName(at: mountPoint) == snapshot.name
+            if !mounted {
+              throw DiskSnapshotError.mountFailed("the snapshot is not mounted")
+            }
             snapshotMounted = true
+            backupTags = ["disk-snapshot"]
+            try Task.checkCancellation()
             var snapshotPaths: [String] = []
             for index in config.folders.indices {
               snapshotPaths.append(relatives[index] ?? config.folders[index])
@@ -211,12 +254,17 @@ public actor BackupEngine {
             backupCurrentDirectory = resolvedMount
           } catch {
             await runSnapshotCleanup()
+            snapshotLock?.release()
+            snapshotLock = nil
+            snapshotFailure = error as? DiskSnapshotError
             if !(error is CancellationError) {
               await report(
                 madeAPI, config: config, "Failed to create disk snapshot",
                 [
                   "repositoryId": .string(repositoryId),
-                  "error": .string(String(describing: error)),
+                  "error": .string(
+                    (error as? DiskSnapshotError)?.telemetryCode
+                      ?? String(describing: type(of: error))),
                 ])
             }
             throw error
@@ -228,7 +276,7 @@ public actor BackupEngine {
           result = try await environment.restic.run(
             ResticCommand.backup(
               session.context, paths: backupPaths, excludes: backupExcludes, host: config.host,
-              currentDirectory: backupCurrentDirectory),
+              currentDirectory: backupCurrentDirectory, tags: backupTags),
             onLine: { line in
               log.append(line)
               if case .status(let progress) = ResticOutput.parseLine(line) {
@@ -237,9 +285,13 @@ public actor BackupEngine {
             })
         } catch {
           await runSnapshotCleanup()
+          snapshotLock?.release()
+          snapshotLock = nil
           throw error
         }
         await runSnapshotCleanup()
+        snapshotLock?.release()
+        snapshotLock = nil
         var lastError: String?
         for line in log.lines {
           switch ResticOutput.parseLine(line) {
@@ -355,7 +407,9 @@ public actor BackupEngine {
         "durationMs": .int(Int64(durationMs)),
         "diskSnapshot": .bool(snapshotMounted),
       ]
-      if let endMessage {
+      if let snapshotFailure {
+        data["error"] = .string("disk snapshot: \(snapshotFailure.telemetryCode)")
+      } else if let endMessage {
         data["error"] = .string(endMessage)
       }
       await report(endAPI, config: config, "Backup finished", data)
@@ -365,30 +419,86 @@ public actor BackupEngine {
       filesNew: summary?.filesNew, dataAdded: summary?.dataAdded, message: message)
   }
 
-  private func cleanUpSnapshot(
-    _ snapshot: DiskSnapshot, mountPoint: URL, mounted: Bool, marker: URL?
-  ) async -> String? {
-    var firstError: String?
-    if mounted {
+  private func readJournal(_ url: URL) -> [DiskSnapshot] {
+    guard let data = try? Data(contentsOf: url) else { return [] }
+    return (try? JSONDecoder().decode([DiskSnapshot].self, from: data)) ?? []
+  }
+
+  private func writeJournal(_ entries: [DiskSnapshot], to url: URL) throws {
+    if entries.isEmpty {
+      do {
+        try FileManager.default.removeItem(at: url)
+      } catch {
+        let nsError = error as NSError
+        let cocoaNotFound =
+          nsError.domain == NSCocoaErrorDomain
+          && (nsError.code == NSFileNoSuchFileError || nsError.code == NSFileReadNoSuchFileError)
+        let posixNotFound = (error as? POSIXError).map { $0.code.rawValue == Int32(ENOENT) } ?? false
+        if !cocoaNotFound && !posixNotFound {
+          throw error
+        }
+      }
+      return
+    }
+    try JSONEncoder().encode(entries).write(to: url, options: .atomic)
+  }
+
+  private func removeSnapshot(_ snapshot: DiskSnapshot, mountPoint: URL) async -> SnapshotRemoval {
+    var firstError: DiskSnapshotError?
+    if environment.diskSnapshots.mountedSnapshotName(at: mountPoint) == snapshot.name {
       do {
         try await environment.diskSnapshots.unmount(mountPoint)
       } catch {
-        firstError = String(describing: error)
+        firstError = (error as? DiskSnapshotError) ?? .deleteFailed(String(describing: error))
       }
     }
-    var deleteSucceeded = false
+    var deleted = false
     do {
       try await environment.diskSnapshots.delete(snapshot)
-      deleteSucceeded = true
+      deleted = true
     } catch {
-      if firstError == nil {
-        firstError = String(describing: error)
+      let mapped = (error as? DiskSnapshotError) ?? .deleteFailed(String(describing: error))
+      if let dates = try? await environment.diskSnapshots.existingSnapshotDates(),
+        !dates.contains(snapshot.date)
+      {
+        deleted = true
+      } else if firstError == nil {
+        firstError = mapped
       }
     }
-    if deleteSucceeded, let marker {
-      try? FileManager.default.removeItem(at: marker)
+    return SnapshotRemoval(error: firstError, deleted: deleted)
+  }
+
+  private func cleanUpStaleSnapshots(directory: URL) async -> [DiskSnapshotError] {
+    let journal = directory.appendingPathComponent("pending.json")
+    let mountPoint = directory.appendingPathComponent("Volume")
+    var kept: [DiskSnapshot] = []
+    var errors: [DiskSnapshotError] = []
+    for entry in readJournal(journal) {
+      let removal = await removeSnapshot(entry, mountPoint: mountPoint)
+      if !removal.deleted {
+        kept.append(entry)
+      }
+      if let error = removal.error {
+        errors.append(error)
+      }
     }
-    return firstError
+    try? writeJournal(kept, to: journal)
+    return errors
+  }
+
+  public func cleanUpStaleDiskSnapshots() async {
+    guard let directory = environment.snapshotDirectory, !running else { return }
+    let task = Task {
+      guard let lock = SnapshotLock.acquire(at: directory.appendingPathComponent("lock")) else {
+        return
+      }
+      _ = await self.cleanUpStaleSnapshots(directory: directory)
+      lock.release()
+    }
+    staleCleanupTask = task
+    await task.value
+    staleCleanupTask = nil
   }
 
   private func mapSnapshotPaths(_ snapshots: [Snapshot]) -> [Snapshot] {
@@ -398,6 +508,7 @@ public actor BackupEngine {
     let mount = snapshotDirectory.appendingPathComponent("Volume").path
     let mounts = [mount, DataVolume.resolvedPath(mount)]
     return snapshots.map { snapshot in
+      guard snapshot.tags.contains("disk-snapshot") else { return snapshot }
       var copy = snapshot
       copy.paths = snapshot.paths.map { path in
         for mount in mounts {

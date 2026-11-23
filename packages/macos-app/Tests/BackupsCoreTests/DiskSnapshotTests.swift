@@ -225,6 +225,44 @@ func mountFailures(script: ResticResult, expected: DiskSnapshotError) async {
   #expect(umount.invocations.isEmpty)
 }
 
+@Test func existingSnapshotDatesParsesPublishedOutput() async throws {
+  let (snapshots, tmutil, mountAPFS, umount) = makeSnapshots(
+    tmutil: ScriptedRunner(script: [result(stdout: "Snapshot dates for disk /:\n2026-11-23-112124\n")]))
+  let dates = try await snapshots.existingSnapshotDates()
+  #expect(dates == [snapshotDate])
+  #expect(
+    tmutil.invocations
+      == [
+        ResticInvocation(
+          arguments: ["listlocalsnapshotdates", "/"], environment: ["PATH": systemPath])
+      ])
+  #expect(mountAPFS.invocations.isEmpty)
+  #expect(umount.invocations.isEmpty)
+}
+
+@Test func existingSnapshotDatesIgnoresHeaderAndInvalidLines() async throws {
+  let output = """
+    Snapshot dates for disk /:
+    2026-11-23-112124
+    2026-11-23-112124x
+    x2026-11-23-112124
+    2026-11-23
+
+      2026-11-23-112125
+    """
+  let (snapshots, _, _, _) = makeSnapshots(
+    tmutil: ScriptedRunner(script: [result(stdout: output)]))
+  #expect(try await snapshots.existingSnapshotDates() == [snapshotDate, "2026-11-23-112125"])
+}
+
+@Test func existingSnapshotDatesFailureThrowsDeleteFailed() async {
+  let (snapshots, _, _, _) = makeSnapshots(
+    tmutil: ScriptedRunner(script: [result(exitCode: 1, stderr: "denied")]))
+  await #expect(throws: DiskSnapshotError.deleteFailed("denied")) {
+    _ = try await snapshots.existingSnapshotDates()
+  }
+}
+
 @Test func eachRunnerReceivesOnlyItsOwnCommands() async throws {
   let (base, mountPoint) = freshMountPoint()
   defer { try? FileManager.default.removeItem(at: base) }
@@ -290,6 +328,9 @@ func errorTelemetryCodes(error: DiskSnapshotError, expected: String) {
   }
   await #expect(throws: DiskSnapshotError.unavailable) {
     try await snapshots.delete(DiskSnapshot(date: snapshotDate))
+  }
+  await #expect(throws: DiskSnapshotError.unavailable) {
+    _ = try await snapshots.existingSnapshotDates()
   }
   #expect(snapshots.mountedSnapshotName(at: URL(fileURLWithPath: "/")) == nil)
 }

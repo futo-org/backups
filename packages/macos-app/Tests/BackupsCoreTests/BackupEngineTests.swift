@@ -1,3 +1,4 @@
+import Darwin
 import Foundation
 import Testing
 
@@ -945,13 +946,13 @@ private struct SnapshotFixture {
   var snapshots: FakeDiskSnapshots
   var directory: URL
   var mountPoint: URL
-  var marker: URL
+  var journal: URL
+  var lockFile: URL
   var config: AppConfig
 }
 
 private func makeSnapshotFixture(
   diskSnapshots: FakeDiskSnapshots = FakeDiskSnapshots(), usesSnapshotDirectory: Bool = true,
-  hasFullDiskAccess: Bool = true,
   dataVolumePath: @escaping @Sendable (String) -> String? = { path in
     path == documentsFolder ? "Users/test/Documents" : nil
   }
@@ -960,8 +961,7 @@ private func makeSnapshotFixture(
   let fixture = makeFixture(
     diskSnapshots: diskSnapshots,
     snapshotDirectory: usesSnapshotDirectory ? directory : nil,
-    dataVolumePath: dataVolumePath,
-    hasFullDiskAccess: { hasFullDiskAccess })
+    dataVolumePath: dataVolumePath)
   fixture.restic.set(ResticScript(lines: [summaryLine]), for: "backup")
   fixture.restic.set(ResticScript(stdout: statsStdout), for: "stats")
   var config = testConfig(folders: [documentsFolder, externalFolder])
@@ -969,7 +969,17 @@ private func makeSnapshotFixture(
   return SnapshotFixture(
     fixture: fixture, snapshots: diskSnapshots, directory: directory,
     mountPoint: directory.appendingPathComponent("Volume"),
-    marker: directory.appendingPathComponent("pending.json"), config: config)
+    journal: directory.appendingPathComponent("pending.json"),
+    lockFile: directory.appendingPathComponent("lock"), config: config)
+}
+
+private func readTestJournal(_ url: URL) throws -> [DiskSnapshot] {
+  guard let data = try? Data(contentsOf: url) else { return [] }
+  return try JSONDecoder().decode([DiskSnapshot].self, from: data)
+}
+
+private func writeTestJournal(_ entries: [DiskSnapshot], to url: URL) throws {
+  try JSONEncoder().encode(entries).write(to: url)
 }
 
 private func excludeValues(in arguments: [String]) -> [String] {
@@ -1000,26 +1010,30 @@ private func excludeValues(in arguments: [String]) -> [String] {
   #expect(
     snapshots.calls
       == [
-        "isMounted \(mount)",
         "create",
         "mount \(snapshotName) \(mount)",
+        "isMounted \(mount)",
+        "isMounted \(mount)",
         "unmount \(mount)",
         "delete \(snapshotDate)",
       ])
   #expect(
     timeline.entries
       == [
-        "version", "unlock", "isMounted \(mount)", "create", "mount \(snapshotName) \(mount)",
-        "backup", "unmount \(mount)", "delete \(snapshotDate)", "forget", "stats",
+        "version", "unlock", "create", "mount \(snapshotName) \(mount)", "isMounted \(mount)",
+        "backup", "isMounted \(mount)", "unmount \(mount)", "delete \(snapshotDate)", "forget", "stats",
       ])
   let backupInvocation = try #require(
     snapshot.fixture.restic.invocations().first { $0.arguments.first == "backup" })
   #expect(backupInvocation.currentDirectory == mount)
+  #expect(argumentAfter(backupInvocation.arguments, "--tag") == "disk-snapshot")
   #expect(Array(backupInvocation.arguments.suffix(2)) == ["Users/test/Documents", externalFolder])
   #expect(
     excludeValues(in: backupInvocation.arguments)
       == [cachesExclude, "**/node_modules", mount + "/Users/test/Library/Caches"])
-  #expect(!FileManager.default.fileExists(atPath: snapshot.marker.path))
+  #expect(!FileManager.default.fileExists(atPath: snapshot.journal.path))
+  let lock = try #require(SnapshotLock.acquire(at: snapshot.lockFile))
+  lock.release()
   let logs = await snapshot.fixture.deliveredLogs(engine)
   let finished = try #require(logs.last { $0.summary == "Backup finished" })
   #expect(finished.data["diskSnapshot"] == .bool(true))
@@ -1063,20 +1077,30 @@ private func excludeValues(in arguments: [String]) -> [String] {
   #expect(finished.data["diskSnapshot"] == .bool(false))
 }
 
-@Test func diskSnapshotWithoutFullDiskAccessFailsRun() async throws {
+@Test func diskSnapshotMountWithoutFullDiskAccessFailsRunAndDeletesSnapshot() async throws {
   let snapshots = FakeDiskSnapshots()
-  let snapshot = makeSnapshotFixture(diskSnapshots: snapshots, hasFullDiskAccess: false)
+  snapshots.mountError = .noFullDiskAccess
+  let snapshot = makeSnapshotFixture(diskSnapshots: snapshots)
   defer { try? FileManager.default.removeItem(at: snapshot.directory) }
   let engine = BackupEngine(environment: snapshot.fixture.environment)
   let record = try await engine.backup(config: snapshot.config) { _ in }
   #expect(record.status == .failed)
   #expect(record.message == DiskSnapshotError.noFullDiskAccess.description)
-  #expect(snapshots.calls.isEmpty)
+  let mount = snapshot.mountPoint.path
+  #expect(
+    snapshots.calls
+      == [
+        "create", "mount \(snapshotName) \(mount)", "isMounted \(mount)", "isMounted \(mount)",
+        "delete \(snapshotDate)",
+      ])
   #expect(snapshot.fixture.restic.commands() == ["version", "unlock"])
   let logs = await snapshot.fixture.deliveredLogs(engine)
   let event = try #require(logs.first { $0.summary == "Failed to create disk snapshot" })
   #expect(event.data["repositoryId"] == .string("repo-1"))
-  #expect(event.data["error"] == .string(DiskSnapshotError.noFullDiskAccess.description))
+  #expect(event.data["error"] == .string("no-full-disk-access"))
+  let finished = try #require(logs.last { $0.summary == "Backup finished" })
+  #expect(finished.data["error"] == .string("disk snapshot: no-full-disk-access"))
+  #expect(!FileManager.default.fileExists(atPath: snapshot.journal.path))
 }
 
 @Test func diskSnapshotWithoutDirectoryFailsRun() async throws {
@@ -1099,11 +1123,11 @@ private func excludeValues(in arguments: [String]) -> [String] {
   let record = try await engine.backup(config: snapshot.config) { _ in }
   #expect(record.status == .failed)
   #expect(record.message == "Could not create a disk snapshot: boom")
-  #expect(snapshots.calls == ["isMounted \(snapshot.mountPoint.path)", "create"])
+  #expect(snapshots.calls == ["create"])
   #expect(snapshot.fixture.restic.commands() == ["version", "unlock"])
   let logs = await snapshot.fixture.deliveredLogs(engine)
   let event = try #require(logs.first { $0.summary == "Failed to create disk snapshot" })
-  #expect(event.data["error"] == .string("Could not create a disk snapshot: boom"))
+  #expect(event.data["error"] == .string("create-failed"))
 }
 
 @Test func diskSnapshotMountFailureDeletesWithoutUnmount() async throws {
@@ -1119,9 +1143,10 @@ private func excludeValues(in arguments: [String]) -> [String] {
   #expect(
     snapshots.calls
       == [
-        "isMounted \(mount)", "create", "mount \(snapshotName) \(mount)", "delete \(snapshotDate)",
+        "create", "mount \(snapshotName) \(mount)", "isMounted \(mount)", "isMounted \(mount)",
+        "delete \(snapshotDate)",
       ])
-  #expect(!FileManager.default.fileExists(atPath: snapshot.marker.path))
+  #expect(!FileManager.default.fileExists(atPath: snapshot.journal.path))
 }
 
 @Test func cancelledDiskSnapshotBackupStillCleansUp() async throws {
@@ -1150,12 +1175,12 @@ private func excludeValues(in arguments: [String]) -> [String] {
   #expect(
     snapshots.calls
       == [
-        "isMounted \(mount)", "create", "mount \(snapshotName) \(mount)", "unmount \(mount)",
-        "delete \(snapshotDate)",
+        "create", "mount \(snapshotName) \(mount)", "isMounted \(mount)", "isMounted \(mount)",
+        "unmount \(mount)", "delete \(snapshotDate)",
       ])
 }
 
-@Test func diskSnapshotDeleteFailureKeepsCompleteAndMarker() async throws {
+@Test func diskSnapshotDeleteFailureKeepsCompleteAndJournal() async throws {
   let snapshots = FakeDiskSnapshots()
   snapshots.deleteError = .deleteFailed("busy")
   let snapshot = makeSnapshotFixture(diskSnapshots: snapshots)
@@ -1166,9 +1191,8 @@ private func excludeValues(in arguments: [String]) -> [String] {
   let logs = await snapshot.fixture.deliveredLogs(engine)
   let event = try #require(logs.first { $0.summary == "Failed to remove disk snapshot" })
   #expect(event.data["repositoryId"] == .string("repo-1"))
-  #expect(event.data["error"] == .string("Could not delete the disk snapshot: busy"))
-  let stored = try JSONDecoder().decode(DiskSnapshot.self, from: Data(contentsOf: snapshot.marker))
-  #expect(stored == DiskSnapshot(date: snapshotDate))
+  #expect(event.data["error"] == .string("delete-failed"))
+  #expect(try readTestJournal(snapshot.journal) == [DiskSnapshot(date: snapshotDate)])
 }
 
 @Test func staleDiskSnapshotCleanedUpBeforeCreate() async throws {
@@ -1176,7 +1200,7 @@ private func excludeValues(in arguments: [String]) -> [String] {
   let snapshot = makeSnapshotFixture(diskSnapshots: snapshots)
   defer { try? FileManager.default.removeItem(at: snapshot.directory) }
   try FileManager.default.createDirectory(at: snapshot.directory, withIntermediateDirectories: true)
-  try JSONEncoder().encode(DiskSnapshot(date: "2026-01-01-000000")).write(to: snapshot.marker)
+  try writeTestJournal([DiskSnapshot(date: "2026-01-01-000000")], to: snapshot.journal)
   snapshots.mountedNames = [
     snapshot.mountPoint.path: DiskSnapshot(date: "2026-01-01-000000").name
   ]
@@ -1195,7 +1219,7 @@ private func excludeValues(in arguments: [String]) -> [String] {
   let mount = directory.appendingPathComponent("Volume").path
   let json = """
     [{"id":"a","short_id":"a","time":"2026-11-23T12:00:00Z","hostname":"test-host",\
-    "paths":["\(mount)/Users/test/Documents","/Volumes/Ext/Photos","\(mount)"]}]
+    "tags":["disk-snapshot"],"paths":["\(mount)/Users/test/Documents","/Volumes/Ext/Photos","\(mount)"]}]
     """
   let withDirectory = makeFixture(snapshotDirectory: directory)
   withDirectory.restic.set(ResticScript(stdout: json), for: "snapshots")
@@ -1208,4 +1232,251 @@ private func excludeValues(in arguments: [String]) -> [String] {
     .snapshots(config: testConfig())
   #expect(
     unchanged.map(\.paths) == [["\(mount)/Users/test/Documents", "/Volumes/Ext/Photos", mount]])
+}
+
+private func waitForSnapshotCall(_ snapshots: FakeDiskSnapshots, prefix: String) async {
+  var waited = 0
+  while !snapshots.calls.contains(where: { $0.hasPrefix(prefix) }) {
+    waited += 1
+    if waited > 500 {
+      Issue.record("backup never reached snapshot fake at \(prefix)")
+      break
+    }
+    try? await Task.sleep(for: .milliseconds(2))
+  }
+}
+
+@Test func cancelledDiskSnapshotCreateStillDeletesCreatedSnapshot() async throws {
+  let snapshots = FakeDiskSnapshots()
+  snapshots.gateNextCreate()
+  let snapshot = makeSnapshotFixture(diskSnapshots: snapshots)
+  defer { try? FileManager.default.removeItem(at: snapshot.directory) }
+  let engine = BackupEngine(environment: snapshot.fixture.environment)
+  let task = Task {
+    try await engine.backup(config: snapshot.config) { _ in }
+  }
+  await waitForSnapshotCall(snapshots, prefix: "create")
+  task.cancel()
+  snapshots.releaseCreates()
+  let record = try await task.value
+  #expect(record.status == .cancelled)
+  let mount = snapshot.mountPoint.path
+  #expect(
+    snapshots.calls
+      == [
+        "create", "mount \(snapshotName) \(mount)", "isMounted \(mount)", "isMounted \(mount)",
+        "unmount \(mount)", "delete \(snapshotDate)",
+      ])
+  #expect(try readTestJournal(snapshot.journal).isEmpty)
+  let logs = await snapshot.fixture.deliveredLogs(engine)
+  #expect(logs.first { $0.summary == "Failed to create disk snapshot" } == nil)
+}
+
+@Test func cancelledDiskSnapshotMountUnmountsAndDeletes() async throws {
+  let snapshots = FakeDiskSnapshots()
+  snapshots.gateNextMount()
+  let snapshot = makeSnapshotFixture(diskSnapshots: snapshots)
+  defer { try? FileManager.default.removeItem(at: snapshot.directory) }
+  let engine = BackupEngine(environment: snapshot.fixture.environment)
+  let task = Task {
+    try await engine.backup(config: snapshot.config) { _ in }
+  }
+  await waitForSnapshotCall(snapshots, prefix: "mount ")
+  task.cancel()
+  snapshots.releaseMounts()
+  let record = try await task.value
+  #expect(record.status == .cancelled)
+  let mount = snapshot.mountPoint.path
+  #expect(
+    snapshots.calls
+      == [
+        "create", "mount \(snapshotName) \(mount)", "isMounted \(mount)", "isMounted \(mount)",
+        "unmount \(mount)", "delete \(snapshotDate)",
+      ])
+  #expect(try readTestJournal(snapshot.journal).isEmpty)
+}
+
+@Test func diskSnapshotMountFailureStillUnmountsWhenSnapshotIsMounted() async throws {
+  let snapshots = FakeDiskSnapshots()
+  snapshots.mountError = .mountFailed("slow failure")
+  let snapshot = makeSnapshotFixture(diskSnapshots: snapshots)
+  snapshots.mountedNames = [snapshot.mountPoint.path: snapshotName]
+  defer { try? FileManager.default.removeItem(at: snapshot.directory) }
+  let engine = BackupEngine(environment: snapshot.fixture.environment)
+  let record = try await engine.backup(config: snapshot.config) { _ in }
+  #expect(record.status == .failed)
+  #expect(record.message == DiskSnapshotError.mountFailed("slow failure").description)
+  let mount = snapshot.mountPoint.path
+  #expect(
+    snapshots.calls
+      == [
+        "create", "mount \(snapshotName) \(mount)", "isMounted \(mount)", "isMounted \(mount)",
+        "unmount \(mount)", "delete \(snapshotDate)",
+      ])
+}
+
+@Test func journalWriteFailureFailsSetupAndDeletesSnapshot() async throws {
+  let snapshots = FakeDiskSnapshots()
+  let snapshot = makeSnapshotFixture(diskSnapshots: snapshots)
+  try FileManager.default.createDirectory(at: snapshot.directory, withIntermediateDirectories: true)
+  try FileManager.default.createDirectory(at: snapshot.journal, withIntermediateDirectories: false)
+  let inner = snapshot.journal.appendingPathComponent("inner")
+  try Data("x".utf8).write(to: inner)
+  chflags(inner.path, UInt32(bitPattern: Int32(UF_IMMUTABLE)))
+  defer {
+    chflags(inner.path, 0)
+    try? FileManager.default.removeItem(at: snapshot.directory)
+  }
+  let engine = BackupEngine(environment: snapshot.fixture.environment)
+  let record = try await engine.backup(config: snapshot.config) { _ in }
+  #expect(record.status == .failed)
+  #expect(
+    record.message == DiskSnapshotError.createFailed("could not record the snapshot").description)
+  let mount = snapshot.mountPoint.path
+  #expect(snapshots.calls == ["create", "isMounted \(mount)", "delete \(snapshotDate)"])
+  #expect(snapshot.fixture.restic.commands() == ["version", "unlock"])
+  let logs = await snapshot.fixture.deliveredLogs(engine)
+  let event = try #require(logs.first { $0.summary == "Failed to create disk snapshot" })
+  #expect(event.data["error"] == .string("create-failed"))
+}
+
+@Test func staleDeleteFailureKeepsEntryAndReportsDeleteCode() async throws {
+  let snapshots = FakeDiskSnapshots()
+  let stale = DiskSnapshot(date: "2026-01-01-000000")
+  snapshots.deleteErrors = [stale.date: .deleteFailed("busy")]
+  snapshots.extraExistingDates = [stale.date]
+  let snapshot = makeSnapshotFixture(diskSnapshots: snapshots)
+  defer { try? FileManager.default.removeItem(at: snapshot.directory) }
+  try FileManager.default.createDirectory(at: snapshot.directory, withIntermediateDirectories: true)
+  try writeTestJournal([stale], to: snapshot.journal)
+  let engine = BackupEngine(environment: snapshot.fixture.environment)
+  let record = try await engine.backup(config: snapshot.config) { _ in }
+  #expect(record.status == .complete)
+  let logs = await snapshot.fixture.deliveredLogs(engine)
+  let event = try #require(logs.first { $0.summary == "Failed to remove disk snapshot" })
+  #expect(event.data["repositoryId"] == .string("repo-1"))
+  #expect(event.data["error"] == .string("delete-failed"))
+  #expect(try readTestJournal(snapshot.journal) == [stale])
+}
+
+@Test func staleEntryAlreadyPurgedDropsFromJournalWithoutFailureEvent() async throws {
+  let snapshots = FakeDiskSnapshots()
+  let stale = DiskSnapshot(date: "2026-01-01-000000")
+  snapshots.deleteErrors = [stale.date: .deleteFailed("gone")]
+  let snapshot = makeSnapshotFixture(diskSnapshots: snapshots)
+  defer { try? FileManager.default.removeItem(at: snapshot.directory) }
+  try FileManager.default.createDirectory(at: snapshot.directory, withIntermediateDirectories: true)
+  try writeTestJournal([stale], to: snapshot.journal)
+  let engine = BackupEngine(environment: snapshot.fixture.environment)
+  let record = try await engine.backup(config: snapshot.config) { _ in }
+  #expect(record.status == .complete)
+  let logs = await snapshot.fixture.deliveredLogs(engine)
+  #expect(logs.first { $0.summary == "Failed to remove disk snapshot" } == nil)
+  #expect(try readTestJournal(snapshot.journal).isEmpty)
+}
+
+@Test func staleMountNotInJournalIsNotUnmounted() async throws {
+  let snapshots = FakeDiskSnapshots()
+  let stale = DiskSnapshot(date: "2026-01-01-000000")
+  let snapshot = makeSnapshotFixture(diskSnapshots: snapshots)
+  defer { try? FileManager.default.removeItem(at: snapshot.directory) }
+  try FileManager.default.createDirectory(at: snapshot.directory, withIntermediateDirectories: true)
+  try writeTestJournal([stale], to: snapshot.journal)
+  snapshots.mountedNames = [snapshot.mountPoint.path: "something-else"]
+  let engine = BackupEngine(environment: snapshot.fixture.environment)
+  await engine.cleanUpStaleDiskSnapshots()
+  let mount = snapshot.mountPoint.path
+  #expect(snapshots.calls == ["isMounted \(mount)", "delete 2026-01-01-000000"])
+  #expect(try readTestJournal(snapshot.journal).isEmpty)
+}
+
+@Test func busySnapshotLockFailsRunBeforeCreate() async throws {
+  let snapshots = FakeDiskSnapshots()
+  let snapshot = makeSnapshotFixture(diskSnapshots: snapshots)
+  defer { try? FileManager.default.removeItem(at: snapshot.directory) }
+  try FileManager.default.createDirectory(at: snapshot.directory, withIntermediateDirectories: true)
+  let lock = try #require(SnapshotLock.acquire(at: snapshot.lockFile))
+  let engine = BackupEngine(environment: snapshot.fixture.environment)
+  let record = try await engine.backup(config: snapshot.config) { _ in }
+  #expect(record.status == .failed)
+  #expect(
+    record.message
+      == DiskSnapshotError.createFailed("another backup is using disk snapshots").description)
+  #expect(snapshots.calls.isEmpty)
+  #expect(snapshot.fixture.restic.commands() == ["version", "unlock"])
+  lock.release()
+}
+
+@Test func cleanUpStaleDiskSnapshotsDeletesRemovesJournalAndReleasesLock() async throws {
+  let snapshots = FakeDiskSnapshots()
+  let stale = DiskSnapshot(date: "2026-01-01-000000")
+  let snapshot = makeSnapshotFixture(diskSnapshots: snapshots)
+  defer { try? FileManager.default.removeItem(at: snapshot.directory) }
+  try FileManager.default.createDirectory(at: snapshot.directory, withIntermediateDirectories: true)
+  try writeTestJournal([stale], to: snapshot.journal)
+  let engine = BackupEngine(environment: snapshot.fixture.environment)
+  await engine.cleanUpStaleDiskSnapshots()
+  let mount = snapshot.mountPoint.path
+  #expect(snapshots.calls == ["isMounted \(mount)", "delete 2026-01-01-000000"])
+  #expect(!FileManager.default.fileExists(atPath: snapshot.journal.path))
+  #expect(FileManager.default.fileExists(atPath: snapshot.lockFile.path))
+  let lock = try #require(SnapshotLock.acquire(at: snapshot.lockFile))
+  lock.release()
+  let record = try await engine.backup(config: snapshot.config) { _ in }
+  #expect(record.status == .complete)
+}
+
+@Test func diskSnapshotTelemetryCarriesCodesInsteadOfDetails() async throws {
+  let snapshots = FakeDiskSnapshots()
+  snapshots.createError = .createFailed("/Users/x/secret")
+  let snapshot = makeSnapshotFixture(diskSnapshots: snapshots)
+  defer { try? FileManager.default.removeItem(at: snapshot.directory) }
+  let engine = BackupEngine(environment: snapshot.fixture.environment)
+  let record = try await engine.backup(config: snapshot.config) { _ in }
+  #expect(record.status == .failed)
+  #expect(record.message == "Could not create a disk snapshot: /Users/x/secret")
+  let logs = await snapshot.fixture.deliveredLogs(engine)
+  let event = try #require(logs.first { $0.summary == "Failed to create disk snapshot" })
+  #expect(event.data["error"] == .string("create-failed"))
+  let finished = try #require(logs.last { $0.summary == "Backup finished" })
+  #expect(finished.data["error"] == .string("disk snapshot: create-failed"))
+  for log in logs {
+    for value in log.data.values {
+      if case .string(let text) = value {
+        #expect(!text.contains("/Users/x/secret"), "summary: \(log.summary)")
+      }
+    }
+  }
+}
+
+@Test func diskSnapshotRunAndListingUseResolvedMountSpelling() async throws {
+  let snapshots = FakeDiskSnapshots()
+  let snapshot = makeSnapshotFixture(diskSnapshots: snapshots)
+  defer { try? FileManager.default.removeItem(at: snapshot.directory) }
+  try FileManager.default.createDirectory(at: snapshot.mountPoint, withIntermediateDirectories: true)
+  let resolved = DataVolume.resolvedPath(snapshot.mountPoint.path)
+  #expect(resolved.hasPrefix("/private/var/"))
+  let engine = BackupEngine(environment: snapshot.fixture.environment)
+  let record = try await engine.backup(config: snapshot.config) { _ in }
+  #expect(record.status == .complete)
+  let backupInvocation = try #require(
+    snapshot.fixture.restic.invocations().first { $0.arguments.first == "backup" })
+  #expect(backupInvocation.currentDirectory == resolved)
+  #expect(
+    excludeValues(in: backupInvocation.arguments)
+      == [cachesExclude, "**/node_modules", resolved + "/Users/test/Library/Caches"])
+  #expect(argumentAfter(backupInvocation.arguments, "--tag") == "disk-snapshot")
+  let json = """
+    [{"id":"tagged","short_id":"tagged","time":"2026-11-23T12:00:00Z","hostname":"test-host",\
+    "tags":["disk-snapshot"],"paths":["\(snapshot.mountPoint.path)/Users/test/Documents",\
+    "\(resolved)/Users/test/Docs","\(snapshot.mountPoint.path)","\(resolved)"]},\
+    {"id":"untagged","short_id":"untagged","time":"2026-11-22T12:00:00Z","hostname":"test-host",\
+    "paths":["\(snapshot.mountPoint.path)/Users/other/Secret"]}]
+    """
+  snapshot.fixture.restic.set(ResticScript(stdout: json), for: "snapshots")
+  let listed = try await engine.snapshots(config: snapshot.config)
+  let tagged = try #require(listed.first { $0.id == "tagged" })
+  #expect(tagged.paths == ["/Users/test/Documents", "/Users/test/Docs", "/", "/"])
+  let untagged = try #require(listed.first { $0.id == "untagged" })
+  #expect(untagged.paths == ["\(snapshot.mountPoint.path)/Users/other/Secret"])
 }
