@@ -106,6 +106,11 @@ final class AppModel {
         "Missing bundled helper: \(missing.rawValue). Run the bundled app or set "
         + "\(Helper.restic.environmentKey) / \(Helper.resticProxy.environmentKey)."
     }
+    if let engine {
+      Task {
+        await engine.cleanUpStaleDiskSnapshots()
+      }
+    }
     self.discovery = discovery
     self.transport = transport
     self.engine = engine
@@ -154,6 +159,10 @@ final class AppModel {
 
   func refreshFullDiskAccess() {
     hasFullDiskAccess = FullDiskAccess.isGranted()
+  }
+
+  var hasSnapshotFolders: Bool {
+    config.folders.contains { DataVolume.relativePath(of: $0) != nil }
   }
 
   var launchAtLogin: Bool {
@@ -508,6 +517,11 @@ final class AppModel {
     config.diskSnapshots = enabled
     saveConfig()
     report("Updated disk snapshots", ["enabled": .bool(enabled)])
+    if !enabled, let engine {
+      Task {
+        await engine.cleanUpStaleDiskSnapshots()
+      }
+    }
   }
 
   func grantTelemetryConsent() {

@@ -101,14 +101,14 @@ struct SettingsView: View {
           SettingLabel(
             systemName: "clock.arrow.circlepath", tint: Brand.blue, title: "Back up from a disk snapshot",
             detail:
-              "Backs up a frozen copy of your Mac's disk, so files that change during a backup stay consistent. Needs Full Disk Access."
+              "Folders on this Mac's internal disk are backed up from a frozen copy, so files that change during a backup stay consistent. Folders on external drives are read as they are. Needs Full Disk Access."
           )
         }
-        if model.config.usesDiskSnapshots && !model.hasFullDiskAccess {
+        if model.config.usesDiskSnapshots && model.hasSnapshotFolders && !model.hasFullDiskAccess {
           HStack(spacing: 10) {
             Image(systemName: "exclamationmark.triangle.fill")
               .foregroundStyle(.orange)
-            Text("Backups will fail until FUTO Backups has Full Disk Access.")
+            Text("FUTO Backups doesn't seem to have Full Disk Access. Backups from a disk snapshot fail without it.")
               .font(.system(size: 11))
               .foregroundStyle(.secondary)
             Spacer()
