@@ -12,7 +12,7 @@ final class Updater {
   }
 
   private var controller: SPUStandardUpdaterController?
-  private let backgroundCheckGate: BackgroundCheckGate
+  private let delegate: UpdaterDelegate
   private var observation: NSKeyValueObservation?
   private var started: Bool
   private var sparkleCanCheckForUpdates = false
@@ -23,10 +23,10 @@ final class Updater {
     isAvailable = (feedURL?.isEmpty == false) && (publicEDKey?.isEmpty == false)
     automaticallyChecksForUpdates = false
     started = startingUpdater
-    backgroundCheckGate = BackgroundCheckGate(holdingBackgroundChecks: !startingUpdater)
+    delegate = UpdaterDelegate(holdingBackgroundChecks: !startingUpdater)
     if isAvailable {
       let controller = SPUStandardUpdaterController(
-        startingUpdater: startingUpdater, updaterDelegate: backgroundCheckGate, userDriverDelegate: nil)
+        startingUpdater: startingUpdater, updaterDelegate: delegate, userDriverDelegate: nil)
       self.controller = controller
       automaticallyChecksForUpdates = controller.updater.automaticallyChecksForUpdates
       observation = controller.updater.observe(
@@ -40,7 +40,7 @@ final class Updater {
 
   func start() {
     guard let controller else { return }
-    backgroundCheckGate.holdingBackgroundChecks = false
+    delegate.holdingBackgroundChecks = false
     startSparkle(controller)
   }
 
@@ -58,7 +58,7 @@ final class Updater {
 }
 
 @MainActor
-private final class BackgroundCheckGate: NSObject, SPUUpdaterDelegate {
+private final class UpdaterDelegate: NSObject, SPUUpdaterDelegate {
   var holdingBackgroundChecks: Bool
 
   init(holdingBackgroundChecks: Bool) {
@@ -68,5 +68,17 @@ private final class BackgroundCheckGate: NSObject, SPUUpdaterDelegate {
   func updater(_ updater: SPUUpdater, mayPerform updateCheck: SPUUpdateCheck) throws {
     guard holdingBackgroundChecks, updateCheck == .updatesInBackground else { return }
     throw CocoaError(.userCancelled)
+  }
+
+  func updaterWillRelaunchApplication(_ updater: SPUUpdater) {
+    MenuBarResidency.shared.updateWillRelaunch()
+  }
+
+  func updater(_ updater: SPUUpdater, didAbortWithError error: any Error) {
+    MenuBarResidency.shared.updateCycleEnded()
+  }
+
+  func updater(_ updater: SPUUpdater, didFinishUpdateCycleFor updateCheck: SPUUpdateCheck, error: (any Error)?) {
+    MenuBarResidency.shared.updateCycleEnded()
   }
 }

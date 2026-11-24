@@ -125,6 +125,11 @@ export const testUtils = {
     return getDb().selectFrom('sessions').selectAll().where('userId', '=', userId).execute();
   },
 
+  getSessionIds: async () => {
+    const sessions = await getDb().selectFrom('sessions').select('id').orderBy('id').execute();
+    return sessions.map(({ id }) => id);
+  },
+
   createActiveTicket: (userId: string, repositoryId: string, action: TicketAction) => {
     const crypto = new CryptoRepository();
     return getDb()

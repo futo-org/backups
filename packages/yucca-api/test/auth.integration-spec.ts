@@ -539,10 +539,10 @@ describe('AuthController (e2e)', () => {
       await fetch(approveUrl);
     };
 
-    const poll = async (path: string, deviceCode: string) => {
+    const poll = async (path: string, deviceCode: string, connection: { connectionType?: string } = {}) => {
       const { body } = await request(app.getHttpServer())
         .post(`/api/auth/oidc/device/${path}`)
-        .send({ deviceCode })
+        .send({ deviceCode, ...connection })
         .expect(200);
       return body as { status: string; accessToken: string; userId: string; reason: string };
     };
@@ -594,6 +594,19 @@ describe('AuthController (e2e)', () => {
       });
 
       await expect(poll('token', deviceCode)).resolves.toEqual({ status: 'FAILURE', reason: 'EXPIRED' });
+    });
+
+    it('fails as unsupported for a connection type this server does not know', async () => {
+      const { deviceCode, userCode } = await authorize();
+      await approve(userCode, 'device-unsupported-type-user');
+      const sessionIds = await testUtils.getSessionIds();
+
+      await expect(poll('token', deviceCode, { connectionType: 'winamp' })).resolves.toEqual({
+        status: 'FAILURE',
+        reason: 'UNSUPPORTED_CONNECTION_TYPE',
+      });
+
+      await expect(testUtils.getSessionIds()).resolves.toEqual(sessionIds);
     });
 
     it('fails as expired for a device code the provider does not know', async () => {

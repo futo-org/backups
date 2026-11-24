@@ -14,11 +14,12 @@ struct FutoBackupsApp: App {
   }
 
   var body: some Scene {
-    Window("FUTO Backups", id: "main") {
+    Window("FUTO Backups", id: MenuBarResidency.mainWindowID) {
       MainWindow()
         .environment(model)
         .environment(updater)
         .tint(Brand.blue)
+        .registersMainWindowOpener()
     }
     .windowStyle(.hiddenTitleBar)
     .windowToolbarStyle(.unified)
@@ -34,6 +35,7 @@ struct FutoBackupsApp: App {
         .environment(model)
         .environment(updater)
         .tint(Brand.blue)
+        .registersMainWindowOpener()
     } label: {
       MenuBarLabel(model: model)
     }
@@ -43,8 +45,39 @@ struct FutoBackupsApp: App {
 
 @MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate {
+  private var launchedAsLoginItem = false
+  private var windowCloseObserver: (any NSObjectProtocol)?
+
+  func applicationWillFinishLaunching(_ notification: Notification) {
+    launchedAsLoginItem = MenuBarResidency.launchedAsLoginItem()
+    if launchedAsLoginItem {
+      NSApplication.shared.setActivationPolicy(.accessory)
+    }
+  }
+
   func applicationDidFinishLaunching(_ notification: Notification) {
-    NSApplication.shared.setActivationPolicy(.regular)
-    NSApp.activate()
+    windowCloseObserver = NotificationCenter.default.addObserver(
+      forName: NSWindow.willCloseNotification, object: nil, queue: .main
+    ) { notification in
+      guard let window = notification.object as? NSWindow else { return }
+      MainActor.assumeIsolated { MenuBarResidency.shared.mainWindowWillClose(window) }
+    }
+    if launchedAsLoginItem {
+      DispatchQueue.main.async { MenuBarResidency.shared.hideToMenuBar() }
+    } else {
+      NSApplication.shared.setActivationPolicy(.regular)
+      NSApp.activate()
+    }
+  }
+
+  func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
+    MenuBarResidency.shared.terminateReply()
+  }
+
+  func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
+    if !flag {
+      MenuBarResidency.shared.showMainWindow()
+    }
+    return true
   }
 }
