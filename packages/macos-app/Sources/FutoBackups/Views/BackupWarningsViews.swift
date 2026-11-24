@@ -10,7 +10,7 @@ struct BackupWarningsButton: View {
     Button {
       showing = true
     } label: {
-      Label("Show Warnings", systemImage: "exclamationmark.triangle")
+      Label("Show Warnings…", systemImage: "exclamationmark.triangle")
     }
     .buttonStyle(SecondaryButtonStyle(tint: .orange))
     .sheet(isPresented: $showing) {

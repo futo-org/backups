@@ -164,7 +164,7 @@ struct ServerEditor: View {
       }
       HStack {
         Button("Production") { use(AppConfig.productionServerURL) }
-        Button("Local dev") { use(AppConfig.devServerURL) }
+        Button("Local Dev") { use(AppConfig.devServerURL) }
         Spacer()
         Button("Apply", action: apply)
           .buttonStyle(PrimaryButtonStyle())

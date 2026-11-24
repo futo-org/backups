@@ -95,14 +95,10 @@ struct HistoryView: View {
   }
 
   private var loading: some View {
-    VStack(spacing: 12) {
-      ProgressView()
-        .controlSize(.small)
-      Text("Loading snapshots…")
-        .foregroundStyle(.secondary)
-    }
-    .frame(maxWidth: .infinity)
-    .padding(.vertical, 60)
+    ProgressView()
+      .controlSize(.small)
+      .frame(maxWidth: .infinity)
+      .padding(.vertical, 60)
   }
 
   private func failed(_ message: String) -> some View {

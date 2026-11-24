@@ -108,7 +108,7 @@ private struct FullDiskAccessStep: View {
             .font(.system(size: 12))
             .foregroundStyle(.secondary)
         }
-        Button("Skip for now", action: next)
+        Button("Skip for Now", action: next)
           .buttonStyle(.link)
           .font(.system(size: 12))
       }

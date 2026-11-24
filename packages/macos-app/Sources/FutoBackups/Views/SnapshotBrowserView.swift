@@ -42,12 +42,8 @@ struct SnapshotBrowserView: View {
   private var content: some View {
     switch browser.listing {
     case .loading:
-      VStack(spacing: 12) {
-        ProgressView()
-          .controlSize(.small)
-        Text("Loading…")
-          .foregroundStyle(.secondary)
-      }
+      ProgressView()
+        .controlSize(.small)
     case .failed(let message):
       VStack(spacing: 10) {
         Image(systemName: "exclamationmark.triangle.fill")

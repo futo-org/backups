@@ -104,7 +104,7 @@ struct ChangeRecoveryKeySheet: View {
           .foregroundStyle(.red)
       }
       buttons(primary: "Change Key", disabled: input.isEmpty || authenticating) { confirm() }
-      Button("View new key again") { step = .save }
+      Button("View New Key Again") { step = .save }
         .buttonStyle(.link)
         .font(.system(size: 12))
     }

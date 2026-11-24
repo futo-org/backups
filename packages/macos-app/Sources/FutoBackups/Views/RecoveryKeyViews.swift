@@ -145,7 +145,7 @@ private struct SaveRecoveryKeyStep: View {
           ProgressView()
             .controlSize(.small)
         } else {
-          Button("I already have a recovery key") { showExistingBackups() }
+          Button("I Already Have a Recovery Key") { showExistingBackups() }
             .buttonStyle(.link)
             .font(.system(size: 12))
         }
@@ -193,7 +193,7 @@ private struct ConfirmRecoveryKeyStep: View {
         .buttonStyle(PrimaryButtonStyle(large: true))
         .disabled(input.isEmpty || checking)
         .keyboardShortcut(.defaultAction)
-      Button("View recovery key again") { model.showRecoveryKeyStep(.save) }
+      Button("View Recovery Key Again") { model.showRecoveryKeyStep(.save) }
         .buttonStyle(.link)
         .font(.system(size: 12))
     }
