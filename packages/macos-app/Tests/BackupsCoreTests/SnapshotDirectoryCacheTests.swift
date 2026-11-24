@@ -53,29 +53,74 @@ private final class LoadRecorder: @unchecked Sendable {
 
 @MainActor @Test func concurrentRequestsShareOneListing() async throws {
   let recorder = LoadRecorder()
+  let started = AsyncStream<Void>.makeStream()
+  let entered = AsyncStream<Void>.makeStream()
   let gate = AsyncStream<Void>.makeStream()
   let cache = SnapshotDirectoryCache { path in
-    for await _ in gate.stream { break }
+    started.continuation.yield()
+    for await _ in gate.stream {}
     return try recorder.load(path)
   }
-  async let first = cache.entries(in: "/a")
-  async let second = cache.entries(in: "/a")
-  try await Task.sleep(for: .milliseconds(20))
-  gate.continuation.yield()
-  #expect(try await first == second)
+  var starts = started.stream.makeAsyncIterator()
+  var entries = entered.stream.makeAsyncIterator()
+  let first = Task { try await cache.entries(in: "/a") }
+  await starts.next()
+  let second = Task {
+    entered.continuation.yield()
+    return try await cache.entries(in: "/a")
+  }
+  await entries.next()
+  gate.continuation.finish()
+  #expect(try await first.value == second.value)
   #expect(recorder.loads == ["/a"])
 }
 
 @MainActor @Test func cancelAllStopsPendingListings() async throws {
+  let started = AsyncStream<Void>.makeStream()
   let cache = SnapshotDirectoryCache { _ in
+    started.continuation.yield()
     try await Task.sleep(for: .seconds(30))
     return []
   }
   let request = Task { try await cache.entries(in: "/a") }
-  try await Task.sleep(for: .milliseconds(20))
+  var starts = started.stream.makeAsyncIterator()
+  await starts.next()
   cache.cancelAll()
   await #expect(throws: CancellationError.self) {
     _ = try await request.value
   }
   #expect(cache.cached("/a") == nil)
+}
+
+@MainActor @Test func cancellingADirectoryStopsOnlyItsListingAndLetsItLoadAgain() async throws {
+  let slowAttempts = Counter()
+  let started = AsyncStream<String>.makeStream()
+  let gate = AsyncStream<Void>.makeStream()
+  let cache = SnapshotDirectoryCache { path in
+    started.continuation.yield(path)
+    if path == "/slow" {
+      slowAttempts.increment()
+      if slowAttempts.value == 1 {
+        try await Task.sleep(for: .seconds(30))
+      }
+    } else {
+      for await _ in gate.stream {}
+    }
+    return [SnapshotEntry(name: "child", path: path + "/child", kind: .file)]
+  }
+  let slow = Task { try await cache.entries(in: "/slow") }
+  let other = Task { try await cache.entries(in: "/other") }
+  var starts = started.stream.makeAsyncIterator()
+  let firstStart = await starts.next()
+  let secondStart = await starts.next()
+  #expect(Set([firstStart, secondStart]) == ["/slow", "/other"])
+  cache.cancel("/slow")
+  await #expect(throws: CancellationError.self) {
+    _ = try await slow.value
+  }
+  #expect(cache.cached("/slow") == nil)
+  gate.continuation.finish()
+  #expect(try await other.value.map(\.name) == ["child"])
+  #expect(try await cache.entries(in: "/slow").map(\.name) == ["child"])
+  #expect(slowAttempts.value == 2)
 }

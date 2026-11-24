@@ -135,6 +135,7 @@ private struct PathBar: View {
       .opacity(browser.isAtRoot ? 0.45 : 1)
       .keyboardShortcut("[", modifiers: .command)
       .help("Back")
+      .accessibilityLabel("Back")
       crumb("Backed-Up Folders", depth: 0)
       ForEach(Array(browser.trail.enumerated()), id: \.element.id) { index, entry in
         Image(systemName: "chevron.right")
@@ -199,7 +200,7 @@ private struct EntryRow: View {
 
   var body: some View {
     HStack(spacing: 10) {
-      Toggle("", isOn: Binding(get: { included }, set: { _ in toggle() }))
+      Toggle(entry.name, isOn: Binding(get: { included }, set: { _ in toggle() }))
         .toggleStyle(.checkbox)
         .labelsHidden()
         .disabled(coveredByFolder)
@@ -241,6 +242,7 @@ private struct EntryRow: View {
           }
           .buttonStyle(.plain)
           .help("Open \(entry.name)")
+          .accessibilityLabel("Open \(entry.name)")
         } else {
           Color.clear
         }

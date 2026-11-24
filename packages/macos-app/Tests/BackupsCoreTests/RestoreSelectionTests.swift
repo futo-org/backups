@@ -61,3 +61,10 @@ private let volume = SnapshotEntry(name: "Macintosh HD", path: "/", kind: .direc
   selection.removeAll()
   #expect(selection.isEmpty)
 }
+
+@Test func aPickedFolderCoversChildrenWhoseNameStartsWithACombiningMark() {
+  var selection = RestoreSelection()
+  selection.toggle(documents)
+  let accented = SnapshotEntry(name: "\u{301}a", path: "/Users/x/Documents/\u{301}a", kind: .file)
+  #expect(selection.isCoveredByFolder(accented))
+}

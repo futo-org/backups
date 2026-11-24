@@ -147,6 +147,11 @@ final class FakeRestic: ResticExecuting, @unchecked Sendable {
   private var gateChecksCancellation = false
   private var gateWaits: [CheckedContinuation<Void, Never>] = []
   private var timeline: CallTimeline?
+  private var succeeded: (@Sendable (ResticInvocation) -> Void)?
+
+  func onSuccess(_ hook: @escaping @Sendable (ResticInvocation) -> Void) {
+    lock.withLock { succeeded = hook }
+  }
 
   func setTimeline(_ value: CallTimeline) {
     lock.withLock { timeline = value }
@@ -219,6 +224,9 @@ final class FakeRestic: ResticExecuting, @unchecked Sendable {
     await script.afterLines?()
     if let error = script.error {
       throw error
+    }
+    if script.exitCode == 0 {
+      lock.withLock { succeeded }?(invocation)
     }
     return ResticResult(exitCode: script.exitCode, stdout: Data(script.stdout.utf8), stderr: script.stderr)
   }
@@ -497,6 +505,9 @@ final class FakeRestoreDirectories: @unchecked Sendable {
   private var attempted: [String] = []
   private var recordedMoves: [String] = []
   private var removed: [String] = []
+  private var unstagedNames: Set<String> = []
+  private var failingMoveNames: Set<String> = []
+  private var removalFailure: (any Error)?
 
   init(existing: Set<String> = []) {
     self.existing = existing
@@ -504,6 +515,18 @@ final class FakeRestoreDirectories: @unchecked Sendable {
 
   func add(_ path: String) {
     lock.withLock { _ = existing.insert(path) }
+  }
+
+  func leaveUnstaged(_ name: String) {
+    lock.withLock { _ = unstagedNames.insert(name) }
+  }
+
+  func failMoving(_ name: String) {
+    lock.withLock { _ = failingMoveNames.insert(name) }
+  }
+
+  func failRemovals(with error: any Error) {
+    lock.withLock { removalFailure = error }
   }
 
   var attempts: [String] {
@@ -517,6 +540,33 @@ final class FakeRestoreDirectories: @unchecked Sendable {
     }
   }
 
+  func stage(_ invocation: ResticInvocation) {
+    guard invocation.arguments.first == "restore", let target = argumentAfter(invocation.arguments, "--target")
+    else { return }
+    let names = zip(invocation.arguments, invocation.arguments.dropFirst()).compactMap { flag, value in
+      flag == "--include" ? Self.unescaped(value) : nil
+    }
+    lock.withLock {
+      for name in names where !unstagedNames.contains(name) {
+        existing.insert(target + "/" + name)
+      }
+    }
+  }
+
+  private static func unescaped(_ pattern: String) -> String {
+    var name = ""
+    var escaping = false
+    for scalar in pattern.unicodeScalars.dropFirst() {
+      if !escaping, scalar == "\\" {
+        escaping = true
+        continue
+      }
+      escaping = false
+      name.unicodeScalars.append(scalar)
+    }
+    return name
+  }
+
   var moves: [String] {
     lock.withLock { recordedMoves }
   }
@@ -525,18 +575,26 @@ final class FakeRestoreDirectories: @unchecked Sendable {
     lock.withLock { removed }
   }
 
-  func move(_ source: URL, _ destination: URL) -> Bool {
-    lock.withLock {
+  func move(_ source: URL, _ destination: URL) throws -> Bool {
+    try lock.withLock {
+      if failingMoveNames.contains(source.lastPathComponent) {
+        throw POSIXError(.EIO)
+      }
+      guard existing.contains(source.path) else { throw POSIXError(.ENOENT) }
       guard existing.insert(destination.path).inserted else { return false }
+      existing.remove(source.path)
       recordedMoves.append("\(source.path) -> \(destination.path)")
       return true
     }
   }
 
-  func remove(_ url: URL) {
-    lock.withLock {
+  func remove(_ url: URL) throws {
+    try lock.withLock {
       removed.append(url.path)
-      existing.remove(url.path)
+      if let removalFailure {
+        throw removalFailure
+      }
+      existing = existing.filter { $0 != url.path && !$0.hasPrefix(url.path + "/") }
     }
   }
 }
@@ -731,6 +789,7 @@ func makeFixture(
   let secrets = InMemorySecretStore(secretValues)
   let discoverCount = Counter()
   let restoreDirectories = FakeRestoreDirectories()
+  restic.onSuccess { restoreDirectories.stage($0) }
   let environment = EngineEnvironment(
     secrets: secrets,
     discover: { _ in
@@ -752,8 +811,9 @@ func makeFixture(
     snapshotDirectory: snapshotDirectory,
     dataVolumePath: dataVolumePath,
     createRestoreDirectory: { restoreDirectories.create($0) },
-    moveRestoredItem: { restoreDirectories.move($0, $1) },
-    removeRestoreStaging: { restoreDirectories.remove($0) },
+    createRestoreStaging: { restoreDirectories.create($0) },
+    moveRestoredItem: { try restoreDirectories.move($0, $1) },
+    removeRestoreStaging: { try restoreDirectories.remove($0) },
     cloudOnlyScanner: cloudOnlyScanner,
     uploadTicks: uploadTicks,
     networkChanges: networkChanges)

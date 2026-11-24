@@ -25,7 +25,10 @@ struct HistoryView: View {
         }
         if !model.restoredFolders.isEmpty {
           Banner(
-            systemName: "checkmark.circle.fill", tint: .green, text: "Restore complete", actionTitle: "Show in Finder",
+            systemName: model.restoreStoppedEarly ? "exclamationmark.triangle.fill" : "checkmark.circle.fill",
+            tint: model.restoreStoppedEarly ? .orange : .green,
+            text: model.restoreStoppedEarly ? "Restore stopped early" : "Restore complete",
+            actionTitle: "Show in Finder",
             action: { NSWorkspace.shared.activateFileViewerSelecting(model.restoredFolders) },
             dismiss: { model.restoredFolders = [] })
         }

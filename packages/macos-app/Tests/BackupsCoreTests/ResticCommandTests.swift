@@ -140,6 +140,8 @@ private let commandCases: [CommandCase] = [
   ("q?.txt", #"/q\?.txt"#),
   (#"back\slash"#, #"/back\\slash"#),
   ("!bang $HOME ", "/!bang $HOME "),
+  ("[\u{301}x].txt", "/\\[\u{301}x\\].txt"),
+  ("*\u{308}", "/\\*\u{308}"),
 ])
 func childPatternsMatchOnlyThatChild(_ name: String, _ pattern: String) {
   #expect(ResticCommand.childPattern(name) == pattern)

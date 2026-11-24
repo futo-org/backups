@@ -26,6 +26,23 @@ private struct ForgetGroup: Decodable {
   var remove: [Snapshot]?
 }
 
+private final class StagedNames: @unchecked Sendable {
+  private let lock = NSLock()
+  private var recorded: Set<String>?
+
+  var names: Set<String>? {
+    lock.withLock { recorded }
+  }
+
+  func recordOnce(_ names: [String]) {
+    lock.withLock {
+      if recorded == nil {
+        recorded = Set(names)
+      }
+    }
+  }
+}
+
 private func fileNameSet(in directory: URL) throws -> Set<String> {
   let walker = FileManager.default.enumerator(at: directory, includingPropertiesForKeys: [.isRegularFileKey])
   var names = Set<String>()
@@ -296,14 +313,15 @@ struct ResticIntegrationTests {
     let tempRoot = fileManager.temporaryDirectory.appendingPathComponent(UUID().uuidString)
     try fileManager.createDirectory(at: tempRoot, withIntermediateDirectories: true)
     let resolvedRoot = URL(fileURLWithPath: realPath(of: tempRoot.path))
-    defer { try? fileManager.removeItem(at: resolvedRoot) }
+    defer { try? RestorePlan.removeStaging(resolvedRoot) }
     let snapshotDirectory = resolvedRoot.appendingPathComponent("Snapshot")
     let mount = snapshotDirectory.appendingPathComponent("Volume")
     let docs = mount.appendingPathComponent("Users/x/Docs")
     let project = docs.appendingPathComponent("Projects/Site")
+    let locked = docs.appendingPathComponent("Projects/Locked")
     let destination = resolvedRoot.appendingPathComponent("destination")
     for directory in [
-      resolvedRoot.appendingPathComponent("cache"), project.appendingPathComponent("assets"), destination,
+      resolvedRoot.appendingPathComponent("cache"), project.appendingPathComponent("assets"), locked, destination,
     ] {
       try fileManager.createDirectory(at: directory, withIntermediateDirectories: true)
     }
@@ -313,6 +331,8 @@ struct ResticIntegrationTests {
     try Data("index".utf8).write(to: project.appendingPathComponent("index.html"))
     try Data("logo".utf8).write(to: project.appendingPathComponent("assets/logo.svg"))
     try Data("top".utf8).write(to: docs.appendingPathComponent("top.txt"))
+    try Data("kept".utf8).write(to: locked.appendingPathComponent("kept.txt"))
+    chmod(locked.path, 0o555)
     try Data("already here".utf8).write(to: destination.appendingPathComponent("notes[1].txt"))
 
     let repository = resolvedRoot.appendingPathComponent("repository").path
@@ -335,6 +355,7 @@ struct ResticIntegrationTests {
     #expect(backup.exitCode == ResticExitCode.success)
     let snapshotId = try #require(summaries.get()?.snapshotId)
 
+    let staged = StagedNames()
     let secrets = InMemorySecretStore([.accessToken: "tok", .masterKey: testMasterKey])
     let config = testConfig(folders: ["/Users/x/Docs"])
     let engine = BackupEngine(
@@ -348,27 +369,37 @@ struct ResticIntegrationTests {
         home: context.home,
         processorCount: 2,
         now: { Date() },
-        snapshotDirectory: snapshotDirectory))
+        snapshotDirectory: snapshotDirectory,
+        moveRestoredItem: { source, destination in
+          staged.recordOnce(
+            try FileManager.default.contentsOfDirectory(atPath: source.deletingLastPathComponent().path))
+          return try RestorePlan.moveExclusively(from: source, to: destination)
+        }))
 
     let snapshots = try await engine.snapshots(config: config)
     let roots = SnapshotListing.roots(of: try #require(snapshots.first).paths)
-    #expect(roots == [SnapshotEntry(name: "Docs", path: "/Users/x/Docs", kind: .directory)])
+    try #require(roots == [SnapshotEntry(name: "Docs", path: "/Users/x/Docs", kind: .directory)])
     let top = try await engine.listDirectory(config: config, snapshotId: snapshotId, path: roots[0].path)
-    #expect(top.map(\.name) == ["Projects", "top.txt"])
+    try #require(top.map(\.name) == ["Projects", "top.txt"])
     let projects = try await engine.listDirectory(config: config, snapshotId: snapshotId, path: top[0].path)
-    #expect(projects.map(\.name) == ["Site", "notes[1].txt", "notes1.txt"])
-    #expect(projects.map(\.path) == ["Site", "notes[1].txt", "notes1.txt"].map { "/Users/x/Docs/Projects/" + $0 })
-    #expect(projects.map(\.kind) == [.directory, .file, .file])
-    #expect(projects[1].size == Int64(notes.count))
+    let projectNames = ["Locked", "Site", "notes[1].txt", "notes1.txt"]
+    try #require(projects.map(\.name) == projectNames)
+    #expect(projects.map(\.path) == projectNames.map { "/Users/x/Docs/Projects/" + $0 })
+    #expect(projects.map(\.kind) == [.directory, .directory, .file, .file])
+    #expect(projects[2].size == Int64(notes.count))
 
-    let picked = [projects[1], projects[0]]
+    let picked = [projects[2], projects[1], projects[0]]
     let restored = try await engine.restore(
       config: config, snapshotId: snapshotId, selection: picked, into: destination
     ) { _ in }
-    #expect(restored.map(\.lastPathComponent) == ["notes[1] 2.txt", "Site"])
+    #expect(staged.names == ["Locked", "Site", "notes[1].txt"])
+    #expect(restored.map(\.lastPathComponent) == ["notes[1] 2.txt", "Site", "Locked"])
     #expect(
       Set(try fileManager.contentsOfDirectory(atPath: destination.path))
-        == ["notes[1].txt", "notes[1] 2.txt", "Site"])
+        == ["notes[1].txt", "notes[1] 2.txt", "Site", "Locked"])
+    let restoredLocked = destination.appendingPathComponent("Locked")
+    #expect(try fileManager.attributesOfItem(atPath: restoredLocked.path)[.posixPermissions] as? Int == 0o555)
+    #expect(try Data(contentsOf: restoredLocked.appendingPathComponent("kept.txt")) == Data("kept".utf8))
     #expect(try Data(contentsOf: destination.appendingPathComponent("notes[1] 2.txt")) == notes)
     #expect(try Data(contentsOf: destination.appendingPathComponent("notes[1].txt")) == Data("already here".utf8))
     #expect(try fileNameSet(in: destination.appendingPathComponent("Site")) == ["index.html", "logo.svg"])

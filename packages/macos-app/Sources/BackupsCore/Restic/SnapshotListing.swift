@@ -78,8 +78,9 @@ public enum SnapshotListing {
   }
 
   static func parent(of path: String) -> String? {
-    guard path != rootPath, let slash = path.lastIndex(of: "/") else { return nil }
-    return slash == path.startIndex ? rootPath : String(path[..<slash])
+    let scalars = path.unicodeScalars
+    guard path != rootPath, let slash = scalars.lastIndex(of: "/") else { return nil }
+    return slash == scalars.startIndex ? rootPath : String(scalars[..<slash])
   }
 
   private static func kind(of type: String?) -> SnapshotEntry.Kind {

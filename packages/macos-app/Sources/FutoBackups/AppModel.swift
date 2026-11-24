@@ -54,6 +54,7 @@ final class AppModel {
   var setupError: String?
   var signedIn = false
   var restoredFolders: [URL] = []
+  var restoreStoppedEarly = false
   var recoveryKeyStep: RecoveryKeyStep?
   var sessionLoaded = false
   var hasSession = false
@@ -958,7 +959,14 @@ final class AppModel {
           return
         }
         self.finishOperation()
+        self.restoreStoppedEarly = false
         self.restoredFolders = restored
+      } catch let incomplete as RestoreIncomplete {
+        self.finishOperation()
+        guard generation == self.sessionGeneration else { return }
+        self.restoreStoppedEarly = true
+        self.restoredFolders = incomplete.restored
+        self.lastError = self.message(for: incomplete)
       } catch {
         guard generation == self.sessionGeneration else {
           self.finishOperation()
@@ -1183,7 +1191,23 @@ final class AppModel {
     if let loginError = error as? DeviceLoginError {
       return loginError.message(server: config.serverDisplayName)
     }
+    if let incomplete = error as? RestoreIncomplete {
+      return restoreIncompleteMessage(incomplete)
+    }
     return String(describing: error)
+  }
+
+  private func restoreIncompleteMessage(_ incomplete: RestoreIncomplete) -> String {
+    var parts = [incomplete.cause is CancellationError ? "Restore cancelled" : message(for: incomplete.cause)]
+    let count = incomplete.restored.count
+    if count > 0 {
+      parts.append(
+        count == 1 ? "1 item was restored before it stopped" : "\(count) items were restored before it stopped")
+    }
+    if let leftover = incomplete.leftoverStaging {
+      parts.append("The temporary folder \(leftover.path) couldn't be removed")
+    }
+    return parts.joined(separator: ". ")
   }
 }
 

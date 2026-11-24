@@ -36,6 +36,10 @@ public final class SnapshotDirectoryCache {
     return entries
   }
 
+  public func cancel(_ path: String) {
+    pending.removeValue(forKey: path)?.cancel()
+  }
+
   public func cancelAll() {
     for task in pending.values {
       task.cancel()

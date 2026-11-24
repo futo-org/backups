@@ -87,7 +87,14 @@ private func listing(_ lines: [String]) -> Data {
 @Test(
   arguments: [
     ("/", nil), ("/Users", "/"), ("/Users/x/Docs", "/Users/x"), ("relative", nil),
+    ("/Users/x/\u{301}Docs", "/Users/x"), ("/\u{301}Users", "/"),
   ] as [(String, String?)])
 func parentPath(_ path: String, _ parent: String?) {
   #expect(SnapshotEntry(name: "n", path: path, kind: .file).parentPath == parent)
+}
+
+@Test func aChildNameStartingWithACombiningMarkIsListed() throws {
+  let line = #"{"name":"\#u{301}a","type":"file","path":"/d/\#u{301}a","message_type":"node"}"#
+  let entries = try SnapshotListing.parse(Data(line.utf8), directory: "/d")
+  #expect(entries.map(\.name) == ["\u{301}a"])
 }

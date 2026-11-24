@@ -193,3 +193,140 @@ func claimNameNumbersLikeFinder(_ name: String, _ kind: SnapshotEntry.Kind, _ at
     _ = try RestorePlan.moveExclusively(from: source, to: root.appendingPathComponent("other.txt"))
   }
 }
+
+@Test func batchesStageCaseDistinctSiblingsSeparately() {
+  let upper = entry("/d/Notes.txt")
+  let lower = entry("/d/notes.txt")
+  let other = entry("/d/other.txt")
+  #expect(
+    RestorePlan.batches(for: [upper, other, lower], into: target) == [
+      .children([upper, other], of: "/d"),
+      .children([lower], of: "/d"),
+    ])
+}
+
+@Test func batchesKeepEachResticRunWithinTheArgumentBudget() {
+  let files = (1...5).map { entry("/d/\($0).txt") }
+  let includeBytes = 2 * MemoryLayout<UnsafePointer<CChar>>.size + "--include".utf8.count + 1 + "/1.txt".utf8.count + 1
+  #expect(
+    RestorePlan.batches(for: files, into: target, argumentBudget: includeBytes * 2) == [
+      .children(Array(files[0..<2]), of: "/d"),
+      .children(Array(files[2..<4]), of: "/d"),
+      .children([files[4]], of: "/d"),
+    ])
+  #expect(RestorePlan.batches(for: files, into: target, argumentBudget: 1) == files.map { .children([$0], of: "/d") })
+}
+
+private func repeated(_ text: String, _ count: Int) -> String {
+  String(repeating: text, count: count)
+}
+
+private let longNames: [(String, Bool, String)] = [
+  (repeated("a", 251) + ".txt", true, repeated("a", 249) + " 2.txt"),
+  (repeated("a", 255), false, repeated("a", 253) + " 2"),
+  (repeated("😀", 127), false, repeated("😀", 126) + " 2"),
+  (repeated("é", 125) + ".txt", true, repeated("é", 124) + " 2.txt"),
+  ("short.txt", true, "short 2.txt"),
+]
+
+@Test(arguments: longNames)
+func numberedNamesFitTheFilenameLimit(_ name: String, _ keepingExtension: Bool, _ numbered: String) {
+  #expect(RestorePlan.nameLength(name) <= RestorePlan.maxNameLength)
+  let result = RestorePlan.numberedName(name, 2, keepingExtension: keepingExtension)
+  #expect(result == numbered)
+  #expect(RestorePlan.nameLength(result) <= RestorePlan.maxNameLength)
+}
+
+@Test func numberedNamesFitOnDisk() throws {
+  let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+  defer { try? FileManager.default.removeItem(at: root) }
+  try FileManager.default.createDirectory(at: root, withIntermediateDirectories: false)
+  for name in [repeated("é", 125) + ".txt", repeated("😀", 127)] {
+    #expect(try RestorePlan.createDirectoryExclusively(root.appendingPathComponent(name)))
+    let numbered = RestorePlan.numberedName(name, 12, keepingExtension: true)
+    #expect(try RestorePlan.createDirectoryExclusively(root.appendingPathComponent(numbered)))
+  }
+}
+
+@Test func claimStagingSkipsNamesBeingRestored() throws {
+  var tried: [String] = []
+  let staging = try RestorePlan.claimStaging(in: target, avoiding: [".futo backups restore"]) { url in
+    tried.append(url.lastPathComponent)
+    return true
+  }
+  #expect(tried == [".FUTO Backups Restore 2"])
+  #expect(staging == target.appendingPathComponent(".FUTO Backups Restore 2"))
+}
+
+private func permissions(_ url: URL) throws -> mode_t {
+  var info = stat()
+  guard lstat(url.path, &info) == 0 else { throw POSIXError(POSIXErrorCode(rawValue: errno) ?? .EIO) }
+  return info.st_mode & 0o7777
+}
+
+@Test func stagingIsOnlyAccessibleToItsOwner() throws {
+  let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+  defer { try? FileManager.default.removeItem(at: root) }
+  try FileManager.default.createDirectory(at: root, withIntermediateDirectories: false)
+  let staging = root.appendingPathComponent("staging")
+  #expect(try RestorePlan.createStagingExclusively(staging))
+  #expect(try !RestorePlan.createStagingExclusively(staging))
+  #expect(try permissions(staging) == 0o700)
+}
+
+@Test func moveExclusivelyMovesAReadOnlyFolderKeepingItsModeAndDate() throws {
+  let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+  let source = root.appendingPathComponent("staging/Locked")
+  let destination = root.appendingPathComponent("Locked")
+  defer {
+    chmod(source.path, 0o755)
+    chmod(destination.path, 0o755)
+    try? FileManager.default.removeItem(at: root)
+  }
+  try FileManager.default.createDirectory(at: source, withIntermediateDirectories: true)
+  try Data("x".utf8).write(to: source.appendingPathComponent("file.txt"))
+  let date = Date(timeIntervalSince1970: 1_600_000_000)
+  try FileManager.default.setAttributes([.modificationDate: date], ofItemAtPath: source.path)
+  chmod(source.path, 0o555)
+  #expect(try RestorePlan.moveExclusively(from: source, to: destination))
+  #expect(try permissions(destination) == 0o555)
+  #expect(try FileManager.default.attributesOfItem(atPath: destination.path)[.modificationDate] as? Date == date)
+  #expect(try Data(contentsOf: destination.appendingPathComponent("file.txt")) == Data("x".utf8))
+  #expect(!FileManager.default.fileExists(atPath: source.path))
+}
+
+@Test func moveExclusivelyLeavesAReadOnlyFolderUnchangedWhenTheNameIsTaken() throws {
+  let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+  let source = root.appendingPathComponent("staging/Locked")
+  let taken = root.appendingPathComponent("Locked")
+  defer {
+    chmod(source.path, 0o755)
+    try? FileManager.default.removeItem(at: root)
+  }
+  try FileManager.default.createDirectory(at: source, withIntermediateDirectories: true)
+  try FileManager.default.createDirectory(at: taken, withIntermediateDirectories: true)
+  try Data("mine".utf8).write(to: taken.appendingPathComponent("mine.txt"))
+  chmod(source.path, 0o555)
+  #expect(try !RestorePlan.moveExclusively(from: source, to: taken))
+  #expect(try permissions(source) == 0o555)
+  #expect(try FileManager.default.contentsOfDirectory(atPath: taken.path) == ["mine.txt"])
+}
+
+@Test func removeStagingRemovesReadOnlyAndUnreadableFolders() throws {
+  let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+  let staging = root.appendingPathComponent("staging")
+  let readOnly = staging.appendingPathComponent("ReadOnly")
+  let unreadable = readOnly.appendingPathComponent("Unreadable")
+  defer {
+    chmod(readOnly.path, 0o755)
+    chmod(unreadable.path, 0o755)
+    try? FileManager.default.removeItem(at: root)
+  }
+  try FileManager.default.createDirectory(at: unreadable, withIntermediateDirectories: true)
+  try Data("x".utf8).write(to: readOnly.appendingPathComponent("file.txt"))
+  try Data("y".utf8).write(to: unreadable.appendingPathComponent("file.txt"))
+  chmod(unreadable.path, 0)
+  chmod(readOnly.path, 0o555)
+  try RestorePlan.removeStaging(staging)
+  #expect(!FileManager.default.fileExists(atPath: staging.path))
+}
