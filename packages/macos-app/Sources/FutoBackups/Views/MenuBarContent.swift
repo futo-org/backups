@@ -46,7 +46,7 @@ struct MenuBarContent: View {
         }
       }
       Divider()
-      HStack {
+      VStack(spacing: 0) {
         Button("Open FUTO Backups") {
           MenuBarResidency.shared.showMainWindow()
         }
@@ -54,12 +54,11 @@ struct MenuBarContent: View {
           Button("Check for Updates…") { updater.checkForUpdates() }
             .disabled(!updater.canCheckForUpdates)
         }
-        Spacer()
         Button("Quit FUTO Backups") { MenuBarResidency.shared.quit() }
           .help("Stops FUTO Backups, including scheduled backups, until you open it again")
       }
-      .buttonStyle(.borderless)
-      .font(.system(size: 12))
+      .buttonStyle(MenuRowButtonStyle())
+      .padding(.horizontal, -8)
     }
     .padding(16)
     .frame(width: 300)
@@ -126,5 +125,38 @@ struct InfoRow: View {
         .fontWeight(.medium)
     }
     .font(.system(size: 12))
+  }
+}
+
+private struct MenuRowButtonStyle: ButtonStyle {
+  func makeBody(configuration: Configuration) -> some View {
+    MenuRow(configuration: configuration)
+  }
+
+  private struct MenuRow: View {
+    let configuration: ButtonStyleConfiguration
+    @Environment(\.isEnabled) private var isEnabled
+    @State private var hovering = false
+
+    var body: some View {
+      configuration.label
+        .font(.system(size: 13))
+        .foregroundStyle(isEnabled ? AnyShapeStyle(.primary) : AnyShapeStyle(.tertiary))
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.horizontal, 8)
+        .padding(.vertical, 5)
+        .background(
+          RoundedRectangle(cornerRadius: 6, style: .continuous)
+            .fill(Color.primary.opacity(highlight))
+        )
+        .contentShape(Rectangle())
+        .onHover { hovering = $0 }
+    }
+
+    private var highlight: Double {
+      guard isEnabled else { return 0 }
+      if configuration.isPressed { return 0.16 }
+      return hovering ? 0.1 : 0
+    }
   }
 }
