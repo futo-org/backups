@@ -489,6 +489,9 @@ final class AppModel {
     do {
       let unlock = try await engine.unlockExistingRepository(repositoryId, with: key, config: config)
       guard generation == onboardingGeneration, hasSession else { return .superseded }
+      if case .stored = key {
+        storedKeyChecks[repositoryId] = unlock == .unlocked ? .opens : .doesNotOpen
+      }
       if unlock == .unlocked {
         report("Finished repository import", ["repositoryId": .string(repositoryId)])
       } else {
