@@ -6,9 +6,11 @@ struct SettingsView: View {
   @Environment(AppModel.self) private var model
   @Environment(Updater.self) private var updater
   @State private var limitDraft = ""
+  @State private var limitError: String?
+  @State private var quietError: String?
   @State private var quietEnabled = false
-  @State private var quietStart = SettingsView.clockDate(hour: 22, minute: 0)
-  @State private var quietEnd = SettingsView.clockDate(hour: 7, minute: 0)
+  @State private var quietStart = SettingsView.clockDate(ClockTime(hour: 22, minute: 0))
+  @State private var quietEnd = SettingsView.clockDate(ClockTime(hour: 7, minute: 0))
   @State private var recoveryKey: String?
 
   var body: some View {
@@ -43,6 +45,7 @@ struct SettingsView: View {
               .multilineTextAlignment(.trailing)
               .frame(width: 90)
               .onSubmit(applyLimit)
+              .onChange(of: limitDraft) { _, _ in limitError = nil }
             Text("KB/s")
               .foregroundStyle(.secondary)
             Button("Apply", action: applyLimit)
@@ -51,6 +54,9 @@ struct SettingsView: View {
         } label: {
           SettingLabel(
             systemName: "speedometer", tint: .green, title: "Upload limit", detail: "Leave empty for no limit.")
+        }
+        if let limitError {
+          InlineError(text: limitError)
         }
         Toggle(isOn: $quietEnabled) {
           SettingLabel(
@@ -67,6 +73,9 @@ struct SettingsView: View {
             DatePicker("to", selection: $quietEnd, displayedComponents: .hourAndMinute)
               .onChange(of: quietEnd) { _, _ in applyQuiet() }
               .fixedSize()
+          }
+          if let quietError {
+            InlineError(text: quietError)
           }
         }
       }
@@ -157,7 +166,7 @@ struct SettingsView: View {
   }
 
   private var currentLimitText: String {
-    model.config.throttle.bytesPerSec > 0 ? String(model.config.throttle.bytesPerSec / 1024) : ""
+    UploadLimit.text(bytesPerSecond: model.config.throttle.bytesPerSec)
   }
 
   private var launchAtLoginBinding: Binding<Bool> {
@@ -186,47 +195,62 @@ struct SettingsView: View {
 
   private func syncDrafts() {
     limitDraft = currentLimitText
-    let parts = model.config.throttle.quietHours.split(separator: "-", maxSplits: 1)
-    if parts.count == 2,
-      let start = SettingsView.parseClock(parts[0]),
-      let end = SettingsView.parseClock(parts[1])
-    {
+    limitError = nil
+    quietError = nil
+    if let quietHours = QuietHours(parsing: model.config.throttle.quietHours) {
       quietEnabled = true
-      quietStart = SettingsView.clockDate(hour: start.hour, minute: start.minute)
-      quietEnd = SettingsView.clockDate(hour: end.hour, minute: end.minute)
+      quietStart = SettingsView.clockDate(quietHours.start)
+      quietEnd = SettingsView.clockDate(quietHours.end)
     } else {
       quietEnabled = false
     }
   }
 
   private func applyLimit() {
-    let kb = Int(limitDraft) ?? 0
-    model.setThrottle(
-      Throttle(bytesPerSec: max(0, kb) * 1024, quietHours: model.config.throttle.quietHours))
+    do {
+      let bytesPerSec = try UploadLimit.bytesPerSecond(parsing: limitDraft)
+      limitError = nil
+      model.setThrottle(Throttle(bytesPerSec: bytesPerSec, quietHours: model.config.throttle.quietHours))
+      limitDraft = currentLimitText
+    } catch {
+      limitError = error.message
+    }
   }
 
   private func applyQuiet() {
     var quietHours = ""
     if quietEnabled {
-      let start = Calendar.current.dateComponents([.hour, .minute], from: quietStart)
-      let end = Calendar.current.dateComponents([.hour, .minute], from: quietEnd)
-      quietHours =
-        String(format: "%02d:%02d", start.hour ?? 0, start.minute ?? 0)
-        + "-"
-        + String(format: "%02d:%02d", end.hour ?? 0, end.minute ?? 0)
+      do {
+        quietHours = try QuietHours(start: SettingsView.clockTime(quietStart), end: SettingsView.clockTime(quietEnd))
+          .text
+      } catch {
+        quietError = error.message
+        return
+      }
     }
+    quietError = nil
     model.setThrottle(
       Throttle(bytesPerSec: model.config.throttle.bytesPerSec, quietHours: quietHours))
   }
 
-  private static func clockDate(hour: Int, minute: Int) -> Date {
-    Calendar.current.date(bySettingHour: hour, minute: minute, second: 0, of: Date()) ?? Date()
+  private static func clockDate(_ time: ClockTime) -> Date {
+    Calendar.current.date(bySettingHour: time.hour, minute: time.minute, second: 0, of: Date()) ?? Date()
   }
 
-  private static func parseClock(_ text: Substring) -> (hour: Int, minute: Int)? {
-    let parts = text.split(separator: ":")
-    guard parts.count == 2, let hour = Int(parts[0]), let minute = Int(parts[1]) else { return nil }
-    return (hour, minute)
+  private static func clockTime(_ date: Date) -> ClockTime {
+    let components = Calendar.current.dateComponents([.hour, .minute], from: date)
+    return ClockTime(hour: components.hour ?? 0, minute: components.minute ?? 0)
+  }
+}
+
+private struct InlineError: View {
+  let text: String
+
+  var body: some View {
+    Text(text)
+      .font(.caption)
+      .foregroundStyle(.red)
+      .frame(maxWidth: .infinity, alignment: .trailing)
   }
 }
 
