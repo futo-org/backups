@@ -309,6 +309,10 @@ private struct ChooseRepositoryStep: View {
             .foregroundStyle(.red)
         }
       }
+      Button("Back") { model.showRecoveryKeyStep(.importKey) }
+        .buttonStyle(.link)
+        .font(.system(size: 12))
+        .disabled(verifyingId != nil || starting)
     }
   }
 
