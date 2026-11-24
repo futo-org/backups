@@ -1351,12 +1351,8 @@ private func waitForSnapshotCall(_ snapshots: FakeDiskSnapshots, prefix: String)
   let record = try await task.value
   #expect(record.status == .cancelled)
   let mount = snapshot.mountPoint.path
-  #expect(
-    snapshots.calls
-      == [
-        "create", "mount \(snapshotName) \(mount)", "isMounted \(mount)", "isMounted \(mount)",
-        "unmount \(mount)", "delete \(snapshotDate)",
-      ])
+  #expect(snapshots.calls == ["create", "isMounted \(mount)", "delete \(snapshotDate)"])
+  #expect(snapshot.fixture.restic.commands() == ["version", "unlock"])
   #expect(try readTestJournal(snapshot.journal).isEmpty)
   let logs = await snapshot.fixture.deliveredLogs(engine)
   #expect(logs.first { $0.summary == "Failed to create disk snapshot" } == nil)

@@ -289,8 +289,8 @@ public struct TimeMachineSnapshots: DiskSnapshotting {
         Task {
           do {
             try await timer.value
-            command.cancel()
             if once.claim() {
+              command.cancel()
               continuation.resume(throwing: SnapshotCommandTimedOut())
             }
           } catch {

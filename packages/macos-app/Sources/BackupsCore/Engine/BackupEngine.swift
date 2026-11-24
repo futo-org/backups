@@ -225,6 +225,7 @@ public actor BackupEngine {
             } catch {
               throw DiskSnapshotError.createFailed("could not record the snapshot")
             }
+            try Task.checkCancellation()
             do {
               try await Task {
                 try await self.environment.diskSnapshots.mount(snapshot, at: mountPoint)
