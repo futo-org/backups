@@ -4,6 +4,13 @@ set -euo pipefail
 package=$(cd "$(dirname "$0")/.." && pwd)
 destination=${INSTALL_DIR:-/Applications}/FUTO\ Backups.app
 
+required=$(/usr/libexec/PlistBuddy -c 'Print :LSMinimumSystemVersion' "$package/Resources/Info.plist")
+host=$(sw_vers -productVersion)
+if [ "$(printf '%s\n%s\n' "$required" "$host" | sort -V | head -n 1)" != "$required" ]; then
+  echo "FUTO Backups needs macOS $required or later; this Mac runs $host, so the installed app was left alone" >&2
+  exit 1
+fi
+
 revision=$(git -C "$package" rev-parse --short HEAD)
 if [ -n "$(git -C "$package" status --porcelain -- .)" ]; then
   revision="$revision.dirty"
