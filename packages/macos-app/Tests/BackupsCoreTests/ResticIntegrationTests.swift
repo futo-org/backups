@@ -94,7 +94,7 @@ struct ResticIntegrationTests {
     let snapshotsResult = try await runner.run(ResticCommand.snapshots(context), onLine: { _ in })
     #expect(snapshotsResult.exitCode == ResticExitCode.success)
     let snapshots = try ResticOutput.parseSnapshots(snapshotsResult.stdout)
-    #expect(snapshots.count == 1)
+    try #require(snapshots.count == 1)
     #expect(snapshots[0].paths == [sourceDirectory.path])
 
     let statsResult = try await runner.run(ResticCommand.stats(context), onLine: { _ in })
@@ -102,13 +102,31 @@ struct ResticIntegrationTests {
     #expect(try ResticOutput.parseStatsTotalSize(statsResult.stdout) > 0)
 
     let item = try #require(RestorePlan.items(paths: snapshots[0].paths, into: restoreDirectory).first)
+    let target = try RestorePlan.claimTarget(
+      for: item, avoiding: [], createDirectory: RestorePlan.createDirectoryExclusively)
+    #expect(target.path == restoreDirectory.appendingPathComponent("source").path)
     let restore = try await runner.run(
-      ResticCommand.restore(
-        context, snapshotId: snapshotId, subfolder: item.snapshotPath, target: item.target.path),
+      ResticCommand.restore(context, snapshotId: snapshotId, subfolder: item.snapshotPath, target: target.path),
       onLine: { _ in })
     #expect(restore.exitCode == ResticExitCode.success)
-    let restored = try fileManager.contentsOfDirectory(atPath: restoreDirectory.appendingPathComponent("source").path)
+    let restored = try fileManager.contentsOfDirectory(atPath: target.path)
     #expect(Set(restored) == ["a.txt", "b.txt", "c.txt"])
+    for name in ["a.txt", "b.txt", "c.txt"] {
+      #expect(
+        try Data(contentsOf: target.appendingPathComponent(name))
+          == Data(contentsOf: sourceDirectory.appendingPathComponent(name)), "\(name)")
+    }
+
+    let edited = target.appendingPathComponent("a.txt")
+    try Data("edited after restore".utf8).write(to: edited)
+    let repeated = try await runner.run(
+      ResticCommand.restore(context, snapshotId: snapshotId, subfolder: item.snapshotPath, target: target.path),
+      onLine: { _ in })
+    #expect(repeated.exitCode == ResticExitCode.success)
+    #expect(try Data(contentsOf: edited) == Data("edited after restore".utf8))
+    #expect(
+      try RestorePlan.claimTarget(for: item, avoiding: [], createDirectory: RestorePlan.createDirectoryExclusively)
+        .path == restoreDirectory.appendingPathComponent("source 2").path)
 
     try Data("more".utf8).write(
       to: sourceDirectory.appendingPathComponent("d.txt"))
@@ -142,7 +160,8 @@ struct ResticIntegrationTests {
     try fileManager.createDirectory(at: homeDirectory, withIntermediateDirectories: true)
     try fileManager.createDirectory(at: caches, withIntermediateDirectories: true)
     try fileManager.createDirectory(at: restoreDirectory, withIntermediateDirectories: true)
-    try Data(UUID().uuidString.utf8).write(to: docs.appendingPathComponent("a.txt"))
+    let original = Data(UUID().uuidString.utf8)
+    try original.write(to: docs.appendingPathComponent("a.txt"))
     try Data("do not back up".utf8).write(to: caches.appendingPathComponent("c.txt"))
 
     let context = ResticContext(
@@ -179,14 +198,53 @@ struct ResticIntegrationTests {
       onLine: { _ in })
     #expect(restore.exitCode == ResticExitCode.success)
     let restoredDocs = restoreDirectory.appendingPathComponent("Docs")
-    #expect(fileManager.fileExists(atPath: restoredDocs.appendingPathComponent("a.txt").path))
+    #expect(try Data(contentsOf: restoredDocs.appendingPathComponent("a.txt")) == original)
     #expect(try fileNameSet(in: restoreDirectory) == ["a.txt"])
 
     let snapshotsResult = try await runner.run(ResticCommand.snapshots(context), onLine: { _ in })
     #expect(snapshotsResult.exitCode == ResticExitCode.success)
     let snapshots = try ResticOutput.parseSnapshots(snapshotsResult.stdout)
-    #expect(snapshots.count == 1)
+    try #require(snapshots.count == 1)
     #expect(snapshots[0].paths == [realPath(of: mount.path) + "/Users/x/Docs"])
+  }
+
+  @Test func unreadableFilesAreReportedOnStderrAndStdoutIsNotRetained() async throws {
+    let executable = try #require(resticExecutable)
+    let fileManager = FileManager.default
+    let tempRoot = fileManager.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+    let sourceDirectory = tempRoot.appendingPathComponent("source")
+    let unreadable = sourceDirectory.appendingPathComponent("locked.txt")
+    defer {
+      chmod(unreadable.path, 0o600)
+      try? fileManager.removeItem(at: tempRoot)
+    }
+    try fileManager.createDirectory(at: sourceDirectory, withIntermediateDirectories: true)
+    try Data("readable".utf8).write(to: sourceDirectory.appendingPathComponent("open.txt"))
+    try Data("secret".utf8).write(to: unreadable)
+    chmod(unreadable.path, 0)
+    let context = ResticContext(
+      repository: tempRoot.appendingPathComponent("repository").path,
+      password: "pw-\(UUID().uuidString)",
+      cacheDirectory: tempRoot.appendingPathComponent("cache"),
+      home: tempRoot.path,
+      connections: 2)
+    let runner = ResticRunner(executable: executable)
+    #expect(try await runner.run(ResticCommand.initialize(context), onLine: { _ in }).exitCode == 0)
+
+    let stdoutErrors = Counter()
+    let backup = try await runner.run(
+      ResticCommand.backup(context, paths: [sourceDirectory.path], excludes: [], host: "h")
+    ) { line in
+      if case .error = ResticOutput.parseLine(line) {
+        stdoutErrors.increment()
+      }
+    }
+    #expect(backup.exitCode == ResticExitCode.couldNotReadSource)
+    #expect(backup.stdout.isEmpty)
+    #expect(stdoutErrors.value == 0)
+    let message = try #require(ResticOutput.lastItemError(stderr: backup.stderr))
+    #expect(message.hasPrefix(unreadable.path + ": "))
+    #expect(message.contains("permission denied"))
   }
 
   @Test func catConfigVerifiesRepositoryPassword() async throws {
