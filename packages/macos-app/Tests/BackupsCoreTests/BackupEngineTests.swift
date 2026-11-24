@@ -171,6 +171,18 @@ private let backupLines = [statusLineOne, statusLineTwo, summaryLine]
   #expect(!backupArgs.contains("--walk-concurrency"))
 }
 
+@Test func backupDurationIgnoresWallClockJumpingBackwards() async throws {
+  let fixture = makeFixture(clock: FixedClock(wallStep: -3600))
+  fixture.restic.set(ResticScript(lines: [summaryLine]), for: "backup")
+  let engine = BackupEngine(environment: fixture.environment)
+  let record = try await engine.backup(config: testConfig()) { _ in }
+  #expect(record.finishedAt < record.startedAt)
+  #expect(
+    await fixture.deliveredCalls(engine).last == .end(repositoryId: "repo-1", status: .complete, durationMs: 1000))
+  let logs = await fixture.deliveredLogs(engine)
+  #expect(logs.last { $0.summary == "Backup finished" }?.data["durationMs"] == .int(1000))
+}
+
 @Test func backupExitThreeWarnsAndSkipsForget() async throws {
   let fixture = makeFixture()
   fixture.restic.set(

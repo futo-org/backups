@@ -10,6 +10,7 @@ public struct EngineEnvironment: Sendable {
   public var home: String
   public var processorCount: Int
   public var now: @Sendable () -> Date
+  public var elapsedNow: @Sendable () -> ContinuousClock.Instant
   public var appVersion: String
   public var telemetryTimeout: Duration
   public var diskSnapshots: any DiskSnapshotting
@@ -27,6 +28,7 @@ public struct EngineEnvironment: Sendable {
     home: String,
     processorCount: Int,
     now: @escaping @Sendable () -> Date,
+    elapsedNow: @escaping @Sendable () -> ContinuousClock.Instant = { .now },
     appVersion: String = "dev",
     telemetryTimeout: Duration = .seconds(10),
     diskSnapshots: any DiskSnapshotting = UnavailableDiskSnapshots(),
@@ -43,6 +45,7 @@ public struct EngineEnvironment: Sendable {
     self.home = home
     self.processorCount = processorCount
     self.now = now
+    self.elapsedNow = elapsedNow
     self.appVersion = appVersion
     self.telemetryTimeout = telemetryTimeout
     self.diskSnapshots = diskSnapshots

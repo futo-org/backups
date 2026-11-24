@@ -134,6 +134,7 @@ public actor BackupEngine {
     running = true
     defer { running = false }
     let startedAt = environment.now()
+    let startedElapsed = environment.elapsedNow()
     onActivity(.preparing)
     var status: BackupStatus = .failed
     var message: String?
@@ -394,7 +395,7 @@ public actor BackupEngine {
       }
     }
     let finishedAt = environment.now()
-    let durationMs = Int(finishedAt.timeIntervalSince(startedAt) * 1000)
+    let durationMs = Int(startedElapsed.duration(to: environment.elapsedNow()) / .milliseconds(1))
     let endStatus = status
     let endMessage = (status == .failed || status == .warn) ? message : nil
     if let endAPI = api {

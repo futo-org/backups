@@ -495,13 +495,28 @@ final class Counter: @unchecked Sendable {
 
 final class FixedClock: @unchecked Sendable {
   private let lock = NSLock()
+  private let wallStep: TimeInterval
+  private let elapsedBase = ContinuousClock.now
   private var ticks = 0
+  private var elapsedTicks = 0
+
+  init(wallStep: TimeInterval = 1) {
+    self.wallStep = wallStep
+  }
 
   func now() -> Date {
     lock.withLock {
-      let date = Date(timeIntervalSince1970: 1_700_000_000) + Double(ticks)
+      let date = Date(timeIntervalSince1970: 1_700_000_000) + Double(ticks) * wallStep
       ticks += 1
       return date
+    }
+  }
+
+  func elapsedNow() -> ContinuousClock.Instant {
+    lock.withLock {
+      let instant = elapsedBase + .seconds(elapsedTicks)
+      elapsedTicks += 1
+      return instant
     }
   }
 }
@@ -550,6 +565,7 @@ func makeFixture(
   connectionsMath: String = "16", token: String? = "tok", masterKey: String? = testMasterKey,
   appVersion: String = "dev", telemetryTimeout: Duration = .seconds(10),
   diskSnapshots: FakeDiskSnapshots = FakeDiskSnapshots(), snapshotDirectory: URL? = nil,
+  clock: FixedClock = FixedClock(),
   dataVolumePath: @escaping @Sendable (String) -> String? = { _ in nil }
 ) -> EngineFixture {
   let api = FakeAPI()
@@ -564,7 +580,6 @@ func makeFixture(
   }
   let secrets = InMemorySecretStore(secretValues)
   let discoverCount = Counter()
-  let clock = FixedClock()
   let restoreDirectories = FakeRestoreDirectories()
   let environment = EngineEnvironment(
     secrets: secrets,
@@ -580,6 +595,7 @@ func makeFixture(
     home: "/Users/test",
     processorCount: 8,
     now: { clock.now() },
+    elapsedNow: { clock.elapsedNow() },
     appVersion: appVersion,
     telemetryTimeout: telemetryTimeout,
     diskSnapshots: diskSnapshots,
