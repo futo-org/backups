@@ -45,6 +45,28 @@ public enum Exclusions {
     return result
   }
 
+  public static func isExcluded(_ path: String, by excludes: [String]) -> Bool {
+    guard let index = excludes.lastIndex(of: pattern(forPath: path)) else { return false }
+    return !excludes[(index + 1)...].contains { exclude in
+      exclude.hasPrefix("!") && ExcludePattern(String(exclude.dropFirst()))?.matches(path) == true
+    }
+  }
+
+  public static func excluding(_ paths: [String], in excludes: [String]) -> [String] {
+    var result = excludes
+    for path in paths where !isExcluded(path, by: result) {
+      let literal = pattern(forPath: path)
+      result.removeAll { $0 == literal }
+      result.append(literal)
+    }
+    return result
+  }
+
+  public static func wouldExcludeAnyFolder(_ path: String, folders: [String]) -> Bool {
+    guard let exclusion = ExcludePattern(pattern(forPath: path)) else { return false }
+    return folders.contains(where: exclusion.matches)
+  }
+
   public static func restoringDefaults(in excludes: [String], home: String) -> [String] {
     let missing = defaults(home: home).filter { !excludes.contains($0) }
     return missing + excludes

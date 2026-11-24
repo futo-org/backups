@@ -97,7 +97,10 @@ struct BackupWarningsSheet: View {
               if index > 0 {
                 Divider()
               }
-              WarningRow(warning: warning, excluded: model.isExcludedPath(warning.path)) {
+              WarningRow(
+                warning: warning, excluded: model.isExcludedPath(warning.path),
+                excludable: model.canExcludePath(warning.path)
+              ) {
                 model.addExcludedPaths([warning.path])
               }
             }
@@ -141,7 +144,7 @@ struct BackupWarningsSheet: View {
   }
 
   private var remainingPaths: [String] {
-    warnings.items.map(\.path).filter { !model.isExcludedPath($0) }
+    warnings.items.map(\.path).filter { !model.isExcludedPath($0) && model.canExcludePath($0) }
   }
 
   private var listTitle: String {
@@ -158,6 +161,7 @@ struct BackupWarningsSheet: View {
   private struct WarningRow: View {
     let warning: BackupWarning
     let excluded: Bool
+    let excludable: Bool
     let exclude: () -> Void
 
     var body: some View {
@@ -167,11 +171,16 @@ struct BackupWarningsSheet: View {
           Text("Excluded")
             .font(.system(size: 11, weight: .medium))
             .foregroundStyle(.secondary)
-        } else {
+        } else if excludable {
           Button("Exclude", action: exclude)
             .buttonStyle(.link)
             .font(.system(size: 12))
             .help("Leave this out of future backups")
+        } else {
+          Text("In Folders")
+            .font(.system(size: 11, weight: .medium))
+            .foregroundStyle(.secondary)
+            .help("This is or contains a folder you chose to back up. Remove it in Folders to stop backing it up.")
         }
       }
       .padding(.horizontal, 12)

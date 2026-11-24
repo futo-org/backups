@@ -65,3 +65,42 @@ func typedPatterns(input: String, expected: String) {
   #expect(restored.suffix(2) == ["*.iso", "/Users/test/.Trash"])
   #expect(restored.filter { $0 == "/Users/test/.Trash" }.count == 1)
 }
+
+@Test(
+  "a later matching negation overrides an excluded path",
+  arguments: [
+    (["/Users/test/Movies"], true),
+    (["/Users/test/Movies", "!/Users/test/Movies"], false),
+    (["/Users/test/Movies", "!/Users/test/Mov*"], false),
+    (["!/Users/test/Movies", "/Users/test/Movies"], true),
+    (["/Users/test/Movies", "!/Users/test/Music"], true),
+    (["/Users/test/Mov*"], false),
+  ])
+func excludedPathsHonourNegations(excludes: [String], expected: Bool) {
+  #expect(Exclusions.isExcluded("/Users/test/Movies", by: excludes) == expected)
+}
+
+@Test func excludingMovesAnOverriddenPathAfterItsNegation() {
+  #expect(
+    Exclusions.excluding(["/Users/test/Movies"], in: ["/Users/test/Movies", "!/Users/test/Mov*", "*.iso"])
+      == ["!/Users/test/Mov*", "*.iso", "/Users/test/Movies"])
+  #expect(
+    Exclusions.excluding(["/Users/test/Movies", "/Users/test/Old [1]"], in: ["/Users/test/Movies"])
+      == ["/Users/test/Movies", "/Users/test/Old \\[1]"])
+  #expect(Exclusions.excluding(["/Users/test/Movies"], in: ["/Users/test/Movies"]) == ["/Users/test/Movies"])
+}
+
+@Test(
+  "excluding a path is refused when it would cover a chosen folder",
+  arguments: [
+    ("/Users/test/Documents", ["/Users/test/Documents"], true),
+    ("/Users/test/Documents", ["/Users/test/Documents/Taxes"], true),
+    ("/", ["/Users/test"], true),
+    ("/Users/test/Old [1]", ["/Users/test/Old [1]/Photos"], true),
+    ("/Users/test/Documents/a.txt", ["/Users/test/Documents"], false),
+    ("/Users/test/Doc", ["/Users/test/Documents"], false),
+    ("/Users/test/Documents", [], false),
+  ])
+func wouldExcludeAnyFolder(path: String, folders: [String], expected: Bool) {
+  #expect(Exclusions.wouldExcludeAnyFolder(path, folders: folders) == expected)
+}
