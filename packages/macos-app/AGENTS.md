@@ -14,7 +14,7 @@ reader would otherwise miss; these are rare. Re-read your diff and delete every 
   `mise run mac:lint`, `mise run mac:format`, `mise run mac:check` (lint + build + test).
   The mise env sets `DEVELOPER_DIR` to Xcode; plain `swift` outside mise may fail to load Swift Testing macros.
 - Run `mise run mac:format` before `mise run mac:check`.
-- Swift 6 language mode, strict concurrency, macOS 15+. Apple frameworks only, except Sparkle 2 in the `FutoBackups`
+- Swift 6 language mode, strict concurrency, macOS 26+. Apple frameworks only, except Sparkle 2 in the `FutoBackups`
   target. `BackupsCore` has no dependencies.
 - Tests: Swift Testing (`import Testing`, `@Test`, `#expect`, `#require`), never XCTest. Parameterised tests via
   `@Test(arguments:)` for tables.

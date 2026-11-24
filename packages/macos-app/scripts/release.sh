@@ -136,7 +136,7 @@ cat >"$appcast" <<EOF
       <pubDate>$pub_date</pubDate>
       <sparkle:version>$build</sparkle:version>
       <sparkle:shortVersionString>$version</sparkle:shortVersionString>
-      <sparkle:minimumSystemVersion>15.0</sparkle:minimumSystemVersion>
+      <sparkle:minimumSystemVersion>26.0</sparkle:minimumSystemVersion>
       <enclosure url="${DOWNLOAD_URL_PREFIX}FUTO-Backups-$version.zip" length="$length" type="application/octet-stream" sparkle:edSignature="$sig"/>
     </item>
   </channel>
