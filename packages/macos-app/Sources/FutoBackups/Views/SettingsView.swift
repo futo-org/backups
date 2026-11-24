@@ -48,7 +48,7 @@ struct SettingsView: View {
         .focused($limitFocused)
         .onSubmit(applyLimit)
         .onChange(of: limitFocused) { _, focused in
-          if !focused { applyLimit() }
+          if !focused { applyChangedLimit() }
         }
         .onChange(of: limitDraft) { _, _ in limitError = nil }
         if let limitError {
@@ -197,6 +197,7 @@ struct SettingsView: View {
     .frame(maxWidth: 720)
     .frame(maxWidth: .infinity)
     .onAppear(perform: syncDrafts)
+    .onDisappear(perform: applyChangedLimit)
   }
 
   private var currentLimitText: String {
@@ -255,8 +256,12 @@ struct SettingsView: View {
     }
   }
 
-  private func applyLimit() {
+  private func applyChangedLimit() {
     guard limitDraft != currentLimitText else { return }
+    applyLimit()
+  }
+
+  private func applyLimit() {
     do {
       let bytesPerSec = try UploadLimit.bytesPerSecond(parsing: limitDraft)
       limitError = nil
