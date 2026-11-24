@@ -66,7 +66,7 @@ struct ThisMacSection: View {
         SettingLabel(
           systemName: "trash.fill", tint: .red, title: "Delete this Mac's backup",
           detail:
-            "Permanently delete this Mac's backup history from FUTO Cloud, remove this Mac from your account, then unlink it."
+            "Permanently delete this Mac's backups from FUTO Cloud and remove this Mac from your account."
         )
       }
       .padding(.vertical, 4)
@@ -124,7 +124,7 @@ private struct ResetThisMacSheet: View {
     VStack(spacing: 18) {
       SheetHeader(systemName: "arrow.counterclockwise", tint: .orange, title: "Unlink This Mac?")
       SheetText(
-        "FUTO Backups forgets this Mac: its settings, sign-in, recovery key and cache are removed. Your backup stays on FUTO Cloud and this Mac stays listed in your account. To continue it later, sign in again and enter your recovery key."
+        "This removes FUTO Backups' settings, sign-in, recovery key and cache from this Mac. Your backup stays on FUTO Cloud and this Mac stays listed in your account. To pick it up again later, sign in and enter your recovery key."
       )
       if let recoveryKey {
         RecoveryKeyCard(key: recoveryKey)
@@ -207,7 +207,7 @@ private struct DeleteBackupSheet: View {
     Group {
       SheetHeader(systemName: "trash.fill", tint: .red, title: "Delete This Mac's Backup?")
       SheetText(
-        "This permanently deletes every backup of \(model.config.host) from FUTO Cloud. It can't be undone. Backups of your other Macs are not affected. Afterwards, FUTO Backups removes this Mac from your account and unlinks it."
+        "Every backup of \(model.config.host) will be permanently deleted from FUTO Cloud. This can't be undone. Your other Macs' backups aren't affected. This Mac is then removed from your account and signed out."
       )
       SheetText("Your browser opens to confirm: sign in again, then click Permanently Delete.")
       Toggle(isOn: $understood) {
@@ -242,7 +242,7 @@ private struct DeleteBackupSheet: View {
     Group {
       SheetHeader(systemName: "safari", tint: Brand.blue, title: "Confirm the deletion in your browser")
       SheetText(
-        "Sign in again, then click Permanently Delete. This window continues on its own once the backup is gone.")
+        "Sign in again, then click Permanently Delete. This window updates once the backup is deleted.")
       ProgressView()
         .controlSize(.small)
       HStack(spacing: 12) {
