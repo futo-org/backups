@@ -106,6 +106,28 @@ func roundTripCloudOnlySkips() throws {
   #expect(decoded.cloudOnlySkipped?.sample == ["/Users/test/Documents/ws.pptx"])
 }
 
+@Test("RunRecord saved before backup warnings existed decodes without them")
+func decodeRunRecordWithoutWarnings() throws {
+  let json = #"{"startedAt":0,"finishedAt":5,"status":"warn","message":"/a: permission denied"}"#
+  let decoded = try JSONDecoder().decode(RunRecord.self, from: Data(json.utf8))
+  #expect(decoded.status == .warn)
+  #expect(decoded.message == "/a: permission denied")
+  #expect(decoded.warnings == nil)
+}
+
+@Test("RunRecord round trips backup warnings")
+func roundTripWarnings() throws {
+  let warnings = BackupWarnings(
+    items: [BackupWarning(path: "/Users/test/Documents/locked.txt", reason: "Permission denied")], total: 640)
+  let record = RunRecord(
+    startedAt: Date(timeIntervalSince1970: 1_781_092_800),
+    finishedAt: Date(timeIntervalSince1970: 1_781_092_805),
+    status: .warn, message: "/Users/test/Documents/locked.txt: permission denied", warnings: warnings)
+  let decoded = try JSONDecoder().decode(RunRecord.self, from: JSONEncoder().encode(record))
+  #expect(decoded == record)
+  #expect(decoded.warnings == warnings)
+}
+
 @Test("scheduleReference prefers lastRun then anchor then nil")
 func scheduleReferencePrecedence() {
   var config = AppConfig.defaults(host: "book-pro", home: "/Users/test")

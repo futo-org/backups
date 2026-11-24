@@ -75,6 +75,9 @@ struct OverviewView: View {
           case .none:
             EmptyView()
           }
+          if model.activity == nil, let warnings = model.config.lastRun?.warnings {
+            BackupWarningsButton(warnings: warnings)
+          }
         }
         .padding(.top, 10)
       }

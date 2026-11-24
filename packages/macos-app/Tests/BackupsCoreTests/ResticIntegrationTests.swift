@@ -307,6 +307,55 @@ struct ResticIntegrationTests {
     #expect(message.contains("permission denied"))
   }
 
+  @Test func unreadableFilesAndFoldersAreCollectedAsWarningsWithLivePaths() async throws {
+    let executable = try #require(resticExecutable)
+    let fileManager = FileManager.default
+    let tempRoot = fileManager.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+    try fileManager.createDirectory(at: tempRoot, withIntermediateDirectories: true)
+    let resolvedRoot = URL(fileURLWithPath: realPath(of: tempRoot.path))
+    let mount = resolvedRoot.appendingPathComponent("mount")
+    let docs = mount.appendingPathComponent("Users/x/Docs")
+    let lockedFile = docs.appendingPathComponent("locked.txt")
+    let lockedFolder = docs.appendingPathComponent("Private")
+    defer {
+      chmod(lockedFile.path, 0o600)
+      chmod(lockedFolder.path, 0o700)
+      try? fileManager.removeItem(at: resolvedRoot)
+    }
+    try fileManager.createDirectory(at: lockedFolder, withIntermediateDirectories: true)
+    try Data("readable".utf8).write(to: docs.appendingPathComponent("open.txt"))
+    try Data("secret".utf8).write(to: lockedFile)
+    try Data("hidden".utf8).write(to: lockedFolder.appendingPathComponent("inner.txt"))
+    chmod(lockedFile.path, 0)
+    chmod(lockedFolder.path, 0)
+    let context = ResticContext(
+      repository: resolvedRoot.appendingPathComponent("repository").path,
+      password: "pw-\(UUID().uuidString)",
+      cacheDirectory: resolvedRoot.appendingPathComponent("cache"),
+      home: resolvedRoot.path,
+      connections: 2)
+    let runner = ResticRunner(executable: executable)
+    #expect(try await runner.run(ResticCommand.initialize(context), onLine: { _ in }).exitCode == 0)
+
+    let direct = try await runner.run(
+      ResticCommand.backup(context, paths: [docs.path], excludes: [], host: "h"), onLine: { _ in })
+    #expect(direct.exitCode == ResticExitCode.couldNotReadSource)
+    let directWarnings = BackupWarnings.collect(stderr: direct.stderr)
+    #expect(Set(directWarnings.items.map(\.path)) == [lockedFile.path, lockedFolder.path])
+    #expect(directWarnings.total == 2)
+    #expect(directWarnings.items.allSatisfy { $0.reason == "Permission denied" })
+
+    let fromMount = try await runner.run(
+      ResticCommand.backup(
+        context, paths: ["Users/x/Docs"], excludes: [], host: "h", currentDirectory: mount.path),
+      onLine: { _ in })
+    #expect(fromMount.exitCode == ResticExitCode.couldNotReadSource)
+    let mountWarnings = BackupWarnings.collect(stderr: fromMount.stderr, snapshotMounts: [mount.path])
+    #expect(Set(mountWarnings.items.map(\.path)) == ["/Users/x/Docs/locked.txt", "/Users/x/Docs/Private"])
+    #expect(mountWarnings.total == 2)
+    #expect(mountWarnings.items.allSatisfy { $0.reason == "Permission denied" })
+  }
+
   @Test func catConfigVerifiesRepositoryPassword() async throws {
     let executable = try #require(resticExecutable)
     let fileManager = FileManager.default

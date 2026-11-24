@@ -9,10 +9,12 @@ public struct RunRecord: Codable, Equatable, Sendable {
   public var dataAdded: Int64?
   public var message: String?
   public var cloudOnlySkipped: CloudOnlySkip?
+  public var warnings: BackupWarnings?
 
   public init(
     startedAt: Date, finishedAt: Date, status: BackupStatus, snapshotId: String? = nil,
-    filesNew: Int? = nil, dataAdded: Int64? = nil, message: String? = nil, cloudOnlySkipped: CloudOnlySkip? = nil
+    filesNew: Int? = nil, dataAdded: Int64? = nil, message: String? = nil, cloudOnlySkipped: CloudOnlySkip? = nil,
+    warnings: BackupWarnings? = nil
   ) {
     self.startedAt = startedAt
     self.finishedAt = finishedAt
@@ -22,6 +24,7 @@ public struct RunRecord: Codable, Equatable, Sendable {
     self.dataAdded = dataAdded
     self.message = message
     self.cloudOnlySkipped = cloudOnlySkipped
+    self.warnings = warnings
   }
 }
 
