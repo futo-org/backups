@@ -34,7 +34,7 @@ struct FoldersView: View {
     .navigationSubtitle("Everything inside these folders is encrypted and backed up.")
     .toolbar {
       ToolbarItem(placement: .primaryAction) {
-        Button("Add Folder…") { addFolders() }
+        Button("Add Folder") { addFolders() }
       }
     }
     .dropDestination(for: URL.self) { urls, _ in
@@ -112,14 +112,14 @@ struct FoldersView: View {
           Button {
             addExclusions()
           } label: {
-            Label("Add Folder or File…", systemImage: "plus")
+            Label("Add Folder or File", systemImage: "plus")
           }
           .buttonStyle(SecondaryButtonStyle())
           Button {
             patternError = nil
             showPatternEditor = true
           } label: {
-            Label("Add Pattern…", systemImage: "asterisk")
+            Label("Add Pattern", systemImage: "asterisk")
           }
           .buttonStyle(SecondaryButtonStyle())
           .popover(isPresented: $showPatternEditor, arrowEdge: .bottom) {

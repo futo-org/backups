@@ -99,7 +99,7 @@ struct SnapshotBrowserView: View {
       Button("Cancel", action: close)
         .buttonStyle(SecondaryButtonStyle())
         .keyboardShortcut(.cancelAction)
-      Button(browser.selection.isEmpty ? "Restore…" : "Restore \(itemCount(browser.selection.count))…") {
+      Button(browser.selection.isEmpty ? "Restore" : "Restore \(itemCount(browser.selection.count))") {
         restore(browser.selection.entries)
       }
       .buttonStyle(PrimaryButtonStyle())

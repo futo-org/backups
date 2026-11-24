@@ -104,7 +104,7 @@ private struct FullDiskAccessStep: View {
         HStack(spacing: 8) {
           ProgressView()
             .controlSize(.small)
-          Text("Waiting for Full Disk Access…")
+          Text("Waiting for Full Disk Access")
             .font(.system(size: 12))
             .foregroundStyle(.secondary)
         }
@@ -191,7 +191,7 @@ private struct ChooseFoldersStep: View {
         Button {
           chooseOtherFolders()
         } label: {
-          Label("Choose Other Folders…", systemImage: "plus")
+          Label("Choose Other Folders", systemImage: "plus")
         }
         .buttonStyle(SecondaryButtonStyle())
         Spacer()
@@ -370,7 +370,7 @@ private struct SizeLabel: View {
       HStack(spacing: 6) {
         ProgressView()
           .controlSize(.mini)
-        Text("Calculating…")
+        Text("Calculating")
       }
       .font(.system(size: 11))
       .foregroundStyle(.secondary)

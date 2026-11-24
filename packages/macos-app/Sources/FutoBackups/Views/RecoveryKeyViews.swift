@@ -547,12 +547,12 @@ struct RecoveryKeyActions: View {
       Button {
         saveToFile()
       } label: {
-        Label(savedFile ? "Saved" : "Save to File…", systemImage: savedFile ? "checkmark" : "square.and.arrow.down")
+        Label(savedFile ? "Saved" : "Save to File", systemImage: savedFile ? "checkmark" : "square.and.arrow.down")
       }
       Button {
         printKey()
       } label: {
-        Label("Print…", systemImage: "printer")
+        Label("Print", systemImage: "printer")
       }
     }
     .buttonStyle(SecondaryButtonStyle())

@@ -56,7 +56,7 @@ struct MenuBarContent: View {
           MenuBarResidency.shared.showMainWindow()
         }
         if updater.isAvailable {
-          Button("Check for Updates…") { updater.checkForUpdates() }
+          Button("Check for Updates") { updater.checkForUpdates() }
             .disabled(!updater.canCheckForUpdates)
         }
         Button("Quit FUTO Backups") { MenuBarResidency.shared.quit() }

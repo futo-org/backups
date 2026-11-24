@@ -132,7 +132,7 @@ struct SettingsView: View {
             .buttonStyle(SecondaryButtonStyle())
             .disabled(revealing)
           }
-          Button("Change Recovery Key…") { changingRecoveryKey = true }
+          Button("Change Recovery Key") { changingRecoveryKey = true }
             .buttonStyle(SecondaryButtonStyle())
             .disabled(!model.canChangeRecoveryKey)
         }

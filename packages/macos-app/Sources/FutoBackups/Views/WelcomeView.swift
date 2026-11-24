@@ -87,7 +87,7 @@ struct WelcomeView: View {
         HStack(spacing: 8) {
           ProgressView()
             .controlSize(.small)
-          Text("Waiting for approval…")
+          Text("Waiting for approval")
             .font(.system(size: 12))
             .foregroundStyle(.secondary)
           Button("Cancel") { model.cancelLogin() }
@@ -99,7 +99,7 @@ struct WelcomeView: View {
       VStack(spacing: 14) {
         ProgressView()
           .controlSize(.regular)
-        Text("Setting up your encrypted backup…")
+        Text("Setting up your encrypted backup")
           .foregroundStyle(.secondary)
       }
     case .failed(let message):

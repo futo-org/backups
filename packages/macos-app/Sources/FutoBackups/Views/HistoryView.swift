@@ -19,7 +19,7 @@ struct HistoryView: View {
             dismiss: { model.restoredFolders = [] })
         }
         if case .restoring = model.activity {
-          Banner(systemName: "arrow.down.circle.fill", tint: Brand.blue, text: "Restoring files…") {}
+          Banner(systemName: "arrow.down.circle.fill", tint: Brand.blue, text: "Restoring files") {}
         }
         if model.snapshots.isEmpty {
           switch model.snapshotsLoad {
@@ -213,9 +213,9 @@ struct SnapshotRow: View {
       Text(snapshot.shortId)
         .font(.system(size: 11, design: .monospaced))
         .foregroundStyle(.secondary)
-      Button("Browse Files…", action: browse)
+      Button("Browse Files", action: browse)
         .buttonStyle(SecondaryButtonStyle())
-      Button("Restore All…", action: restore)
+      Button("Restore All", action: restore)
         .buttonStyle(SecondaryButtonStyle())
         .disabled(model.activity != nil)
     }

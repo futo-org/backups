@@ -114,7 +114,7 @@ struct ChangeRecoveryKeySheet: View {
     VStack(spacing: 16) {
       ProgressView()
         .controlSize(.large)
-      Text("Changing your recovery key…")
+      Text("Changing your recovery key")
         .font(.system(size: 20, weight: .bold, design: .rounded))
       Text("Keep FUTO Backups open until this finishes.")
         .font(.system(size: 13))

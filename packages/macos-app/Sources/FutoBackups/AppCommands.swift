@@ -9,7 +9,7 @@ struct AppCommands: Commands {
 
   var body: some Commands {
     CommandGroup(replacing: .appSettings) {
-      Button("Settings…") {
+      Button("Settings") {
         page = .settings
         MenuBarResidency.shared.showMainWindow()
       }

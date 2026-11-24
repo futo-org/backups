@@ -44,7 +44,7 @@ struct CloudOnlyNotice: View {
             .foregroundStyle(.secondary)
         }
         Spacer(minLength: 8)
-        Button("Show Files…") { showingFiles = true }
+        Button("Show Files") { showingFiles = true }
           .buttonStyle(SecondaryButtonStyle())
       }
     }
