@@ -49,22 +49,8 @@ public struct FolderSizer: Sendable {
   }
 
   public func measure(_ path: String, isCancelled: () -> Bool = { false }) -> Int64? {
-    guard FolderSelection.isDirectory(path), (try? FileManager.default.contentsOfDirectory(atPath: path)) != nil,
-      let enumerator = FileManager.default.enumerator(atPath: path)
-    else { return nil }
-    let root = path.hasSuffix("/") ? path : path + "/"
-    var total: Int64 = 0
-    while let relative = enumerator.nextObject() as? String {
-      if isCancelled() { return nil }
-      let type = enumerator.fileAttributes?[.type] as? FileAttributeType
-      let excluded = isExcluded(root + relative)
-      if excluded, type == .typeDirectory {
-        enumerator.skipDescendants()
-      }
-      guard !excluded, type == .typeRegular else { continue }
-      total += (enumerator.fileAttributes?[.size] as? NSNumber)?.int64Value ?? 0
-    }
-    return total
+    guard FolderSelection.isDirectory(path) else { return nil }
+    return DirectoryWalk.totalBytes(under: path, isExcluded: isExcluded, isCancelled: isCancelled)
   }
 
   public func isExcluded(_ path: String) -> Bool {
