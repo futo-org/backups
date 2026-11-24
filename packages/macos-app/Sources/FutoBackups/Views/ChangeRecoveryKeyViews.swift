@@ -19,6 +19,7 @@ struct ChangeRecoveryKeySheet: View {
   @State private var input = ""
   @State private var mismatch = false
   @State private var authenticating = false
+  @State private var pendingChange: Task<Void, Never>?
 
   var body: some View {
     ScrollView {
@@ -44,6 +45,7 @@ struct ChangeRecoveryKeySheet: View {
     .frame(minHeight: 420)
     .background(OnboardingBackground())
     .interactiveDismissDisabled(step == .applying)
+    .onDisappear { pendingChange?.cancel() }
   }
 
   private var explainStep: some View {
@@ -168,9 +170,10 @@ struct ChangeRecoveryKeySheet: View {
 
   private func apply() {
     authenticating = true
-    Task {
+    pendingChange = Task {
       let authentication = await OwnerAuthentication.confirm(reason: "change your recovery key")
       authenticating = false
+      guard !Task.isCancelled else { return }
       switch authentication {
       case .confirmed: break
       case .declined: return
