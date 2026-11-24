@@ -56,24 +56,33 @@ extension Schedule {
       guard let lastRun else { return now.addingTimeInterval(3600) }
       return lastRun.addingTimeInterval(3600)
     case .daily(let hour, let minute):
-      let components = DateComponents(hour: hour, minute: minute)
-      guard let lastRun else {
-        return calendar.nextDate(after: now, matching: components, matchingPolicy: .nextTime, direction: .forward)
-      }
-      var slot = calendar.nextDate(after: now, matching: components, matchingPolicy: .nextTime, direction: .backward)
-      let current = calendar.dateComponents([.hour, .minute, .second, .nanosecond], from: now)
-      if current.hour == hour, current.minute == minute, current.second == 0, current.nanosecond == 0 {
-        slot = now
-      }
-      if let slot, lastRun < slot {
-        return slot
-      }
-      return calendar.nextDate(after: now, matching: components, matchingPolicy: .nextTime, direction: .forward)
+      return Self.slotRun(hour: hour, minute: minute, after: lastRun, now: now, calendar: calendar)
     }
   }
 
   public func isDue(lastRun: Date?, now: Date, calendar: Calendar) -> Bool {
     guard let nextRun = nextRun(after: lastRun, now: now, calendar: calendar) else { return false }
     return nextRun <= now
+  }
+
+  private static func slotRun(hour: Int, minute: Int, after lastRun: Date?, now: Date, calendar: Calendar) -> Date? {
+    let slot = { (dayOffset: Int) in
+      Self.slot(dayOffset: dayOffset, from: now, hour: hour, minute: minute, calendar: calendar)
+    }
+    if let lastRun, let latest = (-1...0).reversed().lazy.compactMap(slot).first(where: { $0 <= now }),
+      lastRun < latest
+    {
+      return latest
+    }
+    return (0...1).lazy.compactMap(slot).first { $0 > now }
+  }
+
+  private static func slot(dayOffset: Int, from now: Date, hour: Int, minute: Int, calendar: Calendar) -> Date? {
+    guard let day = calendar.date(byAdding: .day, value: dayOffset, to: calendar.startOfDay(for: now)) else {
+      return nil
+    }
+    return calendar.nextDate(
+      after: day.addingTimeInterval(-1), matching: DateComponents(hour: hour, minute: minute),
+      matchingPolicy: .nextTime, direction: .forward)
   }
 }

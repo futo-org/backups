@@ -12,6 +12,20 @@ private func parisDate(_ year: Int, _ month: Int, _ day: Int, hour: Int = 0, min
   parisCalendar.date(from: DateComponents(year: year, month: month, day: day, hour: hour, minute: minute))!
 }
 
+private var torontoCalendar: Calendar {
+  var calendar = Calendar(identifier: .gregorian)
+  calendar.timeZone = TimeZone(identifier: "America/Toronto")!
+  return calendar
+}
+
+private func torontoDate(_ year: Int, _ month: Int, _ day: Int, hour: Int = 0, minute: Int = 0) -> Date {
+  torontoCalendar.date(from: DateComponents(year: year, month: month, day: day, hour: hour, minute: minute))!
+}
+
+private func utc(_ text: String) -> Date {
+  ISO8601DateFormatter().date(from: text)!
+}
+
 @Test("manual never schedules a run")
 func manualNeverRuns() {
   let now = parisDate(2026, 6, 10, hour: 15, minute: 30)
@@ -82,6 +96,19 @@ func dailySpringForward() throws {
   let following = try #require(schedule.nextRun(after: resolved, now: lateMorning, calendar: calendar))
   #expect(following > lateMorning)
   #expect(calendar.isDate(following, inSameDayAs: parisDate(2026, 3, 30, hour: 12)))
+}
+
+@Test("daily in the repeated Toronto fall-back hour runs once, at the first 01:30")
+func dailyFallBackRunsOnce() throws {
+  let schedule = Schedule.daily(hour: 1, minute: 30)
+  let calendar = torontoCalendar
+  let firstPass = utc("2026-11-01T05:30:00Z")
+  #expect(schedule.nextRun(after: nil, now: torontoDate(2026, 10, 31, hour: 22), calendar: calendar) == firstPass)
+  let ranAt = firstPass.addingTimeInterval(20)
+  for now in [utc("2026-11-01T05:45:00Z"), utc("2026-11-01T06:30:00Z"), utc("2026-11-01T06:45:00Z")] {
+    #expect(!schedule.isDue(lastRun: ranAt, now: now, calendar: calendar))
+    #expect(schedule.nextRun(after: ranAt, now: now, calendar: calendar) == utc("2026-11-02T06:30:00Z"))
+  }
 }
 
 @Test(
