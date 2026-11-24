@@ -109,6 +109,13 @@ struct MainWindow: View {
       case .settings: SettingsView().navigationTitle("Settings")
       }
     }
+    .toolbar {
+      if (selection ?? .overview) != .overview {
+        ToolbarItem(placement: .primaryAction) {
+          BackUpNowToolbarButton()
+        }
+      }
+    }
   }
 
   private func badge(for item: SidebarItem) -> Text? {
