@@ -37,6 +37,14 @@ enum RecoveryKeyStep: Equatable {
   case confirm
   case importKey
   case chooseRepository([RemoteRepository])
+  case repositoryKey(RemoteRepository, among: [RemoteRepository], storedKeyFailed: Bool)
+  case newBackupKey([RemoteRepository])
+}
+
+private enum RepositoryUnlockAttempt {
+  case finished(ExistingBackupUnlock)
+  case failed(String)
+  case superseded
 }
 
 @MainActor
@@ -56,6 +64,7 @@ final class AppModel {
   var restoredFolders: [URL] = []
   var restoreStoppedEarly = false
   var recoveryKeyStep: RecoveryKeyStep?
+  var storedKeyChecks: [String: StoredKeyCheck] = [:]
   var sessionLoaded = false
   var hasSession = false
   var hasMasterKey = false
@@ -76,6 +85,7 @@ final class AppModel {
   private var loginGeneration = 0
   private var operationTask: Task<Void, Never>?
   private var pendingRecoveryKey: String?
+  private var storedKeyCheckTask: Task<Void, Never>?
   private var sessionToken: String?
   private var sessionGeneration = 0
   private var onboardingGeneration = 0
@@ -331,8 +341,32 @@ final class AppModel {
   func showRecoveryKeyStep(_ step: RecoveryKeyStep) {
     guard step != .importKey || canImportRecoveryKey else { return }
     onboardingGeneration += 1
-    pendingRecoveryKey = nil
+    switch step {
+    case .chooseRepository(let repositories):
+      startStoredKeyChecks(repositories)
+    case .repositoryKey, .newBackupKey:
+      break
+    case .save, .confirm, .importKey:
+      holdRecoveryKey(nil)
+    }
     recoveryKeyStep = step
+  }
+
+  func showExistingBackups() async -> String? {
+    onboardingGeneration += 1
+    let generation = onboardingGeneration
+    guard canImportRecoveryKey else { return "This Mac already has a recovery key." }
+    guard let engine else { return missingHelperText ?? "Setup incomplete" }
+    do {
+      let repositories = try await engine.macRepositories(config: config)
+      guard generation == onboardingGeneration, hasSession else { return nil }
+      holdRecoveryKey(nil)
+      recoveryKeyStep = repositories.isEmpty ? .importKey : .chooseRepository(repositories)
+      return nil
+    } catch {
+      guard generation == onboardingGeneration, hasSession else { return nil }
+      return message(for: error)
+    }
   }
 
   func confirmRecoveryKey(_ input: String) async -> Bool {
@@ -347,45 +381,24 @@ final class AppModel {
   }
 
   func importRecoveryKey(_ input: String) async -> String? {
-    onboardingGeneration += 1
-    let generation = onboardingGeneration
     guard canImportRecoveryKey else { return "This Mac already has a recovery key." }
     guard let engine else { return missingHelperText ?? "Setup incomplete" }
     guard let normalized = RepositoryKeys.normalizedMasterKey(input) else {
       return "That isn't a valid recovery key."
     }
     if isRecoveringLostKey, let repositoryId = config.repositoryId {
-      report("Running repository import", ["repositoryId": .string(repositoryId)])
-      do {
-        let verified = try await engine.verifyMasterKey(
-          normalized, config: config, repositoryId: repositoryId)
-        guard generation == onboardingGeneration, hasSession else { return nil }
-        guard verified else {
-          report(
-            "Finished repository import",
-            [
-              "repositoryId": .string(repositoryId),
-              "error": .string("wrong recovery key"),
-            ])
-          return "That key doesn't open this Mac's backup."
-        }
-        try await engine.importMasterKey(normalized)
-        guard generation == onboardingGeneration, hasSession else { return nil }
-      } catch {
-        guard generation == onboardingGeneration, hasSession else { return nil }
-        report(
-          "Finished repository import",
-          [
-            "repositoryId": .string(repositoryId),
-            "error": .string(message(for: error)),
-          ])
-        return message(for: error)
+      switch await unlockRepository(repositoryId, with: .entered(normalized)) {
+      case .superseded: return nil
+      case .failed(let message): return message
+      case .finished(.unlocked):
+        hasMasterKey = true
+        markRecoveryKeyConfirmed()
+        return nil
+      case .finished: return "That key doesn't open this Mac's backup."
       }
-      report("Finished repository import", ["repositoryId": .string(repositoryId)])
-      hasMasterKey = true
-      markRecoveryKeyConfirmed()
-      return nil
     }
+    onboardingGeneration += 1
+    let generation = onboardingGeneration
     do {
       let repositories = try await engine.macRepositories(config: config)
       guard generation == onboardingGeneration, hasSession else { return nil }
@@ -397,8 +410,7 @@ final class AppModel {
         markRecoveryKeyConfirmed(offeringExistingRepositories: false)
         return nil
       }
-      pendingRecoveryKey = normalized
-      recoveryKeyStep = .chooseRepository(repositories)
+      showRecoveryKeyStep(.chooseRepository(repositories))
       return nil
     } catch {
       guard generation == onboardingGeneration, hasSession else { return nil }
@@ -406,39 +418,108 @@ final class AppModel {
     }
   }
 
-  func chooseRepository(_ repository: RemoteRepository) async -> String? {
+  func chooseRepository(_ repository: RemoteRepository, among repositories: [RemoteRepository]) async -> String? {
+    guard let storedKey = pendingRecoveryKey else {
+      showRecoveryKeyStep(.repositoryKey(repository, among: repositories, storedKeyFailed: false))
+      return nil
+    }
+    let check = storedKeyChecks[repository.id]
+    switch await unlockRepository(repository.id, with: .stored(storedKey, check: check)) {
+    case .superseded: return nil
+    case .failed(let message):
+      startStoredKeyChecks(repositories)
+      return message
+    case .finished(.unlocked):
+      await continueRepository(repository)
+      return nil
+    case .finished:
+      showRecoveryKeyStep(.repositoryKey(repository, among: repositories, storedKeyFailed: true))
+      return nil
+    }
+  }
+
+  func enterRepositoryKey(_ input: String, for repository: RemoteRepository) async -> String? {
+    guard RepositoryKeys.normalizedMasterKey(input) != nil else { return "That isn't a valid recovery key." }
+    switch await unlockRepository(repository.id, with: .entered(input)) {
+    case .superseded: return nil
+    case .failed(let message): return message
+    case .finished(.unlocked):
+      await continueRepository(repository)
+      return nil
+    case .finished: return "That key doesn't open \(repository.name)."
+    }
+  }
+
+  func startNewBackup(insteadOf repositories: [RemoteRepository]) async -> String? {
     onboardingGeneration += 1
     let generation = onboardingGeneration
     guard let engine else { return missingHelperText ?? "Setup incomplete" }
-    guard let key = pendingRecoveryKey else { return "No recovery key to use." }
-    report("Running repository import", ["repositoryId": .string(repository.id)])
+    guard let key = pendingRecoveryKey else {
+      showRecoveryKeyStep(.newBackupKey(repositories))
+      return nil
+    }
+    await stopStoredKeyChecks()
+    guard generation == onboardingGeneration, hasSession else { return nil }
     do {
-      let verified = try await engine.verifyMasterKey(key, config: config, repositoryId: repository.id)
-      guard generation == onboardingGeneration, hasSession else { return nil }
-      guard verified else {
-        report(
-          "Finished repository import",
-          [
-            "repositoryId": .string(repository.id),
-            "error": .string("wrong recovery key"),
-          ])
-        return "This backup uses a different recovery key."
-      }
       try await engine.importMasterKey(key)
       guard generation == onboardingGeneration, hasSession else { return nil }
     } catch {
       guard generation == onboardingGeneration, hasSession else { return nil }
-      report(
-        "Finished repository import",
-        [
-          "repositoryId": .string(repository.id),
-          "error": .string(message(for: error)),
-        ])
       return message(for: error)
     }
-    report("Finished repository import", ["repositoryId": .string(repository.id)])
     hasMasterKey = true
-    pendingRecoveryKey = nil
+    holdRecoveryKey(nil)
+    markRecoveryKeyConfirmed(offeringExistingRepositories: false)
+    return nil
+  }
+
+  func startNewBackup(withKey input: String) async -> String? {
+    onboardingGeneration += 1
+    let generation = onboardingGeneration
+    guard config.repositoryId == nil else { return "This Mac already has a backup." }
+    guard let engine else { return missingHelperText ?? "Setup incomplete" }
+    do {
+      try await engine.importMasterKey(input)
+      guard generation == onboardingGeneration, hasSession else { return nil }
+    } catch {
+      guard generation == onboardingGeneration, hasSession else { return nil }
+      return message(for: error)
+    }
+    hasMasterKey = true
+    markRecoveryKeyConfirmed(offeringExistingRepositories: false)
+    return nil
+  }
+
+  private func unlockRepository(_ repositoryId: String, with key: ExistingBackupKey) async -> RepositoryUnlockAttempt {
+    onboardingGeneration += 1
+    let generation = onboardingGeneration
+    guard let engine else { return .failed(missingHelperText ?? "Setup incomplete") }
+    await stopStoredKeyChecks()
+    guard generation == onboardingGeneration, hasSession else { return .superseded }
+    report("Running repository import", ["repositoryId": .string(repositoryId)])
+    do {
+      let unlock = try await engine.unlockExistingRepository(repositoryId, with: key, config: config)
+      guard generation == onboardingGeneration, hasSession else { return .superseded }
+      if unlock == .unlocked {
+        report("Finished repository import", ["repositoryId": .string(repositoryId)])
+      } else {
+        report(
+          "Finished repository import",
+          ["repositoryId": .string(repositoryId), "error": .string("wrong recovery key")])
+      }
+      return .finished(unlock)
+    } catch {
+      guard generation == onboardingGeneration, hasSession else { return .superseded }
+      report(
+        "Finished repository import",
+        ["repositoryId": .string(repositoryId), "error": .string(message(for: error))])
+      return .failed(message(for: error))
+    }
+  }
+
+  private func continueRepository(_ repository: RemoteRepository) async {
+    hasMasterKey = true
+    holdRecoveryKey(nil)
     config.repositoryId = repository.id
     config.recoveryKeyConfirmedAt = Date()
     saveConfig()
@@ -446,25 +527,39 @@ final class AppModel {
     signedIn = true
     recomputeNextRun()
     await refreshSnapshots()
-    return nil
   }
 
-  func startNewBackupWithPendingKey() async -> String? {
-    onboardingGeneration += 1
-    let generation = onboardingGeneration
-    guard let engine else { return missingHelperText ?? "Setup incomplete" }
-    guard let key = pendingRecoveryKey else { return "No recovery key to use." }
-    do {
-      try await engine.importMasterKey(key)
-      guard generation == onboardingGeneration, hasSession else { return nil }
-    } catch {
-      guard generation == onboardingGeneration, hasSession else { return nil }
-      return message(for: error)
+  private func holdRecoveryKey(_ key: String?) {
+    guard key == nil || key != pendingRecoveryKey else { return }
+    storedKeyCheckTask?.cancel()
+    storedKeyCheckTask = nil
+    storedKeyChecks = [:]
+    pendingRecoveryKey = key
+  }
+
+  private func startStoredKeyChecks(_ repositories: [RemoteRepository]) {
+    guard let engine, let storedKey = pendingRecoveryKey, storedKeyCheckTask == nil else { return }
+    let unchecked = repositories.map(\.id).filter { storedKeyChecks[$0] == nil }
+    guard !unchecked.isEmpty else { return }
+    let config = config
+    storedKeyCheckTask = Task { [weak self] in
+      await engine.checkStoredKey(storedKey, against: unchecked, config: config) { repositoryId, check in
+        await MainActor.run {
+          guard !Task.isCancelled else { return }
+          self?.storedKeyChecks[repositoryId] = check
+        }
+      }
+      guard !Task.isCancelled else { return }
+      self?.storedKeyCheckTask = nil
     }
-    hasMasterKey = true
-    pendingRecoveryKey = nil
-    markRecoveryKeyConfirmed(offeringExistingRepositories: false)
-    return nil
+  }
+
+  private func stopStoredKeyChecks() async {
+    guard let task = storedKeyCheckTask else { return }
+    storedKeyCheckTask = nil
+    task.cancel()
+    await task.value
+    storedKeyChecks = storedKeyChecks.filter { $0.value != .checking }
   }
 
   private func markRecoveryKeyConfirmed(offeringExistingRepositories: Bool = true) {
@@ -504,8 +599,8 @@ final class AppModel {
         self.login = .idle
         switch setup {
         case .chooseExisting(let existing, let key):
-          self.pendingRecoveryKey = key
-          self.recoveryKeyStep = .chooseRepository(existing)
+          self.holdRecoveryKey(key)
+          self.showRecoveryKeyStep(.chooseRepository(existing))
         case .ready(let repositoryId):
           self.config.repositoryId = repositoryId
           self.saveConfig()
@@ -551,7 +646,7 @@ final class AppModel {
     hasSession = false
     restoredFolders = []
     recoveryKeyStep = nil
-    pendingRecoveryKey = nil
+    holdRecoveryKey(nil)
     loginGeneration += 1
     loginTask?.cancel()
     loginTask = nil
@@ -901,7 +996,7 @@ final class AppModel {
     hasMasterKey = false
     restoredFolders = []
     recoveryKeyStep = nil
-    pendingRecoveryKey = nil
+    holdRecoveryKey(nil)
     configLoadFailure = nil
     configNeedsMovingAside = false
     pendingBootstrapError = nil

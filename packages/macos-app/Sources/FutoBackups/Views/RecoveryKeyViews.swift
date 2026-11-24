@@ -24,6 +24,11 @@ struct RecoveryKeyOnboarding: View {
             ImportRecoveryKeyStep()
           case .chooseRepository(let list):
             ChooseRepositoryStep(repositories: list)
+          case .repositoryKey(let repository, let list, let storedKeyFailed):
+            RepositoryKeyStep(repository: repository, repositories: list, storedKeyFailed: storedKeyFailed)
+              .id(repository.id)
+          case .newBackupKey(let list):
+            NewBackupKeyStep(repositories: list)
           }
         }
         .frame(maxWidth: 560)
@@ -106,6 +111,8 @@ private struct SaveRecoveryKeyStep: View {
   @Environment(AppModel.self) private var model
   let key: String?
   @State private var saved = false
+  @State private var loadingBackups = false
+  @State private var backupsError: String?
 
   var body: some View {
     VStack(spacing: 22) {
@@ -134,10 +141,31 @@ private struct SaveRecoveryKeyStep: View {
         .disabled(!saved || key == nil)
         .keyboardShortcut(.defaultAction)
       if model.canImportRecoveryKey {
-        Button("I already have a recovery key") { model.showRecoveryKeyStep(.importKey) }
-          .buttonStyle(.link)
-          .font(.system(size: 12))
+        if loadingBackups {
+          ProgressView()
+            .controlSize(.small)
+        } else {
+          Button("I already have a recovery key") { showExistingBackups() }
+            .buttonStyle(.link)
+            .font(.system(size: 12))
+        }
+        if let backupsError {
+          Text(backupsError)
+            .copyable(backupsError)
+            .font(.system(size: 12, weight: .medium))
+            .foregroundStyle(.red)
+        }
       }
+    }
+  }
+
+  private func showExistingBackups() {
+    guard !loadingBackups else { return }
+    loadingBackups = true
+    backupsError = nil
+    Task {
+      backupsError = await model.showExistingBackups()
+      loadingBackups = false
     }
   }
 }
@@ -182,9 +210,6 @@ private struct ConfirmRecoveryKeyStep: View {
 
 private struct ImportRecoveryKeyStep: View {
   @Environment(AppModel.self) private var model
-  @State private var input = ""
-  @State private var errorMessage: String?
-  @State private var checking = false
 
   var body: some View {
     VStack(spacing: 22) {
@@ -195,25 +220,82 @@ private struct ImportRecoveryKeyStep: View {
           ? "This Mac's recovery key is missing. Enter it to keep backing up."
           : "Enter the recovery key you saved on another device. "
             + "This Mac will encrypt its backups with it.")
-      KeyField(text: $input, invalid: errorMessage != nil) { use() }
-        .onChange(of: input) { _, _ in errorMessage = nil }
-      Text(hint)
-        .font(.system(size: 12, weight: .medium))
-        .foregroundStyle(errorMessage != nil ? .red : .secondary)
-        .copyable(hint)
-      if checking {
-        ProgressView()
-          .controlSize(.small)
-      } else {
-        Button("Use This Key") { use() }
-          .buttonStyle(PrimaryButtonStyle(large: true))
-          .disabled(RepositoryKeys.normalizedMasterKey(input) == nil)
-          .keyboardShortcut(.defaultAction)
-      }
+      RecoveryKeyEntry(action: "Use This Key") { await model.importRecoveryKey($0) }
       if !model.isRecoveringLostKey {
         Button("Back") { model.showRecoveryKeyStep(.save) }
           .buttonStyle(.link)
           .font(.system(size: 12))
+      }
+    }
+  }
+}
+
+private struct NewBackupKeyStep: View {
+  @Environment(AppModel.self) private var model
+  let repositories: [RemoteRepository]
+
+  var body: some View {
+    VStack(spacing: 22) {
+      StepTitle(
+        systemName: "plus.circle.fill", tint: Brand.blue, title: "Start a new backup",
+        subtitle: "Enter your recovery key. This Mac will encrypt its new backup with it.")
+      RecoveryKeyEntry(action: "Start New Backup") { await model.startNewBackup(withKey: $0) }
+      Button("Back") { model.showRecoveryKeyStep(.chooseRepository(repositories)) }
+        .buttonStyle(.link)
+        .font(.system(size: 12))
+    }
+  }
+}
+
+private struct RepositoryKeyStep: View {
+  @Environment(AppModel.self) private var model
+  let repository: RemoteRepository
+  let repositories: [RemoteRepository]
+  let storedKeyFailed: Bool
+
+  var body: some View {
+    VStack(spacing: 22) {
+      StepTitle(
+        systemName: "key.horizontal.fill", tint: Brand.blue, title: "Enter its recovery key",
+        subtitle: storedKeyFailed
+          ? "The key on this Mac doesn't open \(repository.name). Enter the one you saved for it."
+          : "Enter the recovery key you saved for \(repository.name).")
+      RepositoryRow(repository: repository, storedKeyCheck: nil, trailing: nil)
+        .padding(6)
+        .background(CardBackground())
+      RecoveryKeyEntry(action: "Continue This Backup") { await model.enterRepositoryKey($0, for: repository) }
+      Button("Back") { model.showRecoveryKeyStep(.chooseRepository(repositories)) }
+        .buttonStyle(.link)
+        .font(.system(size: 12))
+    }
+  }
+}
+
+private struct RecoveryKeyEntry: View {
+  let action: String
+  let submit: (String) async -> String?
+  @State private var input = ""
+  @State private var errorMessage: String?
+  @State private var checking = false
+
+  var body: some View {
+    VStack(spacing: 22) {
+      VStack(spacing: 10) {
+        KeyField(text: $input, invalid: errorMessage != nil) { use() }
+          .onChange(of: input) { _, _ in errorMessage = nil }
+        Text(hint)
+          .font(.system(size: 12, weight: .medium))
+          .foregroundStyle(errorMessage != nil ? .red : .secondary)
+          .copyable(hint)
+      }
+      if checking {
+        ProgressView()
+          .controlSize(.small)
+      } else {
+        Button(action) { use() }
+          .buttonStyle(PrimaryButtonStyle(large: true))
+          .disabled(RepositoryKeys.normalizedMasterKey(input) == nil)
+          .keyboardShortcut(.defaultAction)
       }
     }
   }
@@ -229,7 +311,7 @@ private struct ImportRecoveryKeyStep: View {
     guard RepositoryKeys.normalizedMasterKey(input) != nil, !checking else { return }
     checking = true
     Task {
-      errorMessage = await model.importRecoveryKey(input)
+      errorMessage = await submit(input)
       checking = false
     }
   }
@@ -247,7 +329,7 @@ private struct ChooseRepositoryStep: View {
     VStack(spacing: 22) {
       StepTitle(
         systemName: "externaldrive.fill.badge.checkmark", tint: Brand.blue, title: "Continue an existing backup",
-        subtitle: "Choose the backup this Mac should continue. Your recovery key is checked against it.")
+        subtitle: "Choose the backup this Mac should continue.")
       VStack(spacing: 0) {
         ForEach(Array(repositories.enumerated()), id: \.element.id) { index, repository in
           if index > 0 {
@@ -256,39 +338,12 @@ private struct ChooseRepositoryStep: View {
           Button {
             choose(repository)
           } label: {
-            HStack(spacing: 12) {
-              IconTile(systemName: "laptopcomputer", tint: Brand.blue, size: 32)
-              VStack(alignment: .leading, spacing: 2) {
-                HStack(spacing: 8) {
-                  Text(repository.name)
-                    .font(.system(size: 13, weight: .semibold))
-                  if repository.name == model.config.host {
-                    Text("This Mac")
-                      .font(.system(size: 10, weight: .bold))
-                      .foregroundStyle(Brand.blue)
-                      .padding(.horizontal, 6)
-                      .padding(.vertical, 2)
-                      .background(Capsule().fill(Brand.blue.opacity(0.14)))
-                  }
-                }
-                Text(detail(for: repository))
-                  .font(.system(size: 12))
-                  .foregroundStyle(.secondary)
-              }
-              Spacer(minLength: 8)
-              if verifyingId == repository.id {
-                ProgressView()
-                  .controlSize(.small)
-              } else {
-                Image(systemName: "chevron.right")
-                  .foregroundStyle(.secondary)
-              }
-            }
-            .contentShape(Rectangle())
-            .padding(12)
+            RepositoryRow(
+              repository: repository, storedKeyCheck: model.storedKeyChecks[repository.id],
+              trailing: verifyingId == repository.id ? .progress : .chevron)
           }
           .buttonStyle(.plain)
-          .disabled(verifyingId != nil)
+          .disabled(verifyingId != nil || starting)
           if failedId == repository.id, let errorMessage {
             Text(errorMessage)
               .copyable(errorMessage)
@@ -306,7 +361,7 @@ private struct ChooseRepositoryStep: View {
       VStack(spacing: 10) {
         Button("Start a New Backup Instead") { startNew() }
           .buttonStyle(SecondaryButtonStyle())
-          .disabled(verifyingId != nil)
+          .disabled(verifyingId != nil || starting)
         if failedId == nil, let errorMessage {
           Text(errorMessage)
             .copyable(errorMessage)
@@ -314,14 +369,95 @@ private struct ChooseRepositoryStep: View {
             .foregroundStyle(.red)
         }
       }
-      Button("Back") { model.showRecoveryKeyStep(.importKey) }
+      Button("Back") { model.showRecoveryKeyStep(.save) }
         .buttonStyle(.link)
         .font(.system(size: 12))
         .disabled(verifyingId != nil || starting)
     }
   }
 
-  private func detail(for repository: RemoteRepository) -> String {
+  private func choose(_ repository: RemoteRepository) {
+    guard verifyingId == nil, !starting else { return }
+    verifyingId = repository.id
+    failedId = nil
+    errorMessage = nil
+    Task {
+      let message = await model.chooseRepository(repository, among: repositories)
+      verifyingId = nil
+      failedId = message == nil ? nil : repository.id
+      errorMessage = message
+    }
+  }
+
+  private func startNew() {
+    guard verifyingId == nil, !starting else { return }
+    starting = true
+    failedId = nil
+    errorMessage = nil
+    Task {
+      errorMessage = await model.startNewBackup(insteadOf: repositories)
+      starting = false
+    }
+  }
+}
+
+private struct RepositoryRow: View {
+  enum Trailing {
+    case chevron
+    case progress
+  }
+
+  @Environment(AppModel.self) private var model
+  let repository: RemoteRepository
+  let storedKeyCheck: StoredKeyCheck?
+  let trailing: Trailing?
+
+  var body: some View {
+    HStack(spacing: 12) {
+      IconTile(systemName: "laptopcomputer", tint: Brand.blue, size: 32)
+      VStack(alignment: .leading, spacing: 2) {
+        HStack(spacing: 8) {
+          Text(repository.name)
+            .font(.system(size: 13, weight: .semibold))
+          if repository.name == model.config.host {
+            Text("This Mac")
+              .font(.system(size: 10, weight: .bold))
+              .foregroundStyle(Brand.blue)
+              .padding(.horizontal, 6)
+              .padding(.vertical, 2)
+              .background(Capsule().fill(Brand.blue.opacity(0.14)))
+          }
+        }
+        Text(detail)
+          .font(.system(size: 12))
+          .foregroundStyle(.secondary)
+        if storedKeyCheck == .opens {
+          Label("This key is stored locally", systemImage: "key.fill")
+            .font(.system(size: 11, weight: .medium))
+            .foregroundStyle(.green)
+        }
+      }
+      Spacer(minLength: 8)
+      if storedKeyCheck == .checking && trailing != .progress {
+        ProgressView()
+          .controlSize(.mini)
+      }
+      switch trailing {
+      case .progress:
+        ProgressView()
+          .controlSize(.small)
+      case .chevron:
+        Image(systemName: "chevron.right")
+          .foregroundStyle(.secondary)
+      case nil:
+        EmptyView()
+      }
+    }
+    .contentShape(Rectangle())
+    .padding(12)
+  }
+
+  private var detail: String {
     let size = Format.bytes(repository.sizeBytes)
     guard let lastBackup = repository.lastBackup, let date = parseDate(lastBackup) else {
       return "\(size) · No backups yet"
@@ -338,30 +474,6 @@ private struct ChooseRepositoryStep: View {
     let plain = ISO8601DateFormatter()
     plain.formatOptions = [.withInternetDateTime]
     return plain.date(from: value)
-  }
-
-  private func choose(_ repository: RemoteRepository) {
-    guard verifyingId == nil else { return }
-    verifyingId = repository.id
-    failedId = nil
-    errorMessage = nil
-    Task {
-      let message = await model.chooseRepository(repository)
-      verifyingId = nil
-      failedId = message == nil ? nil : repository.id
-      errorMessage = message
-    }
-  }
-
-  private func startNew() {
-    guard verifyingId == nil, !starting else { return }
-    starting = true
-    failedId = nil
-    errorMessage = nil
-    Task {
-      errorMessage = await model.startNewBackupWithPendingKey()
-      starting = false
-    }
   }
 }
 
