@@ -41,6 +41,20 @@ private let sh = URL(fileURLWithPath: "/bin/sh")
   #expect(sink.snapshot() == ["a", "b", "c"])
 }
 
+@Test func unretainedStdoutStillDeliversLinesButKeepsNoCopy() async throws {
+  let sink = LineCollector()
+  let runner = ResticRunner(executable: sh)
+  var invocation = shInvocation("printf 'a\\nb\\nc'; echo oops >&2; exit 3")
+  invocation.retainsStdout = false
+  let result = try await runner.run(invocation) { line in
+    sink.append(line)
+  }
+  #expect(result.exitCode == 3)
+  #expect(result.stderr == "oops\n")
+  #expect(result.stdout.isEmpty)
+  #expect(sink.snapshot() == ["a", "b", "c"])
+}
+
 @Test func finalLineWithoutNewlineIsDelivered() async throws {
   let sink = LineCollector()
   let runner = ResticRunner(executable: sh)

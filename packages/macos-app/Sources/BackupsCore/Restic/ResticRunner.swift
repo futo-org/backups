@@ -38,6 +38,7 @@ public struct ResticRunner: ResticExecuting {
     let errorWriteHandle = errorPipe.fileHandleForWriting
     let outputDescriptor = outputReadHandle.fileDescriptor
     let errorDescriptor = errorReadHandle.fileDescriptor
+    let retainsStdout = invocation.retainsStdout
     let state = LaunchState()
     let join = RunnerJoin()
 
@@ -68,7 +69,8 @@ public struct ResticRunner: ResticExecuting {
           process.value.terminate()
         }
         let outputThread = Thread {
-          join.deliver(stdout: PipeReader.readLines(descriptor: outputDescriptor, onLine: onLine))
+          join.deliver(
+            stdout: PipeReader.readLines(descriptor: outputDescriptor, retaining: retainsStdout, onLine: onLine))
         }
         outputThread.start()
         let errorThread = Thread {
@@ -207,12 +209,14 @@ private final class RunnerJoin: @unchecked Sendable {
 }
 
 private enum PipeReader {
-  static func readLines(descriptor: Int32, onLine: @escaping @Sendable (String) -> Void) -> Data {
+  static func readLines(descriptor: Int32, retaining: Bool, onLine: @escaping @Sendable (String) -> Void) -> Data {
     var raw = Data()
     var pending: [UInt8] = []
     var searched = 0
     consume(descriptor: descriptor) { chunk in
-      raw.append(contentsOf: chunk)
+      if retaining {
+        raw.append(contentsOf: chunk)
+      }
       pending.append(contentsOf: chunk)
       while pending.count > searched, let index = pending[searched...].firstIndex(of: 0x0A) {
         let line = String(decoding: Data(pending[..<index]), as: UTF8.self)

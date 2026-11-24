@@ -270,7 +270,7 @@ public actor BackupEngine {
             throw error
           }
         }
-        let log = ResticLineLog()
+        let output = BackupOutput()
         let result: ResticResult
         do {
           result = try await environment.restic.run(
@@ -278,9 +278,11 @@ public actor BackupEngine {
               session.context, paths: backupPaths, excludes: backupExcludes, host: config.host,
               currentDirectory: backupCurrentDirectory, tags: backupTags),
             onLine: { line in
-              log.append(line)
-              if case .status(let progress) = ResticOutput.parseLine(line) {
+              let message = ResticOutput.parseLine(line)
+              if case .status(let progress) = message {
                 onActivity(.backingUp(progress))
+              } else {
+                output.record(message)
               }
             })
         } catch {
@@ -292,14 +294,8 @@ public actor BackupEngine {
         await runSnapshotCleanup()
         snapshotLock?.release()
         snapshotLock = nil
-        var lastError: String?
-        for line in log.lines {
-          switch ResticOutput.parseLine(line) {
-          case .summary(let value): summary = value
-          case .error(let text): lastError = text
-          default: break
-          }
-        }
+        summary = output.summary
+        let lastError = output.lastError
         if result.exitCode == ResticExitCode.success {
           status = .complete
         } else if result.exitCode == ResticExitCode.couldNotReadSource {
@@ -779,19 +775,26 @@ public actor BackupEngine {
   }
 }
 
-private final class ResticLineLog: @unchecked Sendable {
+private final class BackupOutput: @unchecked Sendable {
   private let lock = NSLock()
-  private var stored: [String] = []
+  private var storedSummary: BackupSummary?
+  private var storedLastError: String?
 
-  func append(_ line: String) {
-    lock.lock()
-    stored.append(line)
-    lock.unlock()
+  func record(_ message: ResticMessage) {
+    lock.withLock {
+      switch message {
+      case .summary(let value): storedSummary = value
+      case .error(let text): storedLastError = text
+      case .status, .other: break
+      }
+    }
   }
 
-  var lines: [String] {
-    lock.lock()
-    defer { lock.unlock() }
-    return stored
+  var summary: BackupSummary? {
+    lock.withLock { storedSummary }
+  }
+
+  var lastError: String? {
+    lock.withLock { storedLastError }
   }
 }

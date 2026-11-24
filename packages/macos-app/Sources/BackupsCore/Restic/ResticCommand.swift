@@ -27,6 +27,7 @@ public struct ResticInvocation: Sendable, Equatable {
   public var arguments: [String]
   public var environment: [String: String]
   public var currentDirectory: String? = nil
+  public var retainsStdout = true
 }
 
 public enum ResticCommand {
@@ -61,6 +62,8 @@ public enum ResticCommand {
     }
     var result = invocation(context, ["backup"], flags, positional: paths)
     result.currentDirectory = currentDirectory
+    result.retainsStdout = false
+    result.environment["RESTIC_PROGRESS_FPS"] = "2"
     return result
   }
 
@@ -80,7 +83,10 @@ public enum ResticCommand {
     _ context: ResticContext, snapshotId: String, subfolder: String? = nil, target: String
   ) -> ResticInvocation {
     let source = subfolder.map { "\(snapshotId):\($0)" } ?? snapshotId
-    return invocation(context, ["restore"], ["--target", target, "--overwrite", "never"], positional: [source])
+    var result = invocation(
+      context, ["restore"], ["--target", target, "--overwrite", "never"], positional: [source])
+    result.retainsStdout = false
+    return result
   }
 
   public static func stats(_ context: ResticContext) -> ResticInvocation {

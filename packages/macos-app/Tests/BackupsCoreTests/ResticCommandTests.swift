@@ -28,10 +28,14 @@ private let standardEnvironment = [
   "PATH": "/usr/bin:/bin:/usr/sbin:/sbin",
 ]
 
+private let backupEnvironment = standardEnvironment.merging(["RESTIC_PROGRESS_FPS": "2"]) { $1 }
+
 struct CommandCase: Sendable {
   var name: String
   var invocation: ResticInvocation
   var arguments: [String]
+  var environment = standardEnvironment
+  var retainsStdout = true
 }
 
 private let commandCases: [CommandCase] = [
@@ -59,7 +63,8 @@ private let commandCases: [CommandCase] = [
     name: "backup minimal",
     invocation: ResticCommand.backup(plainContext, paths: ["/p/one", "/p/two"], excludes: [], host: "host-a"),
     arguments: ["backup", "--json"] + common
-      + ["--host", "host-a", "--group-by", "host", "--exclude-caches", "--", "/p/one", "/p/two"]),
+      + ["--host", "host-a", "--group-by", "host", "--exclude-caches", "--", "/p/one", "/p/two"],
+    environment: backupEnvironment, retainsStdout: false),
   CommandCase(
     name: "backup full",
     invocation: ResticCommand.backup(
@@ -71,7 +76,8 @@ private let commandCases: [CommandCase] = [
       + [
         "--host", "host-a", "--group-by", "host", "--exclude-caches", "--exclude", "/p/skip-a",
         "--exclude", "/p/skip-b", "--pack-size", "4", "--walk-concurrency", "2", "--", "/p/one",
-      ]),
+      ],
+    environment: backupEnvironment, retainsStdout: false),
   CommandCase(
     name: "forget without pack size",
     invocation: ResticCommand.forget(plainContext, host: "host-a", keepWithin: "1h"),
@@ -85,14 +91,16 @@ private let commandCases: [CommandCase] = [
   CommandCase(
     name: "restore whole snapshot",
     invocation: ResticCommand.restore(plainContext, snapshotId: "abc123", target: "/target"),
-    arguments: ["restore", "--json"] + common + ["--target", "/target", "--overwrite", "never", "--", "abc123"]),
+    arguments: ["restore", "--json"] + common + ["--target", "/target", "--overwrite", "never", "--", "abc123"],
+    retainsStdout: false),
   CommandCase(
     name: "restore subfolder",
     invocation: ResticCommand.restore(
       plainContext, snapshotId: "abc123", subfolder: "/Users/x/My Docs", target: "/target/My Docs"),
     arguments: ["restore", "--json"] + common + [
       "--target", "/target/My Docs", "--overwrite", "never", "--", "abc123:/Users/x/My Docs",
-    ]),
+    ],
+    retainsStdout: false),
 ]
 
 @Test(arguments: commandCases)
@@ -101,8 +109,13 @@ func argumentsMatch(_ testCase: CommandCase) {
 }
 
 @Test(arguments: commandCases)
-func environmentIsReplacedWithExactlyFourVariables(_ testCase: CommandCase) {
-  #expect(testCase.invocation.environment == standardEnvironment, "\(testCase.name)")
+func environmentIsReplacedWithExactlyTheExpectedVariables(_ testCase: CommandCase) {
+  #expect(testCase.invocation.environment == testCase.environment, "\(testCase.name)")
+}
+
+@Test(arguments: commandCases)
+func onlyCommandsWhoseOutputIsReadRetainStdout(_ testCase: CommandCase) {
+  #expect(testCase.invocation.retainsStdout == testCase.retainsStdout, "\(testCase.name)")
 }
 
 @Test func versionInvocation() {
