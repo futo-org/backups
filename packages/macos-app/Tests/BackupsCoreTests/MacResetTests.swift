@@ -92,10 +92,10 @@ private func allSecrets(_ store: InMemorySecretStore) -> [SecretKey: String] {
     cleanUpDiskSnapshots: {
       timeline.record(FileManager.default.fileExists(atPath: files.configFile.path) ? "cleanup" : "late cleanup")
     })
-  let failed = await reset.run(signingOut: api, log: StructuredLog(summary: "Reset this Mac", version: "1.2.3"))
+  let failed = await reset.run(signingOut: api, log: StructuredLog(summary: "Unlink this Mac", version: "1.2.3"))
   #expect(failed.isEmpty)
   #expect(timeline.entries == ["cleanup"])
-  #expect(await api.calls == [.log("Reset this Mac"), .logout])
+  #expect(await api.calls == [.log("Unlink this Mac"), .logout])
   #expect(await api.secretsAtLogout == [.accessToken: "tok", .masterKey: "key"])
   #expect(allSecrets(secrets).isEmpty)
 }

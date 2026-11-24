@@ -836,7 +836,7 @@ final class AppModel {
     if config.telemetryConsentedAt != nil {
       var data: [String: TelemetryValue] = [:]
       data["repositoryId"] = config.repositoryId.map { .string($0) }
-      log = StructuredLog(summary: "Reset this Mac", data: data, version: appVersion)
+      log = StructuredLog(summary: "Unlink this Mac", data: data, version: appVersion)
     }
     let engine = engine
     let reset = MacReset(

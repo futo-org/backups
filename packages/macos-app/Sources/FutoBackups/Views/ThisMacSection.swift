@@ -49,11 +49,11 @@ struct ThisMacSection: View {
   var body: some View {
     Section("Remove This Mac") {
       LabeledContent {
-        Button("Reset This Mac…") { sheet = .reset }
+        Button("Unlink This Mac…") { sheet = .reset }
           .buttonStyle(SecondaryButtonStyle(tint: .orange))
       } label: {
         SettingLabel(
-          systemName: "arrow.counterclockwise", tint: .orange, title: "Reset this Mac",
+          systemName: "arrow.counterclockwise", tint: .orange, title: "Unlink this Mac",
           detail:
             "Remove FUTO Backups' settings, sign-in and recovery key from this Mac. The backup stays on FUTO Cloud.")
       }
@@ -64,7 +64,7 @@ struct ThisMacSection: View {
       } label: {
         SettingLabel(
           systemName: "trash.fill", tint: .red, title: "Delete this Mac's backup",
-          detail: "Permanently delete this Mac's backup history from FUTO Cloud, then reset this Mac.")
+          detail: "Permanently delete this Mac's backup history from FUTO Cloud, then unlink this Mac.")
       }
       .padding(.vertical, 4)
     }
@@ -119,7 +119,7 @@ private struct ResetThisMacSheet: View {
 
   var body: some View {
     VStack(spacing: 18) {
-      SheetHeader(systemName: "arrow.counterclockwise", tint: .orange, title: "Reset This Mac?")
+      SheetHeader(systemName: "arrow.counterclockwise", tint: .orange, title: "Unlink This Mac?")
       SheetText(
         "FUTO Backups forgets this Mac: its settings, sign-in, recovery key and cache are removed. Your backup stays on FUTO Cloud. To continue it later, sign in again and enter your recovery key."
       )
@@ -153,7 +153,7 @@ private struct ResetThisMacSheet: View {
           ProgressView()
             .controlSize(.small)
         }
-        Button("Reset This Mac", role: .destructive) {
+        Button("Unlink This Mac", role: .destructive) {
           resetting = true
           Task {
             await model.resetThisMac()
@@ -204,7 +204,7 @@ private struct DeleteBackupSheet: View {
     Group {
       SheetHeader(systemName: "trash.fill", tint: .red, title: "Delete This Mac's Backup?")
       SheetText(
-        "This permanently deletes every backup of \(model.config.host) from FUTO Cloud. It can't be undone. Backups of your other Macs are not affected. Afterwards, FUTO Backups resets this Mac."
+        "This permanently deletes every backup of \(model.config.host) from FUTO Cloud. It can't be undone. Backups of your other Macs are not affected. Afterwards, FUTO Backups unlinks this Mac."
       )
       SheetText("Your browser opens to confirm: sign in again, then click Permanently Delete.")
       Toggle(isOn: $understood) {
@@ -261,7 +261,7 @@ private struct DeleteBackupSheet: View {
       SheetHeader(systemName: "exclamationmark.triangle.fill", tint: .orange, title: "Backup deleted")
       if repositories.isEmpty {
         SheetText(
-          "This Mac's backup was deleted from FUTO Cloud, but this Mac couldn't be removed from your account. Try again, or reset this Mac anyway."
+          "This Mac's backup was deleted from FUTO Cloud, but this Mac couldn't be removed from your account. Try again, or unlink this Mac anyway."
         )
       } else {
         SheetText(
@@ -276,7 +276,7 @@ private struct DeleteBackupSheet: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(12)
         .background(CardBackground())
-        SheetText("Delete them from the FUTO Backups website, or reset this Mac now and leave them.")
+        SheetText("Delete them from the FUTO Backups website, or unlink this Mac now and leave them.")
       }
       if let detail {
         Text(detail)
@@ -294,7 +294,7 @@ private struct DeleteBackupSheet: View {
           Button("Try Again") { model.startBackupDeletion() }
             .buttonStyle(SecondaryButtonStyle())
         }
-        Button("Reset This Mac Anyway", role: .destructive) {
+        Button("Unlink This Mac Anyway", role: .destructive) {
           Task { await model.resetAfterBackupDeletion() }
         }
         .buttonStyle(SecondaryButtonStyle(tint: .red))
