@@ -5,6 +5,9 @@ the bundled restic-proxy, list snapshots, restore, forget/prune after each succe
 Snapshot retention defaults to `--keep-within 60d`; onboarding and Settings → Snapshots offer the Immich presets,
 custom `--keep-*` rules or Keep All, and a change applies from the next backup started with it.
 
+Building needs Xcode 26 or newer (point `DEVELOPER_DIR` at it if another Xcode is selected), and running the app
+and its tests needs macOS 26 or newer.
+
 ```bash
 cd packages/macos-app
 mise run mac:check    # lint + build + unit tests
