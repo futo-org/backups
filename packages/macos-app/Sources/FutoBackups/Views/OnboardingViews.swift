@@ -170,6 +170,19 @@ private struct ChooseFoldersStep: View {
             choice: choice, selection: $selection,
             size: size(of: choice))
         }
+        if selection.canContinue {
+          Divider()
+          HStack {
+            Text("Total")
+              .font(.system(size: 13, weight: .semibold))
+            Spacer()
+            Text(selectedTotal.summary)
+              .font(.system(size: 12, weight: .semibold))
+              .monospacedDigit()
+          }
+          .padding(.horizontal, 12)
+          .padding(.vertical, 10)
+        }
       }
       .padding(6)
       .frame(maxWidth: .infinity)
@@ -207,6 +220,12 @@ private struct ChooseFoldersStep: View {
 
   private var pathsToMeasure: [String] {
     selection.pathsToMeasure(hasFullDiskAccess: model.hasFullDiskAccess)
+  }
+
+  private var selectedTotal: SizeTotal {
+    selection.total { path in
+      pathsToMeasure.contains(path) ? estimates.sizes[path] ?? .calculating : .unavailable
+    }
   }
 
   private func size(of choice: FolderChoice) -> FolderSize? {
@@ -493,9 +512,7 @@ private struct ReadyStep: View {
   }
 
   private var sizeSummary: String {
-    let total = selection.total { estimates.sizes[$0] ?? .calculating }
-    if total.isCalculating { return "Calculating…" }
-    return total.isPartial ? "At least \(Format.bytes(total.bytes))" : "About \(Format.bytes(total.bytes))"
+    selection.total { estimates.sizes[$0] ?? .calculating }.summary
   }
 
   private var scheduleSummary: String {
@@ -537,5 +554,12 @@ private struct SummaryRow<Detail: View>: View {
         detail
       }
     }
+  }
+}
+
+extension SizeTotal {
+  var summary: String {
+    if isCalculating { return "Calculating…" }
+    return isPartial ? "At least \(Format.bytes(bytes))" : "About \(Format.bytes(bytes))"
   }
 }

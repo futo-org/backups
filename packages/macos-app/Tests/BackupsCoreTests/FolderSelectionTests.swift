@@ -145,6 +145,14 @@ func bundlePaths(bundle: FolderBundle, expected: [String]) {
   #expect(selection(.essentials).total { sizes[$0] ?? .calculating } == SizeTotal(bytes: 120))
 }
 
+@Test func totalCountsFoldersInsideAnotherSelectedFolderOnce() {
+  var chosen = selection(.essentials)
+  chosen.set(.home, selected: true)
+  chosen.set(.standard(.documents), selected: true)
+  let sizes: [String: FolderSize] = [home: .bytes(500), path("Documents"): .bytes(100), path("Desktop"): .bytes(20)]
+  #expect(chosen.total { sizes[$0] ?? .calculating } == SizeTotal(bytes: 500))
+}
+
 @Test(
   "only home, Documents, Desktop and Downloads prompt without Full Disk Access",
   arguments: [
