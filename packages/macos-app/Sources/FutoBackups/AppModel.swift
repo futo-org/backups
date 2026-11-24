@@ -40,6 +40,7 @@ final class AppModel {
   var account: AuthInfo?
   var login: LoginState = .idle
   var activity: ActivityPhase?
+  var isCancelling = false
   var snapshots: [Snapshot] = []
   var snapshotsLoad: SnapshotsLoad = .notLoaded
   var lastError: String?
@@ -740,7 +741,9 @@ final class AppModel {
   }
 
   func cancelBackup() {
-    operationTask?.cancel()
+    guard let operationTask, activity?.isCancellable ?? true else { return }
+    isCancelling = true
+    operationTask.cancel()
   }
 
   func resetThisMac() async {
@@ -847,6 +850,7 @@ final class AppModel {
     activity = nil
     backupProgress.clear()
     operationTask = nil
+    isCancelling = false
     snapshots = []
     snapshotsLoad = .notLoaded
     lastError = nil
@@ -1056,6 +1060,7 @@ final class AppModel {
     activity = nil
     backupProgress.clear()
     operationTask = nil
+    isCancelling = false
   }
 
   private func show(_ engineActivity: EngineActivity) {

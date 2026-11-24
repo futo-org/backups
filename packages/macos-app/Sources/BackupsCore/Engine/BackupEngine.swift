@@ -157,7 +157,7 @@ public actor BackupEngine {
       let session = try await startSession(
         config: config, repositoryId: repositoryId, masterKey: masterKey, token: token)
       do {
-        _ = try await environment.restic.run(ResticCommand.unlock(session.context), onLine: { _ in })
+        _ = try await runRestic(ResticCommand.unlock(session.context), interrupting: session.proxy)
         try Task.checkCancellation()
         let scanner = environment.cloudOnlyScanner
         let folders = config.folders.filter { !scanner.isCloudOnly($0) }
@@ -342,9 +342,9 @@ public actor BackupEngine {
             ])
           var pruneError: String?
           do {
-            let forget = try await environment.restic.run(
+            let forget = try await runRestic(
               ResticCommand.forget(session.context, host: config.host, keepWithin: Self.keepWithin),
-              onLine: { _ in })
+              interrupting: session.proxy)
             if forget.exitCode != ResticExitCode.success {
               let detail = ResticOutput.errorMessage(
                 stderr: forget.stderr, exitCode: forget.exitCode)
@@ -374,8 +374,8 @@ public actor BackupEngine {
           var totalSize: Int64?
           var statsError: String?
           do {
-            let stats = try await environment.restic.run(
-              ResticCommand.stats(session.context), onLine: { _ in })
+            let stats = try await runRestic(
+              ResticCommand.stats(session.context), interrupting: session.proxy)
             if stats.exitCode == ResticExitCode.success {
               do {
                 totalSize = try ResticOutput.parseStatsTotalSize(stats.stdout)
@@ -477,8 +477,8 @@ public actor BackupEngine {
       }
     }
     do {
-      let result = try await environment.restic.run(
-        invocation,
+      let result = try await runRestic(
+        invocation, interrupting: proxy,
         onLine: { line in
           let message = ResticOutput.parseLine(line)
           if case .status(let progress) = message {
@@ -494,6 +494,18 @@ public actor BackupEngine {
       sampler.cancel()
       await sampler.value
       throw error
+    }
+  }
+
+  private func runRestic(
+    _ invocation: ResticInvocation, interrupting proxy: any ResticProxyHandle,
+    onLine: @escaping @Sendable (String) -> Void = { _ in }
+  ) async throws -> ResticResult {
+    let restic = environment.restic
+    return try await withTaskCancellationHandler {
+      try await restic.run(invocation, onLine: onLine)
+    } onCancel: {
+      try? proxy.networkChanged()
     }
   }
 
@@ -718,10 +730,10 @@ public actor BackupEngine {
         target = try RestorePlan.claimTarget(
           for: item, avoiding: Set(restored.map { $0.lastPathComponent.lowercased() }),
           createDirectory: environment.createRestoreDirectory)
-        result = try await environment.restic.run(
+        result = try await runRestic(
           ResticCommand.restore(
             session.context, snapshotId: snapshotId, subfolder: item.snapshotPath, target: target.path),
-          onLine: { _ in })
+          interrupting: session.proxy)
       } catch {
         await session.proxy.stop()
         restoreData["error"] = .string(error is CancellationError ? "cancelled" : String(describing: error))
@@ -859,7 +871,9 @@ public actor BackupEngine {
     config: AppConfig, repositoryId: String, masterKey: String, token: String
   ) async throws -> Session {
     let server = try await serverInfo(for: config.serverURL)
-    let proxy = try await environment.proxyLauncher.start(apiRoot: server.apiRoot, throttle: config.throttle)
+    let proxy = NetworkWatchedProxy(
+      try await environment.proxyLauncher.start(apiRoot: server.apiRoot, throttle: config.throttle),
+      changes: environment.networkChanges())
     do {
       let context = ResticContext(
         repository: resticProxyRepositoryURL(
@@ -879,6 +893,37 @@ public actor BackupEngine {
       await proxy.stop()
       throw error
     }
+  }
+}
+
+final class NetworkWatchedProxy: ResticProxyHandle {
+  private let proxy: any ResticProxyHandle
+  private let watcher: Task<Void, Never>
+
+  init(_ proxy: any ResticProxyHandle, changes: AsyncStream<Void>) {
+    self.proxy = proxy
+    watcher = Task.detached {
+      for await _ in changes {
+        try? proxy.networkChanged()
+      }
+    }
+  }
+
+  var address: String { proxy.address }
+
+  var uploadedBytes: Int64 { proxy.uploadedBytes }
+
+  func setThrottle(_ throttle: Throttle) throws {
+    try proxy.setThrottle(throttle)
+  }
+
+  func networkChanged() throws {
+    try proxy.networkChanged()
+  }
+
+  func stop() async {
+    watcher.cancel()
+    await proxy.stop()
   }
 }
 

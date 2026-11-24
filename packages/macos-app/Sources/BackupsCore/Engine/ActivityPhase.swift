@@ -7,6 +7,10 @@ public enum ActivityPhase: Equatable, Sendable {
   case pruning
   case restoring
   case changingRecoveryKey
+
+  public var isCancellable: Bool {
+    self != .changingRecoveryKey
+  }
 }
 
 public struct BackupSample: Equatable, Sendable {

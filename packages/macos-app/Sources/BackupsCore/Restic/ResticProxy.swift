@@ -5,7 +5,12 @@ public protocol ResticProxyHandle: Sendable {
   var address: String { get }
   var uploadedBytes: Int64 { get }
   func setThrottle(_ throttle: Throttle) throws
+  func networkChanged() throws
   func stop() async
+}
+
+extension ResticProxyHandle {
+  public func networkChanged() throws {}
 }
 
 public protocol ResticProxyLaunching: Sendable {
@@ -219,10 +224,18 @@ final class ProxyHandle: ResticProxyHandle, @unchecked Sendable {
   }
 
   func setThrottle(_ throttle: Throttle) throws {
-    let control = ThrottleControl(
-      throttle: ThrottleControl.Payload(
-        bytesPerSec: throttle.bytesPerSec,
-        quietHours: throttle.quietHours))
+    try send(
+      ThrottleControl(
+        throttle: ThrottleControl.Payload(
+          bytesPerSec: throttle.bytesPerSec,
+          quietHours: throttle.quietHours)))
+  }
+
+  func networkChanged() throws {
+    try send(NetworkChangedControl())
+  }
+
+  private func send(_ control: some Encodable) throws {
     var data = try JSONEncoder().encode(control)
     data.append(0x0A)
     lock.lock()
@@ -383,4 +396,8 @@ private struct ThrottleControl: Encodable {
 
   var type = "throttle"
   var throttle: Payload
+}
+
+private struct NetworkChangedControl: Encodable {
+  var type = "network-changed"
 }

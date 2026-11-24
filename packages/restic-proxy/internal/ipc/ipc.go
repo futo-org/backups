@@ -11,7 +11,10 @@ import (
 
 type ControlType string
 
-const ControlThrottle ControlType = "throttle"
+const (
+	ControlThrottle       ControlType = "throttle"
+	ControlNetworkChanged ControlType = "network-changed"
+)
 
 type Control struct {
 	Type     ControlType      `json:"type"`

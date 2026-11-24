@@ -21,6 +21,7 @@ public struct EngineEnvironment: Sendable {
   public var temporaryDirectory: URL
   public var cloudOnlyScanner: any CloudOnlyScanning
   public var uploadTicks: @Sendable () -> AsyncStream<ContinuousClock.Instant>
+  public var networkChanges: @Sendable () -> AsyncStream<Void>
 
   public init(
     secrets: any SecretStore,
@@ -43,7 +44,8 @@ public struct EngineEnvironment: Sendable {
     cloudOnlyScanner: any CloudOnlyScanning = NoCloudOnlyScan(),
     uploadTicks: @escaping @Sendable () -> AsyncStream<ContinuousClock.Instant> = {
       UploadSpeedMeter.ticks(every: .seconds(1))
-    }
+    },
+    networkChanges: @escaping @Sendable () -> AsyncStream<Void> = { NetworkChanges.live() }
   ) {
     self.secrets = secrets
     self.discover = discover
@@ -64,6 +66,7 @@ public struct EngineEnvironment: Sendable {
     self.temporaryDirectory = temporaryDirectory
     self.cloudOnlyScanner = cloudOnlyScanner
     self.uploadTicks = uploadTicks
+    self.networkChanges = networkChanges
   }
 }
 
@@ -88,6 +91,10 @@ public enum EngineActivity: Equatable, Sendable {
   case pruning
   case restoring
   case changingRecoveryKey
+
+  public var isCancellable: Bool {
+    self != .changingRecoveryKey
+  }
 }
 
 final class OnceFlag: Sendable {
