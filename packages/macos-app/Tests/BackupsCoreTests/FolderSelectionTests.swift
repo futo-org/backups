@@ -148,9 +148,23 @@ func bundlePaths(bundle: FolderBundle, expected: [String]) {
 @Test func totalCountsFoldersInsideAnotherSelectedFolderOnce() {
   var chosen = selection(.essentials)
   chosen.set(.home, selected: true)
-  chosen.set(.standard(.documents), selected: true)
-  let sizes: [String: FolderSize] = [home: .bytes(500), path("Documents"): .bytes(100), path("Desktop"): .bytes(20)]
-  #expect(chosen.total { sizes[$0] ?? .calculating } == SizeTotal(bytes: 500))
+  chosen.addOthers(["/Volumes/Work"])
+  let sizes: [String: FolderSize] = [
+    home: .bytes(500), path("Documents"): .bytes(100), path("Desktop"): .bytes(20), "/Volumes/Work": .bytes(7),
+  ]
+  #expect(chosen.total { sizes[$0] ?? .calculating } == SizeTotal(bytes: 507))
+}
+
+@Test func totalIsALowerBoundWhenAFolderWasOnlyPartlyRead() {
+  let chosen = selection(.essentials)
+  let sizes: [String: FolderSize] = [path("Documents"): .atLeast(100), path("Desktop"): .bytes(20)]
+  #expect(chosen.total { sizes[$0] ?? .calculating } == SizeTotal(bytes: 120, isPartial: true))
+}
+
+@Test func totalHasNoBytesWhenNoFolderCouldBeMeasured() {
+  let chosen = selection(.essentials)
+  #expect(chosen.total { _ in .unavailable } == SizeTotal(isPartial: true))
+  #expect(chosen.total { _ in .bytes(0) } == SizeTotal(bytes: 0))
 }
 
 @Test(

@@ -176,7 +176,7 @@ private struct ChooseFoldersStep: View {
             Text("Total")
               .font(.system(size: 13, weight: .semibold))
             Spacer()
-            Text(selectedTotal.summary)
+            Text(selectedTotal.summary { Format.bytes($0) })
               .font(.system(size: 12, weight: .semibold))
               .monospacedDigit()
           }
@@ -223,9 +223,7 @@ private struct ChooseFoldersStep: View {
   }
 
   private var selectedTotal: SizeTotal {
-    selection.total { path in
-      pathsToMeasure.contains(path) ? estimates.sizes[path] ?? .calculating : .unavailable
-    }
+    selection.total { estimates.sizes[$0] ?? .calculating }
   }
 
   private func size(of choice: FolderChoice) -> FolderSize? {
@@ -379,6 +377,12 @@ private struct SizeLabel: View {
         .font(.system(size: 12, weight: .medium))
         .monospacedDigit()
         .foregroundStyle(.secondary)
+    case .atLeast(let bytes):
+      Text("At least \(Format.bytes(bytes))")
+        .font(.system(size: 12, weight: .medium))
+        .monospacedDigit()
+        .foregroundStyle(.secondary)
+        .help("Some folders inside couldn't be read.")
     case .unavailable:
       Text("—")
         .foregroundStyle(.tertiary)
@@ -512,7 +516,7 @@ private struct ReadyStep: View {
   }
 
   private var sizeSummary: String {
-    selection.total { estimates.sizes[$0] ?? .calculating }.summary
+    selection.total { estimates.sizes[$0] ?? .calculating }.summary { Format.bytes($0) }
   }
 
   private var scheduleSummary: String {
@@ -554,12 +558,5 @@ private struct SummaryRow<Detail: View>: View {
         detail
       }
     }
-  }
-}
-
-extension SizeTotal {
-  var summary: String {
-    if isCalculating { return "Calculating…" }
-    return isPartial ? "At least \(Format.bytes(bytes))" : "About \(Format.bytes(bytes))"
   }
 }

@@ -24,18 +24,19 @@ private func settle(_ estimates: FolderSizeEstimates, until done: (FolderSizeEst
 }
 
 @MainActor
-@Test func requestedPathsResolveToSizesOrUnavailable() async throws {
+@Test func requestedPathsResolveToTheirMeasuredSizeOrUnavailable() async throws {
   let estimates = FolderSizeEstimates { path in
     switch path {
-    case "/a": 10
-    case "/b": nil
+    case "/a": .bytes(10)
+    case "/b": .unavailable
+    case "/d": .atLeast(7)
     default: throw Unreadable()
     }
   }
-  estimates.request(["/a", "/b", "/c"])
+  estimates.request(["/a", "/b", "/c", "/d"])
   #expect(estimates.sizes["/a"] == .calculating)
   try await settle(estimates) { !$0.sizes.values.contains(.calculating) }
-  #expect(estimates.sizes == ["/a": .bytes(10), "/b": .unavailable, "/c": .unavailable])
+  #expect(estimates.sizes == ["/a": .bytes(10), "/b": .unavailable, "/c": .unavailable, "/d": .atLeast(7)])
 }
 
 @MainActor
@@ -43,7 +44,7 @@ private func settle(_ estimates: FolderSizeEstimates, until done: (FolderSizeEst
   let calls = Calls()
   let estimates = FolderSizeEstimates { path in
     calls.record(path)
-    return 1
+    return .bytes(1)
   }
   estimates.request(["/a"])
   estimates.request(["/a", "/b"])
@@ -57,7 +58,7 @@ private func settle(_ estimates: FolderSizeEstimates, until done: (FolderSizeEst
 @Test func cancellingForgetsPendingSizesSoTheyCanBeRequestedAgain() async throws {
   let estimates = FolderSizeEstimates { _ in
     try await Task.sleep(for: .seconds(30))
-    return 1
+    return .bytes(1)
   }
   estimates.request(["/slow"])
   #expect(estimates.sizes["/slow"] == .calculating)

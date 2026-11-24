@@ -75,12 +75,12 @@ enum DirectoryWalk {
     }
   }
 
-  static func totalBytes(
+  static func size(
     under root: String, workers: Int = ProcessInfo.processInfo.activeProcessorCount,
     isExcluded: (String) -> Bool, isCancelled: () -> Bool
-  ) -> Int64? {
+  ) -> FolderSize {
     let base = root.count > 1 && root.hasSuffix("/") ? String(root.dropLast()) : root
-    guard let rootEntries = entries(of: base) else { return nil }
+    guard let rootEntries = entries(of: base) else { return .unavailable }
     let state = WalkState()
     state.add(rootEntries, in: base, isExcluded: isExcluded)
     DispatchQueue.concurrentPerform(iterations: max(1, workers)) { _ in
@@ -89,12 +89,16 @@ enum DirectoryWalk {
           state.cancel()
           return
         }
-        let found = entries(of: directory) ?? []
-        state.add(found, in: directory, isExcluded: isExcluded)
+        if let found = entries(of: directory) {
+          state.add(found, in: directory, isExcluded: isExcluded)
+        } else {
+          state.markUnreadable()
+        }
         state.finish()
       }
     }
-    return state.isCancelled || isCancelled() ? nil : state.total
+    if state.isCancelled || isCancelled() { return .unavailable }
+    return state.isComplete ? .bytes(state.total) : .atLeast(state.total)
   }
 }
 
@@ -104,6 +108,7 @@ private final class WalkState: @unchecked Sendable {
   private var active = 0
   private(set) var total: Int64 = 0
   private(set) var isCancelled = false
+  private(set) var isComplete = true
 
   func add(_ found: [DirectoryEntry], in directory: String, isExcluded: (String) -> Bool) {
     var bytes: Int64 = 0
@@ -123,6 +128,12 @@ private final class WalkState: @unchecked Sendable {
     total += bytes
     pending.append(contentsOf: directories)
     condition.broadcast()
+    condition.unlock()
+  }
+
+  func markUnreadable() {
+    condition.lock()
+    isComplete = false
     condition.unlock()
   }
 
