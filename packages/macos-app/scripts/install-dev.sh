@@ -64,11 +64,23 @@ if [ "${NOTARIZE:-}" = "1" ]; then
   xcrun stapler staple "$app"
 fi
 
+executable="$destination/Contents/MacOS/FutoBackups"
 osascript -e 'quit app id "org.futo.backups.mac"' >/dev/null 2>&1 || true
 for _ in $(seq 1 20); do
-  pgrep -x FutoBackups >/dev/null || break
+  pgrep -f -x "$executable" >/dev/null || break
   sleep 0.5
 done
+if pgrep -f -x "$executable" >/dev/null; then
+  pkill -TERM -f -x "$executable" || true
+  for _ in $(seq 1 20); do
+    pgrep -f -x "$executable" >/dev/null || break
+    sleep 0.5
+  done
+fi
+if pgrep -f -x "$executable" >/dev/null; then
+  echo "FUTO Backups is still running; quit it and run mac:install again" >&2
+  exit 1
+fi
 rm -rf "$destination"
 ditto "$app" "$destination"
 codesign --verify --deep --strict "$destination"
