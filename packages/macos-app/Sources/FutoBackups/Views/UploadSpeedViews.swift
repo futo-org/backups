@@ -47,10 +47,7 @@ struct UploadSpeedCard: View {
   }
 
   private var details: String {
-    var parts = [
-      "Average \(UploadSpeed.rateText(speed.averageBytesPerSecond))",
-      "\(Format.bytes(speed.uploadedBytes)) sent",
-    ]
+    var parts = ["Average \(UploadSpeed.rateText(speed.averageBytesPerSecond))"]
     if let limit = speed.throttle.activeLimit(at: Date()) {
       parts.append("limited to \(UploadSpeed.rateText(Double(limit)))")
     }
