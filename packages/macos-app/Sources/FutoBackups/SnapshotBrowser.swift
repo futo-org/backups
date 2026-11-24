@@ -19,6 +19,7 @@ final class SnapshotBrowser {
   @ObservationIgnored private let cache: SnapshotDirectoryCache
   @ObservationIgnored private let describe: (any Error) -> String
   @ObservationIgnored private var loadTask: Task<Void, Never>?
+  @ObservationIgnored private var loadingDirectory: String?
 
   init(
     snapshot: Snapshot, describe: @escaping (any Error) -> String,
@@ -61,6 +62,10 @@ final class SnapshotBrowser {
 
   private func showCurrent() {
     loadTask?.cancel()
+    if let leaving = loadingDirectory, leaving != trail.last?.path {
+      cache.cancel(leaving)
+    }
+    loadingDirectory = nil
     guard let directory = trail.last?.path else {
       listing = .loaded(SnapshotListing.roots(of: snapshot.paths))
       return
@@ -70,6 +75,7 @@ final class SnapshotBrowser {
       return
     }
     listing = .loading
+    loadingDirectory = directory
     let cache = cache
     loadTask = Task {
       do {
@@ -85,6 +91,7 @@ final class SnapshotBrowser {
 
   private func show(_ result: Listing, for directory: String) {
     guard !Task.isCancelled, trail.last?.path == directory else { return }
+    loadingDirectory = nil
     listing = result
   }
 }
