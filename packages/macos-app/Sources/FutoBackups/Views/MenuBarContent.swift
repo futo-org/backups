@@ -5,7 +5,6 @@ import SwiftUI
 struct MenuBarContent: View {
   @Environment(AppModel.self) private var model
   @Environment(Updater.self) private var updater
-  @Environment(\.openWindow) private var openWindow
 
   var body: some View {
     VStack(alignment: .leading, spacing: 14) {
@@ -49,16 +48,15 @@ struct MenuBarContent: View {
       Divider()
       HStack {
         Button("Open FUTO Backups") {
-          openWindow(id: "main")
-          NSApp.activate()
+          MenuBarResidency.shared.showMainWindow()
         }
         if updater.isAvailable {
           Button("Check for Updates…") { updater.checkForUpdates() }
             .disabled(!updater.canCheckForUpdates)
         }
         Spacer()
-        Button("Quit") { NSApp.terminate(nil) }
-          .keyboardShortcut("q")
+        Button("Quit FUTO Backups") { MenuBarResidency.shared.quit() }
+          .help("Stops FUTO Backups, including scheduled backups, until you open it again")
       }
       .buttonStyle(.borderless)
       .font(.system(size: 12))
