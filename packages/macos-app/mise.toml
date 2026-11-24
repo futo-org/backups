@@ -1,0 +1,43 @@
+[env]
+# The Command Line Tools toolchain intermittently fails to load the Swift Testing macro plugin; Xcode's does not.
+DEVELOPER_DIR = "{{ get_env(name='DEVELOPER_DIR', default='/Applications/Xcode.app/Contents/Developer') }}"
+
+# Task names carry a mac: prefix so the root build/test/check aggregates (run on Linux CI) never match them.
+
+[tasks."mac:build"]
+description = "Build the macOS app (debug)"
+run = "swift build"
+
+[tasks."mac:test"]
+description = "Run the macOS app unit tests"
+run = "swift test"
+
+[tasks."mac:lint"]
+description = "Lint Swift sources"
+run = "swift format lint --strict --recursive Package.swift Sources Tests"
+
+[tasks."mac:format"]
+description = "Format Swift sources in place"
+run = "swift format --in-place --recursive Package.swift Sources Tests"
+
+[tasks."mac:check"]
+description = "Lint, build and test the macOS app"
+run = [{ task = "mac:lint" }, { task = "mac:build" }, { task = "mac:test" }]
+
+[tasks."mac:bundle"]
+description = "Build build/FUTO Backups.app with bundled restic and restic-proxy"
+run = "scripts/bundle.sh"
+
+[tasks."mac:release"]
+description = "Build, sign, notarize and package a release with its appcast"
+run = "scripts/release.sh"
+
+[tasks."mac:install"]
+description = "Build a Developer ID signed dev version (0.0.0-dev.<commit>) and install it in /Applications"
+run = "scripts/install-dev.sh"
+env = { INFISICAL_PROJECT_ID = "cc66ffeb-72d4-42da-a611-d5a1f737c404" }
+
+[tasks."mac:open"]
+description = "Bundle and launch the app"
+depends = ["mac:bundle"]
+run = "open 'build/FUTO Backups.app'"

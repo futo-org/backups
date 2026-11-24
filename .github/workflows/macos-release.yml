@@ -1,0 +1,493 @@
+name: macOS Release
+
+# Builds, signs, notarizes and publishes the macOS app for a release tag when its
+# inputs changed since the feed's version. The archive rides its own
+# `macos-v<version>` release; the Sparkle appcast rides a rolling prerelease
+# `macos-appcast` that is never latest, so the feed URL is stable and the
+# release list keeps showing real versions. Each `macos-v<version>` also keeps
+# its appcast, so a rerun can repair a feed that fell behind without rebuilding.
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Release tag to build the macOS app for (e.g. v1.0.0)
+        required: true
+        type: string
+
+permissions: {}
+
+jobs:
+  gate:
+    name: Decide whether this release needs a macOS build
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    outputs:
+      mode: ${{ steps.decision.outputs.mode }}
+      version: ${{ steps.decision.outputs.version }}
+      previous: ${{ steps.decision.outputs.previous }}
+      sha: ${{ steps.decision.outputs.sha }}
+    env:
+      TAG: ${{ github.event.release.tag_name || inputs.tag }}
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+    steps:
+      - name: Checkout release tree
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          ref: refs/tags/${{ github.event.release.tag_name || inputs.tag }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Check the release against the macOS inputs
+        id: decision
+        env:
+          EVENT_PRERELEASE: ${{ github.event.release.prerelease }}
+        run: |
+          set -euo pipefail
+          version_cmp() {
+            local IFS=.
+            local -a a b
+            read -ra a <<< "$1"
+            read -ra b <<< "$2"
+            [ "${#a[@]}" -eq 3 ] && [ "${#b[@]}" -eq 3 ] || return 2
+            local i
+            for i in 0 1 2; do
+              case "${a[$i]}" in '' | *[!0-9]*) return 2 ;; esac
+              case "${b[$i]}" in '' | *[!0-9]*) return 2 ;; esac
+            done
+            for i in 0 1 2; do
+              if [ "${a[$i]}" -lt "${b[$i]}" ]; then printf '%s\n' -1; return; fi
+              if [ "${a[$i]}" -gt "${b[$i]}" ]; then printf '%s\n' 1; return; fi
+            done
+            printf '%s\n' 0
+          }
+          restic_image() {
+            git show "$1:packages/standalone-app/Dockerfile" | sed -n 's/^ARG RESTIC_IMAGE=//p'
+          }
+          release_exists() {
+            local err
+            if err=$(gh release view "$1" --json tagName 2>&1 > /dev/null); then
+              return 0
+            fi
+            if [[ $err == *"release not found"* ]]; then
+              return 1
+            fi
+            echo "::error::could not look up the $1 release: $err"
+            exit 1
+          }
+          skip() {
+            echo "mode=skip" >> "$GITHUB_OUTPUT"
+            echo "::notice::$1"
+            exit 0
+          }
+          version=${TAG#v}
+          if ! [[ $version =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            skip "$TAG is not a plain MAJOR.MINOR.PATCH release tag"
+          fi
+          if [ "$GITHUB_EVENT_NAME" = release ]; then
+            prerelease=$EVENT_PRERELEASE
+          else
+            prerelease=$(gh release view "$TAG" --json isPrerelease --jq .isPrerelease)
+          fi
+          if [ "$prerelease" = true ]; then
+            skip "$TAG is a prerelease"
+          fi
+          sha=$(git rev-parse "refs/tags/$TAG^{commit}")
+          previous=
+          cmp=
+          feed_assets=
+          if release_exists macos-appcast; then
+            feed_assets=$(gh release view macos-appcast --json assets --jq '.assets[].name')
+          fi
+          if grep -qxF appcast.xml <<< "$feed_assets"; then
+            if ! gh release download macos-appcast -p appcast.xml -D "$RUNNER_TEMP/feed"; then
+              echo "::error::could not download the live appcast"
+              exit 1
+            fi
+            previous=$(sed -n 's|.*<sparkle:shortVersionString>\([^<]*\)</sparkle:shortVersionString>.*|\1|p' "$RUNNER_TEMP/feed/appcast.xml" | head -n 1)
+            if ! cmp=$(version_cmp "$previous" "$version"); then
+              echo "::error::the live appcast advertises no readable version ('$previous')"
+              exit 1
+            fi
+          fi
+          if release_exists "macos-v$version"; then
+            if [ -n "$cmp" ] && [ "$cmp" -ge 0 ]; then
+              skip "macos-v$version is already published"
+            fi
+            echo "::notice::macos-v$version is published but the feed is behind it; republishing its appcast"
+            printf 'mode=repair\nversion=%s\n' "$version" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          if [ -n "$cmp" ]; then
+            if [ "$cmp" -eq 0 ]; then
+              skip "v$version is already published"
+            fi
+            if [ "$cmp" -eq 1 ]; then
+              skip "a newer version (v$previous) is already published"
+            fi
+            if git rev-parse -q --verify "refs/tags/v$previous" > /dev/null &&
+              git diff --quiet "v$previous" "$sha" -- packages/macos-app packages/restic-proxy .mise/config.toml &&
+              [ "$(restic_image "v$previous")" = "$(restic_image "$sha")" ]; then
+              skip "macOS app inputs unchanged since v$previous"
+            fi
+          fi
+          printf 'mode=build\nversion=%s\nprevious=%s\nsha=%s\n' "$version" "$previous" "$sha" >> "$GITHUB_OUTPUT"
+
+  release:
+    name: Build, notarize and publish the macOS app
+    needs: gate
+    if: needs.gate.outputs.mode == 'build'
+    runs-on: xcode-27
+    timeout-minutes: 90
+    # Infisical syncs the apple-signing/global/ci and yucca/global/ci secrets
+    # here only; the environment admits main and the v* tags.
+    environment: macos-release
+    permissions:
+      contents: write
+    env:
+      SHA: ${{ needs.gate.outputs.sha }}
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+    steps:
+      - name: Check the signing secrets
+        env:
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          APPLE_DEVELOPER_ID_APPLICATION__IDENTITY: ${{ secrets.APPLE_DEVELOPER_ID_APPLICATION__IDENTITY }}
+          APPLE_DEVELOPER_ID_APPLICATION__P12_BASE64: ${{ secrets.APPLE_DEVELOPER_ID_APPLICATION__P12_BASE64 }}
+          APPLE_DEVELOPER_ID_APPLICATION__P12_PASSWORD: ${{ secrets.APPLE_DEVELOPER_ID_APPLICATION__P12_PASSWORD }}
+          APPLE_NOTARY_API_KEY__KEY_ID: ${{ secrets.APPLE_NOTARY_API_KEY__KEY_ID }}
+          APPLE_NOTARY_API_KEY__ISSUER_ID: ${{ secrets.APPLE_NOTARY_API_KEY__ISSUER_ID }}
+          APPLE_NOTARY_API_KEY__P8: ${{ secrets.APPLE_NOTARY_API_KEY__P8 }}
+          MACOS_SPARKLE_PRIVATE_KEY: ${{ secrets.MACOS_SPARKLE_PRIVATE_KEY }}
+        run: |
+          set -euo pipefail
+          missing=
+          for name in APPLE_TEAM_ID APPLE_DEVELOPER_ID_APPLICATION__IDENTITY APPLE_DEVELOPER_ID_APPLICATION__P12_BASE64 \
+            APPLE_DEVELOPER_ID_APPLICATION__P12_PASSWORD APPLE_NOTARY_API_KEY__KEY_ID APPLE_NOTARY_API_KEY__ISSUER_ID \
+            APPLE_NOTARY_API_KEY__P8 MACOS_SPARKLE_PRIVATE_KEY; do
+            case "${!name}" in '' | REPLACE_ME) missing="$missing $name" ;; esac
+          done
+          if [ -n "$missing" ]; then
+            echo "::error::the macos-release environment is missing:${missing}"
+            exit 1
+          fi
+
+      - name: Checkout release tree
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          ref: ${{ needs.gate.outputs.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Select Xcode 27.2
+        run: echo "DEVELOPER_DIR=/Applications/Xcode_27.2.app/Contents/Developer" >> "$GITHUB_ENV"
+
+      - name: Generate release notes filtered to the Mac app
+        env:
+          VERSION: ${{ needs.gate.outputs.version }}
+          PREVIOUS: ${{ needs.gate.outputs.previous }}
+        run: |
+          set -euo pipefail
+          notes="$GITHUB_WORKSPACE/packages/macos-app/scripts/release-notes.sh"
+          if [ -n "$PREVIOUS" ] && git rev-parse -q --verify "refs/tags/v$PREVIOUS" > /dev/null; then
+            "$notes" markdown "$SHA" "v$PREVIOUS" > "$RUNNER_TEMP/macos-notes.md"
+            "$notes" html "$SHA" "v$PREVIOUS" > "$RUNNER_TEMP/macos-notes.html"
+          else
+            "$notes" markdown "$SHA" > "$RUNNER_TEMP/macos-notes.md"
+            "$notes" html "$SHA" > "$RUNNER_TEMP/macos-notes.html"
+          fi
+          printf '\nBuilt from v%s.\n' "$VERSION" >> "$RUNNER_TEMP/macos-notes.md"
+
+      - name: Setup Mise
+        uses: jdx/mise-action@c2a87611a18de5b3828c5652fe268e992400cb5c # v4.3.0
+        with:
+          # The action caches by default; a poisoned cache would end up in
+          # the shipped binary, so a release build never restores one.
+          cache: false
+
+      - name: Import the signing certificate
+        env:
+          CERTIFICATE_P12_BASE64: ${{ secrets.APPLE_DEVELOPER_ID_APPLICATION__P12_BASE64 }}
+          CERTIFICATE_PASSWORD: ${{ secrets.APPLE_DEVELOPER_ID_APPLICATION__P12_PASSWORD }}
+          NOTARY_KEY_P8: ${{ secrets.APPLE_NOTARY_API_KEY__P8 }}
+        run: |
+          set -euo pipefail
+          KEYCHAIN="$RUNNER_TEMP/signing.keychain-db"
+          KEYCHAIN_PASSWORD=$(openssl rand -hex 24)
+          printf '%s' "$CERTIFICATE_P12_BASE64" | base64 --decode > "$RUNNER_TEMP/cert.p12"
+          security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN"
+          security set-keychain-settings -lut 21600 "$KEYCHAIN"
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN"
+          security import "$RUNNER_TEMP/cert.p12" -k "$KEYCHAIN" -P "$CERTIFICATE_PASSWORD" -T /usr/bin/codesign -T /usr/bin/security
+          rm -f "$RUNNER_TEMP/cert.p12"
+          # Without a partition list, codesign blocks on a keychain-access
+          # prompt that nobody can answer on a headless runner.
+          security set-key-partition-list -S apple-tool:,apple: -s -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN" > /dev/null
+          keychains=("$KEYCHAIN")
+          while IFS= read -r entry; do
+            if [ -n "$entry" ]; then keychains+=("$entry"); fi
+          done < <(security list-keychains -d user | sed -e 's/^ *//' -e 's/"//g')
+          security list-keychains -d user -s "${keychains[@]}"
+          printf '%s\n' "$NOTARY_KEY_P8" > "$RUNNER_TEMP/notary.p8"
+
+      - name: Build, sign and notarize
+        env:
+          VERSION: ${{ needs.gate.outputs.version }}
+          CODESIGN_IDENTITY: ${{ secrets.APPLE_DEVELOPER_ID_APPLICATION__IDENTITY }}
+          EXPECTED_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          NOTARY_KEY_PATH: ${{ runner.temp }}/notary.p8
+          NOTARY_KEY_ID: ${{ secrets.APPLE_NOTARY_API_KEY__KEY_ID }}
+          NOTARY_ISSUER: ${{ secrets.APPLE_NOTARY_API_KEY__ISSUER_ID }}
+          SPARKLE_PRIVATE_KEY: ${{ secrets.MACOS_SPARKLE_PRIVATE_KEY }}
+          DOWNLOAD_URL_PREFIX: https://github.com/${{ github.repository }}/releases/download/macos-v${{ needs.gate.outputs.version }}/
+          RELEASE_NOTES_HTML_FILE: ${{ runner.temp }}/macos-notes.html
+          OUT_DIR: ${{ runner.temp }}/macos-release
+        run: |
+          set -euo pipefail
+          mise run //packages/macos-app:mac:release "$VERSION"
+
+      - name: Publish the archive and its appcast
+        env:
+          VERSION: ${{ needs.gate.outputs.version }}
+          OUT_DIR: ${{ runner.temp }}/macos-release
+        run: |
+          set -euo pipefail
+          if gh release view "macos-v$VERSION" > /dev/null 2>&1; then
+            echo "::error::macos-v$VERSION was published while this run was building; a published zip is never replaced"
+            exit 1
+          fi
+          gh release create "macos-v$VERSION" "$OUT_DIR/FUTO-Backups-$VERSION.zip" "$OUT_DIR/appcast.xml" \
+            --target "$SHA" \
+            --title "FUTO Backups for macOS $VERSION" \
+            --notes-file "$RUNNER_TEMP/macos-notes.md" \
+            --latest=false
+
+      - name: Remove the signing keychain and material
+        if: always()
+        run: |
+          set -euo pipefail
+          security delete-keychain "$RUNNER_TEMP/signing.keychain-db" || true
+          rm -f "$RUNNER_TEMP/notary.p8" "$RUNNER_TEMP/cert.p12"
+
+  feed:
+    name: Publish the appcast
+    needs: [gate, release]
+    if: ${{ !cancelled() && (needs.gate.outputs.mode == 'repair' || (needs.gate.outputs.mode == 'build' && needs.release.result == 'success')) }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment: macos-release
+    # Serializes updates of the shared appcast. Only this short job joins the
+    # group: a new pending job replaces the pending one, so a gate or a queued
+    # build in it could cancel another release's pending feed update.
+    concurrency:
+      group: macos-appcast
+      cancel-in-progress: false
+    permissions:
+      contents: write
+    outputs:
+      advanced: ${{ steps.point.outputs.advanced }}
+    env:
+      VERSION: ${{ needs.gate.outputs.version }}
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+    steps:
+      - name: Point the feed at the appcast of this version
+        id: point
+        run: |
+          set -euo pipefail
+          version_cmp() {
+            local IFS=.
+            local -a a b
+            read -ra a <<< "$1"
+            read -ra b <<< "$2"
+            [ "${#a[@]}" -eq 3 ] && [ "${#b[@]}" -eq 3 ] || return 2
+            local i
+            for i in 0 1 2; do
+              case "${a[$i]}" in '' | *[!0-9]*) return 2 ;; esac
+              case "${b[$i]}" in '' | *[!0-9]*) return 2 ;; esac
+            done
+            for i in 0 1 2; do
+              if [ "${a[$i]}" -lt "${b[$i]}" ]; then printf '%s\n' -1; return; fi
+              if [ "${a[$i]}" -gt "${b[$i]}" ]; then printf '%s\n' 1; return; fi
+            done
+            printf '%s\n' 0
+          }
+          appcast_version() {
+            sed -n 's|.*<sparkle:shortVersionString>\([^<]*\)</sparkle:shortVersionString>.*|\1|p' "$1" | head -n 1
+          }
+          release_exists() {
+            local err
+            if err=$(gh release view "$1" --json tagName 2>&1 > /dev/null); then
+              return 0
+            fi
+            if [[ $err == *"release not found"* ]]; then
+              return 1
+            fi
+            echo "::error::could not look up the $1 release: $err"
+            exit 1
+          }
+          if [ "$(gh release view "macos-v$VERSION" --json isDraft --jq .isDraft)" != false ]; then
+            echo "::error::macos-v$VERSION is still a draft; delete it and rerun the workflow"
+            exit 1
+          fi
+          assets=$(gh release view "macos-v$VERSION" --json assets --jq '.assets[].name')
+          for asset in "FUTO-Backups-$VERSION.zip" appcast.xml; do
+            if ! grep -qxF "$asset" <<< "$assets"; then
+              echo "::error::macos-v$VERSION has no $asset asset to publish the feed from"
+              exit 1
+            fi
+          done
+          gh release download "macos-v$VERSION" -p appcast.xml -D "$RUNNER_TEMP/next"
+          if [ "$(appcast_version "$RUNNER_TEMP/next/appcast.xml")" != "$VERSION" ]; then
+            echo "::error::the appcast attached to macos-v$VERSION does not advertise v$VERSION"
+            exit 1
+          fi
+          if ! release_exists macos-appcast; then
+            gh release create macos-appcast --prerelease --latest=false --title "macOS update feed" --notes "Sparkle appcast for the FUTO Backups macOS app. Do not delete."
+          fi
+          # A published zip is never replaced, so a feed that already advertises
+          # this version or a newer one must not move backwards.
+          feed_assets=$(gh release view macos-appcast --json assets --jq '.assets[].name')
+          if grep -qxF appcast.xml <<< "$feed_assets"; then
+            if ! gh release download macos-appcast -p appcast.xml -D "$RUNNER_TEMP/current"; then
+              echo "::error::could not download the live appcast"
+              exit 1
+            fi
+            published=$(appcast_version "$RUNNER_TEMP/current/appcast.xml")
+            if ! cmp=$(version_cmp "$published" "$VERSION"); then
+              echo "::error::the live appcast advertises no readable version ('$published')"
+              exit 1
+            fi
+            if [ "$cmp" -ge 0 ]; then
+              echo "::notice::the feed already advertises v$published; leaving it unchanged"
+              exit 0
+            fi
+          fi
+          # --clobber deletes the live appcast before uploading its replacement,
+          # so a failed upload leaves the feed empty until one succeeds.
+          for attempt in 1 2 3; do
+            if gh release upload macos-appcast "$RUNNER_TEMP/next/appcast.xml" --clobber; then
+              echo "advanced=true" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+            if [ "$attempt" -lt 3 ]; then
+              sleep $((attempt * 15))
+            fi
+          done
+          echo "::error::could not upload appcast.xml to macos-appcast; the feed may be empty until a rerun republishes it from macos-v$VERSION"
+          exit 1
+
+  tap:
+    name: Update the Homebrew cask
+    needs: [gate, feed]
+    if: ${{ !cancelled() && needs.feed.result == 'success' && needs.feed.outputs.advanced == 'true' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    # HOMEBREW_TAP_DEPLOY_KEY, a write deploy key of futo-org/homebrew-tap,
+    # lives in this environment only.
+    environment: macos-release
+    concurrency:
+      group: homebrew-tap
+      cancel-in-progress: false
+    permissions:
+      contents: read
+    env:
+      VERSION: ${{ needs.gate.outputs.version }}
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+      TAP_REMOTE: git@github.com:futo-org/homebrew-tap.git
+    steps:
+      - name: Check the tap deploy key
+        id: key
+        env:
+          HOMEBREW_TAP_DEPLOY_KEY: ${{ secrets.HOMEBREW_TAP_DEPLOY_KEY }}
+        run: |
+          set -euo pipefail
+          case "$HOMEBREW_TAP_DEPLOY_KEY" in
+            '' | REPLACE_ME)
+              echo "::notice::HOMEBREW_TAP_DEPLOY_KEY is not set; leaving the Homebrew cask unchanged"
+              exit 0
+              ;;
+          esac
+          umask 077
+          printf '%s\n' "$HOMEBREW_TAP_DEPLOY_KEY" > "$RUNNER_TEMP/homebrew-tap.key"
+          echo "present=true" >> "$GITHUB_OUTPUT"
+
+      - name: Checkout the cask template
+        if: steps.key.outputs.present == 'true'
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+          sparse-checkout: packages/macos-app
+
+      - name: Push the cask for this version
+        if: steps.key.outputs.present == 'true'
+        run: |
+          set -euo pipefail
+          version_cmp() {
+            local IFS=.
+            local -a a b
+            read -ra a <<< "$1"
+            read -ra b <<< "$2"
+            [ "${#a[@]}" -eq 3 ] && [ "${#b[@]}" -eq 3 ] || return 2
+            local i
+            for i in 0 1 2; do
+              case "${a[$i]}" in '' | *[!0-9]*) return 2 ;; esac
+              case "${b[$i]}" in '' | *[!0-9]*) return 2 ;; esac
+            done
+            for i in 0 1 2; do
+              if [ "${a[$i]}" -lt "${b[$i]}" ]; then printf '%s\n' -1; return; fi
+              if [ "${a[$i]}" -gt "${b[$i]}" ]; then printf '%s\n' 1; return; fi
+            done
+            printf '%s\n' 0
+          }
+          zip="FUTO-Backups-$VERSION.zip"
+          gh release download "macos-v$VERSION" -p "$zip" -D "$RUNNER_TEMP/zip"
+          sha256=$(sha256sum "$RUNNER_TEMP/zip/$zip" | cut -d ' ' -f 1)
+          # GitHub's published ed25519 host key, pinned rather than fetched with
+          # ssh-keyscan so a spoofed host cannot be trusted on first use.
+          printf 'github.com ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOMqqnkVzrm0SdG6UOoqKLsabgH5C9okWi0dh2l9GKJl\n' \
+            > "$RUNNER_TEMP/known_hosts"
+          export GIT_SSH_COMMAND="ssh -i $RUNNER_TEMP/homebrew-tap.key -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes -o UserKnownHostsFile=$RUNNER_TEMP/known_hosts"
+          git init -q -b main "$RUNNER_TEMP/homebrew-tap"
+          cd "$RUNNER_TEMP/homebrew-tap"
+          git remote add origin "$TAP_REMOTE"
+          rc=0
+          git ls-remote --exit-code --heads origin main > /dev/null || rc=$?
+          case $rc in
+            0)
+              git fetch -q --depth 1 origin main
+              git checkout -q -B main FETCH_HEAD
+              ;;
+            2) ;;
+            *)
+              echo "::error::could not reach $TAP_REMOTE"
+              exit 1
+              ;;
+          esac
+          cask=Casks/futo-backups.rb
+          if [ -f "$cask" ]; then
+            published=$(sed -n 's/^  version "\([^"]*\)"$/\1/p' "$cask" | head -n 1)
+            if ! cmp=$(version_cmp "$published" "$VERSION"); then
+              echo "::error::the tap's cask declares no readable version ('$published')"
+              exit 1
+            fi
+            if [ "$cmp" -ge 0 ]; then
+              echo "::notice::the tap already ships v$published; leaving the cask unchanged"
+              exit 0
+            fi
+          fi
+          mkdir -p Casks
+          "$GITHUB_WORKSPACE/packages/macos-app/scripts/homebrew-cask.sh" "$VERSION" "$sha256" > "$cask"
+          git add "$cask"
+          git -c user.name='github-actions[bot]' -c user.email='41898282+github-actions[bot]@users.noreply.github.com' \
+            commit -q -m "futo-backups $VERSION"
+          git push -q origin HEAD:main
+
+      - name: Remove the tap deploy key
+        if: always()
+        run: rm -f "$RUNNER_TEMP/homebrew-tap.key"

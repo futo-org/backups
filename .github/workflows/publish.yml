@@ -9,6 +9,7 @@ jobs:
   publish:
     name: Publish
     runs-on: ubuntu-latest
+    if: github.event_name != 'release' || startsWith(github.event.release.tag_name, 'v')
 
     permissions:
       contents: read
@@ -38,6 +39,7 @@ jobs:
 
   docker:
     name: Publish standalone image
+    if: github.event_name != 'release' || startsWith(github.event.release.tag_name, 'v')
     uses: immich-app/devtools/.github/workflows/multi-runner-build.yml@f14fed578c121152a8f9e391b569afca20e32e6f # multi-runner-build-workflow-v4.1.0
     permissions:
       contents: read
@@ -60,6 +62,7 @@ jobs:
 
   docker-restic-proxy:
     name: Publish restic-proxy image
+    if: github.event_name != 'release' || startsWith(github.event.release.tag_name, 'v')
     uses: immich-app/devtools/.github/workflows/multi-runner-build.yml@f14fed578c121152a8f9e391b569afca20e32e6f # multi-runner-build-workflow-v4.1.0
     permissions:
       contents: read

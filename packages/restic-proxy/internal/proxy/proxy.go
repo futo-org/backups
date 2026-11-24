@@ -40,6 +40,7 @@ type Handler struct {
 	minting          singleflight.Group
 
 	throttle atomic.Pointer[throttle]
+	uploaded atomic.Int64
 }
 
 func New(cl client.Client, sessionToken string, smartAutoRepository bool) *Handler {
@@ -68,6 +69,10 @@ func (handler *Handler) Throttle(bytesPerSec int, quietHours string) error {
 
 	handler.throttle.Store(limit)
 	return nil
+}
+
+func (handler *Handler) Uploaded() int64 {
+	return handler.uploaded.Load()
 }
 
 func (handler *Handler) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
@@ -119,7 +124,7 @@ func (handler *Handler) ServeHTTP(writer http.ResponseWriter, request *http.Requ
 	}
 
 	log.Debug().Msg("handled request")
-	request.Body = pace(ctx, request.Body, &handler.throttle)
+	request.Body = count(pace(ctx, request.Body, &handler.throttle), &handler.uploaded)
 
 	route := routed{key: repositoryId, grant: grant, path: path}
 	handler.reverse.ServeHTTP(writer, request.WithContext(context.WithValue(ctx, contextKey{}, route)))
