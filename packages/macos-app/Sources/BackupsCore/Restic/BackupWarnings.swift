@@ -34,8 +34,15 @@ public struct BackupWarnings: Codable, Equatable, Sendable {
     }
   }
 
-  public func listText(displayPath: (String) -> String = { $0 }) -> String {
-    items.map { "\(displayPath($0.path)): \($0.reason)" }.joined(separator: "\n")
+  public func listText() -> String {
+    items.map { "\(Self.escapingLineBreaks($0.path)): \(Self.escapingLineBreaks($0.reason))" }
+      .joined(separator: "\n")
+  }
+
+  static func escapingLineBreaks(_ text: String) -> String {
+    text.replacingOccurrences(of: "\\", with: "\\\\")
+      .replacingOccurrences(of: "\n", with: "\\n")
+      .replacingOccurrences(of: "\r", with: "\\r")
   }
 
   public static func collect(stderr: String, snapshotMounts: [String] = [], limit: Int = itemLimit)

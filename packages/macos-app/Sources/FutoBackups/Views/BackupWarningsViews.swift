@@ -79,7 +79,7 @@ struct BackupWarningsSheet: View {
               .help("Leave all of these out of future backups")
           }
           Button {
-            Clipboard.copy(warnings.listText(displayPath: Format.abbreviatedPath))
+            Clipboard.copy(warnings.listText())
             copied = true
             Task {
               try? await Task.sleep(for: .seconds(1.5))

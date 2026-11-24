@@ -196,18 +196,25 @@ func livePathOfItem(item: String, mounts: [String], expected: String) {
   #expect(BackupWarnings.livePath(of: item, snapshotMounts: mounts) == expected)
 }
 
-@Test func listTextHasOneLinePerItemWithTheDisplayedPath() {
+@Test func listTextHasOneLinePerItemWithTheExactPath() {
   let warnings = BackupWarnings(
     items: [
       BackupWarning(path: "/Users/test/a.txt", reason: "Permission denied"),
+      BackupWarning(path: "/Users/test/two\nlines\\x.txt", reason: "Resource\r\nbusy"),
       BackupWarning(path: "/Volumes/X/b.txt", reason: "Resource busy"),
     ],
     total: 7)
 
+  let text = warnings.listText()
+
+  #expect(text.split(separator: "\n").count == 3)
   #expect(
-    warnings.listText { $0.replacingOccurrences(of: "/Users/test", with: "~") }
-      == "~/a.txt: Permission denied\n/Volumes/X/b.txt: Resource busy")
-  #expect(warnings.listText().hasPrefix("/Users/test/a.txt: "))
+    text
+      == #"""
+      /Users/test/a.txt: Permission denied
+      /Users/test/two\nlines\\x.txt: Resource\r\nbusy
+      /Volumes/X/b.txt: Resource busy
+      """#)
 }
 
 @Test func warningsBelongOnlyToTheSnapshotTheRunCreated() {
