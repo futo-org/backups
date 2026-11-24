@@ -135,6 +135,7 @@ struct BackupWarningsSheet: View {
         Spacer()
         Button("Done") { dismiss() }
           .buttonStyle(.borderedProminent)
+          .tint(Brand.fill)
           .keyboardShortcut(.defaultAction)
       }
     }

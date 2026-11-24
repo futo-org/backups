@@ -132,6 +132,7 @@ struct ChangeRecoveryKeySheet: View {
           : "This Mac's backup now uses your new key. The old key will stop working after the next backup.")
       Button("Done") { dismiss() }
         .buttonStyle(.borderedProminent)
+        .tint(Brand.fill)
         .controlSize(.large)
         .keyboardShortcut(.defaultAction)
     }
@@ -155,6 +156,7 @@ struct ChangeRecoveryKeySheet: View {
         .keyboardShortcut(.cancelAction)
       Button(primary, action: action)
         .buttonStyle(.borderedProminent)
+        .tint(Brand.fill)
         .disabled(disabled)
         .keyboardShortcut(.defaultAction)
     }

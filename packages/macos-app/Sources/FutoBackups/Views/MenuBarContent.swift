@@ -34,6 +34,7 @@ struct MenuBarContent: View {
               .frame(maxWidth: .infinity)
           }
           .buttonStyle(.borderedProminent)
+          .tint(Brand.fill)
           .disabled(model.config.folders.isEmpty)
         } else if !model.isCancelling, model.activity?.isCancellable == true {
           Button {

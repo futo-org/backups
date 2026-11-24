@@ -138,6 +138,7 @@ private struct SaveRecoveryKeyStep: View {
         .padding(.top, 4)
       Button("Continue") { model.showRecoveryKeyStep(.confirm) }
         .buttonStyle(.borderedProminent)
+        .tint(Brand.fill)
         .controlSize(.large)
         .disabled(!saved || key == nil)
         .keyboardShortcut(.defaultAction)
@@ -192,6 +193,7 @@ private struct ConfirmRecoveryKeyStep: View {
       }
       Button("Confirm") { confirm() }
         .buttonStyle(.borderedProminent)
+        .tint(Brand.fill)
         .controlSize(.large)
         .disabled(input.isEmpty || checking)
         .keyboardShortcut(.defaultAction)
@@ -304,6 +306,7 @@ private struct RecoveryKeyEntry: View {
       } else {
         Button(action) { use() }
           .buttonStyle(.borderedProminent)
+          .tint(Brand.fill)
           .controlSize(.large)
           .disabled(RepositoryKeys.normalizedMasterKey(input) == nil)
           .keyboardShortcut(.defaultAction)

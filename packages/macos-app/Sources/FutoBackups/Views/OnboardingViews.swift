@@ -92,6 +92,7 @@ private struct FullDiskAccessStep: View {
           .foregroundStyle(.green)
         Button("Continue", action: next)
           .buttonStyle(.borderedProminent)
+          .tint(Brand.fill)
           .controlSize(.large)
           .keyboardShortcut(.defaultAction)
       } else {
@@ -101,6 +102,7 @@ private struct FullDiskAccessStep: View {
           .multilineTextAlignment(.center)
         Button("Open System Settings") { openSettings() }
           .buttonStyle(.borderedProminent)
+          .tint(Brand.fill)
           .controlSize(.large)
           .keyboardShortcut(.defaultAction)
         HStack(spacing: 8) {
@@ -207,6 +209,7 @@ private struct ChooseFoldersStep: View {
         .background(CardBackground())
       Button("Continue", action: next)
         .buttonStyle(.borderedProminent)
+        .tint(Brand.fill)
         .controlSize(.large)
         .disabled(!selection.canContinue)
         .keyboardShortcut(.defaultAction)
@@ -462,6 +465,7 @@ private struct ReadyStep: View {
       HStack(spacing: 12) {
         Button("Back Up Now") { requestFinish(backUpNow: true) }
           .buttonStyle(.borderedProminent)
+          .tint(Brand.fill)
           .keyboardShortcut(.defaultAction)
         Button("Not Now") { requestFinish(backUpNow: false) }
           .buttonStyle(.bordered)

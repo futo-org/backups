@@ -9,6 +9,12 @@ enum Brand {
         ? NSColor(srgbRed: 0.49, green: 0.58, blue: 0.94, alpha: 1)
         : NSColor(srgbRed: 0.259, green: 0.349, blue: 0.722, alpha: 1)
     })
+  static let fill = Color(
+    nsColor: NSColor(name: nil) { appearance in
+      appearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua
+        ? NSColor(srgbRed: 0.36, green: 0.40, blue: 0.84, alpha: 1)
+        : NSColor(srgbRed: 0.259, green: 0.349, blue: 0.722, alpha: 1)
+    })
   static let logo = Color(red: 0.259, green: 0.349, blue: 0.722)
   static let gradient = LinearGradient(
     colors: [Color(red: 0.34, green: 0.44, blue: 0.84), Color(red: 0.23, green: 0.31, blue: 0.65)],

@@ -40,6 +40,7 @@ struct TelemetryConsentView: View {
         HStack(spacing: 12) {
           Button("Continue") { model.grantTelemetryConsent() }
             .buttonStyle(.borderedProminent)
+            .tint(Brand.fill)
             .keyboardShortcut(.defaultAction)
           Button("Quit") { NSApp.terminate(nil) }
             .buttonStyle(.bordered)

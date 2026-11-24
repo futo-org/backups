@@ -215,6 +215,7 @@ struct StatusHero: View {
               Label("Back Up Now", systemImage: "arrow.up.circle.fill")
             }
             .buttonStyle(.borderedProminent)
+            .tint(Brand.fill)
           case .addFolders:
             Button {
               showFolders()
@@ -222,6 +223,7 @@ struct StatusHero: View {
               Label("Add Folders", systemImage: "plus")
             }
             .buttonStyle(.borderedProminent)
+            .tint(Brand.fill)
           case .cancel:
             Button("Cancel") { model.cancelBackup() }
               .buttonStyle(.bordered)
@@ -232,7 +234,7 @@ struct StatusHero: View {
             BackupWarningsButton(warnings: warnings)
           }
         }
-        .controlSize(.large)
+        .controlSize(.extraLarge)
         .padding(.top, 10)
       }
       Spacer(minLength: 0)

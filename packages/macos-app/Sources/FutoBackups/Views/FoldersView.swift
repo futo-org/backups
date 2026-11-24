@@ -188,6 +188,7 @@ struct FoldersView: View {
         Button("Cancel") { showPatternEditor = false }
         Button("Add", action: addPattern)
           .buttonStyle(.borderedProminent)
+          .tint(Brand.fill)
       }
     }
     .padding(18)

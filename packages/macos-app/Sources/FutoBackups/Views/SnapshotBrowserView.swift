@@ -107,6 +107,7 @@ struct SnapshotBrowserView: View {
         restore(browser.selection.entries)
       }
       .buttonStyle(.borderedProminent)
+      .tint(Brand.fill)
       .keyboardShortcut(.defaultAction)
       .disabled(browser.selection.isEmpty || !canRestore)
       .help(canRestore ? "" : "Wait for the current backup or restore to finish")

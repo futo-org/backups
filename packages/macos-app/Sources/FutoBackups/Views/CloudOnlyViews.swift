@@ -126,6 +126,7 @@ struct CloudOnlyFilesSheet: View {
         Spacer()
         Button("Done") { dismiss() }
           .buttonStyle(.borderedProminent)
+          .tint(Brand.fill)
           .keyboardShortcut(.defaultAction)
       }
     }
