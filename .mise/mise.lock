@@ -295,29 +295,33 @@ url = "https://github.com/pnpm/pnpm/releases/download/v10.28.1/pnpm-macos-x64"
 url_api = "https://api.github.com/repos/pnpm/pnpm/releases/assets/342724195"
 
 [[tools.tilt]]
-version = "0.37.8"
+version = "0.37.9"
 backend = "aqua:tilt-dev/tilt"
-specifiers = ["0.37.8"]
+specifiers = ["0.37.9"]
 
 [tools.tilt."platforms.linux-arm64"]
-checksum = "sha256:7a21281e830930be158202b7f8405ba62445613788b4d9708512ffe51f5cce90"
-url = "https://github.com/tilt-dev/tilt/releases/download/v0.37.8/tilt.0.37.8.linux.arm64.tar.gz"
-url_api = "https://api.github.com/repos/tilt-dev/tilt/releases/assets/602230460"
+checksum = "sha256:fb180544da945f346757eb64e12f23f5105a6b0ed67846845057861c99cb8d23"
+checksum_source = "mise-versions"
+url = "https://github.com/tilt-dev/tilt/releases/download/v0.37.9/tilt.0.37.9.linux.arm64.tar.gz"
+url_api = "https://api.github.com/repos/tilt-dev/tilt/releases/assets/745905356"
 
 [tools.tilt."platforms.linux-x64"]
-checksum = "sha256:e39513f958705d30524d55f68b1d46fbef2b46a0da568efd00e6383dee6be44f"
-url = "https://github.com/tilt-dev/tilt/releases/download/v0.37.8/tilt.0.37.8.linux.x86_64.tar.gz"
-url_api = "https://api.github.com/repos/tilt-dev/tilt/releases/assets/602230514"
+checksum = "sha256:e70bb856b8e1cddb249b1e4231c1b1edca1f78167415effbdc9a1e893b6b9a19"
+checksum_source = "mise-versions"
+url = "https://github.com/tilt-dev/tilt/releases/download/v0.37.9/tilt.0.37.9.linux.x86_64.tar.gz"
+url_api = "https://api.github.com/repos/tilt-dev/tilt/releases/assets/745905350"
 
 [tools.tilt."platforms.macos-arm64"]
-checksum = "sha256:2d396b13c479f74deb19cb2161a3f0858f6e03f26f15f8d3b3be982d09ff4484"
-url = "https://github.com/tilt-dev/tilt/releases/download/v0.37.8/tilt.0.37.8.mac.arm64.tar.gz"
-url_api = "https://api.github.com/repos/tilt-dev/tilt/releases/assets/602230463"
+checksum = "sha256:b3a3ad44f6c2d92abb49191a2e0dfa16dd1d84a367c97d83074e46af347a0426"
+checksum_source = "mise-versions"
+url = "https://github.com/tilt-dev/tilt/releases/download/v0.37.9/tilt.0.37.9.mac.arm64.tar.gz"
+url_api = "https://api.github.com/repos/tilt-dev/tilt/releases/assets/745905426"
 
 [tools.tilt."platforms.macos-x64"]
-checksum = "sha256:0d03359e43f7faea07a6ed0e7423bb56176d1959462fa155329e9acabf90e6fa"
-url = "https://github.com/tilt-dev/tilt/releases/download/v0.37.8/tilt.0.37.8.mac.x86_64.tar.gz"
-url_api = "https://api.github.com/repos/tilt-dev/tilt/releases/assets/602230462"
+checksum = "sha256:e8d6a3bddf0118fa1d46e1090608762d07b33cb0dab8578b17bf001979172ced"
+checksum_source = "mise-versions"
+url = "https://github.com/tilt-dev/tilt/releases/download/v0.37.9/tilt.0.37.9.mac.x86_64.tar.gz"
+url_api = "https://api.github.com/repos/tilt-dev/tilt/releases/assets/745905439"
 
 [[tools.uv]]
 version = "0.12.21"
