@@ -28,30 +28,30 @@ private final class LoadRecorder: @unchecked Sendable {
   }
 }
 
-@Test func eachDirectoryIsListedOnceAndThenServedFromTheCache() async throws {
+@MainActor @Test func eachDirectoryIsListedOnceAndThenServedFromTheCache() async throws {
   let recorder = LoadRecorder()
   let cache = SnapshotDirectoryCache { try recorder.load($0) }
-  #expect(await cache.cached("/a") == nil)
+  #expect(cache.cached("/a") == nil)
   let first = try await cache.entries(in: "/a")
   let again = try await cache.entries(in: "/a")
   _ = try await cache.entries(in: "/b")
   #expect(first == again)
-  #expect(await cache.cached("/a") == first)
+  #expect(cache.cached("/a") == first)
   #expect(recorder.loads == ["/a", "/b"])
 }
 
-@Test func failedListingsAreRetried() async throws {
+@MainActor @Test func failedListingsAreRetried() async throws {
   let recorder = LoadRecorder(failures: 1)
   let cache = SnapshotDirectoryCache { try recorder.load($0) }
   await #expect(throws: POSIXError(.EIO)) {
     _ = try await cache.entries(in: "/a")
   }
-  #expect(await cache.cached("/a") == nil)
+  #expect(cache.cached("/a") == nil)
   #expect(try await cache.entries(in: "/a").map(\.name) == ["child"])
   #expect(recorder.loads == ["/a", "/a"])
 }
 
-@Test func concurrentRequestsShareOneListing() async throws {
+@MainActor @Test func concurrentRequestsShareOneListing() async throws {
   let recorder = LoadRecorder()
   let gate = AsyncStream<Void>.makeStream()
   let cache = SnapshotDirectoryCache { path in
@@ -66,16 +66,16 @@ private final class LoadRecorder: @unchecked Sendable {
   #expect(recorder.loads == ["/a"])
 }
 
-@Test func cancelAllStopsPendingListings() async throws {
+@MainActor @Test func cancelAllStopsPendingListings() async throws {
   let cache = SnapshotDirectoryCache { _ in
     try await Task.sleep(for: .seconds(30))
     return []
   }
   let request = Task { try await cache.entries(in: "/a") }
   try await Task.sleep(for: .milliseconds(20))
-  await cache.cancelAll()
+  cache.cancelAll()
   await #expect(throws: CancellationError.self) {
     _ = try await request.value
   }
-  #expect(await cache.cached("/a") == nil)
+  #expect(cache.cached("/a") == nil)
 }

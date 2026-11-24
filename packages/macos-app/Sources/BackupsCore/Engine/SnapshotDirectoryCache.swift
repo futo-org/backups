@@ -1,6 +1,7 @@
 import Foundation
 
-public actor SnapshotDirectoryCache {
+@MainActor
+public final class SnapshotDirectoryCache {
   private let load: @Sendable (String) async throws -> [SnapshotEntry]
   private var loaded: [String: [SnapshotEntry]] = [:]
   private var pending: [String: Task<[SnapshotEntry], any Error>] = [:]
