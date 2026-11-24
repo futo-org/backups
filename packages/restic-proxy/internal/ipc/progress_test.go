@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"os"
+	"slices"
 	"sync"
 	"sync/atomic"
 	"testing"
@@ -106,9 +107,9 @@ func TestReportProgress_CoalescesWhileTheParentStopsReading(t *testing.T) {
 	close(parent.release)
 	for {
 		written := parent.written()
-		if len(written) > 0 && written[len(written)-1].UploadedBytes == 100_000 {
-			if len(written) > 3 {
-				t.Errorf("expected the stalled ticks to be coalesced, got %d writes", len(written))
+		if latest := slices.IndexFunc(written, func(p Progress) bool { return p.UploadedBytes == 100_000 }); latest >= 0 {
+			if latest > 2 {
+				t.Errorf("expected the stalled ticks to be coalesced, got %d writes before the latest total", latest)
 			}
 			break
 		}
