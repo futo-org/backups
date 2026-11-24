@@ -22,7 +22,7 @@ struct StatusSummary {
   @MainActor
   init(model: AppModel) {
     switch model.activity {
-    case .backingUp(let progress):
+    case .backingUp(let progress, _):
       var parts = ["\(Format.bytes(progress.bytesDone)) of \(Format.bytes(progress.totalBytes))"]
       if let seconds = progress.secondsRemaining { parts.append(Format.duration(seconds)) }
       self.init(

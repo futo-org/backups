@@ -1,4 +1,5 @@
 import BackupsCore
+import Foundation
 import Testing
 
 @Test(
@@ -71,4 +72,26 @@ func quietHoursRejectsEqualEnds() {
 @Test("quiet hours parsing rejects malformed text", arguments: ["", "22:00", "22:00-", "22:00-25:00", "x-y"])
 func quietHoursRejectsMalformed(text: String) {
   #expect(QuietHours(parsing: text) == nil)
+}
+
+@Test(
+  "the active upload limit follows the proxy's quiet hours",
+  arguments: [
+    (Throttle(bytesPerSec: 0, quietHours: ""), 12, 0, Int?.none),
+    (Throttle(bytesPerSec: 2048, quietHours: ""), 12, 0, Int?.some(2048)),
+    (Throttle(bytesPerSec: 2048, quietHours: "09:00-17:00"), 12, 0, nil),
+    (Throttle(bytesPerSec: 2048, quietHours: "09:00-17:00"), 17, 0, 2048),
+    (Throttle(bytesPerSec: 2048, quietHours: "09:00-17:00"), 8, 59, 2048),
+    (Throttle(bytesPerSec: 2048, quietHours: "22:00-06:00"), 23, 30, nil),
+    (Throttle(bytesPerSec: 2048, quietHours: "22:00-06:00"), 5, 59, nil),
+    (Throttle(bytesPerSec: 2048, quietHours: "22:00-06:00"), 6, 0, 2048),
+    (Throttle(bytesPerSec: 2048, quietHours: "00:00-00:00"), 12, 0, nil),
+    (Throttle(bytesPerSec: 2048, quietHours: "garbage"), 12, 0, 2048),
+  ])
+func throttleActiveLimit(throttle: Throttle, hour: Int, minute: Int, expected: Int?) throws {
+  var calendar = Calendar(identifier: .gregorian)
+  calendar.timeZone = try #require(TimeZone(identifier: "UTC"))
+  let date = try #require(
+    calendar.date(from: DateComponents(year: 2026, month: 11, day: 24, hour: hour, minute: minute)))
+  #expect(throttle.activeLimit(at: date, calendar: calendar) == expected)
 }

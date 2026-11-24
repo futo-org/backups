@@ -117,6 +117,7 @@ enum APIError: Error { case submit }
 
 struct ResticScript {
   var lines: [String] = []
+  var afterLines: (@Sendable () async -> Void)?
   var exitCode: Int32 = 0
   var stdout = ""
   var stderr = ""
@@ -204,6 +205,7 @@ final class FakeRestic: ResticExecuting, @unchecked Sendable {
     for line in script.lines {
       onLine(line)
     }
+    await script.afterLines?()
     if let error = script.error {
       throw error
     }
@@ -224,6 +226,10 @@ final class FakeProxyHandle: ResticProxyHandle, @unchecked Sendable {
     self.launcher = launcher
   }
 
+  var uploadedBytes: Int64 {
+    launcher.uploadedBytes
+  }
+
   func setThrottle(_ throttle: Throttle) throws {}
 
   func stop() async {
@@ -237,6 +243,12 @@ final class FakeProxyLauncher: ResticProxyLaunching, @unchecked Sendable {
   private var stops = 0
   private var failure: (any Error)?
   private var onStartHook: (@Sendable () -> Void)?
+  private var uploaded: Int64 = 0
+
+  var uploadedBytes: Int64 {
+    get { lock.withLock { uploaded } }
+    set { lock.withLock { uploaded = newValue } }
+  }
 
   func setStartFailure(_ error: any Error) {
     lock.withLock { failure = error }
@@ -563,6 +575,20 @@ final class FixedClock: @unchecked Sendable {
   }
 }
 
+final class FakeUploadTicks: @unchecked Sendable {
+  let stream: AsyncStream<ContinuousClock.Instant>
+  private let continuation: AsyncStream<ContinuousClock.Instant>.Continuation
+  let base = ContinuousClock.now
+
+  init() {
+    (stream, continuation) = AsyncStream<ContinuousClock.Instant>.makeStream()
+  }
+
+  func tick(atSecond second: Double) {
+    continuation.yield(base + .milliseconds(Int(second * 1000)))
+  }
+}
+
 final class ActivityLog: @unchecked Sendable {
   private let lock = NSLock()
   private var stored: [EngineActivity] = []
@@ -573,6 +599,13 @@ final class ActivityLog: @unchecked Sendable {
 
   var all: [EngineActivity] {
     lock.withLock { stored }
+  }
+
+  func waitForCount(_ count: Int, timeout: Duration = .seconds(5)) async {
+    let deadline = ContinuousClock.now + timeout
+    while all.count < count, ContinuousClock.now < deadline {
+      try? await Task.sleep(for: .milliseconds(5))
+    }
   }
 }
 
@@ -609,7 +642,8 @@ func makeFixture(
   diskSnapshots: FakeDiskSnapshots = FakeDiskSnapshots(), snapshotDirectory: URL? = nil,
   clock: FixedClock = FixedClock(),
   dataVolumePath: @escaping @Sendable (String) -> String? = { _ in nil },
-  cloudOnlyScanner: any CloudOnlyScanning = NoCloudOnlyScan()
+  cloudOnlyScanner: any CloudOnlyScanning = NoCloudOnlyScan(),
+  uploadTicks: @escaping @Sendable () -> AsyncStream<ContinuousClock.Instant> = { AsyncStream { $0.finish() } }
 ) -> EngineFixture {
   let api = FakeAPI()
   let restic = FakeRestic()
@@ -645,7 +679,8 @@ func makeFixture(
     snapshotDirectory: snapshotDirectory,
     dataVolumePath: dataVolumePath,
     createRestoreDirectory: { restoreDirectories.create($0) },
-    cloudOnlyScanner: cloudOnlyScanner)
+    cloudOnlyScanner: cloudOnlyScanner,
+    uploadTicks: uploadTicks)
   return EngineFixture(
     environment: environment, api: api, restic: restic, proxy: proxy, secrets: secrets,
     discoverCount: discoverCount, diskSnapshots: diskSnapshots, restoreDirectories: restoreDirectories)

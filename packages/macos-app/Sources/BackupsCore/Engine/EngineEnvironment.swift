@@ -19,6 +19,7 @@ public struct EngineEnvironment: Sendable {
   public var createRestoreDirectory: @Sendable (URL) throws -> Bool
   public var temporaryDirectory: URL
   public var cloudOnlyScanner: any CloudOnlyScanning
+  public var uploadTicks: @Sendable () -> AsyncStream<ContinuousClock.Instant>
 
   public init(
     secrets: any SecretStore,
@@ -38,7 +39,10 @@ public struct EngineEnvironment: Sendable {
     dataVolumePath: @escaping @Sendable (String) -> String? = { _ in nil },
     createRestoreDirectory: @escaping @Sendable (URL) throws -> Bool = RestorePlan.createDirectoryExclusively,
     temporaryDirectory: URL = FileManager.default.temporaryDirectory,
-    cloudOnlyScanner: any CloudOnlyScanning = NoCloudOnlyScan()
+    cloudOnlyScanner: any CloudOnlyScanning = NoCloudOnlyScan(),
+    uploadTicks: @escaping @Sendable () -> AsyncStream<ContinuousClock.Instant> = {
+      UploadSpeedMeter.ticks(every: .seconds(1))
+    }
   ) {
     self.secrets = secrets
     self.discover = discover
@@ -58,6 +62,7 @@ public struct EngineEnvironment: Sendable {
     self.createRestoreDirectory = createRestoreDirectory
     self.temporaryDirectory = temporaryDirectory
     self.cloudOnlyScanner = cloudOnlyScanner
+    self.uploadTicks = uploadTicks
   }
 }
 
@@ -72,7 +77,7 @@ public enum EngineError: Error, Equatable, Sendable {
 
 public enum EngineActivity: Equatable, Sendable {
   case preparing
-  case backingUp(BackupProgress)
+  case backingUp(BackupProgress, UploadSpeed)
   case pruning
   case restoring
   case changingRecoveryKey

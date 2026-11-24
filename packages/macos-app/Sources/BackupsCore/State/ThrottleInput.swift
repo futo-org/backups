@@ -78,3 +78,25 @@ public struct QuietHours: Equatable, Sendable {
 
   public var text: String { "\(start.text)-\(end.text)" }
 }
+
+extension Throttle {
+  public func activeLimit(at date: Date, calendar: Calendar = .current) -> Int? {
+    guard bytesPerSec > 0 else { return nil }
+    let parts = quietHours.split(separator: "-", maxSplits: 1)
+    guard parts.count == 2, let start = ClockTime(parsing: parts[0]), let end = ClockTime(parsing: parts[1])
+    else { return bytesPerSec }
+    let components = calendar.dateComponents([.hour, .minute], from: date)
+    let minute = (components.hour ?? 0) * 60 + (components.minute ?? 0)
+    let from = start.hour * 60 + start.minute
+    let until = end.hour * 60 + end.minute
+    let quiet: Bool
+    if from == until {
+      quiet = true
+    } else if from < until {
+      quiet = minute >= from && minute < until
+    } else {
+      quiet = minute >= from || minute < until
+    }
+    return quiet ? nil : bytesPerSec
+  }
+}

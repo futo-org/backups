@@ -297,18 +297,11 @@ public actor BackupEngine {
         let output = BackupOutput()
         let result: ResticResult
         do {
-          result = try await environment.restic.run(
+          result = try await runBackupCommand(
             ResticCommand.backup(
               session.context, paths: backupPaths, excludes: backupExcludes, host: config.host,
               currentDirectory: backupCurrentDirectory, tags: backupTags),
-            onLine: { line in
-              let message = ResticOutput.parseLine(line)
-              if case .status(let progress) = message {
-                onActivity(.backingUp(progress))
-              } else {
-                output.record(message)
-              }
-            })
+            proxy: session.proxy, throttle: config.throttle, output: output, onActivity: onActivity)
         } catch {
           await runSnapshotCleanup()
           snapshotLock?.release()
@@ -458,6 +451,40 @@ public actor BackupEngine {
       startedAt: startedAt, finishedAt: finishedAt, status: status, snapshotId: summary?.snapshotId,
       filesNew: summary?.filesNew, dataAdded: summary?.dataAdded, message: message,
       cloudOnlySkipped: cloudOnlySkipped.flatMap { $0.count > 0 ? $0 : nil })
+  }
+
+  private func runBackupCommand(
+    _ invocation: ResticInvocation, proxy: any ResticProxyHandle, throttle: Throttle, output: BackupOutput,
+    onActivity: @escaping @Sendable (EngineActivity) -> Void
+  ) async throws -> ResticResult {
+    let tracker = BackingUpActivity(throttle: throttle)
+    let ticks = environment.uploadTicks()
+    let sampler = Task.detached {
+      for await instant in ticks {
+        if let activity = tracker.sampled(proxy.uploadedBytes, at: instant) {
+          onActivity(activity)
+        }
+      }
+    }
+    do {
+      let result = try await environment.restic.run(
+        invocation,
+        onLine: { line in
+          let message = ResticOutput.parseLine(line)
+          if case .status(let progress) = message {
+            onActivity(tracker.progressed(progress))
+          } else {
+            output.record(message)
+          }
+        })
+      sampler.cancel()
+      await sampler.value
+      return result
+    } catch {
+      sampler.cancel()
+      await sampler.value
+      throw error
+    }
   }
 
   private func readJournal(_ url: URL) throws -> [DiskSnapshot] {
@@ -841,6 +868,30 @@ public actor BackupEngine {
     } catch {
       await proxy.stop()
       throw error
+    }
+  }
+}
+
+final class BackingUpActivity: @unchecked Sendable {
+  private let lock = NSLock()
+  private var meter: UploadSpeedMeter
+  private var progress: BackupProgress?
+
+  init(throttle: Throttle) {
+    meter = UploadSpeedMeter(throttle: throttle)
+  }
+
+  func progressed(_ progress: BackupProgress) -> EngineActivity {
+    lock.withLock {
+      self.progress = progress
+      return .backingUp(progress, meter.speed)
+    }
+  }
+
+  func sampled(_ uploadedBytes: Int64, at instant: ContinuousClock.Instant) -> EngineActivity? {
+    lock.withLock {
+      let speed = meter.record(uploadedBytes, at: instant)
+      return progress.map { .backingUp($0, speed) }
     }
   }
 }

@@ -88,7 +88,7 @@ private struct Control: Decodable {
   let outFile = directory.appendingPathComponent("env-out")
   let dump =
     "{ echo \"API=$RESTIC_PROXY_API_URL\"; echo \"HOST=$RESTIC_PROXY_HOST\"; echo \"PORT=$RESTIC_PROXY_PORT\"; "
-    + "echo \"READY=$RESTIC_PROXY_READY_FD\"; echo \"BYTES=$RESTIC_PROXY_THROTTLE_BYTES_PER_SEC\"; "
+    + "echo \"READY=$RESTIC_PROXY_READY_FD\"; echo \"PROGRESS=$RESTIC_PROXY_PROGRESS_INTERVAL_MS\"; echo \"BYTES=$RESTIC_PROXY_THROTTLE_BYTES_PER_SEC\"; "
     + "echo \"QUIET=$RESTIC_PROXY_THROTTLE_QUIET_HOURS\"; echo \"LOGFMT=$LOG_FORMAT\"; echo \"LOGLEVEL=$LOG_LEVEL\"; } > '"
     + outFile.path + "'"
   let script = try makeScript(
@@ -107,6 +107,7 @@ private struct Control: Decodable {
       "HOST=127.0.0.1",
       "PORT=0",
       "READY=3",
+      "PROGRESS=500",
       "BYTES=4242",
       "QUIET=22:00-06:00",
       "LOGFMT=json",
@@ -140,6 +141,52 @@ private struct Control: Decodable {
   }
   #expect(thrown != nil)
   await handle.stop()
+}
+
+@Test func progressLinesAfterReadyUpdateUploadedBytesAndThrottleStillWrites() async throws {
+  let directory = try makeTempDirectory()
+  defer { try? FileManager.default.removeItem(at: directory) }
+  let outFile = directory.appendingPathComponent("control-out")
+  let script = try makeScript(
+    #"printf '{"address":"127.0.0.1:5555","port":5555}\n' >&3"# + "\n"
+      + #"printf '{"type":"progress","uploadedBytes":1024}\n{"type":"future"}\nnot json\n' >&3"# + "\n"
+      + #"printf '{"type":"progress","uploadedBytes":16777216}\n' >&3"# + "\n"
+      + "cat <&3 > '" + outFile.path + "' &\n",
+    in: directory)
+  let launcher = ResticProxyLauncher(executable: script, readyTimeout: .seconds(10))
+  let handle = try await launcher.start(
+    apiRoot: URL(string: "http://127.0.0.1:9/api")!,
+    throttle: .unthrottled)
+  #expect(handle.address == "127.0.0.1:5555")
+  let deadline = ContinuousClock.now.advanced(by: .seconds(5))
+  while handle.uploadedBytes != 16_777_216, ContinuousClock.now < deadline {
+    try await Task.sleep(for: .milliseconds(10))
+  }
+  #expect(handle.uploadedBytes == 16_777_216)
+  try handle.setThrottle(Throttle(bytesPerSec: 2048, quietHours: ""))
+  await handle.stop()
+  let lines = try await waitForFileLines(outFile)
+  #expect(lines.count == 1)
+  let control = try JSONDecoder().decode(Control.self, from: Data(String(lines[0]).utf8))
+  #expect(control.throttle.bytesPerSec == 2048)
+}
+
+@Test func proxyMessagesYieldTheLatestProgressAcrossChunks() {
+  var messages = ResticProxyMessages()
+  #expect(messages.latestUploadedBytes(after: Array(#"{"type":"progress","upl"#.utf8)) == nil)
+  let middle = #"oadedBytes":10}"# + "\n" + #"{"type":"progress","uploadedBytes":20}"# + "\n" + #"{"type":"pro"#
+  #expect(messages.latestUploadedBytes(after: Array(middle.utf8)) == 20)
+  #expect(messages.latestUploadedBytes(after: Array((#"gress","uploadedBytes":30}"# + "\n").utf8)) == 30)
+}
+
+@Test func proxyMessagesSkipUnknownMalformedAndOversizedLines() {
+  var messages = ResticProxyMessages()
+  let skipped = #"{"type":"throttle","throttle":{"bytesPerSec":1}}"# + "\ngarbage\n" + #"{"type":"progress"}"# + "\n"
+  #expect(messages.latestUploadedBytes(after: Array(skipped.utf8)) == nil)
+  let oversized = Array(repeating: UInt8(ascii: "x"), count: ResticProxyMessages.maxLineLength + 10) + [0x0A]
+  #expect(messages.latestUploadedBytes(after: oversized) == nil)
+  let next = #"{"type":"progress","uploadedBytes":7}"# + "\n"
+  #expect(messages.latestUploadedBytes(after: Array(next.utf8)) == 7)
 }
 
 @Test(

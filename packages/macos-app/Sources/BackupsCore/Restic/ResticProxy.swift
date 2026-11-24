@@ -3,6 +3,7 @@ import Foundation
 
 public protocol ResticProxyHandle: Sendable {
   var address: String { get }
+  var uploadedBytes: Int64 { get }
   func setThrottle(_ throttle: Throttle) throws
   func stop() async
 }
@@ -19,10 +20,14 @@ public enum ResticProxyError: Error, Equatable, Sendable {
 public struct ResticProxyLauncher: ResticProxyLaunching {
   private let executable: URL
   private let readyTimeout: Duration
+  private let progressInterval: Duration
 
-  public init(executable: URL, readyTimeout: Duration = .seconds(10)) {
+  public init(
+    executable: URL, readyTimeout: Duration = .seconds(10), progressInterval: Duration = .milliseconds(500)
+  ) {
     self.executable = executable
     self.readyTimeout = readyTimeout
+    self.progressInterval = progressInterval
   }
 
   public func start(apiRoot: URL, throttle: Throttle) async throws -> any ResticProxyHandle {
@@ -54,6 +59,7 @@ public struct ResticProxyLauncher: ResticProxyLaunching {
       "RESTIC_PROXY_HOST=127.0.0.1",
       "RESTIC_PROXY_PORT=0",
       "RESTIC_PROXY_READY_FD=3",
+      "RESTIC_PROXY_PROGRESS_INTERVAL_MS=\(Int(progressInterval / .milliseconds(1)))",
       "RESTIC_PROXY_THROTTLE_BYTES_PER_SEC=\(throttle.bytesPerSec)",
       "RESTIC_PROXY_THROTTLE_QUIET_HOURS=\(throttle.quietHours)",
       "LOG_FORMAT=json",
@@ -101,7 +107,9 @@ public struct ResticProxyLauncher: ResticProxyLaunching {
       }
       address = decoded.address
     }
-    return ProxyHandle(pid: pid, descriptor: parentDescriptor, address: address)
+    let handle = ProxyHandle(pid: pid, descriptor: parentDescriptor, address: address)
+    handle.startReadingProgress()
+    return handle
   }
 
   private func apiURL(_ apiRoot: URL) -> String {
@@ -172,12 +180,42 @@ final class ProxyHandle: ResticProxyHandle, @unchecked Sendable {
   private let processIdentifier: pid_t
   private var descriptor: Int32?
   private var reapTask: Task<Void, Never>?
+  private let uploaded = UploadedBytes()
   let address: String
 
   init(pid: pid_t, descriptor: Int32, address: String) {
     self.processIdentifier = pid
     self.descriptor = descriptor
     self.address = address
+  }
+
+  var uploadedBytes: Int64 {
+    uploaded.value
+  }
+
+  func startReadingProgress() {
+    guard let source = lock.withLock({ descriptor }) else { return }
+    let reader = dup(source)
+    guard reader >= 0 else { return }
+    let uploaded = self.uploaded
+    let thread = Thread {
+      Self.readProgress(descriptor: reader, into: uploaded)
+    }
+    thread.start()
+  }
+
+  private static func readProgress(descriptor: Int32, into uploaded: UploadedBytes) {
+    defer { close(descriptor) }
+    var lines = ResticProxyMessages()
+    var buffer = [UInt8](repeating: 0, count: 4096)
+    while true {
+      let count = read(descriptor, &buffer, buffer.count)
+      if count < 0, errno == EINTR { continue }
+      guard count > 0 else { return }
+      if let total = lines.latestUploadedBytes(after: buffer[0..<count]) {
+        uploaded.set(total)
+      }
+    }
   }
 
   func setThrottle(_ throttle: Throttle) throws {
@@ -210,6 +248,7 @@ final class ProxyHandle: ResticProxyHandle, @unchecked Sendable {
       return
     }
     _ = kill(processIdentifier, SIGTERM)
+    _ = shutdown(descriptor, SHUT_RDWR)
     close(descriptor)
     let identifier = processIdentifier
     let task = Task { await reapProcess(identifier) }
@@ -279,6 +318,56 @@ private func withCStringArray<Result>(
   }
   return try pointers.withUnsafeMutableBufferPointer { buffer in
     try body(buffer.baseAddress!)
+  }
+}
+
+final class UploadedBytes: @unchecked Sendable {
+  private let lock = NSLock()
+  private var stored: Int64 = 0
+
+  var value: Int64 {
+    lock.withLock { stored }
+  }
+
+  func set(_ value: Int64) {
+    lock.withLock { stored = value }
+  }
+}
+
+struct ResticProxyMessages {
+  static let maxLineLength = 64 * 1024
+
+  private struct Message: Decodable {
+    var type: String
+    var uploadedBytes: Int64?
+  }
+
+  private var pending: [UInt8] = []
+  private var discarding = false
+
+  mutating func latestUploadedBytes(after bytes: some Collection<UInt8>) -> Int64? {
+    var latest: Int64?
+    for byte in bytes {
+      if byte == 0x0A {
+        if !discarding, let total = Self.uploadedBytes(in: pending) {
+          latest = total
+        }
+        pending.removeAll(keepingCapacity: true)
+        discarding = false
+      } else if pending.count >= Self.maxLineLength {
+        pending.removeAll(keepingCapacity: true)
+        discarding = true
+      } else if !discarding {
+        pending.append(byte)
+      }
+    }
+    return latest
+  }
+
+  private static func uploadedBytes(in line: [UInt8]) -> Int64? {
+    guard let message = try? JSONDecoder().decode(Message.self, from: Data(line)), message.type == "progress"
+    else { return nil }
+    return message.uploadedBytes
   }
 }
 

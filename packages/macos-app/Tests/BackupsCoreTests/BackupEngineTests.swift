@@ -131,9 +131,11 @@ private let backupLines = [statusLineOne, statusLineTwo, summaryLine]
     log.all
       == [
         .preparing,
-        .backingUp(BackupProgress(percentDone: 50, totalFiles: 10, filesDone: 5, totalBytes: 100, bytesDone: 50)),
         .backingUp(
-          BackupProgress(percentDone: 100, totalFiles: 10, filesDone: 10, totalBytes: 100, bytesDone: 100)),
+          BackupProgress(percentDone: 50, totalFiles: 10, filesDone: 5, totalBytes: 100, bytesDone: 50), UploadSpeed()),
+        .backingUp(
+          BackupProgress(percentDone: 100, totalFiles: 10, filesDone: 10, totalBytes: 100, bytesDone: 100),
+          UploadSpeed()),
         .pruning,
       ])
   var calls = await fixture.deliveredCalls(engine)
@@ -155,6 +157,48 @@ private let backupLines = [statusLineOne, statusLineTwo, summaryLine]
   #expect(fixture.discoverCount.value == 1)
   calls = await fixture.deliveredCalls(engine)
   #expect(calls.count == 6)
+}
+
+@Test func backupCarriesTheProxyUploadSpeedUntilTheBackupCommandEnds() async throws {
+  let ticks = FakeUploadTicks()
+  let fixture = makeFixture(uploadTicks: { ticks.stream })
+  let log = ActivityLog()
+  let proxy = fixture.proxy
+  fixture.restic.set(
+    ResticScript(
+      lines: [statusLineOne],
+      afterLines: {
+        ticks.tick(atSecond: 0)
+        await log.waitForCount(3)
+        proxy.uploadedBytes = 5_000_000
+        ticks.tick(atSecond: 1)
+        await log.waitForCount(4)
+      }),
+    for: "backup")
+  fixture.restic.set(ResticScript(stdout: statsStdout), for: "stats")
+  let engine = BackupEngine(environment: fixture.environment)
+  var config = testConfig()
+  config.throttle = Throttle(bytesPerSec: 2048, quietHours: "")
+  _ = try await engine.backup(config: config) { log.record($0) }
+  let activities = log.all
+  try #require(activities.count == 5)
+  #expect(activities.first == .preparing)
+  #expect(activities.last == .pruning)
+  guard case .backingUp(_, let beforeSampling) = activities[1],
+    case .backingUp(_, let baseline) = activities[2],
+    case .backingUp(let progress, let uploading) = activities[3]
+  else {
+    Issue.record("expected three backing up activities, got \(activities)")
+    return
+  }
+  #expect(beforeSampling == UploadSpeed(throttle: config.throttle))
+  #expect(baseline.history.count == 1)
+  #expect(!baseline.hasStarted)
+  #expect(progress.bytesDone == 50)
+  #expect(uploading.uploadedBytes == 5_000_000)
+  #expect(uploading.bytesPerSecond == 5_000_000)
+  #expect(uploading.throttle == config.throttle)
+  #expect(uploading.history.count == 2)
 }
 
 @Test func backupUsesProcessorCountAndNoWalkConcurrencyForPlainRestic() async throws {
