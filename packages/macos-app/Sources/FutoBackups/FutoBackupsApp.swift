@@ -44,6 +44,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
   func applicationWillFinishLaunching(_ notification: Notification) {
     launchedAsLoginItem = MenuBarResidency.launchedAsLoginItem()
+    if launchedAsLoginItem {
+      NSApplication.shared.setActivationPolicy(.accessory)
+    }
   }
 
   func applicationDidFinishLaunching(_ notification: Notification) {
