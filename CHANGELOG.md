@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.20.0](https://github.com/futo-org/backups/compare/v1.19.0...v1.20.0) (2026-11-24)
+
+
+### Features
+
+* **macos-app:** native macOS backup app ([#296](https://github.com/futo-org/backups/issues/296)) ([185aea4](https://github.com/futo-org/backups/commit/185aea4c4dc3a93742e53742abcaa2c708f8bb8e))
+
 ## [1.19.0](https://github.com/futo-org/backups/compare/v1.18.1...v1.19.0) (2026-11-24)
 
 
