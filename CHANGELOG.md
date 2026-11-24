@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.19.0](https://github.com/futo-org/backups/compare/v1.18.1...v1.19.0) (2026-11-24)
+
+
+### Features
+
+* **common:** add macos connection type ([#300](https://github.com/futo-org/backups/issues/300)) ([4eaed0e](https://github.com/futo-org/backups/commit/4eaed0eac87ae8261c502b3c49fd798e5f328aca))
+
+
+### Bug Fixes
+
+* **docs:** clarify that beta telemetry stops when backups are turned off ([#294](https://github.com/futo-org/backups/issues/294)) ([9071557](https://github.com/futo-org/backups/commit/90715579b887a7fc22554b31137e27edd0b185a7))
+
 ## [1.18.1](https://github.com/futo-org/backups/compare/v1.18.0...v1.18.1) (2026-11-17)
 
 
