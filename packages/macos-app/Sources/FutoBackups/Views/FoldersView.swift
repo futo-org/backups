@@ -8,6 +8,7 @@ struct FoldersView: View {
   @State private var showPatternEditor = false
   @State private var patternDraft = ""
   @State private var patternError: String?
+  @State private var showBuiltInExclusions = false
 
   var body: some View {
     ScrollView {
@@ -67,14 +68,16 @@ struct FoldersView: View {
   }
 
   private var skipped: some View {
-    Card {
+    let custom = model.config.excludes.filter { !model.isDefaultExclusion($0) }
+    let builtIn = model.config.excludes.filter { model.isDefaultExclusion($0) }
+    return Card {
       VStack(alignment: .leading, spacing: 12) {
         HStack(spacing: 12) {
           IconTile(systemName: "eye.slash.fill", tint: .gray)
           VStack(alignment: .leading, spacing: 2) {
             Text("Excluded")
               .font(.headline)
-            Text("Caches, the Trash and cloud-synced folders are left out. Add your own folders, files or patterns.")
+            Text("Folders, files and patterns you leave out of backups.")
               .font(.system(size: 12))
               .foregroundStyle(.secondary)
           }
@@ -82,13 +85,12 @@ struct FoldersView: View {
         CloudOnlyPolicy(compact: true)
           .padding(10)
           .background(RoundedRectangle(cornerRadius: 10, style: .continuous).fill(Color.primary.opacity(0.04)))
-        FlowLayout(spacing: 6) {
-          ForEach(model.config.excludes, id: \.self) { exclude in
-            ExclusionChip(label: excludeLabel(exclude), pattern: exclude, isDefault: model.isDefaultExclusion(exclude))
-            {
-              model.removeExclusion(exclude)
-            }
-          }
+        if custom.isEmpty {
+          Text("Nothing excluded yet.")
+            .font(.system(size: 12))
+            .foregroundStyle(.secondary)
+        } else {
+          exclusionChips(custom)
         }
         HStack(spacing: 8) {
           Button {
@@ -108,10 +110,35 @@ struct FoldersView: View {
             patternEditor
           }
           Spacer(minLength: 0)
-          if !model.hasAllDefaultExclusions {
-            Button("Restore Defaults") { model.restoreDefaultExclusions() }
-              .buttonStyle(.link)
+        }
+        Divider()
+        DisclosureGroup(isExpanded: $showBuiltInExclusions) {
+          VStack(alignment: .leading, spacing: 10) {
+            Text("Caches, the Trash, cloud-synced folders and container disk images are skipped automatically.")
+              .font(.system(size: 12))
+              .foregroundStyle(.secondary)
+              .fixedSize(horizontal: false, vertical: true)
+            exclusionChips(builtIn)
+            if !model.hasAllDefaultExclusions {
+              Button("Restore Built-in Exclusions") { model.restoreDefaultExclusions() }
+                .buttonStyle(.link)
+            }
           }
+          .padding(.top, 8)
+        } label: {
+          Text("Built-in exclusions (\(builtIn.count))")
+            .font(.system(size: 12, weight: .medium))
+            .foregroundStyle(.secondary)
+        }
+      }
+    }
+  }
+
+  private func exclusionChips(_ patterns: [String]) -> some View {
+    FlowLayout(spacing: 6) {
+      ForEach(patterns, id: \.self) { exclude in
+        ExclusionChip(label: excludeLabel(exclude), pattern: exclude, isDefault: model.isDefaultExclusion(exclude)) {
+          model.removeExclusion(exclude)
         }
       }
     }
