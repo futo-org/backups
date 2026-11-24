@@ -36,6 +36,7 @@ public enum DiskSnapshotError: Error, Equatable, Sendable, CustomStringConvertib
   case mountFailed(String)
   case unmountFailed(String)
   case deleteFailed(String)
+  case journalUnreadable
 
   public var description: String {
     switch self {
@@ -51,6 +52,8 @@ public enum DiskSnapshotError: Error, Equatable, Sendable, CustomStringConvertib
       "Could not close the disk snapshot: \(detail)"
     case .deleteFailed(let detail):
       "Could not delete the disk snapshot: \(detail)"
+    case .journalUnreadable:
+      "Could not read the record of pending disk snapshots. Turn off disk snapshots in Settings to back up without them."
     }
   }
 
@@ -68,6 +71,8 @@ public enum DiskSnapshotError: Error, Equatable, Sendable, CustomStringConvertib
       "unmount-failed"
     case .deleteFailed:
       "delete-failed"
+    case .journalUnreadable:
+      "journal-unreadable"
     }
   }
 }

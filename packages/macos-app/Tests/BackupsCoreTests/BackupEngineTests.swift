@@ -1423,12 +1423,10 @@ private func waitForSnapshotCall(_ snapshots: FakeDiskSnapshots, prefix: String)
   let snapshots = FakeDiskSnapshots()
   let snapshot = makeSnapshotFixture(diskSnapshots: snapshots)
   try FileManager.default.createDirectory(at: snapshot.directory, withIntermediateDirectories: true)
-  try FileManager.default.createDirectory(at: snapshot.journal, withIntermediateDirectories: false)
-  let inner = snapshot.journal.appendingPathComponent("inner")
-  try Data("x".utf8).write(to: inner)
-  chflags(inner.path, UInt32(bitPattern: Int32(UF_IMMUTABLE)))
+  try Data().write(to: snapshot.lockFile)
+  chflags(snapshot.directory.path, UInt32(bitPattern: Int32(UF_IMMUTABLE)))
   defer {
-    chflags(inner.path, 0)
+    chflags(snapshot.directory.path, 0)
     try? FileManager.default.removeItem(at: snapshot.directory)
   }
   let engine = BackupEngine(environment: snapshot.fixture.environment)
@@ -1442,6 +1440,49 @@ private func waitForSnapshotCall(_ snapshots: FakeDiskSnapshots, prefix: String)
   let logs = await snapshot.fixture.deliveredLogs(engine)
   let event = try #require(logs.first { $0.summary == "Failed to create disk snapshot" })
   #expect(event.data["error"] == .string("create-failed"))
+}
+
+@Test(arguments: [Data("not json".utf8), Data(#"[{"date":"bad"}]"#.utf8), nil])
+func unreadableJournalFailsSetupBeforeCreateAndKeepsTheFile(contents: Data?) async throws {
+  let snapshots = FakeDiskSnapshots()
+  let snapshot = makeSnapshotFixture(diskSnapshots: snapshots)
+  defer { try? FileManager.default.removeItem(at: snapshot.directory) }
+  try FileManager.default.createDirectory(at: snapshot.directory, withIntermediateDirectories: true)
+  if let contents {
+    try contents.write(to: snapshot.journal)
+  } else {
+    try FileManager.default.createDirectory(at: snapshot.journal, withIntermediateDirectories: false)
+  }
+  let engine = BackupEngine(environment: snapshot.fixture.environment)
+  let record = try await engine.backup(config: snapshot.config) { _ in }
+  #expect(record.status == .failed)
+  #expect(record.message == DiskSnapshotError.journalUnreadable.description)
+  #expect(snapshots.calls.isEmpty)
+  #expect(snapshot.fixture.restic.commands() == ["version", "unlock"])
+  if let contents {
+    #expect(try Data(contentsOf: snapshot.journal) == contents)
+  } else {
+    #expect(FileManager.default.fileExists(atPath: snapshot.journal.path))
+  }
+  let logs = await snapshot.fixture.deliveredLogs(engine)
+  let staleEvent = try #require(logs.first { $0.summary == "Failed to remove disk snapshot" })
+  #expect(staleEvent.data["error"] == .string("journal-unreadable"))
+  let createEvent = try #require(logs.first { $0.summary == "Failed to create disk snapshot" })
+  #expect(createEvent.data["error"] == .string("journal-unreadable"))
+  let finished = try #require(logs.last { $0.summary == "Backup finished" })
+  #expect(finished.data["error"] == .string("disk snapshot: journal-unreadable"))
+}
+
+@Test func unreadableJournalSkipsStaleCleanupAndKeepsTheFile() async throws {
+  let snapshots = FakeDiskSnapshots()
+  let snapshot = makeSnapshotFixture(diskSnapshots: snapshots)
+  defer { try? FileManager.default.removeItem(at: snapshot.directory) }
+  try FileManager.default.createDirectory(at: snapshot.directory, withIntermediateDirectories: true)
+  try Data("not json".utf8).write(to: snapshot.journal)
+  let engine = BackupEngine(environment: snapshot.fixture.environment)
+  await engine.cleanUpStaleDiskSnapshots()
+  #expect(snapshots.calls.isEmpty)
+  #expect(try Data(contentsOf: snapshot.journal) == Data("not json".utf8))
 }
 
 @Test func staleDeleteFailureKeepsEntryAndReportsDeleteCode() async throws {

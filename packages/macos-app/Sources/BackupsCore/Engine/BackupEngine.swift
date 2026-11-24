@@ -176,8 +176,14 @@ public actor BackupEngine {
             await self.removeSnapshot(createdSnapshot, mountPoint: snapshotMountPoint)
           }.value
           if removal.deleted {
-            try? writeJournal(
-              readJournal(snapshotJournal).filter { $0 != createdSnapshot }, to: snapshotJournal)
+            do {
+              try writeJournal(
+                readJournal(snapshotJournal).filter { $0 != createdSnapshot }, to: snapshotJournal)
+            } catch let error as DiskSnapshotError {
+              await report(
+                madeAPI, config: config, "Failed to remove disk snapshot",
+                ["repositoryId": .string(repositoryId), "error": .string(error.telemetryCode)])
+            } catch {}
           }
           if let error = removal.error {
             await report(
@@ -217,12 +223,13 @@ public actor BackupEngine {
                 madeAPI, config: config, "Failed to remove disk snapshot",
                 ["repositoryId": .string(repositoryId), "error": .string(error.telemetryCode)])
             }
+            let pending = try readJournal(journal)
             let snapshot = try await Task {
               try await self.environment.diskSnapshots.create()
             }.value
             createdSnapshot = snapshot
             do {
-              try writeJournal(readJournal(journal) + [snapshot], to: journal)
+              try writeJournal(pending + [snapshot], to: journal)
             } catch {
               throw DiskSnapshotError.createFailed("could not record the snapshot")
             }
@@ -421,9 +428,21 @@ public actor BackupEngine {
       filesNew: summary?.filesNew, dataAdded: summary?.dataAdded, message: message)
   }
 
-  private func readJournal(_ url: URL) -> [DiskSnapshot] {
-    guard let data = try? Data(contentsOf: url) else { return [] }
-    return (try? JSONDecoder().decode([DiskSnapshot].self, from: data)) ?? []
+  private func readJournal(_ url: URL) throws -> [DiskSnapshot] {
+    let data: Data
+    do {
+      data = try Data(contentsOf: url)
+    } catch {
+      if isMissingFile(error) {
+        return []
+      }
+      throw DiskSnapshotError.journalUnreadable
+    }
+    do {
+      return try JSONDecoder().decode([DiskSnapshot].self, from: data)
+    } catch {
+      throw DiskSnapshotError.journalUnreadable
+    }
   }
 
   private func writeJournal(_ entries: [DiskSnapshot], to url: URL) throws {
@@ -431,18 +450,22 @@ public actor BackupEngine {
       do {
         try FileManager.default.removeItem(at: url)
       } catch {
-        let nsError = error as NSError
-        let cocoaNotFound =
-          nsError.domain == NSCocoaErrorDomain
-          && (nsError.code == NSFileNoSuchFileError || nsError.code == NSFileReadNoSuchFileError)
-        let posixNotFound = (error as? POSIXError).map { $0.code.rawValue == Int32(ENOENT) } ?? false
-        if !cocoaNotFound && !posixNotFound {
+        if !isMissingFile(error) {
           throw error
         }
       }
       return
     }
     try JSONEncoder().encode(entries).write(to: url, options: .atomic)
+  }
+
+  private func isMissingFile(_ error: any Error) -> Bool {
+    let nsError = error as NSError
+    let cocoaNotFound =
+      nsError.domain == NSCocoaErrorDomain
+      && (nsError.code == NSFileNoSuchFileError || nsError.code == NSFileReadNoSuchFileError)
+    let posixNotFound = (error as? POSIXError).map { $0.code.rawValue == Int32(ENOENT) } ?? false
+    return cocoaNotFound || posixNotFound
   }
 
   private func removeSnapshot(_ snapshot: DiskSnapshot, mountPoint: URL) async -> SnapshotRemoval {
@@ -474,9 +497,15 @@ public actor BackupEngine {
   private func cleanUpStaleSnapshots(directory: URL) async -> [DiskSnapshotError] {
     let journal = directory.appendingPathComponent("pending.json")
     let mountPoint = directory.appendingPathComponent("Volume")
+    let entries: [DiskSnapshot]
+    do {
+      entries = try readJournal(journal)
+    } catch {
+      return [(error as? DiskSnapshotError) ?? .journalUnreadable]
+    }
     var kept: [DiskSnapshot] = []
     var errors: [DiskSnapshotError] = []
-    for entry in readJournal(journal) {
+    for entry in entries {
       let removal = await removeSnapshot(entry, mountPoint: mountPoint)
       if !removal.deleted {
         kept.append(entry)

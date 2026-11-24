@@ -296,6 +296,10 @@ func mountFailures(script: ResticResult, expected: DiskSnapshotError) async {
     (DiskSnapshotError.mountFailed("boom"), "Could not open the disk snapshot: boom"),
     (DiskSnapshotError.unmountFailed("boom"), "Could not close the disk snapshot: boom"),
     (DiskSnapshotError.deleteFailed("boom"), "Could not delete the disk snapshot: boom"),
+    (
+      DiskSnapshotError.journalUnreadable,
+      "Could not read the record of pending disk snapshots. Turn off disk snapshots in Settings to back up without them."
+    ),
   ])
 func errorDescriptions(error: DiskSnapshotError, expected: String) {
   #expect(error.description == expected)
@@ -310,6 +314,7 @@ func errorDescriptions(error: DiskSnapshotError, expected: String) {
     (DiskSnapshotError.mountFailed("boom"), "mount-failed"),
     (DiskSnapshotError.unmountFailed("boom"), "unmount-failed"),
     (DiskSnapshotError.deleteFailed("boom"), "delete-failed"),
+    (DiskSnapshotError.journalUnreadable, "journal-unreadable"),
   ])
 func errorTelemetryCodes(error: DiskSnapshotError, expected: String) {
   #expect(error.telemetryCode == expected)
