@@ -18,6 +18,14 @@ func defaults() {
       "/Users/test/.Trash",
       "**/node_modules",
       "**/.DS_Store",
+      "/Users/test/Library/Group Containers/HUAQ24HBR6.dev.orbstack/data",
+      "/Users/test/Library/Containers/com.docker.docker/Data/vms",
+      "/Users/test/Library/Application Support/rancher-desktop/lima",
+      "/Users/test/Library/Application Support/Claude/vm_bundles",
+      "/Users/test/.colima/_lima",
+      "/Users/test/.lima/*/basedisk",
+      "/Users/test/.lima/*/diffdisk",
+      "/Users/test/.local/share/containers/podman/machine",
     ])
   #expect(config.schedule == .daily(hour: 12, minute: 0))
   #expect(config.throttle == .unthrottled)
@@ -287,4 +295,41 @@ func forgetRepositoryWithoutRepository() {
   let forgot = config.forgetRepository(unlessListedIn: [])
   #expect(!forgot)
   #expect(config.recoveryKeyConfirmedAt == Date(timeIntervalSince1970: 1_781_092_800))
+}
+
+@Test func newInstallsGetEveryDefaultExcludeAndTheCurrentVersion() {
+  var config = AppConfig.defaults(host: "mac", home: "/Users/t")
+  #expect(config.excludeDefaultsVersion == AppConfig.currentExcludeDefaultsVersion)
+  #expect(config.excludes.contains("/Users/t/Library/Group Containers/HUAQ24HBR6.dev.orbstack/data"))
+  #expect(config.excludes.contains("/Users/t/.lima/*/diffdisk"))
+  let changed1 = config.addNewDefaultExcludes(home: "/Users/t")
+
+  #expect(!changed1)
+}
+
+@Test func olderConfigsGainOnlyTheNewDefaultsOnce() throws {
+  let json = """
+    {"serverURL":"https://meta.futo.cloud/.well-known/yucca.json","folders":["/Users/t"],
+     "excludes":["/Users/t/Library/Caches","*.iso","/Users/t/Library/Containers/com.docker.docker/Data/vms"],
+     "schedule":{"kind":"manual"},"throttle":{"bytesPerSec":0,"quietHours":""},"host":"mac"}
+    """
+  var config = try JSONDecoder().decode(AppConfig.self, from: Data(json.utf8))
+  #expect(config.excludeDefaultsVersion == nil)
+  let changed2 = config.addNewDefaultExcludes(home: "/Users/t")
+
+  #expect(changed2)
+  #expect(
+    config.excludes.prefix(3) == [
+      "/Users/t/Library/Caches", "*.iso", "/Users/t/Library/Containers/com.docker.docker/Data/vms",
+    ])
+  #expect(config.excludes.contains("/Users/t/Library/Group Containers/HUAQ24HBR6.dev.orbstack/data"))
+  #expect(config.excludes.filter { $0.hasSuffix("com.docker.docker/Data/vms") }.count == 1)
+  #expect(!config.excludes.contains("/Users/t/.Trash"))
+  #expect(config.excludeDefaultsVersion == AppConfig.currentExcludeDefaultsVersion)
+  let removed = config.excludes.filter { !$0.contains("orbstack") }
+  config.excludes = removed
+  let changed3 = config.addNewDefaultExcludes(home: "/Users/t")
+
+  #expect(!changed3)
+  #expect(!config.excludes.contains { $0.contains("orbstack") })
 }

@@ -84,6 +84,9 @@ final class AppModel {
     var loadFailure: String?
     do {
       loaded = try ConfigStore.standard().load(defaultHost: host, home: home)
+      if loaded.addNewDefaultExcludes(home: home) {
+        try? ConfigStore.standard().save(loaded)
+      }
     } catch {
       loadFailure = "Could not load config: \(error)"
     }

@@ -39,6 +39,7 @@ public struct AppConfig: Codable, Equatable, Sendable {
   public var telemetryConsentedAt: Date?
   public var diskSnapshots: Bool?
   public var onboardingCompletedAt: Date?
+  public var excludeDefaultsVersion: Int?
 
   public var usesDiskSnapshots: Bool { diskSnapshots ?? true }
 
@@ -55,21 +56,37 @@ public struct AppConfig: Codable, Equatable, Sendable {
   public static let devServerURL: URL = URL(string: "http://localhost:8081/.well-known/yucca.json")!
   public static let productionServerURL: URL = URL(string: "https://meta.futo.cloud/.well-known/yucca.json")!
 
-  public static let defaultExcludes: [String] = [
-    "~/Library/Caches",
-    "~/Library/Mobile Documents",
-    "~/Library/CloudStorage",
-    "~/Library/Containers/*/Data/Library/Caches",
-    "~/.Trash",
-    "**/node_modules",
-    "**/.DS_Store",
+  public static let defaultExcludesByVersion: [[String]] = [
+    [
+      "~/Library/Caches",
+      "~/Library/Mobile Documents",
+      "~/Library/CloudStorage",
+      "~/Library/Containers/*/Data/Library/Caches",
+      "~/.Trash",
+      "**/node_modules",
+      "**/.DS_Store",
+    ],
+    [
+      "~/Library/Group Containers/HUAQ24HBR6.dev.orbstack/data",
+      "~/Library/Containers/com.docker.docker/Data/vms",
+      "~/Library/Application Support/rancher-desktop/lima",
+      "~/Library/Application Support/Claude/vm_bundles",
+      "~/.colima/_lima",
+      "~/.lima/*/basedisk",
+      "~/.lima/*/diffdisk",
+      "~/.local/share/containers/podman/machine",
+    ],
   ]
 
+  public static let defaultExcludes: [String] = defaultExcludesByVersion.flatMap { $0 }
+
+  public static var currentExcludeDefaultsVersion: Int { defaultExcludesByVersion.count }
+
   public static func defaults(host: String, home: String) -> AppConfig {
-    AppConfig(
+    var config = AppConfig(
       serverURL: productionServerURL,
       folders: [],
-      excludes: defaultExcludes.map { $0.hasPrefix("~/") ? home + $0.dropFirst() : $0 },
+      excludes: defaultExcludes.map { expandingHome($0, home: home) },
       schedule: .daily(hour: 12, minute: 0),
       throttle: .unthrottled,
       host: host,
@@ -77,6 +94,25 @@ public struct AppConfig: Codable, Equatable, Sendable {
       lastRun: nil,
       scheduleAnchor: nil
     )
+    config.excludeDefaultsVersion = currentExcludeDefaultsVersion
+    return config
+  }
+
+  public mutating func addNewDefaultExcludes(home: String) -> Bool {
+    let seen = excludeDefaultsVersion ?? 1
+    guard seen < Self.currentExcludeDefaultsVersion else { return false }
+    for pattern in Self.defaultExcludesByVersion.dropFirst(seen).flatMap({ $0 }) {
+      let expanded = Self.expandingHome(pattern, home: home)
+      if !excludes.contains(expanded) {
+        excludes.append(expanded)
+      }
+    }
+    excludeDefaultsVersion = Self.currentExcludeDefaultsVersion
+    return true
+  }
+
+  private static func expandingHome(_ pattern: String, home: String) -> String {
+    pattern.hasPrefix("~/") ? home + pattern.dropFirst() : pattern
   }
 
   public mutating func forgetRepository(unlessListedIn repositories: [RemoteRepository]) -> Bool {
