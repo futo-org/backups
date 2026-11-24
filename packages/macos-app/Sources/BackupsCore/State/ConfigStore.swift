@@ -25,6 +25,17 @@ public struct ConfigStore: Sendable {
     return try decoder.decode(AppConfig.self, from: Data(contentsOf: fileURL))
   }
 
+  public func moveAside(at date: Date) throws -> URL? {
+    guard FileManager.default.fileExists(atPath: fileURL.path) else { return nil }
+    let formatter = ISO8601DateFormatter()
+    formatter.formatOptions = [.withInternetDateTime, .withDashSeparatorInDate]
+    formatter.formatOptions.remove(.withColonSeparatorInTime)
+    let destination = fileURL.deletingLastPathComponent()
+      .appendingPathComponent("\(fileURL.lastPathComponent).corrupt-\(formatter.string(from: date))")
+    try FileManager.default.moveItem(at: fileURL, to: destination)
+    return destination
+  }
+
   public func save(_ config: AppConfig) throws {
     let encoder = JSONEncoder()
     encoder.outputFormatting = [.prettyPrinted, .sortedKeys]

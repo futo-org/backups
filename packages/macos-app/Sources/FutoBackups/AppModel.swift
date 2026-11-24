@@ -44,6 +44,7 @@ final class AppModel {
   var hasSession = false
   var hasMasterKey = false
   var hasFullDiskAccess = FullDiskAccess.isGranted()
+  var configLoadFailure: String?
 
   private let store = ConfigStore.standard()
   private let vault = SecretVault(store: KeychainSecretStore())
@@ -60,7 +61,8 @@ final class AppModel {
   private var sessionGeneration = 0
   private var onboardingGeneration = 0
   private let appVersion: String
-  private let configLoadFailure: String?
+  private let configLoadFailed: Bool
+  private var configNeedsMovingAside: Bool
   private var pendingBootstrapError: String? = nil
   private var appActiveObserver: (any NSObjectProtocol)?
 
@@ -125,6 +127,8 @@ final class AppModel {
     self.missingHelperText = missingHelperText
     self.appVersion = appVersion
     self.configLoadFailure = loadFailure
+    self.configLoadFailed = loadFailure != nil
+    self.configNeedsMovingAside = loadFailure != nil
     if let loadFailure {
       self.pendingBootstrapError =
         missingHelperText.map { "\(loadFailure); \($0)" } ?? loadFailure
@@ -135,7 +139,7 @@ final class AppModel {
     scheduler = Scheduler(model: self)
     scheduler?.start()
     Task { @MainActor in
-      if configLoadFailure == nil {
+      if !configLoadFailed {
         let storedToken: String? = (try? await vault.get(.accessToken)) ?? nil
         hasSession = storedToken != nil
         sessionToken = storedToken
@@ -785,6 +789,13 @@ final class AppModel {
 
   private func saveConfig() {
     do {
+      if configNeedsMovingAside {
+        if let moved = try store.moveAside(at: Date()) {
+          configLoadFailure = [configLoadFailure, "The unreadable file was kept as \(moved.lastPathComponent)."]
+            .compactMap { $0 }.joined(separator: ". ")
+        }
+        configNeedsMovingAside = false
+      }
       try store.save(config)
     } catch {
       lastError = String(describing: error)

@@ -67,3 +67,27 @@ func corruptFileThrows() throws {
     _ = try store.load(defaultHost: "host-d", home: "/Users/test")
   }
 }
+
+@Test("moveAside renames the file with an ISO 8601 stamp and keeps its contents")
+func moveAsideKeepsCorruptFile() throws {
+  let root = temporaryRoot()
+  defer { try? FileManager.default.removeItem(at: root) }
+  let store = ConfigStore(fileURL: root.appendingPathComponent("config.json"))
+  try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
+  try Data("not json".utf8).write(to: store.fileURL)
+  let moved = try #require(try store.moveAside(at: Date(timeIntervalSince1970: 1_781_092_800)))
+  #expect(moved == root.appendingPathComponent("config.json.corrupt-2026-06-10T120000Z"))
+  #expect(try Data(contentsOf: moved) == Data("not json".utf8))
+  #expect(!FileManager.default.fileExists(atPath: store.fileURL.path))
+  try store.save(AppConfig.defaults(host: "host-e", home: "/Users/test"))
+  #expect(try Data(contentsOf: moved) == Data("not json".utf8))
+  #expect(try store.load(defaultHost: "ignored", home: "/ignored").host == "host-e")
+}
+
+@Test("moveAside without a file does nothing")
+func moveAsideWithoutFile() throws {
+  let root = temporaryRoot()
+  defer { try? FileManager.default.removeItem(at: root) }
+  let store = ConfigStore(fileURL: root.appendingPathComponent("config.json"))
+  #expect(try store.moveAside(at: Date(timeIntervalSince1970: 1_781_092_800)) == nil)
+}

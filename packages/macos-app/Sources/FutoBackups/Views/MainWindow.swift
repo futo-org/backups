@@ -45,6 +45,16 @@ struct MainWindow: View {
         WelcomeView()
       }
     }
+    .safeAreaInset(edge: .top, spacing: 0) {
+      if model.sessionLoaded && !model.signedIn, let failure = model.configLoadFailure {
+        Banner(systemName: "exclamationmark.triangle.fill", tint: .orange, text: failure) {
+          model.configLoadFailure = nil
+        }
+        .frame(maxWidth: 640)
+        .padding(.horizontal, 28)
+        .padding(.top, 16)
+      }
+    }
     .frame(minWidth: 820, minHeight: 580)
     .toolbar(removing: .title)
   }
