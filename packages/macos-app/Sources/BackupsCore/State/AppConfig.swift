@@ -36,6 +36,7 @@ public struct AppConfig: Codable, Equatable, Sendable {
   public var recoveryKeyConfirmedAt: Date?
   public var telemetryConsentedAt: Date?
   public var diskSnapshots: Bool?
+  public var onboardingCompletedAt: Date?
 
   public var usesDiskSnapshots: Bool { diskSnapshots ?? true }
 
