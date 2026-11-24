@@ -1,4 +1,4 @@
-import { mdiImageMultiple, mdiServer } from '@mdi/js';
+import { mdiImageMultiple, mdiLaptop, mdiServer } from '@mdi/js';
 
 export type ConnectionTypeMeta = {
   type: string;
@@ -27,6 +27,16 @@ export const CONNECTION_TYPES: ConnectionTypeMeta[] = [
       'Back up files from a machine running the standalone FUTO Backups app.',
     limitation:
       'Added automatically when you connect FUTO Backups from the standalone app; not created here.',
+    addable: false,
+  },
+  {
+    type: 'macos',
+    label: 'Mac',
+    icon: mdiLaptop,
+    description:
+      'Back up files and folders from a Mac running the FUTO Backups app.',
+    limitation:
+      'Added automatically when you sign in from the FUTO Backups Mac app; not created here.',
     addable: false,
   },
 ];
