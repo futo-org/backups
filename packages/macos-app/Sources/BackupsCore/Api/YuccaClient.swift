@@ -111,6 +111,10 @@ public struct RemoteRepository: Codable, Equatable, Sendable, Identifiable {
   }
 }
 
+public enum TicketAction: String, Encodable, Sendable {
+  case deleteRepository = "repository.delete"
+}
+
 public protocol YuccaRepositoryAPI: Sendable {
   func listRepositories() async throws -> [RemoteRepository]
   func createRepository(name: String) async throws -> RemoteRepository
@@ -186,6 +190,20 @@ public struct YuccaClient: YuccaRepositoryAPI {
     return try decodeJSON(RepositoryPayload.self, from: response.body).repository
   }
 
+  public func createTicket(action: TicketAction, repositoryId: String) async throws -> URL {
+    let body = try encodeJSON(TicketRequest(action: action, repositoryId: repositoryId))
+    let response = try await send(method: "POST", path: "auth/ticket", body: body)
+    let redirectTo = try decodeJSON(TicketPayload.self, from: response.body).redirectTo
+    guard let url = URL(string: redirectTo), url.scheme == "https" || url.scheme == "http" else {
+      throw YuccaError.decoding("ticket redirect is not a web URL")
+    }
+    return url
+  }
+
+  public func deleteConnection(id: String) async throws {
+    _ = try await send(method: "DELETE", path: "connections/\(id)")
+  }
+
   public func submitBackupStart(repositoryId: String) async throws {
     _ = try await send(method: "POST", path: "metrics/submit/\(repositoryId)/backup/start")
   }
@@ -236,6 +254,15 @@ private struct DevicePollPayload: Decodable {
 private struct CreateRepositoryRequest: Encodable {
   var name: String
   var worm: Bool
+}
+
+private struct TicketRequest: Encodable {
+  var action: TicketAction
+  var repositoryId: String
+}
+
+private struct TicketPayload: Decodable {
+  var redirectTo: String
 }
 
 private struct RepositoryListPayload: Decodable {
