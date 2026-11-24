@@ -79,7 +79,7 @@ private struct StepIndicator: View {
   }
 }
 
-private struct StepTitle: View {
+struct StepTitle: View {
   let systemName: String
   let tint: Color
   let title: String
@@ -363,7 +363,7 @@ private struct ChooseRepositoryStep: View {
   }
 }
 
-private struct KeyField: View {
+struct KeyField: View {
   @Binding var text: String
   let invalid: Bool
   let submit: () -> Void

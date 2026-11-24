@@ -44,6 +44,11 @@ struct StatusSummary {
         title: "Restoring", subtitle: "Bringing your files back…", symbol: "arrow.down", tint: Brand.blue,
         busy: true, action: .cancel, menuBarSymbol: "arrow.down.circle")
       return
+    case .changingRecoveryKey:
+      self.init(
+        title: "Changing recovery key", subtitle: "Updating the key for this Mac's backup…", symbol: "key.fill",
+        tint: Brand.blue, busy: true, action: .none, menuBarSymbol: "arrow.clockwise.icloud")
+      return
     case nil:
       break
     }
