@@ -6,6 +6,7 @@ struct SettingsView: View {
   @Environment(AppModel.self) private var model
   @Environment(Updater.self) private var updater
   @State private var limitDraft = ""
+  @State private var revealing = false
   @State private var limitError: String?
   @FocusState private var limitFocused: Bool
   @State private var quietError: String?
@@ -121,19 +122,18 @@ struct SettingsView: View {
             RecoveryKeyActions(key: recoveryKey)
           } else {
             Button("Reveal Recovery Key") {
+              revealing = true
               Task {
                 self.recoveryKey = await self.model.revealRecoveryKey()
+                revealing = false
               }
             }
             .buttonStyle(SecondaryButtonStyle())
+            .disabled(revealing)
           }
-          Button("Change Recovery Key…") {
-            Task {
-              changingRecoveryKey = await OwnerAuthentication.confirm(reason: "change your recovery key")
-            }
-          }
-          .buttonStyle(SecondaryButtonStyle())
-          .disabled(!model.canChangeRecoveryKey)
+          Button("Change Recovery Key…") { changingRecoveryKey = true }
+            .buttonStyle(SecondaryButtonStyle())
+            .disabled(!model.canChangeRecoveryKey)
         }
         .padding(.vertical, 4)
         .sheet(isPresented: $changingRecoveryKey, onDismiss: reloadRevealedRecoveryKey) {
