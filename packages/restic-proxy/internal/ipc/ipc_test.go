@@ -129,3 +129,33 @@ func TestReadControl_ReturnsWhenTheParentClosesThePipe(t *testing.T) {
 		t.Fatal("did not return after the parent closed the pipe")
 	}
 }
+
+func TestReadControl_DecodesNetworkChangedAndUnknownTypes(t *testing.T) {
+	read, write, err := os.Pipe()
+	if err != nil {
+		t.Fatalf("pipe: %v", err)
+	}
+
+	applied := make(chan Control, 2)
+	go ReadControl(read, func(control Control) { applied <- control })
+
+	if _, err := write.WriteString(`{"type":"network-changed"}` + "\n" + `{"type":"future","extra":1}` + "\n"); err != nil {
+		t.Fatalf("write: %v", err)
+	}
+
+	for _, expected := range []ControlType{ControlNetworkChanged, "future"} {
+		select {
+		case control := <-applied:
+			if control.Type != expected {
+				t.Errorf("expected %q, got %q", expected, control.Type)
+			}
+			if control.Throttle != nil {
+				t.Errorf("expected no throttle on %q", control.Type)
+			}
+		case <-time.After(time.Second):
+			t.Fatalf("no %q control applied", expected)
+		}
+	}
+
+	write.Close()
+}

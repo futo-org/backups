@@ -1,12 +1,12 @@
 package proxy
 
 import (
-	"net"
+	"context"
+	"errors"
 	"net/http"
 	"net/http/httputil"
 	"restic-proxy/internal/client"
 	"sync"
-	"time"
 
 	"github.com/cornelk/hashmap"
 	"github.com/rs/zerolog/log"
@@ -20,9 +20,9 @@ type routed struct {
 
 type contextKey struct{}
 
-func reverseProxy(grants *hashmap.Map[string, client.Grant]) *httputil.ReverseProxy {
+func reverseProxy(grants *hashmap.Map[string, client.Grant], transport http.RoundTripper) *httputil.ReverseProxy {
 	return &httputil.ReverseProxy{
-		Transport:  newTransport(),
+		Transport:  transport,
 		BufferPool: newBufferPool(),
 		Rewrite: func(request *httputil.ProxyRequest) {
 			route := request.In.Context().Value(contextKey{}).(routed)
@@ -54,24 +54,17 @@ func reverseProxy(grants *hashmap.Map[string, client.Grant]) *httputil.ReversePr
 
 			return nil
 		},
-		ErrorHandler: func(writer http.ResponseWriter, _ *http.Request, err error) {
+		ErrorHandler: func(writer http.ResponseWriter, request *http.Request, err error) {
+			if errors.Is(context.Cause(request.Context()), errNetworkChanged) {
+				writer.Header().Set("Connection", "close")
+				http.Error(writer, "backend unreachable", http.StatusBadGateway)
+				log.Warn().Err(err).Msg("Interrupted an upstream request after a network change")
+				return
+			}
+
 			http.Error(writer, "backend unreachable", http.StatusBadGateway)
 			log.Error().Err(err).Msg("backend unreachable")
 		},
-	}
-}
-
-func newTransport() *http.Transport {
-	return &http.Transport{
-		Proxy:                 http.ProxyFromEnvironment,
-		DialContext:           (&net.Dialer{Timeout: 10 * time.Second, KeepAlive: 30 * time.Second}).DialContext,
-		ForceAttemptHTTP2:     true,
-		MaxIdleConns:          32,
-		MaxIdleConnsPerHost:   32,
-		IdleConnTimeout:       90 * time.Second,
-		TLSHandshakeTimeout:   10 * time.Second,
-		ExpectContinueTimeout: time.Second,
-		DisableCompression:    true,
 	}
 }
 

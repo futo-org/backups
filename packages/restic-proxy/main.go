@@ -86,6 +86,8 @@ func main() {
 				switch control.Type {
 				case ipc.ControlThrottle:
 					applyThrottle(proxy, control.Throttle)
+				case ipc.ControlNetworkChanged:
+					proxy.NetworkChanged()
 				default:
 					log.Warn().Str("type", string(control.Type)).Msg("Ignored an unknown control message")
 				}

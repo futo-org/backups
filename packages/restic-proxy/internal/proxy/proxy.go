@@ -28,8 +28,9 @@ type denial struct {
 }
 
 type Handler struct {
-	client  client.Client
-	reverse *httputil.ReverseProxy
+	client   client.Client
+	reverse  *httputil.ReverseProxy
+	upstream *upstream
 
 	sessionToken        string
 	smartAutoRepository bool
@@ -45,10 +46,12 @@ type Handler struct {
 
 func New(cl client.Client, sessionToken string, smartAutoRepository bool) *Handler {
 	grants := hashmap.New[string, client.Grant]()
+	upstream := newUpstream()
 
 	handler := &Handler{
-		client:  cl,
-		reverse: reverseProxy(grants),
+		client:   cl,
+		reverse:  reverseProxy(grants, upstream.transport),
+		upstream: upstream,
 
 		sessionToken:        sessionToken,
 		smartAutoRepository: smartAutoRepository,
@@ -73,6 +76,11 @@ func (handler *Handler) Throttle(bytesPerSec int, quietHours string) error {
 
 func (handler *Handler) Uploaded() int64 {
 	return handler.uploaded.Load()
+}
+
+func (handler *Handler) NetworkChanged() {
+	closed := handler.upstream.reset()
+	log.Info().Int("connections", closed).Msg("Reset upstream connections after a network change")
 }
 
 func (handler *Handler) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
@@ -124,6 +132,11 @@ func (handler *Handler) ServeHTTP(writer http.ResponseWriter, request *http.Requ
 	}
 
 	log.Debug().Msg("handled request")
+	ctx, release := handler.upstream.bind(ctx, func() {
+		// The transport reports the cancellation only after its body copy, blocked reading from restic, returns.
+		_ = http.NewResponseController(writer).SetReadDeadline(time.Now())
+	})
+	defer release()
 	request.Body = count(pace(ctx, request.Body, &handler.throttle), &handler.uploaded)
 
 	route := routed{key: repositoryId, grant: grant, path: path}
