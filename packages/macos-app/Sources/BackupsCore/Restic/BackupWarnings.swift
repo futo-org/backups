@@ -23,6 +23,17 @@ public struct BackupWarnings: Codable, Equatable, Sendable {
 
   public var isTruncated: Bool { total > items.count }
 
+  public var summary: String? {
+    guard total > 0 else { return nil }
+    return total == 1 ? "1 file couldn't be backed up." : "\(total) files couldn't be backed up."
+  }
+
+  public static func livePaths(in text: String, snapshotMounts: [String]) -> String {
+    snapshotMounts.filter { !$0.isEmpty }.sorted { $0.count > $1.count }.reduce(text) { result, mount in
+      result.replacingOccurrences(of: mount + "/", with: "/")
+    }
+  }
+
   public func listText(displayPath: (String) -> String = { $0 }) -> String {
     items.map { "\(displayPath($0.path)): \($0.reason)" }.joined(separator: "\n")
   }

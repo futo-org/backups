@@ -325,11 +325,15 @@ public actor BackupEngine {
           status = .complete
         } else if result.exitCode == ResticExitCode.couldNotReadSource {
           status = .warn
+          let snapshotMounts = [backupCurrentDirectory, snapshotMountPoint?.path].compactMap { $0 }
+          let collected = BackupWarnings.collect(stderr: result.stderr, snapshotMounts: snapshotMounts)
+          warnings = collected
           message =
-            ResticOutput.lastItemError(stderr: result.stderr) ?? lastError
-            ?? ResticOutput.errorMessage(stderr: result.stderr, exitCode: result.exitCode)
-          warnings = BackupWarnings.collect(
-            stderr: result.stderr, snapshotMounts: [backupCurrentDirectory, snapshotMountPoint?.path].compactMap { $0 })
+            collected.summary
+            ?? BackupWarnings.livePaths(
+              in: ResticOutput.lastItemError(stderr: result.stderr) ?? lastError
+                ?? ResticOutput.errorMessage(stderr: result.stderr, exitCode: result.exitCode),
+              snapshotMounts: snapshotMounts)
         } else {
           status = .failed
           message = ResticOutput.errorMessage(stderr: result.stderr, exitCode: result.exitCode)

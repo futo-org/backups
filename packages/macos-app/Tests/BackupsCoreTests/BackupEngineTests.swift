@@ -252,7 +252,7 @@ func packSizeIsClampedToResticLimits(serverPackSize: Int, expected: String) asyn
   let log = ActivityLog()
   let record = try await engine.backup(config: testConfig()) { log.record($0) }
   #expect(record.status == .warn)
-  #expect(record.message == "/a/b: permission denied")
+  #expect(record.message == "2 files couldn't be backed up.")
   #expect(fixture.restic.commands() == ["version", "unlock", "backup", "stats"])
   #expect(log.all == [.preparing])
   #expect(
@@ -292,7 +292,7 @@ func packSizeIsClampedToResticLimits(serverPackSize: Int, expected: String) asyn
   let engine = BackupEngine(environment: fixture.environment)
   let record = try await engine.backup(config: testConfig()) { _ in }
   #expect(record.status == .warn)
-  #expect(record.message == "/a/b: permission denied")
+  #expect(record.message == "2 files couldn't be backed up.")
   #expect(
     record.warnings
       == BackupWarnings(

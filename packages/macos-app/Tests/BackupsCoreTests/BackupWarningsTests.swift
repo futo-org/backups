@@ -170,3 +170,21 @@ func livePathOfItem(item: String, mounts: [String], expected: String) {
   #expect(record.warnings(forSnapshot: "abc") == warnings)
   #expect(record.warnings(forSnapshot: "def") == nil)
 }
+
+@Test func summaryCountsEveryWarning() {
+  #expect(BackupWarnings().summary == nil)
+  #expect(
+    BackupWarnings(items: [BackupWarning(path: "/a", reason: "Permission denied")], total: 1).summary
+      == "1 file couldn't be backed up.")
+  #expect(BackupWarnings(items: [], total: 742).summary == "742 files couldn't be backed up.")
+}
+
+@Test func livePathsStripTheSnapshotMountFromMessages() {
+  let mount = "/Users/leca/Library/Application Support/FUTO Backups/Snapshot/Volume"
+  let message =
+    "\(mount)/Users/leca/Library/Preferences/: open \(mount)/Users/leca/Library/Preferences: permission denied"
+  #expect(
+    BackupWarnings.livePaths(in: message, snapshotMounts: [mount, ""])
+      == "/Users/leca/Library/Preferences/: open /Users/leca/Library/Preferences: permission denied")
+  #expect(BackupWarnings.livePaths(in: "plain message", snapshotMounts: [mount]) == "plain message")
+}
