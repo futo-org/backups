@@ -210,13 +210,31 @@ struct PageHeader<Trailing: View>: View {
   }
 }
 
+enum Clipboard {
+  static func copy(_ text: String) {
+    NSPasteboard.general.clearContents()
+    NSPasteboard.general.setString(text, forType: .string)
+  }
+}
+
+extension View {
+  func copyable(_ text: String) -> some View {
+    textSelection(.enabled)
+      .contextMenu {
+        Button("Copy") { Clipboard.copy(text) }
+      }
+  }
+}
+
 struct Banner: View {
   let systemName: String
   let tint: Color
   let text: String
   var actionTitle: String?
   var action: (() -> Void)?
+  var copyable = false
   let dismiss: () -> Void
+  @State private var copied = false
 
   var body: some View {
     HStack(spacing: 12) {
@@ -224,12 +242,30 @@ struct Banner: View {
         .font(.system(size: 16, weight: .semibold))
         .foregroundStyle(tint)
       Text(text)
-        .textSelection(.enabled)
+        .copyable(text)
         .lineLimit(3)
       Spacer(minLength: 8)
       if let actionTitle, let action {
         Button(actionTitle, action: action)
           .buttonStyle(SecondaryButtonStyle())
+      }
+      if copyable {
+        Button {
+          Clipboard.copy(text)
+          copied = true
+          Task {
+            try? await Task.sleep(for: .seconds(1.5))
+            copied = false
+          }
+        } label: {
+          Image(systemName: copied ? "checkmark" : "doc.on.doc")
+            .font(.system(size: 11, weight: .bold))
+            .foregroundStyle(.secondary)
+            .frame(width: 22, height: 22)
+            .background(Circle().fill(Color.primary.opacity(0.08)))
+        }
+        .buttonStyle(.plain)
+        .help("Copy error")
       }
       Button(action: dismiss) {
         Image(systemName: "xmark")

@@ -95,6 +95,7 @@ struct WelcomeView: View {
         Label(message, systemImage: "exclamationmark.triangle.fill")
           .foregroundStyle(.orange)
           .multilineTextAlignment(.center)
+          .copyable(message)
           .frame(maxWidth: 420)
         Button("Try Again") { model.startLogin() }
           .buttonStyle(PrimaryButtonStyle(large: true))

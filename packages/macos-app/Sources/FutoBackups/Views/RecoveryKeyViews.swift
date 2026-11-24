@@ -198,6 +198,7 @@ private struct ImportRecoveryKeyStep: View {
       Text(hint)
         .font(.system(size: 12, weight: .medium))
         .foregroundStyle(errorMessage != nil ? .red : .secondary)
+        .copyable(hint)
       if checking {
         ProgressView()
           .controlSize(.small)
@@ -288,6 +289,7 @@ private struct ChooseRepositoryStep: View {
           .disabled(verifyingId != nil)
           if failedId == repository.id, let errorMessage {
             Text(errorMessage)
+              .copyable(errorMessage)
               .font(.system(size: 12, weight: .medium))
               .foregroundStyle(.red)
               .frame(maxWidth: .infinity, alignment: .leading)
@@ -305,6 +307,7 @@ private struct ChooseRepositoryStep: View {
           .disabled(verifyingId != nil)
         if failedId == nil, let errorMessage {
           Text(errorMessage)
+            .copyable(errorMessage)
             .font(.system(size: 12, weight: .medium))
             .foregroundStyle(.red)
         }

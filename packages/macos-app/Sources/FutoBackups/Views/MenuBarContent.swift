@@ -28,6 +28,7 @@ struct MenuBarContent: View {
           .font(.system(size: 11))
           .foregroundStyle(.orange)
           .lineLimit(3)
+          .copyable(error)
       }
       if model.signedIn {
         VStack(spacing: 8) {

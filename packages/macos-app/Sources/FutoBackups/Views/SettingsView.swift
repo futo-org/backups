@@ -250,6 +250,7 @@ private struct InlineError: View {
     Text(text)
       .font(.caption)
       .foregroundStyle(.red)
+      .copyable(text)
       .frame(maxWidth: .infinity, alignment: .trailing)
   }
 }

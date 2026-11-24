@@ -47,7 +47,7 @@ struct MainWindow: View {
     }
     .safeAreaInset(edge: .top, spacing: 0) {
       if model.sessionLoaded && !model.signedIn, let failure = model.configLoadFailure {
-        Banner(systemName: "exclamationmark.triangle.fill", tint: .orange, text: failure) {
+        Banner(systemName: "exclamationmark.triangle.fill", tint: .orange, text: failure, copyable: true) {
           model.configLoadFailure = nil
         }
         .frame(maxWidth: 640)
@@ -78,7 +78,7 @@ struct MainWindow: View {
   private var detail: some View {
     VStack(spacing: 0) {
       if let text = model.setupError ?? model.lastError {
-        Banner(systemName: "exclamationmark.triangle.fill", tint: .orange, text: text) {
+        Banner(systemName: "exclamationmark.triangle.fill", tint: .orange, text: text, copyable: true) {
           model.setupError = nil
           model.lastError = nil
         }

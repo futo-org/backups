@@ -45,6 +45,7 @@ struct OverviewView: View {
           .font(.system(size: 14))
           .foregroundStyle(.secondary)
           .lineLimit(3)
+          .copyable(status.subtitle)
           .fixedSize(horizontal: false, vertical: true)
         HStack(spacing: 10) {
           switch status.action {

@@ -100,6 +100,7 @@ struct HistoryView: View {
         .foregroundStyle(.secondary)
         .multilineTextAlignment(.center)
         .frame(maxWidth: 420)
+        .copyable(message)
       Button("Try Again") {
         Task { await model.refreshSnapshots() }
       }
