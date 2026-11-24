@@ -11,6 +11,13 @@ enum LoginState: Equatable {
   case failed(String)
 }
 
+enum SnapshotsLoad: Equatable {
+  case notLoaded
+  case loading
+  case loaded
+  case failed(String)
+}
+
 enum RecoveryKeyStep: Equatable {
   case save
   case confirm
@@ -26,6 +33,7 @@ final class AppModel {
   var login: LoginState = .idle
   var activity: EngineActivity?
   var snapshots: [Snapshot] = []
+  var snapshotsLoad: SnapshotsLoad = .notLoaded
   var lastError: String?
   var nextRun: Date?
   var setupError: String?
@@ -146,6 +154,9 @@ final class AppModel {
       sessionLoaded = true
       if hasSession {
         await refreshAccount()
+      }
+      if signedIn {
+        await refreshSnapshots()
       }
     }
     appActiveObserver = NotificationCenter.default.addObserver(
@@ -469,6 +480,7 @@ final class AppModel {
     operationTask?.cancel()
     account = nil
     snapshots = []
+    snapshotsLoad = .notLoaded
     signedIn = false
     hasSession = false
     restoredFolders = []
@@ -669,17 +681,27 @@ final class AppModel {
   }
 
   func refreshSnapshots() async {
-    guard let engine, config.repositoryId != nil else { return }
+    guard config.repositoryId != nil else { return }
+    guard let engine else {
+      snapshotsLoad = .failed(missingHelperText ?? "Setup incomplete")
+      return
+    }
     let generation = sessionGeneration
+    let previousLoad = snapshotsLoad
+    snapshotsLoad = .loading
     do {
       let result = try await engine.snapshots(config: config)
       guard generation == sessionGeneration else { return }
       snapshots = result
+      snapshotsLoad = .loaded
     } catch is CancellationError {
-      return
+      guard generation == sessionGeneration else { return }
+      snapshotsLoad = previousLoad
     } catch {
       guard generation == sessionGeneration else { return }
-      lastError = message(for: error)
+      let text = message(for: error)
+      snapshotsLoad = .failed(text)
+      lastError = text
     }
   }
 

@@ -4,23 +4,18 @@ import SwiftUI
 
 struct HistoryView: View {
   @Environment(AppModel.self) private var model
-  @State private var refreshing = false
 
   var body: some View {
     ScrollView {
       VStack(alignment: .leading, spacing: 22) {
         PageHeader(title: "History", subtitle: "Snapshots from the last 60 days. Restore any of them to a folder.") {
           Button {
-            Task {
-              refreshing = true
-              await model.refreshSnapshots()
-              refreshing = false
-            }
+            Task { await model.refreshSnapshots() }
           } label: {
             Label("Refresh", systemImage: "arrow.clockwise")
           }
           .buttonStyle(SecondaryButtonStyle())
-          .disabled(refreshing)
+          .disabled(model.snapshotsLoad == .loading)
         }
         if !model.restoredFolders.isEmpty {
           Banner(
@@ -32,7 +27,14 @@ struct HistoryView: View {
           Banner(systemName: "arrow.down.circle.fill", tint: Brand.blue, text: "Restoring files…") {}
         }
         if model.snapshots.isEmpty {
-          empty
+          switch model.snapshotsLoad {
+          case .notLoaded, .loading:
+            loading
+          case .loaded:
+            empty
+          case .failed(let message):
+            failed(message)
+          }
         } else {
           ForEach(groups, id: \.day) { group in
             VStack(alignment: .leading, spacing: 8) {
@@ -71,6 +73,38 @@ struct HistoryView: View {
         .font(.system(size: 17, weight: .semibold, design: .rounded))
       Text("Your first backup will show up here.")
         .foregroundStyle(.secondary)
+    }
+    .frame(maxWidth: .infinity)
+    .padding(.vertical, 60)
+  }
+
+  private var loading: some View {
+    VStack(spacing: 12) {
+      ProgressView()
+        .controlSize(.small)
+      Text("Loading snapshots…")
+        .foregroundStyle(.secondary)
+    }
+    .frame(maxWidth: .infinity)
+    .padding(.vertical, 60)
+  }
+
+  private func failed(_ message: String) -> some View {
+    VStack(spacing: 10) {
+      Image(systemName: "exclamationmark.triangle.fill")
+        .font(.system(size: 38))
+        .foregroundStyle(.orange)
+      Text("Couldn't load snapshots")
+        .font(.system(size: 17, weight: .semibold, design: .rounded))
+      Text(message)
+        .foregroundStyle(.secondary)
+        .multilineTextAlignment(.center)
+        .frame(maxWidth: 420)
+      Button("Try Again") {
+        Task { await model.refreshSnapshots() }
+      }
+      .buttonStyle(SecondaryButtonStyle())
+      .padding(.top, 4)
     }
     .frame(maxWidth: .infinity)
     .padding(.vertical, 60)
