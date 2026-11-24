@@ -56,6 +56,7 @@ struct SettingsView: View {
           SettingLabel(
             systemName: "speedometer", tint: .green, title: "Upload limit", detail: "Leave empty for no limit.")
         }
+        .labeledContentStyle(.centered)
         if let limitError {
           InlineError(text: limitError)
         }
@@ -326,4 +327,18 @@ struct SettingLabel: View {
       }
     }
   }
+}
+
+struct CenteredLabeledContentStyle: LabeledContentStyle {
+  func makeBody(configuration: Configuration) -> some View {
+    HStack(alignment: .center, spacing: 12) {
+      configuration.label
+      Spacer(minLength: 0)
+      configuration.content
+    }
+  }
+}
+
+extension LabeledContentStyle where Self == CenteredLabeledContentStyle {
+  static var centered: CenteredLabeledContentStyle { CenteredLabeledContentStyle() }
 }

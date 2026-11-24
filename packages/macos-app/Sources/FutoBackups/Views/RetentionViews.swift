@@ -47,6 +47,7 @@ struct RetentionSection: View {
                 .foregroundStyle(.secondary)
             }
           }
+          .labeledContentStyle(.centered)
           if let error = fieldErrors[field] {
             InlineError(text: error.message)
           }

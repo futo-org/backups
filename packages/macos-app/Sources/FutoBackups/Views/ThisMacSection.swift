@@ -58,6 +58,7 @@ struct ThisMacSection: View {
             "Remove FUTO Backups' settings, sign-in and recovery key from this Mac. Its backup stays on FUTO Cloud and this Mac stays listed in your account."
         )
       }
+      .labeledContentStyle(.centered)
       .padding(.vertical, 4)
       LabeledContent {
         Button("Delete This Mac's Backup…") { sheet = .deleteBackup }
@@ -69,6 +70,7 @@ struct ThisMacSection: View {
             "Permanently delete this Mac's backup history from FUTO Cloud, remove this Mac from your account, then unlink it."
         )
       }
+      .labeledContentStyle(.centered)
       .padding(.vertical, 4)
     }
     .disabled(model.isResetting)
