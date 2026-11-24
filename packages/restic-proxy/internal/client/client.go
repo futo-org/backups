@@ -25,6 +25,10 @@ func New(api meta.Api) Client {
 	}
 }
 
+func (client *Client) CloseIdleConnections() {
+	client.http.CloseIdleConnections()
+}
+
 func (client *Client) send(ctx context.Context, method string, path string, token string, payload any, expected int, result any) error {
 	var body io.Reader
 	if payload != nil {

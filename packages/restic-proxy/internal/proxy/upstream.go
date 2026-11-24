@@ -12,8 +12,8 @@ import (
 var errNetworkChanged = errors.New("network changed")
 
 type upstream struct {
-	transport *http.Transport
-	dialer    *net.Dialer
+	transport   *http.Transport
+	dialContext func(context.Context, string, string) (net.Conn, error)
 
 	mu          sync.Mutex
 	generation  context.Context
@@ -35,7 +35,7 @@ func (conn *trackedConn) Close() error {
 func newUpstream() *upstream {
 	generation, cancel := context.WithCancelCause(context.Background())
 	u := &upstream{
-		dialer:      &net.Dialer{Timeout: 10 * time.Second, KeepAlive: 30 * time.Second},
+		dialContext: (&net.Dialer{Timeout: 10 * time.Second, KeepAlive: 30 * time.Second}).DialContext,
 		generation:  generation,
 		cancel:      cancel,
 		connections: map[*trackedConn]struct{}{},
@@ -44,16 +44,33 @@ func newUpstream() *upstream {
 	return u
 }
 
+func (u *upstream) current() context.Context {
+	u.mu.Lock()
+	defer u.mu.Unlock()
+	return u.generation
+}
+
 func (u *upstream) dial(ctx context.Context, network, address string) (net.Conn, error) {
-	conn, err := u.dialer.DialContext(ctx, network, address)
+	generation := u.current()
+	ctx, cancel := context.WithCancelCause(ctx)
+	defer cancel(nil)
+	stop := context.AfterFunc(generation, func() { cancel(context.Cause(generation)) })
+	defer stop()
+
+	conn, err := u.dialContext(ctx, network, address)
 	if err != nil {
 		return nil, err
 	}
 
-	tracked := &trackedConn{Conn: conn, release: u.forget}
 	u.mu.Lock()
+	defer u.mu.Unlock()
+	if u.generation != generation {
+		_ = conn.Close()
+		return nil, errNetworkChanged
+	}
+
+	tracked := &trackedConn{Conn: conn, release: u.forget}
 	u.connections[tracked] = struct{}{}
-	u.mu.Unlock()
 	return tracked, nil
 }
 
@@ -64,17 +81,18 @@ func (u *upstream) forget(conn *trackedConn) {
 }
 
 func (u *upstream) bind(parent context.Context, interrupt func()) (context.Context, context.CancelFunc) {
-	u.mu.Lock()
-	generation := u.generation
-	u.mu.Unlock()
-
+	generation := u.current()
 	ctx, cancel := context.WithCancelCause(parent)
+	interrupted := make(chan struct{})
 	stop := context.AfterFunc(generation, func() {
+		defer close(interrupted)
 		cancel(context.Cause(generation))
 		interrupt()
 	})
 	return ctx, func() {
-		stop()
+		if !stop() {
+			<-interrupted
+		}
 		cancel(nil)
 	}
 }

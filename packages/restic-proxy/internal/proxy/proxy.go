@@ -80,6 +80,7 @@ func (handler *Handler) Uploaded() int64 {
 
 func (handler *Handler) NetworkChanged() {
 	closed := handler.upstream.reset()
+	handler.client.CloseIdleConnections()
 	log.Info().Int("connections", closed).Msg("Reset upstream connections after a network change")
 }
 
@@ -132,11 +133,11 @@ func (handler *Handler) ServeHTTP(writer http.ResponseWriter, request *http.Requ
 	}
 
 	log.Debug().Msg("handled request")
-	ctx, release := handler.upstream.bind(ctx, func() {
-		// The transport reports the cancellation only after its body copy, blocked reading from restic, returns.
-		_ = http.NewResponseController(writer).SetReadDeadline(time.Now())
-	})
+	// The transport reports a failure only after its body copy, blocked reading from restic, returns.
+	interrupt := func() { _ = http.NewResponseController(writer).SetReadDeadline(time.Now()) }
+	ctx, release := handler.upstream.bind(ctx, interrupt)
 	defer release()
+	defer interruptOnClose(request, interrupt)()
 	request.Body = count(pace(ctx, request.Body, &handler.throttle), &handler.uploaded)
 
 	route := routed{key: repositoryId, grant: grant, path: path}
@@ -168,7 +169,7 @@ func (handler *Handler) smartResolve(name string, sessionToken string) (string, 
 	}
 
 	value, err, _ := handler.minting.Do("resolve:"+reference, func() (any, error) {
-		ctx, cancel := context.WithTimeout(context.Background(), refreshTimeout)
+		ctx, cancel := context.WithTimeout(handler.upstream.current(), refreshTimeout)
 		defer cancel()
 
 		repositories, err := handler.client.ListRepositories(ctx, sessionToken)
@@ -235,7 +236,7 @@ func (handler *Handler) mint(key string, sessionToken string) (client.Grant, err
 	}
 
 	value, err, _ := handler.minting.Do(reference, func() (any, error) {
-		ctx, cancel := context.WithTimeout(context.Background(), refreshTimeout)
+		ctx, cancel := context.WithTimeout(handler.upstream.current(), refreshTimeout)
 		defer cancel()
 
 		grant, err := handler.client.Grant(ctx, sessionToken, key)

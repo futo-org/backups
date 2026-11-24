@@ -1,16 +1,20 @@
 package proxy
 
 import (
+	"context"
+	"errors"
 	"io"
 	"net"
 	"net/http"
 	"net/http/httptest"
 	"strings"
+	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
 
 	"restic-proxy/internal/client"
+	"restic-proxy/internal/meta"
 )
 
 type hangingBackend struct {
@@ -50,7 +54,9 @@ func newHangingBackend(t *testing.T) *hangingBackend {
 }
 
 func upload(server *httptest.Server, body io.Reader) (int, error) {
-	request, err := http.NewRequest(http.MethodPost, server.URL+"/data/0123", body)
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	request, err := http.NewRequestWithContext(ctx, http.MethodPost, server.URL+"/data/0123", body)
 	if err != nil {
 		return 0, err
 	}
@@ -126,8 +132,13 @@ func TestNetworkChanged_RetriesSucceedOverAFreshConnection(t *testing.T) {
 	backend.hangs.Store(false)
 	handler.NetworkChanged()
 
-	if status := <-statuses; status != http.StatusBadGateway {
-		t.Errorf("expected the interrupted upload to get 502, got %d", status)
+	select {
+	case status := <-statuses:
+		if status != http.StatusBadGateway {
+			t.Errorf("expected the interrupted upload to get 502, got %d", status)
+		}
+	case <-time.After(2 * time.Second):
+		t.Fatal("the hanging upload was not interrupted")
 	}
 
 	status, err := upload(proxy, strings.NewReader("pack"))
@@ -237,12 +248,268 @@ func TestNetworkChanged_FailsStreamsOnABusyHTTP2Connection(t *testing.T) {
 }
 
 func TestNetworkChanged_WithoutTrafficIsHarmless(t *testing.T) {
-	handler := New(client.Client{}, "", false)
+	handler := New(client.New(meta.Api{}), "", false)
 
 	handler.NetworkChanged()
 	handler.NetworkChanged()
 
 	if len(handler.upstream.connections) != 0 {
 		t.Errorf("expected no tracked connections, got %d", len(handler.upstream.connections))
+	}
+}
+
+func TestNetworkChanged_InterruptsAPendingGrantLookup(t *testing.T) {
+	arrived := make(chan struct{}, 1)
+	release := make(chan struct{})
+	api := httptest.NewServer(http.HandlerFunc(func(_ http.ResponseWriter, request *http.Request) {
+		arrived <- struct{}{}
+		select {
+		case <-request.Context().Done():
+		case <-release:
+		}
+	}))
+	t.Cleanup(api.Close)
+	t.Cleanup(func() { close(release) })
+	handler, proxy := newProxy(t, client.New(meta.Api{Url: api.URL}))
+
+	statuses := uploadInBackground(proxy, strings.NewReader("pack"))
+	select {
+	case <-arrived:
+	case <-time.After(5 * time.Second):
+		t.Fatal("the grant lookup never reached the API")
+	}
+
+	handler.NetworkChanged()
+
+	select {
+	case status := <-statuses:
+		if status != http.StatusServiceUnavailable {
+			t.Errorf("expected 503, got %d", status)
+		}
+	case <-time.After(2 * time.Second):
+		t.Fatal("the grant lookup was not interrupted")
+	}
+}
+
+func TestReset_CancelsDialsInProgress(t *testing.T) {
+	upstream := newUpstream()
+	dialing := make(chan struct{})
+	upstream.dialContext = func(ctx context.Context, _, _ string) (net.Conn, error) {
+		close(dialing)
+		<-ctx.Done()
+		return nil, context.Cause(ctx)
+	}
+
+	failed := make(chan error, 1)
+	go func() {
+		_, err := upstream.dial(context.Background(), "tcp", "backend:443")
+		failed <- err
+	}()
+	<-dialing
+	upstream.reset()
+
+	select {
+	case err := <-failed:
+		if !errors.Is(err, errNetworkChanged) {
+			t.Errorf("expected the dial to fail with the network change, got %v", err)
+		}
+	case <-time.After(2 * time.Second):
+		t.Fatal("the dial was not cancelled")
+	}
+}
+
+func TestReset_RejectsDialsThatCompleteAfterIt(t *testing.T) {
+	upstream := newUpstream()
+	dialing := make(chan struct{})
+	proceed := make(chan struct{})
+	local, remote := net.Pipe()
+	t.Cleanup(func() { _ = remote.Close() })
+	upstream.dialContext = func(context.Context, string, string) (net.Conn, error) {
+		close(dialing)
+		<-proceed
+		return local, nil
+	}
+
+	type result struct {
+		conn net.Conn
+		err  error
+	}
+	results := make(chan result, 1)
+	go func() {
+		conn, err := upstream.dial(context.Background(), "tcp", "backend:443")
+		results <- result{conn, err}
+	}()
+	<-dialing
+	upstream.reset()
+	close(proceed)
+
+	dialed := <-results
+	if dialed.conn != nil || !errors.Is(dialed.err, errNetworkChanged) {
+		t.Errorf("expected the late dial to be rejected, got %v %v", dialed.conn, dialed.err)
+	}
+	if len(upstream.connections) != 0 {
+		t.Errorf("expected no tracked connections, got %d", len(upstream.connections))
+	}
+	if _, err := local.Write([]byte("x")); !errors.Is(err, io.ErrClosedPipe) {
+		t.Errorf("expected the late connection to be closed, got %v", err)
+	}
+}
+
+func TestBind_ReleaseWaitsForAnInterruptInProgress(t *testing.T) {
+	upstream := newUpstream()
+	interrupting := make(chan struct{})
+	finish := make(chan struct{})
+	_, release := upstream.bind(context.Background(), func() {
+		close(interrupting)
+		<-finish
+	})
+
+	upstream.reset()
+	select {
+	case <-interrupting:
+	case <-time.After(2 * time.Second):
+		t.Fatal("the reset never interrupted the request")
+	}
+
+	released := make(chan struct{})
+	go func() {
+		release()
+		close(released)
+	}()
+
+	select {
+	case <-released:
+		t.Fatal("released while the interrupt was still running")
+	case <-time.After(100 * time.Millisecond):
+	}
+
+	close(finish)
+	select {
+	case <-released:
+	case <-time.After(2 * time.Second):
+		t.Fatal("release never returned after the interrupt finished")
+	}
+}
+
+type freezableRelay struct {
+	listener net.Listener
+	frozen   chan struct{}
+
+	mu    sync.Mutex
+	conns []net.Conn
+}
+
+func newFreezableRelay(t *testing.T, target string) *freezableRelay {
+	t.Helper()
+	listener, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatalf("listen: %v", err)
+	}
+
+	relay := &freezableRelay{listener: listener, frozen: make(chan struct{})}
+	go relay.accept(target)
+	t.Cleanup(relay.close)
+	return relay
+}
+
+func (relay *freezableRelay) accept(target string) {
+	for {
+		downstream, err := relay.listener.Accept()
+		if err != nil {
+			return
+		}
+
+		upstream, err := net.Dial("tcp", target)
+		if err != nil {
+			_ = downstream.Close()
+			continue
+		}
+
+		relay.mu.Lock()
+		relay.conns = append(relay.conns, downstream, upstream)
+		relay.mu.Unlock()
+		go relay.forward(upstream, downstream)
+		go relay.forward(downstream, upstream)
+	}
+}
+
+func (relay *freezableRelay) forward(destination, source net.Conn) {
+	buffer := make([]byte, 32<<10)
+	for {
+		read, err := source.Read(buffer)
+		if err != nil {
+			_ = destination.Close()
+			return
+		}
+
+		select {
+		case <-relay.frozen:
+			return
+		default:
+		}
+
+		if _, err := destination.Write(buffer[:read]); err != nil {
+			return
+		}
+	}
+}
+
+func (relay *freezableRelay) freeze() {
+	close(relay.frozen)
+}
+
+func (relay *freezableRelay) close() {
+	_ = relay.listener.Close()
+	relay.mu.Lock()
+	defer relay.mu.Unlock()
+	for _, conn := range relay.conns {
+		_ = conn.Close()
+	}
+}
+
+func TestHTTP2PingFailure_FailsAStalledUploadWithoutANetworkChange(t *testing.T) {
+	arrived := make(chan struct{}, 1)
+	release := make(chan struct{})
+	backend := httptest.NewUnstartedServer(http.HandlerFunc(func(_ http.ResponseWriter, request *http.Request) {
+		_, _ = io.Copy(io.Discard, io.LimitReader(request.Body, 4))
+		arrived <- struct{}{}
+		select {
+		case <-request.Context().Done():
+		case <-release:
+		}
+	}))
+	backend.EnableHTTP2 = true
+	backend.StartTLS()
+	t.Cleanup(backend.Close)
+	t.Cleanup(func() { close(release) })
+
+	relay := newFreezableRelay(t, backend.Listener.Addr().String())
+	handler, proxy := newProxy(t, newAPI(t, "https://"+relay.listener.Addr().String(), http.StatusCreated, nil))
+	handler.upstream.transport.TLSClientConfig = backend.Client().Transport.(*http.Transport).TLSClientConfig.Clone()
+	handler.upstream.transport.HTTP2 = &http.HTTP2Config{
+		SendPingTimeout: 100 * time.Millisecond,
+		PingTimeout:     100 * time.Millisecond,
+	}
+
+	body, writer := io.Pipe()
+	t.Cleanup(func() { _ = writer.Close() })
+	go func() { _, _ = writer.Write([]byte("partial pack")) }()
+
+	statuses := uploadInBackground(proxy, body)
+	select {
+	case <-arrived:
+	case <-time.After(5 * time.Second):
+		t.Fatal("the upload never reached the backend")
+	}
+
+	relay.freeze()
+
+	select {
+	case status := <-statuses:
+		if status != http.StatusBadGateway {
+			t.Errorf("expected 502, got %d", status)
+		}
+	case <-time.After(3 * time.Second):
+		t.Fatal("the stalled upload outlived the HTTP/2 ping timeout")
 	}
 }
