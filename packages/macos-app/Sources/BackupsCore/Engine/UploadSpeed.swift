@@ -47,12 +47,16 @@ public struct UploadSpeed: Equatable, Sendable {
     return step * magnitude
   }
 
-  public static func rateText(_ bytesPerSecond: Double) -> String {
-    let formatter = ByteCountFormatter()
-    formatter.countStyle = .file
-    formatter.allowedUnits = [.useKB, .useMB, .useGB, .useTB]
-    formatter.allowsNonnumericFormatting = false
-    return formatter.string(fromByteCount: Int64(max(0, bytesPerSecond).rounded())) + "/s"
+  public static func rateText(_ bytesPerSecond: Double, locale: Locale = .current) -> String {
+    let bits = max(0, bytesPerSecond) * 8
+    let (value, unit): (Double, String) =
+      switch bits {
+      case ..<1_000_000: (bits / 1_000, "kbit/s")
+      case ..<1_000_000_000: (bits / 1_000_000, "Mbit/s")
+      default: (bits / 1_000_000_000, "Gbit/s")
+      }
+    let digits = value < 10 ? 1 : 0
+    return value.formatted(.number.precision(.fractionLength(digits)).locale(locale)) + " " + unit
   }
 
   public var accessibilitySummary: String {

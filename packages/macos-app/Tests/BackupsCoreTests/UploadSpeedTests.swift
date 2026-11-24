@@ -142,10 +142,15 @@ func chartCeiling(highest: Double, ceiling: Double) {
 }
 
 @Test func rateTextUsesFileByteCountsPerSecond() {
-  #expect(UploadSpeed.rateText(12_400_000).hasPrefix("12"))
-  #expect(UploadSpeed.rateText(12_400_000).hasSuffix("MB/s"))
-  #expect(UploadSpeed.rateText(0).hasPrefix("0"))
-  #expect(UploadSpeed.rateText(-5).hasPrefix("0"))
+  let english = Locale(identifier: "en_US")
+  #expect(UploadSpeed.rateText(12_400_000, locale: english) == "99 Mbit/s")
+  #expect(UploadSpeed.rateText(1_050_000, locale: english) == "8.4 Mbit/s")
+  #expect(UploadSpeed.rateText(50_000, locale: english) == "400 kbit/s")
+  #expect(UploadSpeed.rateText(1_000, locale: english) == "8.0 kbit/s")
+  #expect(UploadSpeed.rateText(150_000_000, locale: english) == "1.2 Gbit/s")
+  #expect(UploadSpeed.rateText(0, locale: english) == "0.0 kbit/s")
+  #expect(UploadSpeed.rateText(-5, locale: english) == "0.0 kbit/s")
+  #expect(UploadSpeed.rateText(1_050_000, locale: Locale(identifier: "fr_FR")) == "8,4 Mbit/s")
 }
 
 @Test func accessibilitySummaryNamesCurrentAverageAndPeak() {
