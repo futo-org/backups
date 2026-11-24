@@ -475,7 +475,7 @@ func missingMasterKeyThrowsAndIsNeverGenerated(
   #expect(fixture.proxy.stopCount == 1)
 }
 
-@Test func macRepositoriesFiltersAndSortsByLastBackupThenName() async throws {
+@Test func macRepositoriesFiltersAndSortsThisMacFirstThenByLastBackupThenName() async throws {
   let tieZulu = RemoteRepository(
     id: "tie-zulu", name: "zulu", worm: false, lastBackup: "2026-11-21T00:00:00Z", connectionType: "macos")
   let tieAlpha = RemoteRepository(
@@ -493,6 +493,12 @@ func missingMasterKeyThrowsAndIsNeverGenerated(
   #expect(listed.map(\.id) == ["tie-alpha", "tie-zulu", "older", "never"])
   #expect(await fixture.deliveredCalls(engine) == [.list])
   #expect(fixture.discoverCount.value == 1)
+  let thisMacOld = RemoteRepository(
+    id: "this-old", name: "test-host", worm: false, lastBackup: "2026-01-01T00:00:00Z", connectionType: "macos")
+  let thisMacNever = RemoteRepository(id: "this-never", name: "test-host", worm: false, connectionType: "macos")
+  await fixture.api.setRepositories([older, thisMacNever, tieAlpha, thisMacOld])
+  let thisMacFirst = try await engine.macRepositories(config: testConfig())
+  #expect(thisMacFirst.map(\.id) == ["this-old", "this-never", "tie-alpha", "older"])
   let loggedOut = makeFixture(token: nil)
   await loggedOut.api.setRepositories([tieAlpha])
   let loggedOutEngine = BackupEngine(environment: loggedOut.environment)

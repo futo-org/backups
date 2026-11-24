@@ -622,6 +622,10 @@ public actor BackupEngine {
     let api = environment.makeAPI(server.apiRoot, token)
     let repositories = try await api.listRepositories()
     return repositories.filter { $0.connectionType == "macos" }.sorted { lhs, rhs in
+      let lhsIsThisMac = lhs.name == config.host
+      if lhsIsThisMac != (rhs.name == config.host) {
+        return lhsIsThisMac
+      }
       switch (lhs.lastBackup, rhs.lastBackup) {
       case let (left?, right?):
         if left != right {

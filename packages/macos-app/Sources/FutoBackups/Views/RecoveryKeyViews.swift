@@ -256,8 +256,18 @@ private struct ChooseRepositoryStep: View {
             HStack(spacing: 12) {
               IconTile(systemName: "laptopcomputer", tint: Brand.blue, size: 32)
               VStack(alignment: .leading, spacing: 2) {
-                Text(repository.name)
-                  .font(.system(size: 13, weight: .semibold))
+                HStack(spacing: 8) {
+                  Text(repository.name)
+                    .font(.system(size: 13, weight: .semibold))
+                  if repository.name == model.config.host {
+                    Text("This Mac")
+                      .font(.system(size: 10, weight: .bold))
+                      .foregroundStyle(Brand.blue)
+                      .padding(.horizontal, 6)
+                      .padding(.vertical, 2)
+                      .background(Capsule().fill(Brand.blue.opacity(0.14)))
+                  }
+                }
                 Text(detail(for: repository))
                   .font(.system(size: 12))
                   .foregroundStyle(.secondary)
