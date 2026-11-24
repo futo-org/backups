@@ -17,6 +17,8 @@ type Config struct {
 	ApiUrl    string `env:"RESTIC_PROXY_API_URL"`
 	ReadyFd   int    `env:"RESTIC_PROXY_READY_FD"`
 
+	ProgressIntervalMs int `env:"RESTIC_PROXY_PROGRESS_INTERVAL_MS" envDefault:"0"`
+
 	ThrottleBytesPerSec int    `env:"RESTIC_PROXY_THROTTLE_BYTES_PER_SEC" envDefault:"0"`
 	ThrottleQuietHours  string `env:"RESTIC_PROXY_THROTTLE_QUIET_HOURS"`
 

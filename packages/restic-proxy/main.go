@@ -73,6 +73,13 @@ func main() {
 		ReadHeaderTimeout: 30 * time.Second,
 	}
 
+	if parent != nil && cfg.ProgressIntervalMs > 0 {
+		go func() {
+			err := ipc.ReportProgress(context.Background(), parent, time.Duration(cfg.ProgressIntervalMs)*time.Millisecond, proxy.Uploaded)
+			log.Debug().Err(err).Msg("Stopped reporting upload progress")
+		}()
+	}
+
 	if parent != nil {
 		go func() {
 			ipc.ReadControl(parent, func(control ipc.Control) {
