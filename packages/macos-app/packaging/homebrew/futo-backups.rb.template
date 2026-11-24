@@ -17,8 +17,7 @@ cask "futo-backups" do
 
   app "FUTO Backups.app"
 
-  uninstall quit:       "org.futo.backups.mac",
-            login_item: "FUTO Backups"
+  uninstall quit: "org.futo.backups.mac"
 
   zap trash: [
     "~/Library/Application Support/FUTO Backups",
