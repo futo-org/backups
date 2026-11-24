@@ -42,7 +42,7 @@ private let commandCases: [CommandCase] = [
   CommandCase(
     name: "unlock",
     invocation: ResticCommand.unlock(plainContext),
-    arguments: ["unlock", "--json"] + common + ["--remove-all"]),
+    arguments: ["unlock", "--json"] + common),
   CommandCase(
     name: "snapshots",
     invocation: ResticCommand.snapshots(plainContext),

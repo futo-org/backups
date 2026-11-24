@@ -39,7 +39,7 @@ public enum ResticCommand {
   }
 
   public static func unlock(_ context: ResticContext) -> ResticInvocation {
-    invocation(context, ["unlock"], ["--remove-all"])
+    invocation(context, ["unlock"], [])
   }
 
   public static func backup(
