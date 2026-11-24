@@ -39,11 +39,19 @@ public struct StructuredLog: Encodable, Equatable, Sendable {
   public static let client = "macos"
 
   private static let credentialURL = try! NSRegularExpression(pattern: #"://[^/\s@]+@"#)
-  private static let fileURL = try! NSRegularExpression(pattern: #"file://[^\s"',)\]:}]*"#)
+  private static let fileURL = try! NSRegularExpression(pattern: #"file://(?:(?!: )[^\s"<>{}\[\]|\\^`])*"#)
   private static let foundationPathKeys = try! NSRegularExpression(
-    pattern: #"(NSFilePathErrorKey|NSFilePath|NSURL)=[^,}\s]*"#)
+    pattern: #"(NSFilePathErrorKey|NSFilePath|NSURL)=(?:(?!, \w+=)[^}\n\r])*"#)
   private static let absolutePath = try! NSRegularExpression(
-    pattern: #"(?:^|(?<=[\s(\["'=:-]))~?/(?!/)(?:(?!: )[^"',)\]}\n])+"#)
+    pattern: #"(?:^|(?<=[\s(\["'=:\-“‘]))~?/(?![/\s])(?:(?!: )(?:\\.|[^"\\\n\r]))+"#)
+  private static let pathErrorOperations = [
+    "open", "openat", "lstat", "stat", "fstatat", "readdirent", "readdir", "readlink", "read", "mkdir", "remove",
+    "unlinkat", "rename", "chmod", "chown", "lchown", "chtimes", "symlink", "link", "getxattr", "lgetxattr",
+    "listxattr", "llistxattr", "setxattr", "lsetxattr",
+  ]
+  private static let pathErrorOperand = try! NSRegularExpression(
+    pattern: #"\b("# + pathErrorOperations.joined(separator: "|")
+      + #") (?![</~])(?:(?!: )[^"\n\r/])*/(?:(?!: )[^"\n\r])*(?=: )"#)
 
   public var summary: String
   public var data: [String: TelemetryValue]
@@ -61,6 +69,7 @@ public struct StructuredLog: Encodable, Equatable, Sendable {
     result = replace(fileURL, with: "<path>", in: result)
     result = replace(foundationPathKeys, with: "$1=<path>", in: result)
     result = replace(absolutePath, with: "<path>", in: result)
+    result = replace(pathErrorOperand, with: "$1 <path>", in: result)
     return result
   }
 

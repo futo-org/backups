@@ -123,6 +123,42 @@ private let redactionCases: [(input: String, output: String)] = [
   (input: "two: /a b/c: first, /d e: second", output: "two: <path>: first, <path>: second"),
   (input: "http://localhost:3020/api/meta failed", output: "http://localhost:3020/api/meta failed"),
   (input: "keep-within 60d", output: "keep-within 60d"),
+  (input: "/Users/x/Mom's Taxes, 2025/return.pdf", output: "<path>"),
+  (
+    input: "/Users/x/Mom's Taxes, 2025/return.pdf: permission denied",
+    output: "<path>: permission denied"
+  ),
+  (input: "cannot read /Users/x/Photos (2024)/[draft] {v2}.jpg", output: "cannot read <path>"),
+  (input: "lstat /Users/x/Café — 日本語/ファイル 🎉.pdf: no such file", output: "lstat <path>: no such file"),
+  (
+    input: #"{"item":"/Users/x/a, b's \"c\".txt","during":"archival"}"#,
+    output: #"{"item":"<path>","during":"archival"}"#
+  ),
+  (input: #"{"item":"/Users/x/it's, here","during":"archival"}"#, output: #"{"item":"<path>","during":"archival"}"#),
+  (input: "open '/Users/x/Mom's Taxes.pdf': permission denied", output: "open '<path>: permission denied"),
+  (input: "The file “/Users/x/Mom's Taxes.pdf” couldn’t be opened.", output: "The file “<path>"),
+  (input: "first /Users/x/a, b\nsecond /Users/x/c's d", output: "first <path>\nsecond <path>"),
+  (input: "path=/Users/x/a b, c", output: "path=<path>"),
+  (
+    input: "/private/var/Snapshot/Volume/Users/x/f: open Users/x/Mom's Taxes, 2025/f: permission denied",
+    output: "<path>: open <path>: permission denied"
+  ),
+  (
+    input: "readdirent -weird/sub dir: input/output error",
+    output: "readdirent <path>: input/output error"
+  ),
+  (
+    input: "unable to open config file: Stat: 500 Internal Server Error",
+    output: "unable to open config file: Stat: 500 Internal Server Error"
+  ),
+  (input: "3 / 4 files and/or 50/50", output: "3 / 4 files and/or 50/50"),
+  (input: "cannot open file:///Users/x/Mom's%20Taxes,%202025/f.pdf: denied", output: "cannot open <path>: denied"),
+  (
+    input:
+      #"UserInfo={NSFilePath=/Users/x/Mom's Taxes, 2025/return.pdf, NSUnderlyingError=0x6 {Error Domain=NSPOSIXErrorDomain Code=2 "No such file"}}"#,
+    output:
+      #"UserInfo={NSFilePath=<path>, NSUnderlyingError=0x6 {Error Domain=NSPOSIXErrorDomain Code=2 "No such file"}}"#
+  ),
 ]
 
 @Test(arguments: redactionCases)
