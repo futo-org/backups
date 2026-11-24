@@ -70,7 +70,6 @@ struct MenuBarContent: View {
         }
         Spacer()
         Button("Quit FUTO Backups") { MenuBarResidency.shared.quit() }
-          .keyboardShortcut("q")
           .help("Stops FUTO Backups, including scheduled backups, until you open it again")
       }
       .buttonStyle(.borderless)
