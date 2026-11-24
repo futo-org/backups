@@ -37,6 +37,7 @@ struct FoldersView: View {
           addFolders()
         } label: {
           Label("Add Folder", systemImage: "plus")
+            .labelStyle(.titleAndIcon)
         }
       }
     }

@@ -59,7 +59,7 @@ struct HistoryView: View {
       .frame(maxWidth: .infinity)
     }
     .navigationTitle("History")
-    .navigationSubtitle(model.config.snapshotRetention.summary)
+    .navigationSubtitle("Retention for this Mac: \(model.config.snapshotRetention.summary)")
     .toolbar {
       ToolbarItem(placement: .primaryAction) {
         Button {

@@ -30,13 +30,13 @@ struct MainWindow: View {
     Group {
       if !model.sessionLoaded {
         LaunchView()
-          .fullWindow()
+          .fullWindow(reservingBanner: model.configLoadFailure != nil)
       } else if model.config.telemetryConsentedAt == nil {
         TelemetryConsentView()
-          .fullWindow()
+          .fullWindow(reservingBanner: model.configLoadFailure != nil)
       } else if model.signedIn && model.needsOnboarding {
         FirstRunOnboarding()
-          .fullWindow()
+          .fullWindow(reservingBanner: model.configLoadFailure != nil)
       } else if model.signedIn {
         NavigationSplitView {
           sidebar
@@ -46,10 +46,10 @@ struct MainWindow: View {
         }
       } else if model.recoveryKeyStep != nil {
         RecoveryKeyOnboarding()
-          .fullWindow()
+          .fullWindow(reservingBanner: model.configLoadFailure != nil)
       } else {
         WelcomeView()
-          .fullWindow()
+          .fullWindow(reservingBanner: model.configLoadFailure != nil)
       }
     }
     .safeAreaInset(edge: .top, spacing: 0) {
@@ -158,9 +158,9 @@ struct AccountChip: View {
 }
 
 extension View {
-  fileprivate func fullWindow() -> some View {
+  fileprivate func fullWindow(reservingBanner: Bool) -> some View {
     toolbar(removing: .title)
       .toolbarBackgroundVisibility(.hidden, for: .windowToolbar)
-      .ignoresSafeArea(edges: .top)
+      .ignoresSafeArea(edges: reservingBanner ? [] : .top)
   }
 }
