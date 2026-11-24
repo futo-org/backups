@@ -1,3 +1,4 @@
+import BackupsCore
 import Foundation
 import Observation
 import Sparkle
@@ -8,7 +9,10 @@ final class Updater {
   let isAvailable: Bool
   var canCheckForUpdates: Bool { controller != nil && (!started || sparkleCanCheckForUpdates) }
   var automaticallyChecksForUpdates: Bool {
-    didSet { controller?.updater.automaticallyChecksForUpdates = automaticallyChecksForUpdates }
+    didSet {
+      controller?.updater.automaticallyChecksForUpdates = automaticallyChecksForUpdates
+      delegate.backgroundChecks.automaticChecksChanged(enabled: automaticallyChecksForUpdates)
+    }
   }
 
   private var controller: SPUStandardUpdaterController?
@@ -23,7 +27,7 @@ final class Updater {
     isAvailable = (feedURL?.isEmpty == false) && (publicEDKey?.isEmpty == false)
     automaticallyChecksForUpdates = false
     started = startingUpdater
-    delegate = UpdaterDelegate(holdingBackgroundChecks: !startingUpdater)
+    delegate = UpdaterDelegate(backgroundChecks: BackgroundUpdateCheckGate(onboarding: !startingUpdater))
     if isAvailable {
       let controller = SPUStandardUpdaterController(
         startingUpdater: startingUpdater, updaterDelegate: delegate, userDriverDelegate: nil)
@@ -40,7 +44,7 @@ final class Updater {
 
   func start() {
     guard let controller else { return }
-    delegate.holdingBackgroundChecks = false
+    delegate.backgroundChecks.finishOnboarding(automaticChecks: automaticallyChecksForUpdates)
     startSparkle(controller)
   }
 
@@ -59,14 +63,14 @@ final class Updater {
 
 @MainActor
 private final class UpdaterDelegate: NSObject, SPUUpdaterDelegate {
-  var holdingBackgroundChecks: Bool
+  var backgroundChecks: BackgroundUpdateCheckGate
 
-  init(holdingBackgroundChecks: Bool) {
-    self.holdingBackgroundChecks = holdingBackgroundChecks
+  init(backgroundChecks: BackgroundUpdateCheckGate) {
+    self.backgroundChecks = backgroundChecks
   }
 
   func updater(_ updater: SPUUpdater, mayPerform updateCheck: SPUUpdateCheck) throws {
-    guard holdingBackgroundChecks, updateCheck == .updatesInBackground else { return }
+    guard !backgroundChecks.allowsBackgroundChecks, updateCheck == .updatesInBackground else { return }
     throw CocoaError(.userCancelled)
   }
 
