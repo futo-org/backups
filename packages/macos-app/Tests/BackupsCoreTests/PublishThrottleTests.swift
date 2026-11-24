@@ -46,6 +46,15 @@ private func at(_ milliseconds: Int) -> ContinuousClock.Instant {
   #expect(throttle.flush(at: at(1000)) == 3)
 }
 
+@Test func anImmediatePublishOvertakingAScheduledFlushStartsAFreshWindow() {
+  var throttle = PublishThrottle<Int>(interval: .milliseconds(500))
+  _ = throttle.offer(1, at: at(0))
+  #expect(throttle.offer(2, at: at(100)) == .flush(after: .milliseconds(400)))
+  #expect(throttle.offer(3, at: at(500)) == .publish(3))
+  #expect(throttle.offer(4, at: at(600)) == .flush(after: .milliseconds(400)))
+  #expect(throttle.flush(at: at(1000)) == 4)
+}
+
 @Test func returningToThePublishedValueCancelsThePendingOne() {
   var throttle = PublishThrottle<Int>(interval: .milliseconds(500))
   _ = throttle.offer(1, at: at(0))

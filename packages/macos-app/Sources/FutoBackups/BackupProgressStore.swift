@@ -16,6 +16,8 @@ final class BackupProgressStore {
   func receive(_ sample: BackupSample) {
     switch throttle.offer(sample, at: clock.now) {
     case .publish(let sample):
+      flushTask?.cancel()
+      flushTask = nil
       show(sample)
     case .flush(let delay):
       flushTask = Task { [weak self, clock] in

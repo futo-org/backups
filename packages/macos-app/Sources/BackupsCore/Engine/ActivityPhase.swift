@@ -39,6 +39,12 @@ extension EngineActivity {
 
 extension BackupProgress {
   public var wholePercentFraction: Double {
-    (percentDone * 100).rounded() / 100
+    percentDone.wholePercentFraction
+  }
+}
+
+extension Double {
+  public var wholePercentFraction: Double {
+    (self * 100).rounded() / 100
   }
 }

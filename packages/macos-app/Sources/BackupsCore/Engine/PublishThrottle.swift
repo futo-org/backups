@@ -28,6 +28,7 @@ public struct PublishThrottle<Value: Equatable & Sendable>: Sendable {
       flushScheduled = true
       return .flush(after: interval - publishedAt.duration(to: now))
     }
+    flushScheduled = false
     record(value, at: now)
     return .publish(value)
   }

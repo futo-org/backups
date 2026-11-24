@@ -32,7 +32,16 @@ func phaseDropsTheProgressPayload(activity: EngineActivity, phase: ActivityPhase
   #expect(EngineActivity.restoring.backupSample == nil)
 }
 
-@Test(arguments: [(0.0, 0.0), (0.004, 0.0), (0.005, 0.01), (0.4249, 0.42), (0.999, 1.0), (1.0, 1.0)])
+@Test(arguments: [
+  (0.0, 0.0), (0.004, 0.0), (0.005, 0.01), (0.125, 0.13), (0.4249, 0.42), (0.999, 1.0), (1.0, 1.0),
+])
 func wholePercentFractionRoundsToWholePercents(percentDone: Double, expected: Double) {
   #expect(BackupProgress(percentDone: percentDone).wholePercentFraction == expected)
+}
+
+@Test(arguments: [(0.125, "13%"), (0.135, "14%"), (0.285, "28%"), (0.999, "100%")])
+func wholePercentFractionsFormatWithoutRoundingAgain(percentDone: Double, label: String) {
+  let format = FloatingPointFormatStyle<Double>.Percent(locale: Locale(identifier: "en_US"))
+    .precision(.fractionLength(0))
+  #expect(percentDone.wholePercentFraction.formatted(format) == label)
 }

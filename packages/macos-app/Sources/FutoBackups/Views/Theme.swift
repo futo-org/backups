@@ -1,4 +1,5 @@
 import AppKit
+import BackupsCore
 import SwiftUI
 
 enum Brand {
@@ -160,7 +161,7 @@ struct StatusRing: View {
           .stroke(Brand.ringGradient, style: StrokeStyle(lineWidth: lineWidth, lineCap: .round))
           .rotationEffect(.degrees(-90))
           .animation(.easeOut(duration: 0.4), value: progress)
-        Text(progress, format: .percent.precision(.fractionLength(0)))
+        Text(progress.wholePercentFraction, format: .percent.precision(.fractionLength(0)))
           .font(.system(size: size * 0.21, weight: .bold, design: .rounded))
           .monospacedDigit()
       } else if busy {
