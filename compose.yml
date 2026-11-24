@@ -61,7 +61,7 @@ services:
       start_period: 5s
 
   victoria-metrics:
-    image: victoriametrics/victoria-metrics:latest@sha256:5eff7af5341e401471002f58d106d399e614a62f3d240f2dbc21901e49eed5dd
+    image: victoriametrics/victoria-metrics:latest@sha256:322a7a92fdcc269280e9c38af94c83bc76827a31b792acbc60e44394e7f29c20
     ports:
       - 8428:8428
 
