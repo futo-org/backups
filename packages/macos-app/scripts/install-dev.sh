@@ -8,7 +8,11 @@ revision=$(git -C "$package" rev-parse --short HEAD)
 if [ -n "$(git -C "$package" status --porcelain -- .)" ]; then
   revision="$revision.dirty"
 fi
-version="0.0.0-dev.$revision"
+release=$(git -C "$package" describe --tags --match 'v[0-9]*.[0-9]*.[0-9]*' --abbrev=0 2>/dev/null || echo v0.0.0)
+release=${release#v}
+IFS=. read -r major minor patch <<<"$release"
+build=$((10#$major * 1000000 + 10#$minor * 1000 + 10#$patch))
+version="$release-dev.$revision"
 
 work=$(mktemp -d)
 chmod 700 "$work"
@@ -48,8 +52,8 @@ else
   security list-keychains -d user -s "$keychain" "${search_list[@]}"
 fi
 
-app=$(cd "$package" && CODESIGN_IDENTITY="$identity" MAC_APP_VERSION="$version" MAC_APP_BUILD=0 \
-  SPARKLE_AUTOMATIC_CHECKS=false scripts/bundle.sh | tail -n 1)
+app=$(cd "$package" && CODESIGN_IDENTITY="$identity" MAC_APP_VERSION="$version" MAC_APP_BUILD="$build" \
+  scripts/bundle.sh | tail -n 1)
 
 if [ "${NOTARIZE:-}" = "1" ]; then
   secret APPLE_NOTARY_API_KEY__P8 >"$work/notary.p8"

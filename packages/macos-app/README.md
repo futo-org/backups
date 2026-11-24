@@ -10,7 +10,8 @@ mise run mac:bundle   # build/FUTO Backups.app with restic + restic-proxy in Con
 mise run mac:open     # bundle and launch
 ```
 
-`mise run mac:install` builds a dev version (`0.0.0-dev.<commit>`, automatic update checks off), signs it with FUTO's
+`mise run mac:install` builds a dev version (`<latest release>-dev.<commit>`, with that release's build number, so it
+auto-updates to the next release but never back to the one it's based on), signs it with FUTO's
 Developer ID certificate from Infisical (or `CODESIGN_IDENTITY` from your keychain), installs it in `/Applications`
 and launches it; `NOTARIZE=1` also notarizes it.
 
