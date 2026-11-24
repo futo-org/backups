@@ -88,12 +88,26 @@ func TestBufferPool_RoundTrip(t *testing.T) {
 }
 
 func TestNewTransport_DoesNotCompress(t *testing.T) {
-	transport := newTransport()
+	transport := newUpstream().transport
 
 	if !transport.DisableCompression {
 		t.Error("expected compression to be disabled")
 	}
 	if transport.MaxIdleConnsPerHost != 32 {
 		t.Errorf("expected 32 idle connections per host, got %d", transport.MaxIdleConnsPerHost)
+	}
+}
+
+func TestNewTransport_ChecksHTTP2Health(t *testing.T) {
+	transport := newUpstream().transport
+
+	if transport.HTTP2 == nil {
+		t.Fatal("expected an HTTP/2 config")
+	}
+	if transport.HTTP2.SendPingTimeout != 15*time.Second {
+		t.Errorf("expected a ping after 15s without frames, got %s", transport.HTTP2.SendPingTimeout)
+	}
+	if transport.HTTP2.PingTimeout != 10*time.Second {
+		t.Errorf("expected a 10s ping timeout, got %s", transport.HTTP2.PingTimeout)
 	}
 }

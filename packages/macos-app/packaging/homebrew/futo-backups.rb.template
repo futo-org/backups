@@ -33,7 +33,7 @@ cask "futo-backups" do
     #{token} is alpha software.
 
     Uninstalling, even with --zap, leaves its sign-in and recovery key in the login
-    keychain under "org.futo.backups.mac". To remove them, use Settings > Reset This Mac
+    keychain under "org.futo.backups.mac". To remove them, use Settings > Unlink This Mac
     in the app before uninstalling, or delete them in Keychain Access.
   EOS
 end

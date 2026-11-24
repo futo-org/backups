@@ -25,6 +25,18 @@ public struct RunRecord: Codable, Equatable, Sendable {
   }
 }
 
+public struct RememberedRepository: Codable, Equatable, Sendable {
+  public var id: String
+  public var lastRun: RunRecord?
+  public var scheduleAnchor: Date?
+
+  public init(id: String, lastRun: RunRecord? = nil, scheduleAnchor: Date? = nil) {
+    self.id = id
+    self.lastRun = lastRun
+    self.scheduleAnchor = scheduleAnchor
+  }
+}
+
 public struct AppConfig: Codable, Equatable, Sendable {
   public var serverURL: URL
   public var folders: [String]
@@ -40,12 +52,16 @@ public struct AppConfig: Codable, Equatable, Sendable {
   public var diskSnapshots: Bool?
   public var onboardingCompletedAt: Date?
   public var excludeDefaultsVersion: Int?
+  public var repositoriesByServer: [String: RememberedRepository]?
   public var uploadConnections: Int?
   public var readConcurrency: Int?
+  public var retention: SnapshotRetention?
 
   public static let parallelismChoices = [1, 2, 3, 4, 6, 8, 12, 16, 24, 32, 48, 64, 128]
 
   public var usesDiskSnapshots: Bool { diskSnapshots ?? true }
+
+  public var snapshotRetention: SnapshotRetention { retention ?? .standard }
 
   public var scheduleReference: Date? { lastRun?.startedAt ?? scheduleAnchor }
 
@@ -102,10 +118,23 @@ public struct AppConfig: Codable, Equatable, Sendable {
     return config
   }
 
+  public mutating func switchServer(to url: URL) {
+    guard url != serverURL else { return }
+    var remembered = repositoriesByServer ?? [:]
+    remembered[serverURL.absoluteString] = repositoryId.map {
+      RememberedRepository(id: $0, lastRun: lastRun, scheduleAnchor: scheduleAnchor)
+    }
+    let restored = remembered[url.absoluteString]
+    serverURL = url
+    repositoryId = restored?.id
+    lastRun = restored?.lastRun
+    scheduleAnchor = restored?.scheduleAnchor
+    repositoriesByServer = remembered.isEmpty ? nil : remembered
+  }
+
   public mutating func pinToProductionServer() -> Bool {
     guard serverURL != Self.productionServerURL else { return false }
-    serverURL = Self.productionServerURL
-    repositoryId = nil
+    switchServer(to: Self.productionServerURL)
     return true
   }
 

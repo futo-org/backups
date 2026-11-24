@@ -14,12 +14,11 @@ struct OverviewView: View {
   let showFolders: () -> Void
 
   var body: some View {
-    let status = StatusSummary(model: model)
     ScrollView {
       VStack(alignment: .leading, spacing: 18) {
-        hero(status)
-        if case .backingUp(_, let speed) = model.activity {
-          UploadSpeedCard(speed: speed)
+        StatusHero(progress: model.backupProgress, showFolders: showFolders)
+        if model.activity == .backingUp {
+          LiveUploadSpeedCard(progress: model.backupProgress)
         }
         if model.activity == nil, let skipped = model.config.lastRun?.cloudOnlySkipped {
           CloudOnlyNotice(skipped: skipped)
@@ -39,55 +38,6 @@ struct OverviewView: View {
       .frame(maxWidth: 820)
       .frame(maxWidth: .infinity)
     }
-  }
-
-  private func hero(_ status: StatusSummary) -> some View {
-    HStack(spacing: 30) {
-      StatusRing(progress: status.progress, busy: status.busy, symbol: status.symbol, tint: status.tint)
-      VStack(alignment: .leading, spacing: 8) {
-        Text(status.title)
-          .font(.system(size: 28, weight: .bold, design: .rounded))
-        Text(status.subtitle)
-          .font(.system(size: 14))
-          .foregroundStyle(.secondary)
-          .lineLimit(3)
-          .copyable(status.subtitle)
-          .fixedSize(horizontal: false, vertical: true)
-        HStack(spacing: 10) {
-          switch status.action {
-          case .backUp:
-            Button {
-              model.backupNow()
-            } label: {
-              Label("Back Up Now", systemImage: "arrow.up.circle.fill")
-            }
-            .buttonStyle(PrimaryButtonStyle(large: true))
-          case .addFolders:
-            Button {
-              showFolders()
-            } label: {
-              Label("Add Folders", systemImage: "plus")
-            }
-            .buttonStyle(PrimaryButtonStyle(large: true))
-          case .cancel:
-            Button("Cancel") { model.cancelBackup() }
-              .buttonStyle(SecondaryButtonStyle())
-          case .none:
-            EmptyView()
-          }
-        }
-        .padding(.top, 10)
-      }
-      Spacer(minLength: 0)
-    }
-    .padding(28)
-    .background(
-      ZStack {
-        CardBackground()
-        RadialGradient(
-          colors: [status.tint.opacity(0.18), .clear], center: .topLeading, startRadius: 0, endRadius: 380)
-      }
-      .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous)))
   }
 
   private var scheduleCard: some View {
@@ -235,6 +185,72 @@ struct OverviewView: View {
           model.setSchedule(.daily(hour: hour, minute: minute))
         }
       })
+  }
+}
+
+struct StatusHero: View {
+  @Environment(AppModel.self) private var model
+  let progress: BackupProgressStore
+  let showFolders: () -> Void
+
+  var body: some View {
+    let status = StatusSummary(model: model, progress: progress.progress)
+    HStack(spacing: 30) {
+      StatusRing(progress: status.progress, busy: status.busy, symbol: status.symbol, tint: status.tint)
+      VStack(alignment: .leading, spacing: 8) {
+        Text(status.title)
+          .font(.system(size: 28, weight: .bold, design: .rounded))
+        Text(status.subtitle)
+          .font(.system(size: 14))
+          .foregroundStyle(.secondary)
+          .lineLimit(3)
+          .copyable(status.subtitle)
+          .fixedSize(horizontal: false, vertical: true)
+        HStack(spacing: 10) {
+          switch status.action {
+          case .backUp:
+            Button {
+              model.backupNow()
+            } label: {
+              Label("Back Up Now", systemImage: "arrow.up.circle.fill")
+            }
+            .buttonStyle(PrimaryButtonStyle(large: true))
+          case .addFolders:
+            Button {
+              showFolders()
+            } label: {
+              Label("Add Folders", systemImage: "plus")
+            }
+            .buttonStyle(PrimaryButtonStyle(large: true))
+          case .cancel:
+            Button("Cancel") { model.cancelBackup() }
+              .buttonStyle(SecondaryButtonStyle())
+          case .none:
+            EmptyView()
+          }
+        }
+        .padding(.top, 10)
+      }
+      Spacer(minLength: 0)
+    }
+    .padding(28)
+    .background(
+      ZStack {
+        CardBackground()
+        RadialGradient(
+          colors: [status.tint.opacity(0.18), .clear], center: .topLeading, startRadius: 0, endRadius: 380)
+      }
+      .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous)))
+  }
+}
+
+struct LiveUploadSpeedCard: View {
+  let progress: BackupProgressStore
+
+  var body: some View {
+    if let speed = progress.speed {
+      UploadSpeedCard(speed: speed)
+    }
   }
 }
 

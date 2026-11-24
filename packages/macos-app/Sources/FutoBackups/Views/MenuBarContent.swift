@@ -8,24 +8,10 @@ struct MenuBarContent: View {
   @Environment(\.openWindow) private var openWindow
 
   var body: some View {
-    let status = StatusSummary(model: model)
     VStack(alignment: .leading, spacing: 14) {
-      HStack(spacing: 12) {
-        StatusRing(
-          progress: status.progress, busy: status.busy, symbol: status.symbol, tint: status.tint, size: 42)
-        VStack(alignment: .leading, spacing: 2) {
-          Text(model.signedIn ? status.title : "Not signed in")
-            .font(.system(size: 14, weight: .semibold, design: .rounded))
-          Text(model.signedIn ? status.compactSubtitle ?? status.subtitle : "Open FUTO Backups to sign in.")
-            .font(.system(size: 11))
-            .foregroundStyle(.secondary)
-            .lineLimit(2)
-        }
-        Spacer(minLength: 0)
-        AlphaBadge()
-      }
-      if model.signedIn, case .backingUp(_, let speed) = model.activity {
-        UploadSpeedBadge(speed: speed)
+      MenuBarStatus(progress: model.backupProgress)
+      if model.signedIn, model.activity == .backingUp {
+        MenuBarUploadSpeed(progress: model.backupProgress)
       }
       if let error = model.lastError ?? model.setupError {
         Label(error, systemImage: "exclamationmark.triangle.fill")
@@ -50,7 +36,7 @@ struct MenuBarContent: View {
           }
           .buttonStyle(PrimaryButtonStyle())
           .disabled(model.config.folders.isEmpty)
-        } else {
+        } else if !model.isCancelling, model.activity?.isCancellable == true {
           Button {
             model.cancelBackup()
           } label: {
@@ -85,6 +71,47 @@ struct MenuBarContent: View {
     if model.activity != nil { return "Running now" }
     guard let nextRun = model.nextRun else { return "Manual" }
     return nextRun <= .now ? "Due now" : Format.relative(nextRun)
+  }
+}
+
+struct MenuBarLabel: View {
+  let model: AppModel
+
+  var body: some View {
+    Image(systemName: StatusSummary(model: model, progress: nil).menuBarSymbol)
+  }
+}
+
+private struct MenuBarStatus: View {
+  @Environment(AppModel.self) private var model
+  let progress: BackupProgressStore
+
+  var body: some View {
+    let status = StatusSummary(model: model, progress: progress.progress)
+    HStack(spacing: 12) {
+      StatusRing(
+        progress: status.progress, busy: status.busy, symbol: status.symbol, tint: status.tint, size: 42)
+      VStack(alignment: .leading, spacing: 2) {
+        Text(model.signedIn ? status.title : "Not signed in")
+          .font(.system(size: 14, weight: .semibold, design: .rounded))
+        Text(model.signedIn ? status.compactSubtitle ?? status.subtitle : "Open FUTO Backups to sign in.")
+          .font(.system(size: 11))
+          .foregroundStyle(.secondary)
+          .lineLimit(2)
+      }
+      Spacer(minLength: 0)
+      AlphaBadge()
+    }
+  }
+}
+
+private struct MenuBarUploadSpeed: View {
+  let progress: BackupProgressStore
+
+  var body: some View {
+    if let speed = progress.speed {
+      UploadSpeedBadge(speed: speed)
+    }
   }
 }
 

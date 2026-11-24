@@ -108,8 +108,9 @@ struct MainWindow: View {
   }
 
   private func badge(for item: SidebarItem) -> Text? {
-    guard item == .overview, case .backingUp(let progress, _) = model.activity else { return nil }
-    return Text(progress.percentDone, format: .percent.precision(.fractionLength(0)))
+    guard item == .overview, model.activity == .backingUp, let fraction = model.backupProgress.wholePercentFraction
+    else { return nil }
+    return Text(fraction, format: .percent.precision(.fractionLength(0)))
   }
 }
 

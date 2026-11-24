@@ -39,7 +39,8 @@ final class AppModel {
   var config: AppConfig
   var account: AuthInfo?
   var login: LoginState = .idle
-  var activity: EngineActivity?
+  var activity: ActivityPhase?
+  var isCancelling = false
   var snapshots: [Snapshot] = []
   var snapshotsLoad: SnapshotsLoad = .notLoaded
   var lastError: String?
@@ -55,6 +56,7 @@ final class AppModel {
   var configLoadFailure: String?
   var backupDeletion: BackupDeletionState = .idle
   var isResetting = false
+  let backupProgress = BackupProgressStore()
 
   private let store = ConfigStore.standard()
   private let vault = SecretVault(store: KeychainSecretStore())
@@ -385,7 +387,7 @@ final class AppModel {
         try await engine.importMasterKey(normalized)
         guard generation == onboardingGeneration, hasSession else { return nil }
         hasMasterKey = true
-        markRecoveryKeyConfirmed()
+        markRecoveryKeyConfirmed(offeringExistingRepositories: false)
         return nil
       }
       pendingRecoveryKey = normalized
@@ -454,17 +456,17 @@ final class AppModel {
     }
     hasMasterKey = true
     pendingRecoveryKey = nil
-    markRecoveryKeyConfirmed()
+    markRecoveryKeyConfirmed(offeringExistingRepositories: false)
     return nil
   }
 
-  private func markRecoveryKeyConfirmed() {
+  private func markRecoveryKeyConfirmed(offeringExistingRepositories: Bool = true) {
     config.recoveryKeyConfirmedAt = Date()
     saveConfig()
-    continueSetup()
+    continueSetup(offeringExistingRepositories: offeringExistingRepositories)
   }
 
-  private func continueSetup() {
+  private func continueSetup(offeringExistingRepositories: Bool = true) {
     if isRecoveringLostKey {
       recoveryKeyStep = .importKey
       return
@@ -488,15 +490,22 @@ final class AppModel {
     let generation = loginGeneration
     loginTask = Task {
       do {
-        let repositoryId = try await engine.ensureRepository(config: self.config)
+        let setup = try await engine.setUpRepository(
+          config: self.config, offeringExisting: offeringExistingRepositories)
         guard generation == self.loginGeneration else { return }
-        self.config.repositoryId = repositoryId
-        self.saveConfig()
         self.loginTask = nil
         self.login = .idle
-        self.signedIn = true
-        self.recomputeNextRun()
-        await self.refreshSnapshots()
+        switch setup {
+        case .chooseExisting(let existing, let key):
+          self.pendingRecoveryKey = key
+          self.recoveryKeyStep = .chooseRepository(existing)
+        case .ready(let repositoryId):
+          self.config.repositoryId = repositoryId
+          self.saveConfig()
+          self.signedIn = true
+          self.recomputeNextRun()
+          await self.refreshSnapshots()
+        }
       } catch {
         guard generation == self.loginGeneration else { return }
         self.loginTask = nil
@@ -565,7 +574,8 @@ final class AppModel {
     config.needsOnboarding
   }
 
-  func finishOnboarding(folders: [String], backUpNow startBackup: Bool) {
+  func finishOnboarding(folders: [String], retention: RetentionPreset, backUpNow startBackup: Bool) {
+    config.retention = retention.retention
     config.completeOnboarding(folders: folders, at: Date())
     saveConfig()
     recomputeNextRun()
@@ -642,6 +652,13 @@ final class AppModel {
     report("Updated parallelism", ["readConcurrency": .string(concurrency.map(String.init) ?? "auto")])
   }
 
+  func setRetention(_ retention: SnapshotRetention) {
+    guard retention != config.retention else { return }
+    config.retention = retention
+    saveConfig()
+    report("Updated snapshot retention", ["retentionPolicy": .string(retention.telemetryValue)])
+  }
+
   func setDiskSnapshots(_ enabled: Bool) {
     config.diskSnapshots = enabled
     saveConfig()
@@ -667,8 +684,7 @@ final class AppModel {
   func setServerURL(_ url: URL) {
     guard url != config.serverURL else { return }
     logout()
-    config.serverURL = url
-    config.repositoryId = nil
+    config.switchServer(to: url)
     saveConfig()
   }
 
@@ -712,7 +728,7 @@ final class AppModel {
         let record = try await engine.backup(config: configSnapshot) { activity in
           Task { @MainActor in
             guard self.operationTask != nil, generation == self.sessionGeneration else { return }
-            self.activity = activity
+            self.show(activity)
           }
         }
         guard generation == self.sessionGeneration else {
@@ -747,7 +763,9 @@ final class AppModel {
   }
 
   func cancelBackup() {
-    operationTask?.cancel()
+    guard let operationTask, activity?.isCancellable ?? true else { return }
+    isCancelling = true
+    operationTask.cancel()
   }
 
   func resetThisMac() async {
@@ -826,7 +844,7 @@ final class AppModel {
     if config.telemetryConsentedAt != nil {
       var data: [String: TelemetryValue] = [:]
       data["repositoryId"] = config.repositoryId.map { .string($0) }
-      log = StructuredLog(summary: "Reset this Mac", data: data, version: appVersion)
+      log = StructuredLog(summary: "Unlink this Mac", data: data, version: appVersion)
     }
     let engine = engine
     let reset = MacReset(
@@ -852,7 +870,9 @@ final class AppModel {
     account = nil
     login = .idle
     activity = nil
+    backupProgress.clear()
     operationTask = nil
+    isCancelling = false
     snapshots = []
     snapshotsLoad = .notLoaded
     lastError = nil
@@ -898,7 +918,7 @@ final class AppModel {
           activity in
           Task { @MainActor in
             guard self.operationTask != nil, generation == self.sessionGeneration else { return }
-            self.activity = activity
+            self.show(activity)
           }
         }
         guard generation == self.sessionGeneration else {
@@ -1060,7 +1080,19 @@ final class AppModel {
 
   private func finishOperation() {
     activity = nil
+    backupProgress.clear()
     operationTask = nil
+    isCancelling = false
+  }
+
+  private func show(_ engineActivity: EngineActivity) {
+    let phase = engineActivity.phase
+    if activity != phase { activity = phase }
+    if let sample = engineActivity.backupSample {
+      backupProgress.receive(sample)
+    } else {
+      backupProgress.clear()
+    }
   }
 
   private func saveConfig() {

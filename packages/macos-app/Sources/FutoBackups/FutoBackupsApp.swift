@@ -35,7 +35,7 @@ struct FutoBackupsApp: App {
         .environment(updater)
         .tint(Brand.blue)
     } label: {
-      Image(systemName: StatusSummary(model: model).menuBarSymbol)
+      MenuBarLabel(model: model)
     }
     .menuBarExtraStyle(.window)
   }
