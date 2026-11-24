@@ -120,6 +120,55 @@ private func errorLine(item: String, message: String, during: String = "archival
   #expect(warnings.total == 1)
 }
 
+@Test func splitsRecordsOnlyAtLineFeeds() {
+  let nextLine = "/Users/test/odd\u{85}name.txt"
+  let stderr = [
+    errorLine(item: nextLine, message: "open \(nextLine): permission denied"),
+    errorLine(item: "/Users/test/b.txt", message: "open /Users/test/b.txt: permission denied"),
+  ].joined(separator: "\r\n")
+
+  let warnings = BackupWarnings.collect(stderr: stderr)
+
+  #expect(warnings.items.map(\.path) == [nextLine, "/Users/test/b.txt"])
+  #expect(warnings.total == 2)
+}
+
+@Test func archivalReasonsReplaceScanReasonsForTheSamePath() {
+  let scanFirst = [
+    errorLine(item: "/a/b", message: "lstat /a/b: permission denied", during: "scan"),
+    errorLine(item: "/a/b", message: "read /a/b: resource busy"),
+  ].joined(separator: "\n")
+  let archivalFirst = [
+    errorLine(item: "/a/b", message: "read /a/b: resource busy"),
+    errorLine(item: "/a/b", message: "lstat /a/b: permission denied", during: "scan"),
+  ].joined(separator: "\n")
+
+  for stderr in [scanFirst, archivalFirst] {
+    let warnings = BackupWarnings.collect(stderr: stderr)
+    #expect(warnings.items == [BackupWarning(path: "/a/b", reason: "Resource busy")])
+    #expect(warnings.total == 1)
+  }
+}
+
+@Test func collectsSourcesResticSkipsBeforeScanning() {
+  let stderr = [
+    "/Users/test/Gone does not exist, skipping",
+    "Users/test/Locked/Inner cannot be accessed, skipping",
+    "pattern \"x\" does not match any files, skipping",
+    errorLine(item: "/Users/test/Docs/a.txt", message: "open /Users/test/Docs/a.txt: permission denied"),
+  ].joined(separator: "\n")
+
+  let warnings = BackupWarnings.collect(stderr: stderr, snapshotMounts: [mount])
+
+  #expect(
+    warnings.items == [
+      BackupWarning(path: "/Users/test/Gone", reason: "Does not exist"),
+      BackupWarning(path: "/Users/test/Locked/Inner", reason: "Cannot be accessed"),
+      BackupWarning(path: "/Users/test/Docs/a.txt", reason: "Permission denied"),
+    ])
+  #expect(warnings.total == 3)
+}
+
 @Test func keepsTheFirstFiveHundredAndCountsTheRest() {
   let stderr = (0..<1_234).map { index in
     errorLine(item: "/Users/test/f\(index)", message: "open /Users/test/f\(index): permission denied")

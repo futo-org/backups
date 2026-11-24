@@ -356,6 +356,35 @@ struct ResticIntegrationTests {
     #expect(mountWarnings.items.allSatisfy { $0.reason == "Permission denied" })
   }
 
+  @Test func missingSourcesAreCollectedAsWarnings() async throws {
+    let executable = try #require(resticExecutable)
+    let fileManager = FileManager.default
+    let tempRoot = fileManager.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+    try fileManager.createDirectory(at: tempRoot, withIntermediateDirectories: true)
+    let resolvedRoot = URL(fileURLWithPath: realPath(of: tempRoot.path))
+    defer { try? fileManager.removeItem(at: resolvedRoot) }
+    let present = resolvedRoot.appendingPathComponent("present")
+    let missing = resolvedRoot.appendingPathComponent("missing")
+    try fileManager.createDirectory(at: present, withIntermediateDirectories: true)
+    try Data("kept".utf8).write(to: present.appendingPathComponent("a.txt"))
+    let context = ResticContext(
+      repository: resolvedRoot.appendingPathComponent("repository").path,
+      password: "pw-\(UUID().uuidString)",
+      cacheDirectory: resolvedRoot.appendingPathComponent("cache"),
+      home: resolvedRoot.path,
+      connections: 2)
+    let runner = ResticRunner(executable: executable)
+    #expect(try await runner.run(ResticCommand.initialize(context), onLine: { _ in }).exitCode == 0)
+
+    let result = try await runner.run(
+      ResticCommand.backup(context, paths: [present.path, missing.path], excludes: [], host: "h"), onLine: { _ in })
+
+    #expect(result.exitCode == ResticExitCode.couldNotReadSource)
+    #expect(
+      BackupWarnings.collect(stderr: result.stderr)
+        == BackupWarnings(items: [BackupWarning(path: missing.path, reason: "Does not exist")], total: 1))
+  }
+
   @Test func catConfigVerifiesRepositoryPassword() async throws {
     let executable = try #require(resticExecutable)
     let fileManager = FileManager.default

@@ -41,27 +41,40 @@ public struct BackupWarnings: Codable, Equatable, Sendable {
   public static func collect(stderr: String, snapshotMounts: [String] = [], limit: Int = itemLimit)
     -> BackupWarnings
   {
-    var warnings = BackupWarnings()
-    var seen = Set<String>()
+    var collector = Collector(limit: limit)
     let decoder = JSONDecoder()
     decoder.keyDecodingStrategy = .convertFromSnakeCase
-    for rawLine in stderr.split(whereSeparator: \.isNewline) {
-      let line = rawLine.trimmingCharacters(in: .whitespaces)
-      guard line.hasPrefix("{"),
-        let error = try? decoder.decode(ItemErrorLine.self, from: Data(line.utf8)),
+    for record in stderr.utf8.split(separator: UInt8(ascii: "\n")) {
+      let line = String(decoding: record.last == UInt8(ascii: "\r") ? record.dropLast() : record, as: UTF8.self)
+      if let skipped = skippedSource(in: line) {
+        collector.add(path: livePath(of: skipped.item, snapshotMounts: snapshotMounts), reason: skipped.reason)
+        continue
+      }
+      let trimmed = line.trimmingCharacters(in: .whitespaces)
+      guard trimmed.hasPrefix("{"),
+        let error = try? decoder.decode(ItemErrorLine.self, from: Data(trimmed.utf8)),
         error.messageType == "error",
         let item = error.item, !item.isEmpty,
         let message = error.error?.message
       else { continue }
       let path = livePath(of: item, snapshotMounts: snapshotMounts)
-      guard seen.insert(path).inserted else { continue }
-      warnings.total += 1
-      if warnings.items.count < limit {
-        warnings.items.append(
-          BackupWarning(path: path, reason: reason(from: message, item: item, path: path)))
-      }
+      collector.add(
+        path: path, reason: reason(from: message, item: item, path: path), duringScan: error.during == "scan")
     }
-    return warnings
+    return collector.warnings
+  }
+
+  private static let sourceSkipReasons = [
+    (suffix: " does not exist, skipping", reason: "Does not exist"),
+    (suffix: " cannot be accessed, skipping", reason: "Cannot be accessed"),
+  ]
+
+  static func skippedSource(in line: String) -> (item: String, reason: String)? {
+    guard !line.hasPrefix("{") else { return nil }
+    for skip in sourceSkipReasons where line.hasSuffix(skip.suffix) && line.count > skip.suffix.count {
+      return (String(line.dropLast(skip.suffix.count)), skip.reason)
+    }
+    return nil
   }
 
   static func livePath(of item: String, snapshotMounts: [String]) -> String {
@@ -101,6 +114,32 @@ extension RunRecord {
   }
 }
 
+private struct Collector {
+  let limit: Int
+  var warnings = BackupWarnings()
+  var seen = Set<String>()
+  var scanReasonIndices: [String: Int] = [:]
+
+  init(limit: Int) {
+    self.limit = limit
+  }
+
+  mutating func add(path: String, reason: @autoclosure () -> String, duringScan: Bool = false) {
+    guard seen.insert(path).inserted else {
+      if !duringScan, let index = scanReasonIndices.removeValue(forKey: path) {
+        warnings.items[index].reason = reason()
+      }
+      return
+    }
+    warnings.total += 1
+    guard warnings.items.count < limit else { return }
+    if duringScan {
+      scanReasonIndices[path] = warnings.items.count
+    }
+    warnings.items.append(BackupWarning(path: path, reason: reason()))
+  }
+}
+
 private struct ItemErrorLine: Decodable {
   struct Payload: Decodable {
     var message: String?
@@ -109,4 +148,5 @@ private struct ItemErrorLine: Decodable {
   var messageType: String
   var error: Payload?
   var item: String?
+  var during: String?
 }
