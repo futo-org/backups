@@ -197,7 +197,9 @@ struct SettingsView: View {
     .frame(maxWidth: 720)
     .frame(maxWidth: .infinity)
     .onAppear(perform: syncDrafts)
-    .onDisappear(perform: applyChangedLimit)
+    .onDisappear {
+      if model.signedIn { applyChangedLimit() }
+    }
   }
 
   private var currentLimitText: String {
