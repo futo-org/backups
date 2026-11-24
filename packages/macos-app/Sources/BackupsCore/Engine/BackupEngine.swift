@@ -759,15 +759,15 @@ public actor BackupEngine {
     onActivity: @escaping @Sendable (EngineActivity) -> Void
   ) async throws -> [URL] {
     try await restoring(config: config, snapshotId: snapshotId, isEmpty: items.isEmpty) { session in
-      var restored: [URL] = []
-      for (index, item) in items.enumerated() {
-        let reporter = RestoreReporter(
-          part: index + 1, of: items.count, batch: .folder(item), onActivity: onActivity)
-        restored.append(
-          try await self.restoreFolder(
-            item, snapshotId: snapshotId, session: session, reporter: reporter, avoiding: restored))
+      try await self.collectingRestored { restored in
+        for (index, item) in items.enumerated() {
+          let reporter = RestoreReporter(
+            part: index + 1, of: items.count, batch: .folder(item), onActivity: onActivity)
+          restored.append(
+            try await self.restoreFolder(
+              item, snapshotId: snapshotId, session: session, reporter: reporter, avoiding: restored.names))
+        }
       }
-      return restored
     }
   }
 
@@ -780,23 +780,36 @@ public actor BackupEngine {
       config: config, snapshotId: snapshotId, isEmpty: selection.isEmpty,
       extraData: ["itemCount": .int(Int64(selection.count))]
     ) { session in
-      var restored: [URL] = []
-      let batches = RestorePlan.batches(for: selection, into: target)
-      for (index, batch) in batches.enumerated() {
-        let reporter = RestoreReporter(part: index + 1, of: batches.count, batch: batch, onActivity: onActivity)
-        switch batch {
-        case .folder(let item):
-          restored.append(
-            try await self.restoreFolder(
-              item, snapshotId: snapshotId, session: session, reporter: reporter, avoiding: restored))
-        case .children(let children, let parent):
-          restored += try await self.restoreChildren(
-            children, of: parent, into: target, snapshotId: snapshotId, session: session, reporter: reporter,
-            avoiding: restored)
+      try await self.collectingRestored { restored in
+        let batches = RestorePlan.batches(for: selection, into: target)
+        for (index, batch) in batches.enumerated() {
+          let reporter = RestoreReporter(part: index + 1, of: batches.count, batch: batch, onActivity: onActivity)
+          switch batch {
+          case .folder(let item):
+            restored.append(
+              try await self.restoreFolder(
+                item, snapshotId: snapshotId, session: session, reporter: reporter, avoiding: restored.names))
+          case .children(let children, let parent):
+            try await self.restoreChildren(
+              children, of: parent, into: target, snapshotId: snapshotId, session: session, reporter: reporter,
+              restored: &restored)
+          }
         }
       }
-      return restored
     }
+  }
+
+  private func collectingRestored(_ body: (inout RestoredItems) async throws -> Void) async throws -> [URL] {
+    var restored = RestoredItems()
+    do {
+      try await body(&restored)
+    } catch var incomplete as RestoreIncomplete {
+      incomplete.restored = restored.urls
+      throw incomplete
+    } catch let error where !restored.urls.isEmpty {
+      throw RestoreIncomplete(restored: restored.urls, cause: error)
+    }
+    return restored.urls
   }
 
   private func restoring(
@@ -841,10 +854,11 @@ public actor BackupEngine {
   }
 
   private func restoreFolder(
-    _ item: RestoreItem, snapshotId: String, session: Session, reporter: RestoreReporter, avoiding restored: [URL]
+    _ item: RestoreItem, snapshotId: String, session: Session, reporter: RestoreReporter,
+    avoiding taken: Set<String>
   ) async throws -> URL {
     let target = try RestorePlan.claimTarget(
-      for: item, avoiding: takenNames(restored), createDirectory: environment.createRestoreDirectory)
+      for: item, avoiding: taken, createDirectory: environment.createRestoreDirectory)
     try await runRestore(
       ResticCommand.restore(
         session.context, snapshotId: snapshotId, subfolder: item.snapshotPath, target: target.path),
@@ -855,29 +869,37 @@ public actor BackupEngine {
 
   private func restoreChildren(
     _ children: [SnapshotEntry], of parent: String, into target: URL, snapshotId: String, session: Session,
-    reporter: RestoreReporter, avoiding restored: [URL]
-  ) async throws -> [URL] {
-    let staging = try RestorePlan.claimStaging(in: target, createDirectory: environment.createRestoreDirectory)
+    reporter: RestoreReporter, restored: inout RestoredItems
+  ) async throws {
+    let staging = try RestorePlan.claimStaging(
+      in: target, avoiding: Set(children.map { RestorePlan.nameKey($0.name) }),
+      createDirectory: environment.createRestoreStaging)
     do {
       try await runRestore(
         ResticCommand.restore(
           session.context, snapshotId: snapshotId, subfolder: parent, target: staging.path,
           includingChildren: children.map(\.name)),
         session: session, reporter: reporter)
-      var moved: [URL] = []
       for child in children {
         let source = staging.appendingPathComponent(child.name)
-        moved.append(
-          try RestorePlan.claimName(for: child, in: target, avoiding: takenNames(restored + moved)) {
+        restored.append(
+          try RestorePlan.claimName(for: child, in: target, avoiding: restored.names) {
             try self.environment.moveRestoredItem(source, $0)
           })
       }
-      environment.removeRestoreStaging(staging)
-      reporter.finished()
-      return moved
     } catch {
-      environment.removeRestoreStaging(staging)
+      try removeStaging(staging, after: error)
       throw error
+    }
+    try removeStaging(staging, after: nil)
+    reporter.finished()
+  }
+
+  private func removeStaging(_ staging: URL, after failure: (any Error)?) throws {
+    do {
+      try environment.removeRestoreStaging(staging)
+    } catch {
+      throw RestoreIncomplete(restored: [], leftoverStaging: staging, cause: failure ?? error)
     }
   }
 
@@ -890,14 +912,11 @@ public actor BackupEngine {
     }
   }
 
-  private func takenNames(_ restored: [URL]) -> Set<String> {
-    Set(restored.map { $0.lastPathComponent.lowercased() })
-  }
-
   private func telemetryDescription(_ error: any Error) -> String {
     switch error {
     case is CancellationError: return "cancelled"
     case EngineError.restic(_, let message): return message
+    case let incomplete as RestoreIncomplete: return telemetryDescription(incomplete.cause)
     default: return String(describing: error)
     }
   }

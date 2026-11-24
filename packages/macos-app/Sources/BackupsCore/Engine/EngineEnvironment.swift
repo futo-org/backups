@@ -18,8 +18,9 @@ public struct EngineEnvironment: Sendable {
   public var snapshotDirectory: URL?
   public var dataVolumePath: @Sendable (String) -> String?
   public var createRestoreDirectory: @Sendable (URL) throws -> Bool
+  public var createRestoreStaging: @Sendable (URL) throws -> Bool
   public var moveRestoredItem: @Sendable (URL, URL) throws -> Bool
-  public var removeRestoreStaging: @Sendable (URL) -> Void
+  public var removeRestoreStaging: @Sendable (URL) throws -> Void
   public var temporaryDirectory: URL
   public var cloudOnlyScanner: any CloudOnlyScanning
   public var uploadTicks: @Sendable () -> AsyncStream<ContinuousClock.Instant>
@@ -42,8 +43,9 @@ public struct EngineEnvironment: Sendable {
     snapshotDirectory: URL? = nil,
     dataVolumePath: @escaping @Sendable (String) -> String? = { _ in nil },
     createRestoreDirectory: @escaping @Sendable (URL) throws -> Bool = RestorePlan.createDirectoryExclusively,
+    createRestoreStaging: @escaping @Sendable (URL) throws -> Bool = RestorePlan.createStagingExclusively,
     moveRestoredItem: @escaping @Sendable (URL, URL) throws -> Bool = RestorePlan.moveExclusively,
-    removeRestoreStaging: @escaping @Sendable (URL) -> Void = { try? FileManager.default.removeItem(at: $0) },
+    removeRestoreStaging: @escaping @Sendable (URL) throws -> Void = RestorePlan.removeStaging,
     temporaryDirectory: URL = FileManager.default.temporaryDirectory,
     cloudOnlyScanner: any CloudOnlyScanning = NoCloudOnlyScan(),
     uploadTicks: @escaping @Sendable () -> AsyncStream<ContinuousClock.Instant> = {
@@ -67,6 +69,7 @@ public struct EngineEnvironment: Sendable {
     self.snapshotDirectory = snapshotDirectory
     self.dataVolumePath = dataVolumePath
     self.createRestoreDirectory = createRestoreDirectory
+    self.createRestoreStaging = createRestoreStaging
     self.moveRestoredItem = moveRestoredItem
     self.removeRestoreStaging = removeRestoreStaging
     self.temporaryDirectory = temporaryDirectory

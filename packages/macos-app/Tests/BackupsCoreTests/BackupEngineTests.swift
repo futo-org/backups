@@ -869,6 +869,111 @@ private let restoreDone = RestoreProgress(
   #expect(await fixture.deliveredLogs(engine).last?.data["error"] == .string("cancelled"))
 }
 
+private let restoreDestination = URL(fileURLWithPath: "/tmp/out")
+private let stagingPath = "/tmp/out/.FUTO Backups Restore"
+
+private func documentsFile(_ name: String) -> SnapshotEntry {
+  SnapshotEntry(name: name, path: "/Users/test/Documents/" + name, kind: .file)
+}
+
+private func includes(_ invocation: ResticInvocation) -> [String] {
+  zip(invocation.arguments, invocation.arguments.dropFirst()).compactMap { $0 == "--include" ? $1 : nil }
+}
+
+@Test func restoreSelectionStagesCaseDistinctSiblingsSeparately() async throws {
+  let fixture = makeFixture()
+  let engine = BackupEngine(environment: fixture.environment)
+  let restored = try await engine.restore(
+    config: testConfig(), snapshotId: "snap-1", selection: [documentsFile("A.txt"), documentsFile("a.txt")],
+    into: restoreDestination
+  ) { _ in }
+  #expect(restored.map(\.path) == ["/tmp/out/A.txt", "/tmp/out/a 2.txt"])
+  let restores = fixture.restic.invocations().filter { $0.arguments.first == "restore" }
+  #expect(restores.map(includes) == [["/A.txt"], ["/a.txt"]])
+  #expect(
+    fixture.restoreDirectories.moves == [
+      stagingPath + "/A.txt -> /tmp/out/A.txt", stagingPath + "/a.txt -> /tmp/out/a 2.txt",
+    ])
+}
+
+@Test func restoreSelectionNeverStagesUnderANameBeingRestored() async throws {
+  let fixture = makeFixture()
+  let engine = BackupEngine(environment: fixture.environment)
+  let restored = try await engine.restore(
+    config: testConfig(), snapshotId: "snap-1", selection: [documentsFile(".futo backups restore")],
+    into: restoreDestination
+  ) { _ in }
+  #expect(restored.map(\.path) == ["/tmp/out/.futo backups restore"])
+  #expect(fixture.restoreDirectories.removals == [stagingPath + " 2"])
+}
+
+@Test func restoreSelectionReportsWhatWasPlacedBeforeALaterMoveFailed() async throws {
+  let fixture = makeFixture()
+  fixture.restoreDirectories.failMoving("notes.txt")
+  let engine = BackupEngine(environment: fixture.environment)
+  let error = await #expect(throws: RestoreIncomplete.self) {
+    try await engine.restore(
+      config: testConfig(), snapshotId: "snap-1", selection: [documentsFile("report.pdf"), documentsFile("notes.txt")],
+      into: restoreDestination
+    ) { _ in }
+  }
+  let incomplete = try #require(error)
+  #expect(incomplete.restored.map(\.path) == ["/tmp/out/report.pdf"])
+  #expect(incomplete.leftoverStaging == nil)
+  #expect(incomplete.cause as? POSIXError == POSIXError(.EIO))
+  #expect(fixture.restoreDirectories.removals == [stagingPath])
+  #expect(fixture.proxy.stopCount == 1)
+  let logged = await fixture.deliveredLogs(engine).last?.data["error"]
+  #expect(logged == .string(String(describing: POSIXError(.EIO) as any Error)))
+}
+
+@Test func restoreSelectionFailsWhenAPickedItemIsMissingFromStaging() async throws {
+  let fixture = makeFixture()
+  fixture.restoreDirectories.leaveUnstaged("report.pdf")
+  let engine = BackupEngine(environment: fixture.environment)
+  await #expect(throws: POSIXError(.ENOENT)) {
+    try await engine.restore(
+      config: testConfig(), snapshotId: "snap-1", selection: [documentsFile("report.pdf")], into: restoreDestination
+    ) { _ in }
+  }
+  #expect(fixture.restoreDirectories.moves.isEmpty)
+  #expect(fixture.restoreDirectories.removals == [stagingPath])
+}
+
+@Test func restoreSelectionReportsStagingItCouldNotRemoveAfterAFailure() async throws {
+  let fixture = makeFixture()
+  fixture.restic.set(
+    ResticScript(exitCode: 1, stderr: #"{"message_type":"exit_error","code":1,"message":"restore failed"}"#),
+    for: "restore")
+  fixture.restoreDirectories.failRemovals(with: POSIXError(.EACCES))
+  let engine = BackupEngine(environment: fixture.environment)
+  let error = await #expect(throws: RestoreIncomplete.self) {
+    try await engine.restore(
+      config: testConfig(), snapshotId: "snap-1", selection: [documentsFile("report.pdf")], into: restoreDestination
+    ) { _ in }
+  }
+  let incomplete = try #require(error)
+  #expect(incomplete.restored.isEmpty)
+  #expect(incomplete.leftoverStaging?.path == stagingPath)
+  #expect(incomplete.cause as? EngineError == .restic(code: 1, message: "restore failed"))
+  #expect(await fixture.deliveredLogs(engine).last?.data["error"] == .string("restore failed"))
+}
+
+@Test func restoreSelectionReportsStagingItCouldNotRemoveAfterPlacingEverything() async throws {
+  let fixture = makeFixture()
+  fixture.restoreDirectories.failRemovals(with: POSIXError(.EACCES))
+  let engine = BackupEngine(environment: fixture.environment)
+  let error = await #expect(throws: RestoreIncomplete.self) {
+    try await engine.restore(
+      config: testConfig(), snapshotId: "snap-1", selection: [documentsFile("report.pdf")], into: restoreDestination
+    ) { _ in }
+  }
+  let incomplete = try #require(error)
+  #expect(incomplete.restored.map(\.path) == ["/tmp/out/report.pdf"])
+  #expect(incomplete.leftoverStaging?.path == stagingPath)
+  #expect(incomplete.cause as? POSIXError == POSIXError(.EACCES))
+}
+
 @Test func storedMasterKeyReturnsStoredValueAndNeverGenerates() async throws {
   let fresh = makeFixture(masterKey: nil)
   let freshEngine = BackupEngine(environment: fresh.environment)
