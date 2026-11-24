@@ -9,20 +9,6 @@ struct HistoryView: View {
   var body: some View {
     ScrollView {
       VStack(alignment: .leading, spacing: 22) {
-        PageHeader(
-          title: "History",
-          subtitle:
-            "Restore a whole snapshot, or browse it for single files. "
-            + "Retention for this Mac: \(model.config.snapshotRetention.summary)."
-        ) {
-          Button {
-            Task { await model.refreshSnapshots() }
-          } label: {
-            Label("Refresh", systemImage: "arrow.clockwise")
-          }
-          .buttonStyle(SecondaryButtonStyle())
-          .disabled(model.snapshotsLoad == .loading)
-        }
         if !model.restoredFolders.isEmpty {
           Banner(
             systemName: model.restoreStoppedEarly ? "exclamationmark.triangle.fill" : "checkmark.circle.fill",
@@ -71,6 +57,18 @@ struct HistoryView: View {
       .padding(28)
       .frame(maxWidth: 820)
       .frame(maxWidth: .infinity)
+    }
+    .navigationTitle("History")
+    .navigationSubtitle("Keeping \(model.config.snapshotRetention.summary)")
+    .toolbar {
+      ToolbarItem(placement: .primaryAction) {
+        Button {
+          Task { await model.refreshSnapshots() }
+        } label: {
+          Label("Refresh", systemImage: "arrow.clockwise")
+        }
+        .disabled(model.snapshotsLoad == .loading)
+      }
     }
     .sheet(item: $browser) { browser in
       SnapshotBrowserView(

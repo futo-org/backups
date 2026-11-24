@@ -21,7 +21,6 @@ struct FutoBackupsApp: App {
         .tint(Brand.blue)
         .registersMainWindowOpener()
     }
-    .windowStyle(.hiddenTitleBar)
     .windowToolbarStyle(.unified)
     .defaultSize(width: 980, height: 680)
     .commands {

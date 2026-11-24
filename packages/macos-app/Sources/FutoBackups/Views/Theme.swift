@@ -192,25 +192,6 @@ struct StatusRing: View {
   private var lineWidth: CGFloat { max(4, size * 0.075) }
 }
 
-struct PageHeader<Trailing: View>: View {
-  let title: String
-  let subtitle: String
-  @ViewBuilder var trailing: Trailing
-
-  var body: some View {
-    HStack(alignment: .center, spacing: 16) {
-      VStack(alignment: .leading, spacing: 4) {
-        Text(title)
-          .font(.system(size: 26, weight: .bold, design: .rounded))
-        Text(subtitle)
-          .foregroundStyle(.secondary)
-      }
-      Spacer(minLength: 0)
-      trailing
-    }
-  }
-}
-
 struct AlphaBadge: View {
   var body: some View {
     Text("ALPHA")
