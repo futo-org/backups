@@ -7,6 +7,9 @@ private let wifi = NetworkPath(isSatisfied: true, interfaces: ["en0"])
 private let wifiAndEthernet = NetworkPath(isSatisfied: true, interfaces: ["en0", "en7"])
 private let ethernet = NetworkPath(isSatisfied: true, interfaces: ["en7"])
 private let offline = NetworkPath(isSatisfied: false, interfaces: [])
+private let ethernetPreferred = NetworkPath(isSatisfied: true, interfaces: ["en7", "en0"])
+private let homeWifi = NetworkPath(isSatisfied: true, interfaces: ["en0"], gateways: ["192.168.1.1:0"])
+private let hotspotWifi = NetworkPath(isSatisfied: true, interfaces: ["en0"], gateways: ["172.20.10.1:0"])
 
 @Test(
   "invalidatesConnections table",
@@ -18,6 +21,10 @@ private let offline = NetworkPath(isSatisfied: false, interfaces: [])
     (offline, wifi, true),
     (wifi, offline, false),
     (offline, offline, false),
+    (wifiAndEthernet, ethernetPreferred, true),
+    (ethernetPreferred, ethernetPreferred, false),
+    (homeWifi, hotspotWifi, true),
+    (homeWifi, homeWifi, false),
   ])
 func invalidatesConnections(previous: NetworkPath, current: NetworkPath, expected: Bool) {
   #expect(current.invalidatesConnections(since: previous) == expected)
@@ -105,6 +112,18 @@ private struct Harness {
   harness.paths.yield(wifiAndEthernet)
   harness.paths.yield(ethernet)
   await harness.waitFor(sleeps: 2, waiting: 1)
+  harness.sleeper.wakeAll()
+  #expect(await changes.next() != nil)
+  harness.paths.finish()
+  #expect(await changes.next() == nil)
+}
+
+@Test func joiningAnotherNetworkOnTheSameInterfaceReportsAChange() async throws {
+  let harness = Harness()
+  var changes = harness.changes.makeAsyncIterator()
+  harness.paths.yield(homeWifi)
+  harness.paths.yield(hotspotWifi)
+  await harness.waitFor(sleeps: 1, waiting: 1)
   harness.sleeper.wakeAll()
   #expect(await changes.next() != nil)
   harness.paths.finish()

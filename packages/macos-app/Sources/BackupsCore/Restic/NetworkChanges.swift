@@ -3,15 +3,18 @@ import Network
 
 public struct NetworkPath: Equatable, Sendable {
   public var isSatisfied: Bool
-  public var interfaces: Set<String>
+  public var interfaces: [String]
+  public var gateways: Set<String>
 
-  public init(isSatisfied: Bool, interfaces: Set<String>) {
+  public init(isSatisfied: Bool, interfaces: [String], gateways: Set<String> = []) {
     self.isSatisfied = isSatisfied
     self.interfaces = interfaces
+    self.gateways = gateways
   }
 
   public func invalidatesConnections(since previous: NetworkPath) -> Bool {
-    isSatisfied && (!previous.isSatisfied || interfaces != previous.interfaces)
+    isSatisfied
+      && (!previous.isSatisfied || interfaces != previous.interfaces || gateways != previous.gateways)
   }
 }
 
@@ -27,7 +30,9 @@ public enum NetworkChanges {
     let monitor = NWPathMonitor()
     monitor.pathUpdateHandler = { path in
       continuation.yield(
-        NetworkPath(isSatisfied: path.status == .satisfied, interfaces: Set(path.availableInterfaces.map(\.name))))
+        NetworkPath(
+          isSatisfied: path.status == .satisfied, interfaces: path.availableInterfaces.map(\.name),
+          gateways: Set(path.gateways.map { "\($0)" })))
     }
     continuation.onTermination = { _ in monitor.cancel() }
     monitor.start(queue: DispatchQueue(label: "org.futo.backups.network-path"))
