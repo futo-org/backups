@@ -536,6 +536,7 @@ final class AppModel {
   }
 
   func setServerURL(_ url: URL) {
+    guard url != config.serverURL else { return }
     logout()
     config.serverURL = url
     config.repositoryId = nil
