@@ -135,6 +135,7 @@ func TestReadControl_DecodesNetworkChangedAndUnknownTypes(t *testing.T) {
 	if err != nil {
 		t.Fatalf("pipe: %v", err)
 	}
+	defer write.Close()
 
 	applied := make(chan Control, 2)
 	go ReadControl(read, func(control Control) { applied <- control })
@@ -156,6 +157,4 @@ func TestReadControl_DecodesNetworkChangedAndUnknownTypes(t *testing.T) {
 			t.Fatalf("no %q control applied", expected)
 		}
 	}
-
-	write.Close()
 }
