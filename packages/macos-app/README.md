@@ -24,6 +24,10 @@ Unbundled (`swift run FutoBackups`) needs `FUTO_BACKUPS_RESTIC` and `FUTO_BACKUP
 2. `mise run mac:open`, Account → Log in, approve the code in the browser (mock-oidc).
 3. Folders → add a folder, Schedule → Back up now, then Snapshots → Restore… into an empty folder.
 4. The connection shows up as type `macos` in the web app's connections page.
+5. Closing the window, ⌘Q (also with the menu-bar panel open) and Dock → Quit keep the same process running in the
+   menu bar with no Dock icon; Open FUTO Backups in the panel, or opening the app again, brings the window back.
+   Quit FUTO Backups in the panel and `osascript -e 'quit app "FUTO Backups"'` stop the process. With Open at login
+   on, logging back in starts the app in the menu bar with no window and no Dock icon.
 
 Config lives in `~/Library/Application Support/FUTO Backups/config.json`; the session token and the master key
 (the recovery key, compatible with the standalone app) live in the login Keychain under `org.futo.backups.mac`.
