@@ -369,9 +369,12 @@ private struct SizeLabel: View {
 
 private struct ReadyStep: View {
   @Environment(AppModel.self) private var model
+  @Environment(Updater.self) private var updater
   let selection: FolderSelection
   let estimates: FolderSizeEstimates
   let back: () -> Void
+  @State private var openAtLogin = true
+  @State private var checkForUpdates = true
 
   var body: some View {
     VStack(spacing: 22) {
@@ -400,17 +403,36 @@ private struct ReadyStep: View {
         }
         .padding(.vertical, 4)
       }
+      VStack(alignment: .leading, spacing: 8) {
+        Toggle("Open FUTO Backups at login, so scheduled backups keep running", isOn: $openAtLogin)
+        if updater.isAvailable {
+          Toggle("Check for updates automatically", isOn: $checkForUpdates)
+        }
+      }
+      .toggleStyle(.checkbox)
+      .font(.system(size: 12))
+      .frame(maxWidth: .infinity, alignment: .leading)
       HStack(spacing: 12) {
-        Button("Back Up Now") { model.finishOnboarding(folders: selection.paths, backUpNow: true) }
+        Button("Back Up Now") { finish(backUpNow: true) }
           .buttonStyle(PrimaryButtonStyle(large: true))
           .keyboardShortcut(.defaultAction)
-        Button("Not Now") { model.finishOnboarding(folders: selection.paths, backUpNow: false) }
+        Button("Not Now") { finish(backUpNow: false) }
           .buttonStyle(SecondaryButtonStyle())
       }
       Button("Back", action: back)
         .buttonStyle(.link)
         .font(.system(size: 12))
     }
+  }
+
+  private func finish(backUpNow: Bool) {
+    if model.launchAtLogin != openAtLogin {
+      model.launchAtLogin = openAtLogin
+    }
+    if updater.isAvailable, updater.automaticallyChecksForUpdates != checkForUpdates {
+      updater.automaticallyChecksForUpdates = checkForUpdates
+    }
+    model.finishOnboarding(folders: selection.paths, backUpNow: backUpNow)
   }
 
   private var foldersSummary: String {
