@@ -210,6 +210,19 @@ struct PageHeader<Trailing: View>: View {
   }
 }
 
+struct AlphaBadge: View {
+  var body: some View {
+    Text("ALPHA")
+      .font(.system(size: 10, weight: .bold, design: .rounded))
+      .tracking(0.6)
+      .foregroundStyle(.orange)
+      .padding(.horizontal, 7)
+      .padding(.vertical, 2)
+      .background(Capsule().fill(Color.orange.opacity(0.15)))
+      .help("This Mac app is in alpha")
+  }
+}
+
 enum Clipboard {
   static func copy(_ text: String) {
     NSPasteboard.general.clearContents()

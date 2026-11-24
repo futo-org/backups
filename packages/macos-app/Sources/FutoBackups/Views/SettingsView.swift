@@ -190,7 +190,7 @@ struct SettingsView: View {
   private var versionText: String {
     let shortVersion = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? ""
     let buildVersion = Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? ""
-    return "Version \(shortVersion) (\(buildVersion))"
+    return "Version \(shortVersion) (\(buildVersion)), alpha"
   }
 
   private func syncDrafts() {

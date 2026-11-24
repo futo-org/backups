@@ -1,4 +1,4 @@
-# FUTO Backups for macOS (PoC)
+# FUTO Backups for macOS (alpha)
 
 Native SwiftUI client: device-flow login, pick folders, back up on a schedule with the bundled FUTO restic through
 the bundled restic-proxy, list snapshots, restore, forget/prune (`--keep-within 60d`), upload throttling.

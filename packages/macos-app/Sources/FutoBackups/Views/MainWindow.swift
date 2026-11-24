@@ -68,6 +68,17 @@ struct MainWindow: View {
       }
     }
     .navigationSplitViewColumnWidth(min: 210, ideal: 230, max: 280)
+    .safeAreaInset(edge: .top) {
+      HStack(spacing: 8) {
+        Text("FUTO Backups")
+          .font(.system(size: 13, weight: .semibold, design: .rounded))
+        AlphaBadge()
+        Spacer(minLength: 0)
+      }
+      .padding(.horizontal, 18)
+      .padding(.top, 6)
+      .padding(.bottom, 4)
+    }
     .safeAreaInset(edge: .bottom) {
       AccountChip()
         .padding(12)

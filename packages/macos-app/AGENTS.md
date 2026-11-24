@@ -1,6 +1,6 @@
 # AGENTS.md — packages/macos-app
 
-Native macOS client for FUTO Backups (PoC): SwiftUI app that logs in with the device flow, backs up chosen folders
+Native macOS client for FUTO Backups (alpha): SwiftUI app that logs in with the device flow, backs up chosen folders
 with the bundled FUTO restic through the bundled restic-proxy, on a schedule.
 
 ## Zero comments

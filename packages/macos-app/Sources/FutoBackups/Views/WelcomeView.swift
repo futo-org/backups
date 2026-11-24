@@ -20,6 +20,13 @@ struct WelcomeView: View {
           .multilineTextAlignment(.center)
           .frame(maxWidth: 380)
           .padding(.top, 8)
+        HStack(spacing: 8) {
+          AlphaBadge()
+          Text("This Mac app is in alpha. Keep another copy of anything you can't lose.")
+            .font(.system(size: 12))
+            .foregroundStyle(.secondary)
+        }
+        .padding(.top, 14)
         loginState
           .padding(.top, 34)
           .frame(minHeight: 200, alignment: .top)

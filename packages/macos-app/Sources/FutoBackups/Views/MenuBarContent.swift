@@ -22,6 +22,7 @@ struct MenuBarContent: View {
             .lineLimit(2)
         }
         Spacer(minLength: 0)
+        AlphaBadge()
       }
       if let error = model.lastError ?? model.setupError {
         Label(error, systemImage: "exclamationmark.triangle.fill")
