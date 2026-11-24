@@ -97,7 +97,7 @@ jobs:
                 exit 0
               fi
               if git rev-parse -q --verify "refs/tags/v$previous" > /dev/null &&
-                git diff --quiet "v$previous" "$TAG" -- packages/macos-app packages/restic-proxy &&
+                git diff --quiet "v$previous" "$TAG" -- packages/macos-app packages/restic-proxy .mise/config.toml &&
                 [ "$(restic_image "v$previous")" = "$(restic_image "$TAG")" ]; then
                 echo "run=false" >> "$GITHUB_OUTPUT"
                 echo "::notice::macOS app inputs unchanged since v$previous"

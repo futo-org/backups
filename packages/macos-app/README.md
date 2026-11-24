@@ -31,9 +31,9 @@ Config lives in `~/Library/Application Support/FUTO Backups/config.json`; the se
 ## Releases
 
 Publishing a `v<version>` release (release-please) runs `.github/workflows/macos-release.yml`, which builds the Mac
-app only when its inputs (`packages/macos-app`, `packages/restic-proxy`, the `RESTIC_IMAGE` pin) changed since the
-version in the current appcast, and publishes it as its own release `macos-v<version>` — same version number, never an
-asset of the server release — with notes filtered to Mac commits. The feed is unchanged:
+app only when its inputs (`packages/macos-app`, `packages/restic-proxy`, the `RESTIC_IMAGE` pin, `.mise/config.toml`)
+changed since the version in the current appcast, and publishes it as its own release `macos-v<version>` — same version
+number, never an asset of the server release — with notes filtered to Mac commits. The feed is unchanged:
 `https://github.com/futo-org/backups/releases/download/macos-appcast/appcast.xml`.
 
 Release versions must be plain `MAJOR.MINOR.PATCH`: `CFBundleVersion` is `MAJOR*1000000+MINOR*1000+PATCH`, and a

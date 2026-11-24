@@ -210,7 +210,7 @@ jobs:
           # a range that cannot be built must not skip the app's only check.
           if [ -z "$base" ] || printf '%s' "$base" | grep -Eq '^0+$' || ! git cat-file -e "$base^{commit}" 2>/dev/null; then
             changed=true
-          elif git diff --name-only "$base" HEAD | grep -Eq -e '^packages/macos-app/' -e '^packages/restic-proxy/' -e '^packages/standalone-app/Dockerfile$' -e '^\.mise/tasks/restic/' -e '^\.github/workflows/ci\.yml$'; then
+          elif git diff --name-only "$base" HEAD | grep -Eq -e '^packages/macos-app/' -e '^packages/restic-proxy/' -e '^packages/standalone-app/Dockerfile$' -e '^\.mise/tasks/restic/' -e '^\.mise/config\.toml$' -e '^\.github/workflows/ci\.yml$'; then
             changed=true
           else
             changed=false
