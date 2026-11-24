@@ -20,10 +20,6 @@ build=$((10#$major * 1000000 + 10#$minor * 1000 + 10#$patch))
 
 package=$(cd "$(dirname "$0")/.." && pwd)
 
-if [ -z "${SPARKLE_PUBLIC_KEY:-}" ]; then
-  echo "SPARKLE_PUBLIC_KEY is required" >&2
-  exit 1
-fi
 if [ -z "${SPARKLE_PRIVATE_KEY:-}" ]; then
   echo "SPARKLE_PRIVATE_KEY is required" >&2
   exit 1
@@ -65,9 +61,10 @@ if [ "$notary_set" -ne 0 ] && [ "$notary_set" -ne 3 ]; then
   exit 1
 fi
 
+pinned_key=$(/usr/libexec/PlistBuddy -c "Print :SUPublicEDKey" "$package/Resources/Info.plist")
 derived_key=$(printf '%s' "$SPARKLE_PRIVATE_KEY" | swift "$package/scripts/sparkle-key.swift" public)
-if [ "$derived_key" != "$SPARKLE_PUBLIC_KEY" ]; then
-  echo "SPARKLE_PUBLIC_KEY does not match SPARKLE_PRIVATE_KEY" >&2
+if [ "$derived_key" != "$pinned_key" ]; then
+  echo "SPARKLE_PRIVATE_KEY does not match SUPublicEDKey in Resources/Info.plist" >&2
   exit 1
 fi
 
@@ -91,8 +88,18 @@ if [ "$notary_set" -eq 3 ]; then
   xcrun notarytool submit "$work/notarize.zip" \
     --key "$NOTARY_KEY_PATH" --key-id "$NOTARY_KEY_ID" --issuer "$NOTARY_ISSUER" --wait
   xcrun stapler staple "$app"
+  xcrun stapler validate "$app"
+  spctl --assess --type execute --verbose=2 "$app"
 else
   echo "notary vars unset: skipping notarization"
+fi
+
+if [ -n "${EXPECTED_TEAM_ID:-}" ]; then
+  team=$(codesign -dv "$app" 2>&1 | sed -n 's/^TeamIdentifier=//p')
+  if [ "$team" != "$EXPECTED_TEAM_ID" ]; then
+    echo "signed by team '$team', expected $EXPECTED_TEAM_ID" >&2
+    exit 1
+  fi
 fi
 
 zip="$out_dir/FUTO-Backups-$version.zip"

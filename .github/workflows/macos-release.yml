@@ -47,15 +47,6 @@ jobs:
 
       - name: Check the release against the macOS inputs
         id: decision
-        env:
-          MACOS_CERTIFICATE_P12: ${{ secrets.MACOS_CERTIFICATE_P12 }}
-          MACOS_CERTIFICATE_PASSWORD: ${{ secrets.MACOS_CERTIFICATE_PASSWORD }}
-          MACOS_SIGNING_IDENTITY: ${{ secrets.MACOS_SIGNING_IDENTITY }}
-          APPLE_NOTARY_KEY_P8: ${{ secrets.APPLE_NOTARY_KEY_P8 }}
-          APPLE_NOTARY_KEY_ID: ${{ secrets.APPLE_NOTARY_KEY_ID }}
-          APPLE_NOTARY_ISSUER: ${{ secrets.APPLE_NOTARY_ISSUER }}
-          SPARKLE_PRIVATE_KEY: ${{ secrets.SPARKLE_PRIVATE_KEY }}
-          SPARKLE_PUBLIC_KEY: ${{ vars.SPARKLE_PUBLIC_KEY }}
         run: |
           set -euo pipefail
           version_cmp() {
@@ -82,20 +73,6 @@ jobs:
           if ! [[ $version =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
             echo "run=false" >> "$GITHUB_OUTPUT"
             echo "::notice::$TAG is not a plain MAJOR.MINOR.PATCH release tag"
-            exit 0
-          fi
-          missing=
-          [ -n "$MACOS_CERTIFICATE_P12" ] || missing="$missing MACOS_CERTIFICATE_P12"
-          [ -n "$MACOS_CERTIFICATE_PASSWORD" ] || missing="$missing MACOS_CERTIFICATE_PASSWORD"
-          [ -n "$MACOS_SIGNING_IDENTITY" ] || missing="$missing MACOS_SIGNING_IDENTITY"
-          [ -n "$APPLE_NOTARY_KEY_P8" ] || missing="$missing APPLE_NOTARY_KEY_P8"
-          [ -n "$APPLE_NOTARY_KEY_ID" ] || missing="$missing APPLE_NOTARY_KEY_ID"
-          [ -n "$APPLE_NOTARY_ISSUER" ] || missing="$missing APPLE_NOTARY_ISSUER"
-          [ -n "$SPARKLE_PRIVATE_KEY" ] || missing="$missing SPARKLE_PRIVATE_KEY"
-          [ -n "$SPARKLE_PUBLIC_KEY" ] || missing="$missing SPARKLE_PUBLIC_KEY"
-          if [ -n "$missing" ]; then
-            echo "run=false" >> "$GITHUB_OUTPUT"
-            echo "::notice::macOS release is not configured; missing:${missing}"
             exit 0
           fi
           if gh release view "macos-v$version" > /dev/null 2>&1; then
@@ -136,6 +113,9 @@ jobs:
     if: needs.gate.outputs.run == 'true'
     runs-on: macos-15
     timeout-minutes: 90
+    # Infisical syncs the apple-signing/global/ci and yucca/global/ci secrets
+    # here only; the environment admits main and the v* tags.
+    environment: macos-release
     permissions:
       contents: write
     env:
@@ -143,6 +123,29 @@ jobs:
       GH_TOKEN: ${{ github.token }}
       GH_REPO: ${{ github.repository }}
     steps:
+      - name: Check the signing secrets
+        env:
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          APPLE_DEVELOPER_ID_APPLICATION__IDENTITY: ${{ secrets.APPLE_DEVELOPER_ID_APPLICATION__IDENTITY }}
+          APPLE_DEVELOPER_ID_APPLICATION__P12_BASE64: ${{ secrets.APPLE_DEVELOPER_ID_APPLICATION__P12_BASE64 }}
+          APPLE_DEVELOPER_ID_APPLICATION__P12_PASSWORD: ${{ secrets.APPLE_DEVELOPER_ID_APPLICATION__P12_PASSWORD }}
+          APPLE_NOTARY_API_KEY__KEY_ID: ${{ secrets.APPLE_NOTARY_API_KEY__KEY_ID }}
+          APPLE_NOTARY_API_KEY__ISSUER_ID: ${{ secrets.APPLE_NOTARY_API_KEY__ISSUER_ID }}
+          APPLE_NOTARY_API_KEY__P8: ${{ secrets.APPLE_NOTARY_API_KEY__P8 }}
+          MACOS_SPARKLE_PRIVATE_KEY: ${{ secrets.MACOS_SPARKLE_PRIVATE_KEY }}
+        run: |
+          set -euo pipefail
+          missing=
+          for name in APPLE_TEAM_ID APPLE_DEVELOPER_ID_APPLICATION__IDENTITY APPLE_DEVELOPER_ID_APPLICATION__P12_BASE64 \
+            APPLE_DEVELOPER_ID_APPLICATION__P12_PASSWORD APPLE_NOTARY_API_KEY__KEY_ID APPLE_NOTARY_API_KEY__ISSUER_ID \
+            APPLE_NOTARY_API_KEY__P8 MACOS_SPARKLE_PRIVATE_KEY; do
+            case "${!name}" in '' | REPLACE_ME) missing="$missing $name" ;; esac
+          done
+          if [ -n "$missing" ]; then
+            echo "::error::the macos-release environment is missing:${missing}"
+            exit 1
+          fi
+
       - name: Checkout release tree
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
@@ -178,18 +181,18 @@ jobs:
 
       - name: Import the signing certificate
         env:
-          MACOS_CERTIFICATE_P12: ${{ secrets.MACOS_CERTIFICATE_P12 }}
-          MACOS_CERTIFICATE_PASSWORD: ${{ secrets.MACOS_CERTIFICATE_PASSWORD }}
-          APPLE_NOTARY_KEY_P8: ${{ secrets.APPLE_NOTARY_KEY_P8 }}
+          CERTIFICATE_P12_BASE64: ${{ secrets.APPLE_DEVELOPER_ID_APPLICATION__P12_BASE64 }}
+          CERTIFICATE_PASSWORD: ${{ secrets.APPLE_DEVELOPER_ID_APPLICATION__P12_PASSWORD }}
+          NOTARY_KEY_P8: ${{ secrets.APPLE_NOTARY_API_KEY__P8 }}
         run: |
           set -euo pipefail
           KEYCHAIN="$RUNNER_TEMP/signing.keychain-db"
           KEYCHAIN_PASSWORD=$(openssl rand -hex 24)
-          printf '%s' "$MACOS_CERTIFICATE_P12" | base64 --decode > "$RUNNER_TEMP/cert.p12"
+          printf '%s' "$CERTIFICATE_P12_BASE64" | base64 --decode > "$RUNNER_TEMP/cert.p12"
           security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN"
           security set-keychain-settings -lut 21600 "$KEYCHAIN"
           security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN"
-          security import "$RUNNER_TEMP/cert.p12" -k "$KEYCHAIN" -P "$MACOS_CERTIFICATE_PASSWORD" -T /usr/bin/codesign -T /usr/bin/security
+          security import "$RUNNER_TEMP/cert.p12" -k "$KEYCHAIN" -P "$CERTIFICATE_PASSWORD" -T /usr/bin/codesign -T /usr/bin/security
           rm -f "$RUNNER_TEMP/cert.p12"
           # Without a partition list, codesign blocks on a keychain-access
           # prompt that nobody can answer on a headless runner.
@@ -199,17 +202,17 @@ jobs:
             if [ -n "$entry" ]; then keychains+=("$entry"); fi
           done < <(security list-keychains -d user | sed -e 's/^ *//' -e 's/"//g')
           security list-keychains -d user -s "${keychains[@]}"
-          printf '%s' "$APPLE_NOTARY_KEY_P8" | base64 --decode > "$RUNNER_TEMP/notary.p8"
+          printf '%s\n' "$NOTARY_KEY_P8" > "$RUNNER_TEMP/notary.p8"
 
       - name: Build, sign and notarize
         env:
           VERSION: ${{ needs.gate.outputs.version }}
-          CODESIGN_IDENTITY: ${{ secrets.MACOS_SIGNING_IDENTITY }}
+          CODESIGN_IDENTITY: ${{ secrets.APPLE_DEVELOPER_ID_APPLICATION__IDENTITY }}
+          EXPECTED_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
           NOTARY_KEY_PATH: ${{ runner.temp }}/notary.p8
-          NOTARY_KEY_ID: ${{ secrets.APPLE_NOTARY_KEY_ID }}
-          NOTARY_ISSUER: ${{ secrets.APPLE_NOTARY_ISSUER }}
-          SPARKLE_PUBLIC_KEY: ${{ vars.SPARKLE_PUBLIC_KEY }}
-          SPARKLE_PRIVATE_KEY: ${{ secrets.SPARKLE_PRIVATE_KEY }}
+          NOTARY_KEY_ID: ${{ secrets.APPLE_NOTARY_API_KEY__KEY_ID }}
+          NOTARY_ISSUER: ${{ secrets.APPLE_NOTARY_API_KEY__ISSUER_ID }}
+          SPARKLE_PRIVATE_KEY: ${{ secrets.MACOS_SPARKLE_PRIVATE_KEY }}
           DOWNLOAD_URL_PREFIX: https://github.com/${{ github.repository }}/releases/download/macos-v${{ needs.gate.outputs.version }}/
           RELEASE_NOTES_HTML_FILE: ${{ runner.temp }}/macos-notes.html
           OUT_DIR: ${{ runner.temp }}/macos-release

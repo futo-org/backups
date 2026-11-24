@@ -28,5 +28,7 @@
 	<string>FUTO</string>
 	<key>SUEnableAutomaticChecks</key>
 	<true/>
+	<key>SUPublicEDKey</key>
+	<string>CI8vAspPEi5XYzRz/mRsYFv8leENHTJLBzTVFEUhBr4=</string>
 </dict>
 </plist>

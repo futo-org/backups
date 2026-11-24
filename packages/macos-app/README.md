@@ -34,23 +34,23 @@ asset of the server release — with notes filtered to Mac commits. The feed is 
 Release versions must be plain `MAJOR.MINOR.PATCH`: `CFBundleVersion` is `MAJOR*1000000+MINOR*1000+PATCH`, and a
 published zip is never replaced.
 
-Configure as repository secrets: `MACOS_CERTIFICATE_P12` (base64 Developer ID certificate),
-`MACOS_CERTIFICATE_PASSWORD`, `MACOS_SIGNING_IDENTITY`, `APPLE_NOTARY_KEY_P8` (base64 notary API key),
-`APPLE_NOTARY_KEY_ID`, `APPLE_NOTARY_ISSUER`, `SPARKLE_PRIVATE_KEY` (base64 Ed25519 seed); and as a repository
-variable: `SPARKLE_PUBLIC_KEY` (the matching public key, baked into the bundle).
-
-When secrets are missing or the Mac inputs are unchanged since the version in the current appcast, the gate job skips
-with a notice instead of failing.
+The build job runs in the `macos-release` environment, which only `main` and the `v*` tags can deploy to. Infisical
+syncs its secrets there: `apple-signing/global/ci` holds FUTO's Developer ID Application certificate
+(`APPLE_DEVELOPER_ID_APPLICATION__*`, `APPLE_TEAM_ID`) and the App Store Connect notary key (`APPLE_NOTARY_API_KEY__*`);
+`yucca/global/ci` holds `MACOS_SPARKLE_PRIVATE_KEY`, the base64 Ed25519 seed that signs updates. Its public half is
+pinned as `SUPublicEDKey` in `Resources/Info.plist`; the release fails if the two don't match. The job fails if a
+secret is missing; the gate job skips with a notice when the Mac inputs are unchanged since the version in the current
+appcast.
 
 ### Building a release locally
 
 ```bash
 cd packages/macos-app
-SPARKLE_PUBLIC_KEY=… SPARKLE_PRIVATE_KEY=… DOWNLOAD_URL_PREFIX=https://example.com/apps/ \
+SPARKLE_PRIVATE_KEY=… DOWNLOAD_URL_PREFIX=https://example.com/apps/ \
   mise run mac:release 1.2.3
 ```
 
-Set `NOTARY_KEY_PATH`, `NOTARY_KEY_ID` and `NOTARY_ISSUER` (all three) to notarize and staple, and `CODESIGN_IDENTITY` to
-sign with a real identity; the zip and `appcast.xml` land in `OUT_DIR` (default `build/release`). Set
+Set `NOTARY_KEY_PATH`, `NOTARY_KEY_ID` and `NOTARY_ISSUER` (all three) to notarize and staple, and `CODESIGN_IDENTITY` (and
+`EXPECTED_TEAM_ID` to check it) to sign with a real identity; the zip and `appcast.xml` land in `OUT_DIR` (default `build/release`). Set
 `RELEASE_NOTES_HTML_FILE` to notes HTML (`scripts/release-notes.sh html …`) to embed them in the appcast item's
 `<description>`, so Sparkle's update dialog shows them.

@@ -8,7 +8,7 @@ func fail(_ message: String) -> Never {
 
 let arguments = CommandLine.arguments
 guard arguments.count >= 2 else {
-  fail("usage: sparkle-key.swift public | verify <file> <base64-signature> <base64-public-key>")
+  fail("usage: sparkle-key.swift generate | public | verify <file> <base64-signature> <base64-public-key>")
 }
 
 func decodeBase64(_ value: String) -> Data? {
@@ -16,6 +16,8 @@ func decodeBase64(_ value: String) -> Data? {
 }
 
 switch arguments[1] {
+case "generate":
+  print(Curve25519.Signing.PrivateKey().rawRepresentation.base64EncodedString())
 case "public":
   let seedText = String(decoding: FileHandle.standardInput.readDataToEndOfFile(), as: UTF8.self)
   guard let seed = decodeBase64(seedText),
@@ -39,5 +41,5 @@ case "verify":
   print("signature does not verify")
   exit(1)
 default:
-  fail("usage: sparkle-key.swift public | verify <file> <base64-signature> <base64-public-key>")
+  fail("usage: sparkle-key.swift generate | public | verify <file> <base64-signature> <base64-public-key>")
 }

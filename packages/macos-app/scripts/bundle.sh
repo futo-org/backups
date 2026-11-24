@@ -50,13 +50,6 @@ if /usr/libexec/PlistBuddy -c "Print :SUFeedURL" "$plist" >/dev/null 2>&1; then
 else
   /usr/libexec/PlistBuddy -c "Add :SUFeedURL string $feed_url" "$plist"
 fi
-if [ -n "${SPARKLE_PUBLIC_KEY:-}" ]; then
-  if /usr/libexec/PlistBuddy -c "Print :SUPublicEDKey" "$plist" >/dev/null 2>&1; then
-    /usr/libexec/PlistBuddy -c "Set :SUPublicEDKey $SPARKLE_PUBLIC_KEY" "$plist"
-  else
-    /usr/libexec/PlistBuddy -c "Add :SUPublicEDKey string $SPARKLE_PUBLIC_KEY" "$plist"
-  fi
-fi
 
 ditto "$bin/Sparkle.framework" "$app/Contents/Frameworks/Sparkle.framework"
 
