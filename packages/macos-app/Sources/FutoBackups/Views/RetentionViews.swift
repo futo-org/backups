@@ -77,7 +77,7 @@ struct RetentionSection: View {
       Button("Cancel", role: .cancel) {}
     } message: { retention in
       Text(
-        "“\(retention.summary)” keeps fewer snapshots than your current setting. The next backup permanently removes the older snapshots it no longer keeps, and they can't be recovered."
+        "“\(retention.summary)” can delete snapshots your current setting would keep. It applies to backups started after this change, and deleted snapshots can't be recovered."
       )
     }
     .onAppear(perform: syncDraft)

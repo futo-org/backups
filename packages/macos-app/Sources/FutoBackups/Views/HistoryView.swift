@@ -10,7 +10,8 @@ struct HistoryView: View {
       VStack(alignment: .leading, spacing: 22) {
         PageHeader(
           title: "History",
-          subtitle: "\(model.config.snapshotRetention.historySubtitle) Restore any of them to a folder."
+          subtitle:
+            "Restore any snapshot to a folder. Retention for this Mac: \(model.config.snapshotRetention.summary)."
         ) {
           Button {
             Task { await model.refreshSnapshots() }

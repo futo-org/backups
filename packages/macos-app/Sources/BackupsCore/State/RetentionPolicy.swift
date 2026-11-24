@@ -39,17 +39,15 @@ public struct RetentionDuration: Equatable, Hashable, Sendable {
     let text = input.trimmingCharacters(in: .whitespacesAndNewlines)
     guard !text.isEmpty else { throw .invalidDuration }
     var values: [Character: Int] = [:]
-    var remainingUnits: [Character] = ["y", "m", "d", "h"]
     var digits = ""
     for character in text {
       if character.isASCII && character.isNumber {
         digits.append(character)
         continue
       }
-      guard !digits.isEmpty, let position = remainingUnits.firstIndex(of: character) else { throw .invalidDuration }
+      guard !digits.isEmpty, "ymdh".contains(character), values[character] == nil else { throw .invalidDuration }
       guard digits.count <= 9, let value = Int(digits), value <= Self.maxComponent else { throw .durationTooLong }
       values[character] = value
-      remainingUnits.removeSubrange(...position)
       digits = ""
     }
     guard digits.isEmpty else { throw .invalidDuration }
@@ -75,11 +73,18 @@ public struct RetentionDuration: Equatable, Hashable, Sendable {
   public func surelyCovers(_ other: RetentionDuration) -> Bool {
     let dominates =
       years >= other.years && months >= other.months && days >= other.days && hours >= other.hours
-    return dominates || shortestHours >= other.longestHours
+    let coversCalendarDays = hours >= other.hours && fewestCalendarDays >= other.mostCalendarDays
+    return dominates || coversCalendarDays || fewestElapsedHours >= other.mostElapsedHours
   }
 
-  private var shortestHours: Int { ((years * 365 + months * 28) + days) * 24 + hours }
-  private var longestHours: Int { ((years * 366 + months * 31) + days) * 24 + hours }
+  private var fewestCalendarDays: Int { years * 365 + months * 28 + days }
+  private var mostCalendarDays: Int { years * 366 + months * 31 + days }
+
+  // restic steps calendar units back on the wall clock (Go's AddDate), so DST and time zone changes stretch or
+  // shrink them in elapsed time; hours are always elapsed time, so only compare the two with a day of slack.
+  private var calendarSlackHours: Int { fewestCalendarDays > 0 ? 24 : 0 }
+  private var fewestElapsedHours: Int { fewestCalendarDays * 24 - calendarSlackHours + hours }
+  private var mostElapsedHours: Int { mostCalendarDays * 24 + calendarSlackHours + hours }
 }
 
 public enum RetentionField: String, CaseIterable, Identifiable, Sendable {
@@ -357,23 +362,6 @@ public enum SnapshotRetention: Codable, Equatable, Hashable, Sendable {
     }
   }
 
-  public var historySubtitle: String {
-    guard let policy = prunablePolicy else { return "Every snapshot is kept." }
-    if let duration = policy.onlyKeepWithin { return "Snapshots from the last \(duration.description)." }
-    if let count = policy.onlyKeepLast { return count == 1 ? "Your latest backup." : "Your latest \(count) backups." }
-    return "\(policy.summary)."
-  }
-
-  public var pruningSubtitle: String {
-    if let duration = prunablePolicy?.onlyKeepWithin {
-      return "Removing snapshots older than \(duration.description)…"
-    }
-    if let count = prunablePolicy?.onlyKeepLast {
-      return count == 1 ? "Removing all but the latest backup…" : "Removing all but the latest \(count) backups…"
-    }
-    return "Removing old snapshots…"
-  }
-
   public var telemetryValue: String {
     switch self {
     case .keepAll: return "keep-all"
@@ -385,6 +373,11 @@ public enum SnapshotRetention: Codable, Equatable, Hashable, Sendable {
     guard let proposed = prunablePolicy else { return false }
     guard let existing = current.prunablePolicy else { return true }
     return !proposed.keepsEverythingKept(by: existing)
+  }
+
+  public func mayDeleteResumedSnapshots(hostnames: [String]?, host: String) -> Bool {
+    guard mayDeleteMore(than: .keepAll) else { return false }
+    return hostnames?.contains(host) ?? true
   }
 }
 

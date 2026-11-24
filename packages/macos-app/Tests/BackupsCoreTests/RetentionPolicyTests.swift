@@ -59,10 +59,13 @@ func retentionEncoding() throws {
 }
 
 @Test(
-  "durations accept restic's units in order",
+  "durations accept restic's units in any order and normalise them",
   arguments: [
     ("60d", RetentionDuration(days: 60), "60d"),
     (" 1y2m3d4h ", RetentionDuration(years: 1, months: 2, days: 3, hours: 4), "1y2m3d4h"),
+    ("4h3d2m1y", RetentionDuration(years: 1, months: 2, days: 3, hours: 4), "1y2m3d4h"),
+    ("1d2y", RetentionDuration(years: 2, days: 1), "2y1d"),
+    ("2h1d", RetentionDuration(days: 1, hours: 2), "1d2h"),
     ("6m", RetentionDuration(months: 6), "6m"),
     ("0y5d", RetentionDuration(days: 5), "5d"),
     ("012h", RetentionDuration(hours: 12), "12h"),
@@ -84,8 +87,9 @@ func durationParses(text: String, duration: RetentionDuration, canonical: String
     ("2D", .invalidDuration),
     ("-1d", .invalidDuration),
     ("1.5d", .invalidDuration),
-    ("1d2y", .invalidDuration),
     ("1d1d", .invalidDuration),
+    ("1d2h1d", .invalidDuration),
+    ("0d1d", .invalidDuration),
     ("1d 2h", .invalidDuration),
     ("0d", .zeroDuration),
     ("0y0m0d0h", .zeroDuration),
@@ -129,19 +133,6 @@ func durationDescription(duration: RetentionDuration, text: String) {
   ])
 func retentionSummary(retention: SnapshotRetention, summary: String) {
   #expect(retention.summary == summary)
-}
-
-@Test("history and pruning texts follow the policy")
-func historyAndPruningTexts() {
-  #expect(SnapshotRetention.standard.historySubtitle == "Snapshots from the last 60 days.")
-  #expect(SnapshotRetention.standard.pruningSubtitle == "Removing snapshots older than 60 days…")
-  let latestTwo = SnapshotRetention.policy(RetentionPolicy(keepLast: 2))
-  #expect(latestTwo.historySubtitle == "Your latest 2 backups.")
-  #expect(latestTwo.pruningSubtitle == "Removing all but the latest 2 backups…")
-  #expect(SnapshotRetention.keepAll.historySubtitle == "Every snapshot is kept.")
-  let custom = SnapshotRetention.policy(RetentionPolicy(keepWithinDaily: "1m"))
-  #expect(custom.historySubtitle == "Daily for 1 month.")
-  #expect(custom.pruningSubtitle == "Removing old snapshots…")
 }
 
 @Test("telemetry names the restic rules without paths")
@@ -205,6 +196,49 @@ func policyValidationNormalises() throws {
   ])
 func stricterRetention(current: SnapshotRetention, proposed: SnapshotRetention, mayDeleteMore: Bool) {
   #expect(proposed.mayDeleteMore(than: current) == mayDeleteMore)
+}
+
+@Test(
+  "calendar units only cover elapsed hours with a day to spare for DST and time zone changes",
+  arguments: [
+    ("24h", "1d", true),
+    ("1d", "24h", true),
+    ("25h", "1d1h", true),
+    ("47h", "1d", true),
+    ("1d", "48h", false),
+    ("720h", "1m", true),
+    ("1m", "768h", false),
+    ("8760h", "1y", true),
+    ("365d", "1y", false),
+    ("1y", "365d", true),
+    ("366d", "1y", true),
+    ("1m", "31d", false),
+    ("1m", "30d", true),
+    ("28d", "1m", false),
+    ("29d", "1m", true),
+    ("2d", "1d23h", true),
+    ("2h1d", "1d2h", false),
+    ("1d2h", "1d", true),
+    ("1d", "1d2h", false),
+  ])
+func calendarVersusElapsed(current: String, proposed: String, mayDeleteMore: Bool) {
+  let retention = { (within: String) in SnapshotRetention.policy(RetentionPolicy(keepWithin: within)) }
+  #expect(retention(proposed).mayDeleteMore(than: retention(current)) == mayDeleteMore)
+}
+
+@Test(
+  "resuming a backup confirms any policy that can delete this Mac's snapshots",
+  arguments: [
+    (RetentionPreset.latestTwo, ["mac"] as [String]?, true),
+    (.days60, ["mac", "other"], true),
+    (.days15, nil, true),
+    (.latestTwo, ["other"], false),
+    (.latestTwo, [], false),
+    (.never, ["mac"], false),
+    (.never, nil, false),
+  ])
+func resumedSnapshots(preset: RetentionPreset, hostnames: [String]?, mayDelete: Bool) {
+  #expect(preset.retention.mayDeleteResumedSnapshots(hostnames: hostnames, host: "mac") == mayDelete)
 }
 
 @Test("a draft starts from the policy and produces a validated policy")

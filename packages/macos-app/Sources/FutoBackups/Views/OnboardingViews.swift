@@ -374,6 +374,7 @@ private struct ReadyStep: View {
   let estimates: FolderSizeEstimates
   @Binding var retention: RetentionPreset
   let back: () -> Void
+  @State private var pendingBackUpNow: Bool?
 
   var body: some View {
     VStack(spacing: 22) {
@@ -418,18 +419,47 @@ private struct ReadyStep: View {
         .padding(.vertical, 4)
       }
       HStack(spacing: 12) {
-        Button("Back Up Now") {
-          model.finishOnboarding(folders: selection.paths, retention: retention, backUpNow: true)
-        }
-        .buttonStyle(PrimaryButtonStyle(large: true))
-        .keyboardShortcut(.defaultAction)
-        Button("Not Now") { model.finishOnboarding(folders: selection.paths, retention: retention, backUpNow: false) }
+        Button("Back Up Now") { requestFinish(backUpNow: true) }
+          .buttonStyle(PrimaryButtonStyle(large: true))
+          .keyboardShortcut(.defaultAction)
+        Button("Not Now") { requestFinish(backUpNow: false) }
           .buttonStyle(SecondaryButtonStyle())
       }
       Button("Back", action: back)
         .buttonStyle(.link)
         .font(.system(size: 12))
     }
+    .alert("Delete old snapshots?", isPresented: confirmingBinding, presenting: pendingBackUpNow) { backUpNow in
+      Button("Delete Old Snapshots", role: .destructive) { finish(backUpNow: backUpNow) }
+      Button("Cancel", role: .cancel) {}
+    } message: { _ in
+      Text(
+        "This backup \(existingHostnames == nil ? "may already have" : "already has") snapshots from this Mac. “\(retention.retention.summary)” can delete the ones it doesn't keep, starting with the first backup, and deleted snapshots can't be recovered."
+      )
+    }
+  }
+
+  private var confirmingBinding: Binding<Bool> {
+    Binding(
+      get: { pendingBackUpNow != nil },
+      set: { if !$0 { pendingBackUpNow = nil } })
+  }
+
+  private var existingHostnames: [String]? {
+    model.snapshotsLoad == .loaded ? model.snapshots.map(\.hostname) : nil
+  }
+
+  private func requestFinish(backUpNow: Bool) {
+    if retention.retention.mayDeleteResumedSnapshots(hostnames: existingHostnames, host: model.config.host) {
+      pendingBackUpNow = backUpNow
+    } else {
+      finish(backUpNow: backUpNow)
+    }
+  }
+
+  private func finish(backUpNow: Bool) {
+    pendingBackUpNow = nil
+    model.finishOnboarding(folders: selection.paths, retention: retention, backUpNow: backUpNow)
   }
 
   private var retentionDetail: String {
