@@ -1,3 +1,4 @@
+import BackupsCore
 import Foundation
 import Observation
 import Sparkle
@@ -6,50 +7,82 @@ import Sparkle
 @Observable
 final class Updater {
   let isAvailable: Bool
-  private(set) var canCheckForUpdates: Bool
+  var canCheckForUpdates: Bool { controller != nil && (!started || sparkleCanCheckForUpdates) }
   var automaticallyChecksForUpdates: Bool {
-    didSet { controller?.updater.automaticallyChecksForUpdates = automaticallyChecksForUpdates }
+    didSet {
+      controller?.updater.automaticallyChecksForUpdates = automaticallyChecksForUpdates
+      delegate.backgroundChecks.automaticChecksChanged(enabled: automaticallyChecksForUpdates)
+    }
   }
 
   private var controller: SPUStandardUpdaterController?
-  private let relaunchDelegate = RelaunchDelegate()
+  private let delegate: UpdaterDelegate
   private var observation: NSKeyValueObservation?
+  private var started: Bool
+  private var sparkleCanCheckForUpdates = false
 
-  init() {
+  init(startingUpdater: Bool) {
     let feedURL = Bundle.main.infoDictionary?["SUFeedURL"] as? String
     let publicEDKey = Bundle.main.infoDictionary?["SUPublicEDKey"] as? String
     isAvailable = (feedURL?.isEmpty == false) && (publicEDKey?.isEmpty == false)
-    canCheckForUpdates = false
     automaticallyChecksForUpdates = false
+    started = startingUpdater
+    delegate = UpdaterDelegate(backgroundChecks: BackgroundUpdateCheckGate(onboarding: !startingUpdater))
     if isAvailable {
       let controller = SPUStandardUpdaterController(
-        startingUpdater: isAvailable, updaterDelegate: relaunchDelegate, userDriverDelegate: nil)
+        startingUpdater: startingUpdater, updaterDelegate: delegate, userDriverDelegate: nil)
       self.controller = controller
       automaticallyChecksForUpdates = controller.updater.automaticallyChecksForUpdates
       observation = controller.updater.observe(
         \.canCheckForUpdates, options: [.initial, .new]
       ) { [weak self] _, change in
         let canCheck = change.newValue ?? false
-        Task { @MainActor [weak self] in self?.canCheckForUpdates = canCheck }
+        Task { @MainActor [weak self] in self?.sparkleCanCheckForUpdates = canCheck }
       }
     }
   }
 
+  func start() {
+    guard let controller else { return }
+    delegate.backgroundChecks.finishOnboarding(automaticChecks: automaticallyChecksForUpdates)
+    startSparkle(controller)
+  }
+
   func checkForUpdates() {
-    controller?.checkForUpdates(nil)
+    guard let controller else { return }
+    startSparkle(controller)
+    controller.checkForUpdates(nil)
+  }
+
+  private func startSparkle(_ controller: SPUStandardUpdaterController) {
+    guard !started else { return }
+    started = true
+    controller.startUpdater()
   }
 }
 
-private final class RelaunchDelegate: NSObject, SPUUpdaterDelegate {
+@MainActor
+private final class UpdaterDelegate: NSObject, SPUUpdaterDelegate {
+  var backgroundChecks: BackgroundUpdateCheckGate
+
+  init(backgroundChecks: BackgroundUpdateCheckGate) {
+    self.backgroundChecks = backgroundChecks
+  }
+
+  func updater(_ updater: SPUUpdater, mayPerform updateCheck: SPUUpdateCheck) throws {
+    guard !backgroundChecks.allowsBackgroundChecks, updateCheck == .updatesInBackground else { return }
+    throw CocoaError(.userCancelled)
+  }
+
   func updaterWillRelaunchApplication(_ updater: SPUUpdater) {
-    MainActor.assumeIsolated { MenuBarResidency.shared.updateWillRelaunch() }
+    MenuBarResidency.shared.updateWillRelaunch()
   }
 
   func updater(_ updater: SPUUpdater, didAbortWithError error: any Error) {
-    MainActor.assumeIsolated { MenuBarResidency.shared.updateCycleEnded() }
+    MenuBarResidency.shared.updateCycleEnded()
   }
 
   func updater(_ updater: SPUUpdater, didFinishUpdateCycleFor updateCheck: SPUUpdateCheck, error: (any Error)?) {
-    MainActor.assumeIsolated { MenuBarResidency.shared.updateCycleEnded() }
+    MenuBarResidency.shared.updateCycleEnded()
   }
 }

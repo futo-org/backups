@@ -8,6 +8,7 @@ struct FirstRunOnboarding: View {
   @State private var index = 0
   @State private var selection = FolderSelection(home: NSHomeDirectory())
   @State private var estimates: FolderSizeEstimates?
+  @State private var choices = OnboardingChoices()
   @State private var retention = RetentionPreset.standard
 
   var body: some View {
@@ -46,7 +47,8 @@ struct FirstRunOnboarding: View {
       ChooseFoldersStep(
         selection: $selection, estimates: estimates, back: index > 0 ? { back() } : nil, next: { next() })
     case .ready:
-      ReadyStep(selection: selection, estimates: estimates, retention: $retention, back: { back() })
+      ReadyStep(
+        selection: selection, estimates: estimates, choices: $choices, retention: $retention, back: { back() })
     }
   }
 
@@ -370,8 +372,10 @@ private struct SizeLabel: View {
 
 private struct ReadyStep: View {
   @Environment(AppModel.self) private var model
+  @Environment(Updater.self) private var updater
   let selection: FolderSelection
   let estimates: FolderSizeEstimates
+  @Binding var choices: OnboardingChoices
   @Binding var retention: RetentionPreset
   let back: () -> Void
   @State private var pendingBackUpNow: Bool?
@@ -418,6 +422,15 @@ private struct ReadyStep: View {
         }
         .padding(.vertical, 4)
       }
+      VStack(alignment: .leading, spacing: 8) {
+        Toggle("Open FUTO Backups at login, so scheduled backups keep running", isOn: $choices.openAtLogin)
+        if updater.isAvailable {
+          Toggle("Check for updates automatically", isOn: $choices.checkForUpdates)
+        }
+      }
+      .toggleStyle(.checkbox)
+      .font(.system(size: 12))
+      .frame(maxWidth: .infinity, alignment: .leading)
       HStack(spacing: 12) {
         Button("Back Up Now") { requestFinish(backUpNow: true) }
           .buttonStyle(PrimaryButtonStyle(large: true))
@@ -459,6 +472,11 @@ private struct ReadyStep: View {
 
   private func finish(backUpNow: Bool) {
     pendingBackUpNow = nil
+    model.setLaunchAtLogin(choices.openAtLogin)
+    if updater.isAvailable, updater.automaticallyChecksForUpdates != choices.checkForUpdates {
+      updater.automaticallyChecksForUpdates = choices.checkForUpdates
+    }
+    updater.start()
     model.finishOnboarding(folders: selection.paths, retention: retention, backUpNow: backUpNow)
   }
 

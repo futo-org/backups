@@ -215,16 +215,24 @@ final class AppModel {
 
   var launchAtLogin: Bool {
     get { SMAppService.mainApp.status == .enabled }
-    set {
-      do {
-        if newValue {
-          try SMAppService.mainApp.register()
-        } else {
-          try SMAppService.mainApp.unregister()
-        }
-      } catch {
-        lastError = String(describing: error)
+    set { setLaunchAtLogin(newValue) }
+  }
+
+  func setLaunchAtLogin(_ wanted: Bool) {
+    let service = SMAppService.mainApp
+    do {
+      switch LoginItemChange.toward(openAtLogin: wanted, from: service.loginItemStatus) {
+      case .none, .askForApproval: break
+      case .register: try service.register()
+      case .unregister: try service.unregister()
       }
+    } catch {
+      lastError = String(describing: error)
+      return
+    }
+    if wanted, service.loginItemStatus == .requiresApproval {
+      lastError = "To open FUTO Backups at login, turn it on under Login Items in System Settings."
+      SMAppService.openSystemSettingsLoginItems()
     }
   }
 
@@ -1137,5 +1145,17 @@ final class AppModel {
       return loginError.message(server: config.serverDisplayName)
     }
     return String(describing: error)
+  }
+}
+
+extension SMAppService {
+  fileprivate var loginItemStatus: LoginItemStatus {
+    switch status {
+    case .enabled: .enabled
+    case .requiresApproval: .requiresApproval
+    case .notFound: .notFound
+    case .notRegistered: .notRegistered
+    @unknown default: .notRegistered
+    }
   }
 }

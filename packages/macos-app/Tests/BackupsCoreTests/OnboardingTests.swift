@@ -11,6 +11,12 @@ import Testing
   #expect(OnboardingStep.allCases.map(\.title) == ["Disk access", "Folders", "Ready"])
 }
 
+@Test func onboardingChoicesStartTicked() {
+  let choices = OnboardingChoices()
+  #expect(choices.openAtLogin)
+  #expect(choices.checkForUpdates)
+}
+
 @Test func freshConfigNeedsOnboarding() {
   #expect(AppConfig.defaults(host: "Mac", home: "/Users/test").needsOnboarding)
 }

@@ -4,8 +4,14 @@ import SwiftUI
 @main
 struct FutoBackupsApp: App {
   @NSApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
-  @State private var model = AppModel()
-  @State private var updater = Updater()
+  @State private var model: AppModel
+  @State private var updater: Updater
+
+  init() {
+    let model = AppModel()
+    _model = State(initialValue: model)
+    _updater = State(initialValue: Updater(startingUpdater: !model.needsOnboarding))
+  }
 
   var body: some Scene {
     Window("FUTO Backups", id: MenuBarResidency.mainWindowID) {
