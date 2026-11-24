@@ -88,13 +88,21 @@ public enum ResticCommand {
   }
 
   public static func restore(
-    _ context: ResticContext, snapshotId: String, subfolder: String? = nil, target: String
+    _ context: ResticContext, snapshotId: String, subfolder: String? = nil, target: String,
+    includingChildren children: [String] = []
   ) -> ResticInvocation {
     let source = subfolder.map { "\(snapshotId):\($0)" } ?? snapshotId
-    var result = invocation(
-      context, ["restore"], ["--target", target, "--overwrite", "never"], positional: [source])
+    var flags = ["--target", target, "--overwrite", "never"]
+    for child in children {
+      flags += ["--include", childPattern(child)]
+    }
+    var result = invocation(context, ["restore"], flags, positional: [source])
     result.retainsStdout = false
     return result
+  }
+
+  public static func ls(_ context: ResticContext, snapshotId: String, directory: String) -> ResticInvocation {
+    invocation(context, ["ls"], ["--no-lock"], positional: [snapshotId, directory])
   }
 
   public static func stats(_ context: ResticContext) -> ResticInvocation {
@@ -118,6 +126,12 @@ public enum ResticCommand {
   }
 
   private static let standardPath = "/usr/bin:/bin:/usr/sbin:/sbin"
+
+  private static let patternSpecials: Set<Character> = ["\\", "[", "]", "*", "?"]
+
+  static func childPattern(_ name: String) -> String {
+    "/" + name.flatMap { patternSpecials.contains($0) ? ["\\", $0] : [$0] }
+  }
 
   private static func environment(_ context: ResticContext) -> [String: String] {
     [

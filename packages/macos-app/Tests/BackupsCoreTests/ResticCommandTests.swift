@@ -118,7 +118,32 @@ private let commandCases: [CommandCase] = [
       "--target", "/target/My Docs", "--overwrite", "never", "--", "abc123:/Users/x/My Docs",
     ],
     retainsStdout: false),
+  CommandCase(
+    name: "restore children of a folder",
+    invocation: ResticCommand.restore(
+      plainContext, snapshotId: "abc123", subfolder: "/Users/x/My Docs", target: "/target/.staging",
+      includingChildren: ["a.txt", "Sub Folder"]),
+    arguments: ["restore", "--json"] + common + [
+      "--target", "/target/.staging", "--overwrite", "never", "--include", "/a.txt", "--include", "/Sub Folder",
+      "--", "abc123:/Users/x/My Docs",
+    ],
+    retainsStdout: false),
+  CommandCase(
+    name: "ls one directory",
+    invocation: ResticCommand.ls(plainContext, snapshotId: "abc123", directory: "/Users/x/My Docs"),
+    arguments: ["ls", "--json"] + common + ["--no-lock", "--", "abc123", "/Users/x/My Docs"]),
 ]
+
+@Test(arguments: [
+  ("plain.txt", "/plain.txt"),
+  ("we[ir]d*.txt", #"/we\[ir\]d\*.txt"#),
+  ("q?.txt", #"/q\?.txt"#),
+  (#"back\slash"#, #"/back\\slash"#),
+  ("!bang $HOME ", "/!bang $HOME "),
+])
+func childPatternsMatchOnlyThatChild(_ name: String, _ pattern: String) {
+  #expect(ResticCommand.childPattern(name) == pattern)
+}
 
 @Test(arguments: commandCases)
 func argumentsMatch(_ testCase: CommandCase) {

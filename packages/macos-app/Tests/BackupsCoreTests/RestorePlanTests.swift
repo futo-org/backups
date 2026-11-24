@@ -86,3 +86,98 @@ private let target = URL(fileURLWithPath: "/Volumes/Restore")
     _ = try RestorePlan.createDirectoryExclusively(root.appendingPathComponent("missing/child"))
   }
 }
+
+private func entry(_ path: String, _ kind: SnapshotEntry.Kind = .file) -> SnapshotEntry {
+  SnapshotEntry(name: URL(fileURLWithPath: path).lastPathComponent, path: path, kind: kind)
+}
+
+@Test func batchesGroupPickedEntriesByTheirFolderInPickOrder() {
+  let report = entry("/Users/x/Documents/report.pdf")
+  let photos = entry("/Users/x/Pictures/Trip", .directory)
+  let notes = entry("/Users/x/Documents/Work", .directory)
+  let documents = entry("/Users/x/Documents", .directory)
+  #expect(
+    RestorePlan.batches(for: [report, photos, notes, documents], into: target) == [
+      .children([report, notes], of: "/Users/x/Documents"),
+      .children([photos], of: "/Users/x/Pictures"),
+      .children([documents], of: "/Users/x"),
+    ])
+}
+
+@Test func batchesRestoreTheWholeVolumeAsOneFolder() {
+  let volume = SnapshotEntry(name: "Macintosh HD", path: "/", kind: .directory)
+  let top = entry("/Users", .directory)
+  #expect(
+    RestorePlan.batches(for: [volume, top], into: target) == [
+      .folder(RestoreItem(snapshotPath: "/", target: target.appendingPathComponent("Macintosh HD"))),
+      .children([top], of: "/"),
+    ])
+}
+
+@Test(arguments: [
+  ("report.pdf", SnapshotEntry.Kind.file, ["report.pdf", "report 2.pdf", "report 3.pdf"]),
+  ("archive.tar.gz", .file, ["archive.tar.gz", "archive.tar 2.gz", "archive.tar 3.gz"]),
+  (".bashrc", .file, [".bashrc", ".bashrc 2", ".bashrc 3"]),
+  ("Makefile", .file, ["Makefile", "Makefile 2", "Makefile 3"]),
+  ("Project.app", .symlink, ["Project.app", "Project 2.app", "Project 3.app"]),
+  ("My.Project", .directory, ["My.Project", "My.Project 2", "My.Project 3"]),
+])
+func claimNameNumbersLikeFinder(_ name: String, _ kind: SnapshotEntry.Kind, _ attempts: [String]) throws {
+  var tried: [String] = []
+  let picked = SnapshotEntry(name: name, path: "/d/" + name, kind: kind)
+  let claimed = try RestorePlan.claimName(for: picked, in: target, avoiding: []) { url in
+    tried.append(url.lastPathComponent)
+    return tried.count == 3
+  }
+  #expect(tried == attempts)
+  #expect(claimed == target.appendingPathComponent(attempts[2]))
+}
+
+@Test func claimNameSkipsNamesTakenByThisRestoreIgnoringCase() throws {
+  var tried: [String] = []
+  let claimed = try RestorePlan.claimName(
+    for: entry("/d/Report.pdf"), in: target, avoiding: ["report.pdf"]
+  ) { url in
+    tried.append(url.lastPathComponent)
+    return true
+  }
+  #expect(claimed == target.appendingPathComponent("Report 2.pdf"))
+  #expect(tried == ["Report 2.pdf"])
+}
+
+@Test func claimNamePropagatesPlacementErrors() {
+  #expect(throws: POSIXError(.EXDEV)) {
+    _ = try RestorePlan.claimName(for: entry("/d/a.txt"), in: target, avoiding: []) { _ in
+      throw POSIXError(.EXDEV)
+    }
+  }
+}
+
+@Test func claimStagingUsesTheFirstFreeHiddenFolder() throws {
+  var tried: [String] = []
+  let staging = try RestorePlan.claimStaging(in: target) { url in
+    tried.append(url.lastPathComponent)
+    return tried.count == 2
+  }
+  #expect(tried == [".FUTO Backups Restore", ".FUTO Backups Restore 2"])
+  #expect(staging == target.appendingPathComponent(".FUTO Backups Restore 2"))
+}
+
+@Test func moveExclusivelyNeverReplacesAnExistingItem() throws {
+  let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+  defer { try? FileManager.default.removeItem(at: root) }
+  try FileManager.default.createDirectory(at: root, withIntermediateDirectories: false)
+  let source = root.appendingPathComponent("source.txt")
+  let taken = root.appendingPathComponent("taken.txt")
+  try Data("restored".utf8).write(to: source)
+  try Data("mine".utf8).write(to: taken)
+  #expect(try !RestorePlan.moveExclusively(from: source, to: taken))
+  #expect(try Data(contentsOf: taken) == Data("mine".utf8))
+  let free = root.appendingPathComponent("free.txt")
+  #expect(try RestorePlan.moveExclusively(from: source, to: free))
+  #expect(try Data(contentsOf: free) == Data("restored".utf8))
+  #expect(!FileManager.default.fileExists(atPath: source.path))
+  #expect(throws: POSIXError(.ENOENT)) {
+    _ = try RestorePlan.moveExclusively(from: source, to: root.appendingPathComponent("other.txt"))
+  }
+}

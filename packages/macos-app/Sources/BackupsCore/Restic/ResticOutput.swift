@@ -194,7 +194,7 @@ public enum ResticOutput {
     return decoder
   }
 
-  private static func parseTimestamp(_ text: String) -> Date? {
+  static func parseTimestamp(_ text: String) -> Date? {
     if let truncated = truncateFraction(text) {
       let formatter = ISO8601DateFormatter()
       formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
