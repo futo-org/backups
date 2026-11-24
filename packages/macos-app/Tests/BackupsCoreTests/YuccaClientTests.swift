@@ -246,6 +246,51 @@ func submitBackupEndSendsStatusRawValue(status: BackupStatus) async throws {
   try expectBody(request, ["name": .string("new-repo"), "worm": .bool(false)])
 }
 
+@Test func createTicketRequestAndDecode() async throws {
+  let (client, transport) = makeClient([
+    jsonResponse(status: 201, #"{"redirectTo":"https://idp.example/authorize?state=s1&prompt=login"}"#)
+  ])
+  let url = try await client.createTicket(action: .deleteRepository, repositoryId: "repo-7")
+  #expect(url == URL(string: "https://idp.example/authorize?state=s1&prompt=login"))
+  let request = try await singleRequest(transport)
+  #expect(request.method == "POST")
+  #expect(request.url == URL(string: "https://server.example/api/auth/ticket"))
+  #expect(request.headers == ["Cookie": "yucca-access-token=tok-1", "Content-Type": "application/json"])
+  try expectBody(request, ["action": .string("repository.delete"), "repositoryId": .string("repo-7")])
+}
+
+private let invalidTicketRedirects: [String] = [
+  #"{}"#,
+  #"{"redirectTo":"not a url"}"#,
+  #"{"redirectTo":"file:///etc/passwd"}"#,
+]
+
+@Test(arguments: invalidTicketRedirects)
+func createTicketRejectsNonWebRedirects(json: String) async throws {
+  let (client, _) = makeClient([jsonResponse(status: 201, json)])
+  await #expect(throws: YuccaError.self) {
+    _ = try await client.createTicket(action: .deleteRepository, repositoryId: "repo-7")
+  }
+}
+
+@Test func deleteConnectionRequest() async throws {
+  let (client, transport) = makeClient([jsonResponse(status: 204, "")])
+  try await client.deleteConnection(id: "conn-3")
+  let request = try await singleRequest(transport)
+  #expect(request.method == "DELETE")
+  #expect(request.url == URL(string: "https://server.example/api/connections/conn-3"))
+  #expect(request.headers == ["Cookie": "yucca-access-token=tok-1"])
+  #expect(request.body == nil)
+}
+
+@Test func deleteConnectionStillOwningRepositoriesMapsToHttpError() async throws {
+  let body = #"{"message":"Connection still owns repositories; adopt or delete them first","statusCode":400}"#
+  let (client, _) = makeClient([jsonResponse(status: 400, body)])
+  await #expect(throws: YuccaError.http(status: 400, body: body)) {
+    try await client.deleteConnection(id: "conn-3")
+  }
+}
+
 @Test func submitBackupStartRequest() async throws {
   let (client, transport) = makeClient([jsonResponse(status: 204, "")])
   try await client.submitBackupStart(repositoryId: "repo-7")
