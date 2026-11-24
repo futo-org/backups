@@ -66,14 +66,18 @@ struct SettingsView: View {
         }
         .onChange(of: quietEnabled) { _, _ in applyQuiet() }
         if quietEnabled {
-          HStack {
-            Spacer()
-            DatePicker("From", selection: $quietStart, displayedComponents: .hourAndMinute)
-              .onChange(of: quietStart) { _, _ in applyQuiet() }
-              .fixedSize()
-            DatePicker("to", selection: $quietEnd, displayedComponents: .hourAndMinute)
-              .onChange(of: quietEnd) { _, _ in applyQuiet() }
-              .fixedSize()
+          LabeledContent("Hours") {
+            HStack(spacing: 6) {
+              DatePicker("From", selection: $quietStart, displayedComponents: .hourAndMinute)
+                .labelsHidden()
+                .onChange(of: quietStart) { _, _ in applyQuiet() }
+              Text("to")
+                .foregroundStyle(.secondary)
+              DatePicker("To", selection: $quietEnd, displayedComponents: .hourAndMinute)
+                .labelsHidden()
+                .onChange(of: quietEnd) { _, _ in applyQuiet() }
+            }
+            .fixedSize()
           }
           if let quietError {
             InlineError(text: quietError)
