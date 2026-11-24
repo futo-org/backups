@@ -333,3 +333,16 @@ func forgetRepositoryWithoutRepository() {
   #expect(!changed3)
   #expect(!config.excludes.contains { $0.contains("orbstack") })
 }
+
+@Test func pinningToProductionForgetsAnotherServersRepository() {
+  var config = AppConfig.defaults(host: "mac", home: "/Users/t")
+  config.repositoryId = "repo-1"
+  let unchanged = config.pinToProductionServer()
+  #expect(!unchanged)
+  #expect(config.repositoryId == "repo-1")
+  config.serverURL = AppConfig.devServerURL
+  let pinned = config.pinToProductionServer()
+  #expect(pinned)
+  #expect(config.serverURL == AppConfig.productionServerURL)
+  #expect(config.repositoryId == nil)
+}

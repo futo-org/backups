@@ -31,20 +31,25 @@ struct WelcomeView: View {
           .padding(.top, 34)
           .frame(minHeight: 200, alignment: .top)
         Spacer(minLength: 24)
-        Button {
-          showServer = true
-        } label: {
-          Label(model.config.serverDisplayName, systemImage: "server.rack")
-            .font(.system(size: 12))
-            .foregroundStyle(.secondary)
+        if AppModel.allowsServerSelection {
+          Button {
+            showServer = true
+          } label: {
+            Label(model.config.serverDisplayName, systemImage: "server.rack")
+              .font(.system(size: 12))
+              .foregroundStyle(.secondary)
+          }
+          .buttonStyle(.plain)
+          .popover(isPresented: $showServer, arrowEdge: .top) {
+            ServerEditor()
+              .padding(18)
+              .frame(width: 380)
+          }
+          .padding(.bottom, 22)
+        } else {
+          Spacer()
+            .frame(height: 22)
         }
-        .buttonStyle(.plain)
-        .popover(isPresented: $showServer, arrowEdge: .top) {
-          ServerEditor()
-            .padding(18)
-            .frame(width: 380)
-        }
-        .padding(.bottom, 22)
       }
       .padding(.horizontal, 40)
     }

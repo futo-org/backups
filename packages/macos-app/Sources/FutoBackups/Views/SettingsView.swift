@@ -184,9 +184,11 @@ struct SettingsView: View {
             detail: "Updates are off in development builds.")
         }
       }
-      Section("Advanced") {
-        ServerEditor()
-          .padding(.vertical, 4)
+      if AppModel.allowsServerSelection {
+        Section("Advanced") {
+          ServerEditor()
+            .padding(.vertical, 4)
+        }
       }
       ThisMacSection()
     }

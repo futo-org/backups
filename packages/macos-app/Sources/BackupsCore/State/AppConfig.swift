@@ -102,6 +102,13 @@ public struct AppConfig: Codable, Equatable, Sendable {
     return config
   }
 
+  public mutating func pinToProductionServer() -> Bool {
+    guard serverURL != Self.productionServerURL else { return false }
+    serverURL = Self.productionServerURL
+    repositoryId = nil
+    return true
+  }
+
   public mutating func addNewDefaultExcludes(home: String) -> Bool {
     let seen = excludeDefaultsVersion ?? 1
     guard seen < Self.currentExcludeDefaultsVersion else { return false }
