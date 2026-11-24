@@ -75,4 +75,12 @@ public struct AppConfig: Codable, Equatable, Sendable {
       scheduleAnchor: nil
     )
   }
+
+  public mutating func forgetRepository(unlessListedIn repositories: [RemoteRepository]) -> Bool {
+    guard let repositoryId, !repositories.contains(where: { $0.id == repositoryId }) else { return false }
+    self.repositoryId = nil
+    recoveryKeyConfirmedAt = nil
+    lastRun = nil
+    return true
+  }
 }

@@ -216,3 +216,52 @@ func serverDisplayName(url: String, expected: String) throws {
   config.serverURL = try #require(URL(string: url))
   #expect(config.serverDisplayName == expected)
 }
+
+@Test("a repository the account still lists is kept")
+func forgetRepositoryKeepsListed() {
+  var config = AppConfig.defaults(host: "book-pro", home: "/Users/test")
+  config.repositoryId = "mine"
+  config.recoveryKeyConfirmedAt = Date(timeIntervalSince1970: 1_781_092_800)
+  config.lastRun = RunRecord(
+    startedAt: Date(timeIntervalSince1970: 1_781_092_800),
+    finishedAt: Date(timeIntervalSince1970: 1_781_093_100),
+    status: .complete)
+  let repositories = [
+    RemoteRepository(id: "other", name: "other", worm: false),
+    RemoteRepository(id: "mine", name: "book-pro", worm: false, connectionType: "restic"),
+  ]
+  let forgot = config.forgetRepository(unlessListedIn: repositories)
+  #expect(!forgot)
+  #expect(config.repositoryId == "mine")
+  #expect(config.recoveryKeyConfirmedAt == Date(timeIntervalSince1970: 1_781_092_800))
+  #expect(config.lastRun != nil)
+}
+
+@Test("a repository the account doesn't list is forgotten with its key confirmation")
+func forgetRepositoryClearsUnlisted() {
+  var config = AppConfig.defaults(host: "book-pro", home: "/Users/test")
+  config.repositoryId = "previous-account"
+  config.recoveryKeyConfirmedAt = Date(timeIntervalSince1970: 1_781_092_800)
+  config.folders = ["/Users/test/Documents"]
+  config.lastRun = RunRecord(
+    startedAt: Date(timeIntervalSince1970: 1_781_092_800),
+    finishedAt: Date(timeIntervalSince1970: 1_781_093_100),
+    status: .complete)
+  let forgot = config.forgetRepository(unlessListedIn: [RemoteRepository(id: "mine", name: "book-pro", worm: false)])
+  #expect(forgot)
+  #expect(config.repositoryId == nil)
+  #expect(config.recoveryKeyConfirmedAt == nil)
+  #expect(config.lastRun == nil)
+  #expect(config.folders == ["/Users/test/Documents"])
+  let forgotAgain = config.forgetRepository(unlessListedIn: [])
+  #expect(!forgotAgain)
+}
+
+@Test("without a repository there is nothing to forget")
+func forgetRepositoryWithoutRepository() {
+  var config = AppConfig.defaults(host: "book-pro", home: "/Users/test")
+  config.recoveryKeyConfirmedAt = Date(timeIntervalSince1970: 1_781_092_800)
+  let forgot = config.forgetRepository(unlessListedIn: [])
+  #expect(!forgot)
+  #expect(config.recoveryKeyConfirmedAt == Date(timeIntervalSince1970: 1_781_092_800))
+}

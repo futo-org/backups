@@ -241,6 +241,13 @@ final class AppModel {
         let accountClient = YuccaClient(apiRoot: server.apiRoot, transport: self.transport, accessToken: token)
         self.account = try await accountClient.me()
         guard generation == self.loginGeneration else { return }
+        if self.config.repositoryId != nil {
+          let repositories = try await accountClient.listRepositories()
+          guard generation == self.loginGeneration else { return }
+          if self.config.forgetRepository(unlessListedIn: repositories) {
+            self.saveConfig()
+          }
+        }
         report("Connected FUTO Backups backend")
         if let pendingBootstrapError {
           report("Bootstrap error", ["error": .string(pendingBootstrapError)], force: true)
