@@ -509,6 +509,15 @@ describe(AuthService.name, () => {
       expect(mocks.session.create).not.toHaveBeenCalled();
     });
 
+    it('fails as unsupported for a connection type this server does not know', async () => {
+      mocks.oidc.pollDeviceCode.mockResolvedValue({ status: 'complete', claims } as never);
+
+      await expect(
+        sut.oidcDeviceToken({ deviceCode: 'device-code', connectionType: 'winamp', connectionName: 'my-laptop' }),
+      ).resolves.toEqual({ status: 'FAILURE', reason: 'UNSUPPORTED_CONNECTION_TYPE' });
+      expect(mocks.session.create).not.toHaveBeenCalled();
+    });
+
     it('fails as unknown when the provider errors', async () => {
       mocks.oidc.pollDeviceCode.mockRejectedValue(new Error('provider unreachable'));
 
