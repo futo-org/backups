@@ -143,3 +143,22 @@ func parseLineMatches(_ line: String, _ expected: ResticMessage) {
 func errorMessagePrecedence(_ name: String, _ stderr: String, _ exitCode: Int32, _ expected: String) {
   #expect(ResticOutput.errorMessage(stderr: stderr, exitCode: exitCode) == expected, "\(name)")
 }
+
+@Test(
+  arguments: [
+    (
+      """
+      {"message_type":"error","error":{"message":"first"},"during":"archival","item":"/a"}
+        {"message_type":"error","error":{"message":"permission denied"},"during":"archival","item":"/b c/d"}
+      {"message_type":"exit_error","code":3,"message":"Warning: at least one source file could not be read"}
+      """,
+      "/b c/d: permission denied"
+    ),
+    (#"{"message_type":"error","error":{"message":"no item"}}"#, "no item"),
+    (#"{"message_type":"exit_error","code":3,"message":"Warning"}"#, nil),
+    ("plain noise\n", nil),
+    ("", nil),
+  ] as [(stderr: String, expected: String?)])
+func lastItemErrorReadsTheLastStderrErrorLine(_ stderr: String, _ expected: String?) {
+  #expect(ResticOutput.lastItemError(stderr: stderr) == expected)
+}

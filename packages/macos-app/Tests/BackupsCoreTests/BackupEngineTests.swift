@@ -11,6 +11,7 @@ private let statusLineTwo =
 private let summaryLine =
   #"{"message_type":"summary","files_new":7,"files_changed":1,"files_unmodified":2,"data_added":999,"total_files_processed":10,"total_bytes_processed":1000,"snapshot_id":"snapshot-abc"}"#
 private let errorLine = #"{"message_type":"error","error":{"message":"permission denied"},"item":"/a/b"}"#
+private let otherErrorLine = #"{"message_type":"error","error":{"message":"busy"},"item":"/a/c"}"#
 private let statsStdout = #"{"total_size":4321}"#
 private let backupLines = [statusLineOne, statusLineTwo, summaryLine]
 
@@ -174,8 +175,9 @@ private let backupLines = [statusLineOne, statusLineTwo, summaryLine]
   let fixture = makeFixture()
   fixture.restic.set(
     ResticScript(
-      lines: [errorLine], exitCode: 3,
-      stderr: #"{"message_type":"exit_error","code":3,"message":"read failed"}"#),
+      lines: [summaryLine], exitCode: 3,
+      stderr: otherErrorLine + "\n" + errorLine + "\n"
+        + #"{"message_type":"exit_error","code":3,"message":"read failed"}"#),
     for: "backup")
   fixture.restic.set(ResticScript(stdout: statsStdout), for: "stats")
   let engine = BackupEngine(environment: fixture.environment)
@@ -193,6 +195,21 @@ private let backupLines = [statusLineOne, statusLineTwo, summaryLine]
         .end(repositoryId: "repo-1", status: .warn, durationMs: 1000),
       ])
   #expect(fixture.proxy.stopCount == 1)
+}
+
+@Test func backupExitThreeFallsBackToStdoutErrorThenExitError() async throws {
+  let fixture = makeFixture()
+  fixture.restic.set(
+    ResticScript(
+      lines: [errorLine], exitCode: 3,
+      stderr: #"{"message_type":"exit_error","code":3,"message":"read failed"}"#),
+    for: "backup")
+  let engine = BackupEngine(environment: fixture.environment)
+  #expect(try await engine.backup(config: testConfig()) { _ in }.message == "/a/b: permission denied")
+  fixture.restic.set(
+    ResticScript(exitCode: 3, stderr: #"{"message_type":"exit_error","code":3,"message":"read failed"}"#),
+    for: "backup")
+  #expect(try await engine.backup(config: testConfig()) { _ in }.message == "read failed")
 }
 
 @Test func backupExitOneFailsWithoutForgetOrStats() async throws {

@@ -300,7 +300,9 @@ public actor BackupEngine {
           status = .complete
         } else if result.exitCode == ResticExitCode.couldNotReadSource {
           status = .warn
-          message = lastError ?? ResticOutput.errorMessage(stderr: result.stderr, exitCode: result.exitCode)
+          message =
+            ResticOutput.lastItemError(stderr: result.stderr) ?? lastError
+            ?? ResticOutput.errorMessage(stderr: result.stderr, exitCode: result.exitCode)
         } else {
           status = .failed
           message = ResticOutput.errorMessage(stderr: result.stderr, exitCode: result.exitCode)

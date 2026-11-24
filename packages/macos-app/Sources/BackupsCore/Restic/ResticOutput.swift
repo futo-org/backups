@@ -141,6 +141,16 @@ public enum ResticOutput {
     try makeDecoder().decode(VersionLine.self, from: data).version
   }
 
+  public static func lastItemError(stderr: String) -> String? {
+    var lastError: String?
+    for line in stderr.components(separatedBy: .newlines) {
+      if case .error(let message) = parseLine(line.trimmingCharacters(in: .whitespaces)) {
+        lastError = message
+      }
+    }
+    return lastError
+  }
+
   public static func errorMessage(stderr: String, exitCode: Int32) -> String {
     var lastErrorMessage: String?
     var lastLine: String?
