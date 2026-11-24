@@ -137,10 +137,11 @@ func (handler *Handler) ServeHTTP(writer http.ResponseWriter, request *http.Requ
 	interrupt := func() { _ = http.NewResponseController(writer).SetReadDeadline(time.Now()) }
 	ctx, release := handler.upstream.bind(ctx, interrupt)
 	defer release()
-	defer interruptOnClose(request, interrupt)()
+	retire, uploading := interruptOnClose(request, interrupt)
+	defer retire()
 	request.Body = count(pace(ctx, request.Body, &handler.throttle), &handler.uploaded)
 
-	route := routed{key: repositoryId, grant: grant, path: path}
+	route := routed{key: repositoryId, grant: grant, path: path, interrupt: interrupt, uploading: uploading}
 	handler.reverse.ServeHTTP(writer, request.WithContext(context.WithValue(ctx, contextKey{}, route)))
 }
 

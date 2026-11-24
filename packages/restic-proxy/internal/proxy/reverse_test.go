@@ -2,6 +2,8 @@ package proxy
 
 import (
 	"net/http"
+	"net/http/httptest"
+	"strings"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -50,7 +52,8 @@ func TestReverse_BackendSuccessIsUntouched(t *testing.T) {
 	}
 }
 
-func TestReverse_BackendUnreachable(t *testing.T) {
+func newUnreachableBackendProxy(t *testing.T) *httptest.Server {
+	t.Helper()
 	backend := newBackend(t, http.StatusOK, nil)
 	host := hostOf(t, backend.URL)
 	handler, proxy := newProxy(t, newAPI(t, backend.URL, http.StatusCreated, nil))
@@ -64,11 +67,41 @@ func TestReverse_BackendUnreachable(t *testing.T) {
 		Password:     "some-jwt",
 		ExpiresAt:    time.Now().Add(time.Hour),
 	})
+	return proxy
+}
+
+func TestReverse_BackendUnreachable(t *testing.T) {
+	proxy := newUnreachableBackendProxy(t)
 
 	response := do(t, proxy, "/config", testRepository, testToken)
 
 	if response.StatusCode != http.StatusBadGateway {
 		t.Errorf("expected 502, got %d", response.StatusCode)
+	}
+	if response.Close {
+		t.Error("expected a bodyless 502 to keep the connection reusable")
+	}
+}
+
+func TestReverse_BackendUnreachableDuringAnUploadClosesTheConnection(t *testing.T) {
+	proxy := newUnreachableBackendProxy(t)
+
+	request, err := http.NewRequest(http.MethodPost, proxy.URL+"/data/abc", strings.NewReader("pack"))
+	if err != nil {
+		t.Fatalf("new request: %v", err)
+	}
+	request.SetBasicAuth(testRepository, testToken)
+	response, err := proxy.Client().Do(request)
+	if err != nil {
+		t.Fatalf("do request: %v", err)
+	}
+	t.Cleanup(func() { response.Body.Close() })
+
+	if response.StatusCode != http.StatusBadGateway {
+		t.Errorf("expected 502, got %d", response.StatusCode)
+	}
+	if !response.Close {
+		t.Error("expected the 502 to close a connection its interrupt left unable to read another request")
 	}
 }
 
