@@ -779,6 +779,11 @@ final class AppModel {
     case .manual: return "manual"
     case .hourly: return "hourly"
     case .daily(let hour, let minute): return String(format: "daily %02d:%02d", hour, minute)
+    case .weekly(let weekday, let hour, let minute):
+      var calendar = Calendar(identifier: .gregorian)
+      calendar.locale = Locale(identifier: "en_US")
+      let day = Schedule.weekdayName(weekday, calendar: calendar).lowercased()
+      return String(format: "weekly %@ %02d:%02d", day, hour, minute)
     }
   }
 

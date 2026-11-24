@@ -6,6 +6,7 @@ private enum ScheduleMode: Hashable {
   case manual
   case hourly
   case daily
+  case weekly
 }
 
 struct OverviewView: View {
@@ -95,19 +96,33 @@ struct OverviewView: View {
               .foregroundStyle(.secondary)
           }
           Spacer()
-          if case .daily = model.config.schedule {
-            DatePicker("", selection: dailyTimeBinding, displayedComponents: .hourAndMinute)
-              .labelsHidden()
-              .fixedSize()
-          }
           Picker("", selection: modeBinding) {
             Text("Manual").tag(ScheduleMode.manual)
             Text("Hourly").tag(ScheduleMode.hourly)
             Text("Daily").tag(ScheduleMode.daily)
+            Text("Weekly").tag(ScheduleMode.weekly)
           }
           .pickerStyle(.segmented)
           .labelsHidden()
           .fixedSize()
+        }
+        if timeOfDay != nil {
+          HStack {
+            Spacer()
+            if case .weekly = model.config.schedule {
+              Picker("", selection: weekdayBinding) {
+                ForEach(Schedule.weekdays(calendar: .current), id: \.self) { weekday in
+                  Text(Schedule.weekdayName(weekday, calendar: .current)).tag(weekday)
+                }
+              }
+              .pickerStyle(.menu)
+              .labelsHidden()
+              .fixedSize()
+            }
+            DatePicker("", selection: timeBinding, displayedComponents: .hourAndMinute)
+              .labelsHidden()
+              .fixedSize()
+          }
         }
         if !model.config.folders.isEmpty {
           Divider()
@@ -141,6 +156,19 @@ struct OverviewView: View {
     case .manual: return "Backups run only when you start them."
     case .hourly: return "Every hour while your Mac is awake."
     case .daily: return "Once a day. Missed backups run when your Mac wakes."
+    case .weekly(let weekday, _, _):
+      return "Every \(Schedule.weekdayName(weekday, calendar: .current)). Missed backups run when your Mac wakes."
+    }
+  }
+
+  private var today: Int {
+    Calendar.current.component(.weekday, from: Date())
+  }
+
+  private var timeOfDay: (hour: Int, minute: Int)? {
+    switch model.config.schedule {
+    case .manual, .hourly: return nil
+    case .daily(let hour, let minute), .weekly(_, let hour, let minute): return (hour, minute)
     }
   }
 
@@ -151,6 +179,7 @@ struct OverviewView: View {
         case .manual: return .manual
         case .hourly: return .hourly
         case .daily: return .daily
+        case .weekly: return .weekly
         }
       },
       set: { mode in
@@ -160,24 +189,44 @@ struct OverviewView: View {
         case .hourly:
           model.setSchedule(.hourly)
         case .daily:
-          if case .daily(let hour, let minute) = model.config.schedule {
-            model.setSchedule(.daily(hour: hour, minute: minute))
-          } else {
-            model.setSchedule(.daily(hour: 12, minute: 0))
-          }
+          let time = timeOfDay ?? (12, 0)
+          model.setSchedule(.daily(hour: time.hour, minute: time.minute))
+        case .weekly:
+          if case .weekly = model.config.schedule { return }
+          let time = timeOfDay ?? (12, 0)
+          model.setSchedule(.weekly(weekday: today, hour: time.hour, minute: time.minute))
         }
       })
   }
 
-  private var dailyTimeBinding: Binding<Date> {
+  private var weekdayBinding: Binding<Int> {
     Binding(
       get: {
-        guard case .daily(let hour, let minute) = model.config.schedule else { return Date() }
-        return Calendar.current.date(bySettingHour: hour, minute: minute, second: 0, of: Date()) ?? Date()
+        guard case .weekly(let weekday, _, _) = model.config.schedule else { return today }
+        return weekday
+      },
+      set: { weekday in
+        guard case .weekly(_, let hour, let minute) = model.config.schedule else { return }
+        model.setSchedule(.weekly(weekday: weekday, hour: hour, minute: minute))
+      })
+  }
+
+  private var timeBinding: Binding<Date> {
+    Binding(
+      get: {
+        guard let time = timeOfDay else { return Date() }
+        return Calendar.current.date(bySettingHour: time.hour, minute: time.minute, second: 0, of: Date()) ?? Date()
       },
       set: { date in
         let components = Calendar.current.dateComponents([.hour, .minute], from: date)
-        model.setSchedule(.daily(hour: components.hour ?? 12, minute: components.minute ?? 0))
+        let hour = components.hour ?? 12
+        let minute = components.minute ?? 0
+        switch model.config.schedule {
+        case .weekly(let weekday, _, _):
+          model.setSchedule(.weekly(weekday: weekday, hour: hour, minute: minute))
+        case .manual, .hourly, .daily:
+          model.setSchedule(.daily(hour: hour, minute: minute))
+        }
       })
   }
 }
