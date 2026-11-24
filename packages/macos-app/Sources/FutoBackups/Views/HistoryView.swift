@@ -59,7 +59,7 @@ struct HistoryView: View {
       .frame(maxWidth: .infinity)
     }
     .navigationTitle("History")
-    .navigationSubtitle("Keeping \(model.config.snapshotRetention.summary)")
+    .navigationSubtitle(model.config.snapshotRetention.summary)
     .toolbar {
       ToolbarItem(placement: .primaryAction) {
         Button {
