@@ -363,7 +363,7 @@ private struct ChooseRepositoryStep: View {
   }
 }
 
-private struct KeyField: View {
+struct KeyField: View {
   @Binding var text: String
   let invalid: Bool
   let submit: () -> Void

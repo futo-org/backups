@@ -12,6 +12,7 @@ struct SettingsView: View {
   @State private var quietStart = SettingsView.clockDate(ClockTime(hour: 22, minute: 0))
   @State private var quietEnd = SettingsView.clockDate(ClockTime(hour: 7, minute: 0))
   @State private var recoveryKey: String?
+  @State private var changingRecoveryKey = false
 
   var body: some View {
     Form {
@@ -102,8 +103,14 @@ struct SettingsView: View {
             }
             .buttonStyle(SecondaryButtonStyle())
           }
+          Button("Change Recovery Key…") { changingRecoveryKey = true }
+            .buttonStyle(SecondaryButtonStyle())
+            .disabled(!model.canChangeRecoveryKey)
         }
         .padding(.vertical, 4)
+        .sheet(isPresented: $changingRecoveryKey, onDismiss: reloadRevealedRecoveryKey) {
+          ChangeRecoveryKeySheet()
+        }
       }
       Section("Disk snapshots") {
         Toggle(isOn: diskSnapshotsBinding) {
@@ -191,6 +198,13 @@ struct SettingsView: View {
     let shortVersion = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? ""
     let buildVersion = Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? ""
     return "Version \(shortVersion) (\(buildVersion)), alpha"
+  }
+
+  private func reloadRevealedRecoveryKey() {
+    guard recoveryKey != nil else { return }
+    Task {
+      recoveryKey = await model.recoveryKey()
+    }
   }
 
   private func syncDrafts() {

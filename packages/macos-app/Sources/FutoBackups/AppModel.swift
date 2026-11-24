@@ -18,6 +18,14 @@ enum SnapshotsLoad: Equatable {
   case failed(String)
 }
 
+struct RecoveryKeyChangeFailure: Error {
+  let message: String
+
+  init(_ message: String) {
+    self.message = message
+  }
+}
+
 enum RecoveryKeyStep: Equatable {
   case save
   case confirm
@@ -163,6 +171,7 @@ final class AppModel {
         await refreshAccount()
       }
       if signedIn {
+        await finishPendingKeyRotation()
         await refreshSnapshots()
       }
     }
@@ -619,6 +628,7 @@ final class AppModel {
         }
       }
       do {
+        _ = try? await engine.finishPendingKeyRotation(config: configSnapshot)
         let record = try await engine.backup(config: configSnapshot) { activity in
           Task { @MainActor in
             guard self.operationTask != nil, generation == self.sessionGeneration else { return }
@@ -739,6 +749,50 @@ final class AppModel {
       return try? await engine.storedMasterKey()
     }
     return try? await engine.masterKey()
+  }
+
+  var canChangeRecoveryKey: Bool {
+    engine != nil && signedIn && hasMasterKey && config.repositoryId != nil && activity == nil
+      && operationTask == nil
+  }
+
+  func changeRecoveryKey(to newKey: String) async -> Result<KeyRotationOutcome, RecoveryKeyChangeFailure> {
+    guard let engine else { return .failure(RecoveryKeyChangeFailure(missingHelperText ?? "Setup incomplete")) }
+    guard canChangeRecoveryKey else { return .failure(RecoveryKeyChangeFailure("Another operation is running")) }
+    let configSnapshot = config
+    let generation = sessionGeneration
+    activity = .changingRecoveryKey
+    // Unstructured so Cancel or logout never interrupts a half-applied key change.
+    let change = Task { try await engine.changeMasterKey(to: newKey, config: configSnapshot) }
+    operationTask = Task { _ = await change.result }
+    let result = await change.result
+    finishOperation()
+    switch result {
+    case .success(let outcome):
+      if generation == sessionGeneration {
+        hasMasterKey = true
+        config.recoveryKeyConfirmedAt = Date()
+        saveConfig()
+      }
+      return .success(outcome)
+    case .failure(let error):
+      return .failure(RecoveryKeyChangeFailure(keyChangeMessage(for: error)))
+    }
+  }
+
+  private func keyChangeMessage(for error: Error) -> String {
+    switch error as? KeyRotationError {
+    case .currentKeyNotFound: return "Couldn't find this Mac's current key in the backup."
+    case .newKeyRejected: return "The backup didn't accept the new key."
+    case .passwordFileFailed: return "Couldn't prepare the new key on this Mac."
+    case .pendingRotationUnreadable: return "An earlier key change couldn't be finished."
+    case nil: return message(for: error)
+    }
+  }
+
+  private func finishPendingKeyRotation() async {
+    guard let engine, operationTask == nil else { return }
+    _ = try? await engine.finishPendingKeyRotation(config: config)
   }
 
   private func refreshAccount() async {
