@@ -8,7 +8,12 @@ revision=$(git -C "$package" rev-parse --short HEAD)
 if [ -n "$(git -C "$package" status --porcelain -- .)" ]; then
   revision="$revision.dirty"
 fi
-release=$(git -C "$package" describe --tags --match 'v[0-9]*.[0-9]*.[0-9]*' --abbrev=0 2>/dev/null || echo v0.0.0)
+release=$(git -C "$package" tag --merged HEAD --list 'v*' --sort=-v:refname |
+  grep -E -m 1 '^v[0-9]+\.[0-9]+\.[0-9]+$' || true)
+if [ -z "$release" ]; then
+  echo "no vMAJOR.MINOR.PATCH release tag in HEAD's history; fetch tags (git fetch --tags) and retry" >&2
+  exit 1
+fi
 release=${release#v}
 IFS=. read -r major minor patch <<<"$release"
 build=$((10#$major * 1000000 + 10#$minor * 1000 + 10#$patch))
@@ -65,12 +70,20 @@ if [ "${NOTARIZE:-}" = "1" ]; then
 fi
 
 executable="$destination/Contents/MacOS/FutoBackups"
+refuse_if_busy() {
+  if pgrep -f "^$destination/Contents/Helpers/" >/dev/null; then
+    echo "FUTO Backups is backing up or restoring; let it finish, then run mac:install again" >&2
+    exit 1
+  fi
+}
+refuse_if_busy
 osascript -e 'quit app id "org.futo.backups.mac"' >/dev/null 2>&1 || true
 for _ in $(seq 1 20); do
   pgrep -f -x "$executable" >/dev/null || break
   sleep 0.5
 done
 if pgrep -f -x "$executable" >/dev/null; then
+  refuse_if_busy
   pkill -TERM -f -x "$executable" || true
   for _ in $(seq 1 20); do
     pgrep -f -x "$executable" >/dev/null || break
