@@ -32,6 +32,11 @@ run = "scripts/bundle.sh"
 description = "Build, sign, notarize and package a release with its appcast"
 run = "scripts/release.sh"
 
+[tasks."mac:install"]
+description = "Build a Developer ID signed dev version (0.0.0-dev.<commit>) and install it in /Applications"
+run = "scripts/install-dev.sh"
+env = { INFISICAL_PROJECT_ID = "cc66ffeb-72d4-42da-a611-d5a1f737c404" }
+
 [tasks."mac:open"]
 description = "Bundle and launch the app"
 depends = ["mac:bundle"]

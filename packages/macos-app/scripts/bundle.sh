@@ -50,6 +50,9 @@ if /usr/libexec/PlistBuddy -c "Print :SUFeedURL" "$plist" >/dev/null 2>&1; then
 else
   /usr/libexec/PlistBuddy -c "Add :SUFeedURL string $feed_url" "$plist"
 fi
+if [ -n "${SPARKLE_AUTOMATIC_CHECKS:-}" ]; then
+  /usr/libexec/PlistBuddy -c "Set :SUEnableAutomaticChecks $SPARKLE_AUTOMATIC_CHECKS" "$plist"
+fi
 
 ditto "$bin/Sparkle.framework" "$app/Contents/Frameworks/Sparkle.framework"
 
