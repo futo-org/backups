@@ -122,14 +122,18 @@ struct SettingsView: View {
           } else {
             Button("Reveal Recovery Key") {
               Task {
-                self.recoveryKey = await self.model.recoveryKey()
+                self.recoveryKey = await self.model.revealRecoveryKey()
               }
             }
             .buttonStyle(SecondaryButtonStyle())
           }
-          Button("Change Recovery Key…") { changingRecoveryKey = true }
-            .buttonStyle(SecondaryButtonStyle())
-            .disabled(!model.canChangeRecoveryKey)
+          Button("Change Recovery Key…") {
+            Task {
+              changingRecoveryKey = await OwnerAuthentication.confirm(reason: "change your recovery key")
+            }
+          }
+          .buttonStyle(SecondaryButtonStyle())
+          .disabled(!model.canChangeRecoveryKey)
         }
         .padding(.vertical, 4)
         .sheet(isPresented: $changingRecoveryKey, onDismiss: reloadRevealedRecoveryKey) {

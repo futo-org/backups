@@ -135,7 +135,7 @@ private struct ResetThisMacSheet: View {
         Button("Show Recovery Key") {
           revealing = true
           Task {
-            recoveryKey = await model.recoveryKey()
+            recoveryKey = await model.revealRecoveryKey()
             revealing = false
           }
         }

@@ -1110,6 +1110,11 @@ final class AppModel {
     }
   }
 
+  func revealRecoveryKey() async -> String? {
+    guard await OwnerAuthentication.confirm(reason: "show your recovery key") else { return nil }
+    return await recoveryKey()
+  }
+
   func recoveryKey() async -> String? {
     guard let engine else { return nil }
     if config.repositoryId != nil {
