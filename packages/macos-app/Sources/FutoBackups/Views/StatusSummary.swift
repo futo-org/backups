@@ -52,7 +52,7 @@ struct StatusSummary {
       return
     case .pruning:
       self.init(
-        title: "Tidying up", subtitle: "Removing snapshots older than 60 days…", symbol: "sparkles",
+        title: "Tidying up", subtitle: "Removing old snapshots…", symbol: "sparkles",
         tint: Brand.blue, busy: true, action: .none, menuBarSymbol: "arrow.clockwise.icloud")
       return
     case .restoring:

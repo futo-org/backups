@@ -1,8 +1,6 @@
 import Foundation
 
 public actor BackupEngine {
-  public static let keepWithin = "60d"
-
   struct Session {
     var proxy: any ResticProxyHandle
     var context: ResticContext
@@ -343,19 +341,25 @@ public actor BackupEngine {
           message = ResticOutput.errorMessage(stderr: result.stderr, exitCode: result.exitCode)
         }
         var pruneInterrupted = false
-        if status == .complete {
+        let retention = config.snapshotRetention
+        let forgetInvocation = ResticCommand.forget(session.context, host: config.host, retention: retention)
+        if status == .complete, case .policy = retention, forgetInvocation == nil {
+          message = "Old snapshots were kept: the snapshot retention setting is invalid"
+          await report(
+            madeAPI, config: config, "Skipped repository prune",
+            ["repositoryId": .string(repositoryId), "error": .string("invalid retention policy")])
+        }
+        if status == .complete, let forgetInvocation {
           onActivity(.pruning)
           await report(
             madeAPI, config: config, "Running repository prune",
             [
               "repositoryId": .string(repositoryId),
-              "retentionPolicy": .string("keep-within \(Self.keepWithin)"),
+              "retentionPolicy": .string(retention.telemetryValue),
             ])
           var pruneError: String?
           do {
-            let forget = try await runRestic(
-              ResticCommand.forget(session.context, host: config.host, keepWithin: Self.keepWithin),
-              interrupting: session.proxy)
+            let forget = try await runRestic(forgetInvocation, interrupting: session.proxy)
             if forget.exitCode != ResticExitCode.success {
               let detail = ResticOutput.errorMessage(
                 stderr: forget.stderr, exitCode: forget.exitCode)

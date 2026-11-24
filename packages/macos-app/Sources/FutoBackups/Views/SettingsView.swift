@@ -104,6 +104,7 @@ struct SettingsView: View {
           .font(.caption)
           .foregroundStyle(.secondary)
       }
+      RetentionSection()
       Section("General") {
         Toggle(isOn: launchAtLoginBinding) {
           SettingLabel(
@@ -292,7 +293,7 @@ struct SettingsView: View {
   }
 }
 
-private struct InlineError: View {
+struct InlineError: View {
   let text: String
 
   var body: some View {

@@ -8,6 +8,7 @@ struct FirstRunOnboarding: View {
   @State private var index = 0
   @State private var selection = FolderSelection(home: NSHomeDirectory())
   @State private var estimates: FolderSizeEstimates?
+  @State private var retention = RetentionPreset.standard
 
   var body: some View {
     ZStack {
@@ -45,7 +46,7 @@ struct FirstRunOnboarding: View {
       ChooseFoldersStep(
         selection: $selection, estimates: estimates, back: index > 0 ? { back() } : nil, next: { next() })
     case .ready:
-      ReadyStep(selection: selection, estimates: estimates, back: { back() })
+      ReadyStep(selection: selection, estimates: estimates, retention: $retention, back: { back() })
     }
   }
 
@@ -371,7 +372,9 @@ private struct ReadyStep: View {
   @Environment(AppModel.self) private var model
   let selection: FolderSelection
   let estimates: FolderSizeEstimates
+  @Binding var retention: RetentionPreset
   let back: () -> Void
+  @State private var pendingBackUpNow: Bool?
 
   var body: some View {
     VStack(spacing: 22) {
@@ -397,20 +400,74 @@ private struct ReadyStep: View {
               .font(.system(size: 11))
               .foregroundStyle(.secondary)
           }
+          Divider()
+          HStack(alignment: .top, spacing: 12) {
+            IconTile(systemName: "clock.arrow.circlepath", tint: .teal)
+            VStack(alignment: .leading, spacing: 3) {
+              HStack {
+                Text("Keep snapshots")
+                  .font(.system(size: 13, weight: .semibold))
+                Spacer()
+                RetentionPresetPicker(selection: $retention)
+              }
+              Text(retentionDetail)
+                .font(.system(size: 11))
+                .foregroundStyle(.secondary)
+            }
+          }
         }
         .padding(.vertical, 4)
       }
       HStack(spacing: 12) {
-        Button("Back Up Now") { model.finishOnboarding(folders: selection.paths, backUpNow: true) }
+        Button("Back Up Now") { requestFinish(backUpNow: true) }
           .buttonStyle(PrimaryButtonStyle(large: true))
           .keyboardShortcut(.defaultAction)
-        Button("Not Now") { model.finishOnboarding(folders: selection.paths, backUpNow: false) }
+        Button("Not Now") { requestFinish(backUpNow: false) }
           .buttonStyle(SecondaryButtonStyle())
       }
       Button("Back", action: back)
         .buttonStyle(.link)
         .font(.system(size: 12))
     }
+    .alert("Delete old snapshots?", isPresented: confirmingBinding, presenting: pendingBackUpNow) { backUpNow in
+      Button("Delete Old Snapshots", role: .destructive) { finish(backUpNow: backUpNow) }
+      Button("Cancel", role: .cancel) {}
+    } message: { _ in
+      Text(
+        "This backup \(existingHostnames == nil ? "may already have" : "already has") snapshots from this Mac. “\(retention.retention.summary)” can delete the ones it doesn't keep, starting with the first backup, and deleted snapshots can't be recovered."
+      )
+    }
+  }
+
+  private var confirmingBinding: Binding<Bool> {
+    Binding(
+      get: { pendingBackUpNow != nil },
+      set: { if !$0 { pendingBackUpNow = nil } })
+  }
+
+  private var existingHostnames: [String]? {
+    model.snapshotsLoad == .loaded ? model.snapshots.map(\.hostname) : nil
+  }
+
+  private func requestFinish(backUpNow: Bool) {
+    if retention.retention.mayDeleteResumedSnapshots(hostnames: existingHostnames, host: model.config.host) {
+      pendingBackUpNow = backUpNow
+    } else {
+      finish(backUpNow: backUpNow)
+    }
+  }
+
+  private func finish(backUpNow: Bool) {
+    pendingBackUpNow = nil
+    model.finishOnboarding(folders: selection.paths, retention: retention, backUpNow: backUpNow)
+  }
+
+  private var retentionDetail: String {
+    let effect =
+      retention == .never
+      ? "Every snapshot is kept, which uses more storage over time."
+      : "Older snapshots are deleted after each backup."
+    return effect + " Custom rules are in Settings."
   }
 
   private var foldersSummary: String {

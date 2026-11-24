@@ -1,7 +1,9 @@
 # FUTO Backups for macOS (alpha)
 
 Native SwiftUI client: device-flow login, pick folders, back up on a schedule with the bundled FUTO restic through
-the bundled restic-proxy, list snapshots, restore, forget/prune (`--keep-within 60d`), upload throttling.
+the bundled restic-proxy, list snapshots, restore, forget/prune after each successful backup, upload throttling.
+Snapshot retention defaults to `--keep-within 60d`; onboarding and Settings → Snapshots offer the Immich presets,
+custom `--keep-*` rules or Keep All, and a change applies from the next backup started with it.
 
 ```bash
 cd packages/macos-app

@@ -125,7 +125,7 @@ private let backupLines = [statusLineOne, statusLineTwo, summaryLine]
   #expect(argumentAfter(backupArgs, "--host") == "test-host")
   let forgetInvocation = try #require(
     fixture.restic.invocations().first { $0.arguments.first == "forget" })
-  #expect(argumentAfter(forgetInvocation.arguments, "--keep-within") == BackupEngine.keepWithin)
+  #expect(argumentAfter(forgetInvocation.arguments, "--keep-within") == "60d")
   #expect(argumentAfter(forgetInvocation.arguments, "--host") == "test-host")
   #expect(
     log.all
@@ -1942,6 +1942,67 @@ private let skippedFiles = CloudOnlySkip(
   let log = ActivityLog()
   _ = try await engine.backup(config: testConfig()) { log.record($0) }
   #expect(!log.all.contains(.finishing(.removingDiskSnapshot)))
+}
+
+@Test func keepingAllSnapshotsSkipsForgetAndTidyingUp() async throws {
+  let fixture = makeFixture()
+  fixture.restic.set(ResticScript(lines: backupLines), for: "backup")
+  fixture.restic.set(ResticScript(stdout: statsStdout), for: "stats")
+  let engine = BackupEngine(environment: fixture.environment)
+  var config = testConfig()
+  config.retention = .keepAll
+  let log = ActivityLog()
+  let record = try await engine.backup(config: config) { log.record($0) }
+  #expect(record.status == .complete)
+  #expect(record.message == nil)
+  #expect(fixture.restic.commands() == ["version", "unlock", "backup", "stats"])
+  #expect(!log.all.contains(.pruning))
+  let logs = await fixture.deliveredLogs(engine)
+  #expect(logs.map(\.summary) == ["Running backup", "Backup finished"])
+}
+
+@Test(
+  "a retention policy without valid rules never reaches restic",
+  arguments: [
+    RetentionPolicy(),
+    RetentionPolicy(keepLast: 0),
+    RetentionPolicy(keepWithin: "0d"),
+    RetentionPolicy(keepWithin: "forever"),
+  ])
+func invalidRetentionSkipsForget(policy: RetentionPolicy) async throws {
+  let fixture = makeFixture()
+  fixture.restic.set(ResticScript(lines: backupLines), for: "backup")
+  fixture.restic.set(ResticScript(stdout: statsStdout), for: "stats")
+  let engine = BackupEngine(environment: fixture.environment)
+  var config = testConfig()
+  config.retention = .policy(policy)
+  let log = ActivityLog()
+  let record = try await engine.backup(config: config) { log.record($0) }
+  #expect(record.status == .complete)
+  #expect(record.message == "Old snapshots were kept: the snapshot retention setting is invalid")
+  #expect(fixture.restic.commands() == ["version", "unlock", "backup", "stats"])
+  #expect(!log.all.contains(.pruning))
+  let logs = await fixture.deliveredLogs(engine)
+  #expect(logs.map(\.summary) == ["Running backup", "Skipped repository prune", "Backup finished"])
+  let skipped = try #require(logs.first { $0.summary == "Skipped repository prune" })
+  #expect(skipped.data["error"] == .string("invalid retention policy"))
+}
+
+@Test func customRetentionReachesForgetAndTelemetry() async throws {
+  let fixture = makeFixture()
+  fixture.restic.set(ResticScript(lines: backupLines), for: "backup")
+  fixture.restic.set(ResticScript(stdout: statsStdout), for: "stats")
+  let engine = BackupEngine(environment: fixture.environment)
+  var config = testConfig()
+  config.retention = .policy(RetentionPolicy(keepLast: 3, keepWithinDaily: "1m"))
+  _ = try await engine.backup(config: config) { _ in }
+  let forget = try #require(fixture.restic.invocations().first { $0.arguments.first == "forget" })
+  #expect(argumentAfter(forget.arguments, "--keep-last") == "3")
+  #expect(argumentAfter(forget.arguments, "--keep-within-daily") == "1m")
+  #expect(!forget.arguments.contains("--keep-within"))
+  let logs = await fixture.deliveredLogs(engine)
+  let running = try #require(logs.first { $0.summary == "Running repository prune" })
+  #expect(running.data["retentionPolicy"] == .string("keep-last 3, keep-within-daily 1m"))
 }
 
 private func waitUntil(_ condition: () -> Bool, timeout: Duration = .seconds(5)) async {
