@@ -166,7 +166,8 @@ struct ServerEditor: View {
 
   private func apply() {
     guard let url = URL(string: draft.trimmingCharacters(in: .whitespacesAndNewlines)),
-      let scheme = url.scheme?.lowercased(), scheme == "http" || scheme == "https"
+      let scheme = url.scheme?.lowercased(), scheme == "http" || scheme == "https",
+      let host = url.host(), !host.isEmpty
     else {
       invalid = true
       return
