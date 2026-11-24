@@ -800,7 +800,9 @@ public actor BackupEngine {
         home: environment.home,
         connections: max(
           1, Int(server.connectionsMath.trimmingCharacters(in: .whitespaces)) ?? environment.processorCount),
-        packSizeMiB: server.resticPackSizeMiB,
+        packSizeMiB: min(
+          max(server.resticPackSizeMiB, ResticContext.packSizeRangeMiB.lowerBound),
+          ResticContext.packSizeRangeMiB.upperBound),
         walkConcurrency: await isFutoRestic() ? 64 : nil)
       return Session(proxy: proxy, context: context)
     } catch {

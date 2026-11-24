@@ -80,8 +80,10 @@ private func serverInfo(from document: [String: JSONValue]) throws -> ServerInfo
   var resticPackSizeMiB = 16
   var connectionsMath = "16"
   if case .object(let config)? = document["config"] {
-    if case .number(let value)? = config["restic_pack_size_mib"] {
-      resticPackSizeMiB = Int(value)
+    if case .number(let value)? = config["restic_pack_size_mib"], let packSize = Int(exactly: value),
+      (1...ResticContext.packSizeRangeMiB.upperBound).contains(packSize)
+    {
+      resticPackSizeMiB = packSize
     }
     if case .string(let value)? = config["connections_math"] {
       connectionsMath = value

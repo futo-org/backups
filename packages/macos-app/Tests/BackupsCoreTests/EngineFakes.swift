@@ -562,7 +562,7 @@ extension EngineFixture {
 }
 
 func makeFixture(
-  connectionsMath: String = "16", token: String? = "tok", masterKey: String? = testMasterKey,
+  connectionsMath: String = "16", packSizeMiB: Int = 16, token: String? = "tok", masterKey: String? = testMasterKey,
   appVersion: String = "dev", telemetryTimeout: Duration = .seconds(10),
   diskSnapshots: FakeDiskSnapshots = FakeDiskSnapshots(), snapshotDirectory: URL? = nil,
   clock: FixedClock = FixedClock(),
@@ -586,7 +586,7 @@ func makeFixture(
     discover: { _ in
       discoverCount.increment()
       return ServerInfo(
-        apiRoot: testAPIRoot, resticPackSizeMiB: 16, connectionsMath: connectionsMath)
+        apiRoot: testAPIRoot, resticPackSizeMiB: packSizeMiB, connectionsMath: connectionsMath)
     },
     makeAPI: { _, _ in api },
     restic: restic,

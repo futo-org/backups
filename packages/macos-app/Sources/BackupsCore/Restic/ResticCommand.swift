@@ -1,6 +1,8 @@
 import Foundation
 
 public struct ResticContext: Sendable, Equatable {
+  public static let packSizeRangeMiB = 4...128
+
   public var repository: String
   public var password: String
   public var cacheDirectory: URL

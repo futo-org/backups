@@ -183,6 +183,18 @@ private let backupLines = [statusLineOne, statusLineTwo, summaryLine]
   #expect(logs.last { $0.summary == "Backup finished" }?.data["durationMs"] == .int(1000))
 }
 
+@Test(arguments: [(1, "4"), (4, "4"), (32, "32"), (128, "128"), (512, "128")])
+func packSizeIsClampedToResticLimits(serverPackSize: Int, expected: String) async throws {
+  let fixture = makeFixture(packSizeMiB: serverPackSize)
+  fixture.restic.set(ResticScript(lines: [summaryLine]), for: "backup")
+  let engine = BackupEngine(environment: fixture.environment)
+  _ = try await engine.backup(config: testConfig()) { _ in }
+  for command in ["backup", "forget"] {
+    let invocation = try #require(fixture.restic.invocations().first { $0.arguments.first == command })
+    #expect(argumentAfter(invocation.arguments, "--pack-size") == expected, "\(command)")
+  }
+}
+
 @Test func backupExitThreeWarnsAndSkipsForget() async throws {
   let fixture = makeFixture()
   fixture.restic.set(

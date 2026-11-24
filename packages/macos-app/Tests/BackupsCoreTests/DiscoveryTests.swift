@@ -61,6 +61,17 @@ private func expectInvalidDiscovery(_ url: URL, responses: [HTTPResponse]) async
   #expect(info == ServerInfo(apiRoot: apiRoot, resticPackSizeMiB: 16, connectionsMath: "16"))
 }
 
+@Test(arguments: [
+  ("1", 1), ("4", 4), ("128", 128), ("32.0", 32), ("32.5", 16), ("0", 16), ("-8", 16), ("129", 16),
+  ("1e300", 16), (#""32""#, 16), ("null", 16),
+])
+func packSizeAcceptsOnlyWholeMebibytesWithinResticLimits(json: String, expected: Int) async throws {
+  let (info, _) = try await resolve(
+    metaURL,
+    responses: [jsonResponse(#"{"api_root":"\#(apiRoot.absoluteString)","config":{"restic_pack_size_mib":\#(json)}}"#)])
+  #expect(info.resticPackSizeMiB == expected)
+}
+
 @Test func documentWithoutApiRootOrMetaURLIsInvalidDiscovery() async throws {
   try await expectInvalidDiscovery(wellKnownURL, responses: [jsonResponse(#"{"product":"futo-backups"}"#)])
 }
