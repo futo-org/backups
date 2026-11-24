@@ -1,4 +1,5 @@
 import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
+import { NoResultError } from 'kysely';
 import {
   UserDiscordLinkDto,
   UserDiscordLinkRequestDto,
@@ -26,12 +27,12 @@ export class UserService {
   }
 
   async get(id: string): Promise<UserGetResponseDto> {
-    const [user, link] = await Promise.all([this.users.get(id), this.discordLinks.getByUserId(id)]);
+    const [user, link] = await Promise.all([this.getUser(id), this.discordLinks.getByUserId(id)]);
     return { user, discordLink: link ? toDiscordLinkDto(link) : null };
   }
 
   async linkDiscord(id: string, dto: UserDiscordLinkRequestDto): Promise<UserDiscordLinkDto> {
-    await this.users.get(id);
+    await this.getUser(id);
     const link = await this.discordLinks.link(id, dto.discordUserId, dto.discordUsername ?? '');
     return toDiscordLinkDto(link);
   }
@@ -47,7 +48,7 @@ export class UserService {
       await this.sessions.deleteByUser(id);
     }
     await this.users.update(id, dto);
-    return { user: await this.users.get(id) };
+    return { user: await this.getUser(id) };
   }
 
   async delete(id: string): Promise<void> {
@@ -55,6 +56,12 @@ export class UserService {
       throw new ConflictException('Cannot delete a user that still owns repositories');
     }
     await this.users.delete(id);
+  }
+
+  private getUser(id: string) {
+    return this.users.get(id).catch((error: unknown) => {
+      throw error instanceof NoResultError ? new NotFoundException(`No user with id ${id}`) : error;
+    });
   }
 }
 
