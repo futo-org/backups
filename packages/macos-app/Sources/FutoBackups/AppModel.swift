@@ -557,7 +557,8 @@ final class AppModel {
     config.needsOnboarding
   }
 
-  func finishOnboarding(folders: [String], backUpNow startBackup: Bool) {
+  func finishOnboarding(folders: [String], retention: RetentionPreset, backUpNow startBackup: Bool) {
+    config.retention = retention.retention
     config.completeOnboarding(folders: folders, at: Date())
     saveConfig()
     recomputeNextRun()
@@ -632,6 +633,13 @@ final class AppModel {
     config.readConcurrency = concurrency
     saveConfig()
     report("Updated parallelism", ["readConcurrency": .string(concurrency.map(String.init) ?? "auto")])
+  }
+
+  func setRetention(_ retention: SnapshotRetention) {
+    guard retention != config.retention else { return }
+    config.retention = retention
+    saveConfig()
+    report("Updated snapshot retention", ["retentionPolicy": .string(retention.telemetryValue)])
   }
 
   func setDiskSnapshots(_ enabled: Bool) {

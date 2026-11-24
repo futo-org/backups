@@ -8,6 +8,7 @@ struct FirstRunOnboarding: View {
   @State private var index = 0
   @State private var selection = FolderSelection(home: NSHomeDirectory())
   @State private var estimates: FolderSizeEstimates?
+  @State private var retention = RetentionPreset.standard
 
   var body: some View {
     ZStack {
@@ -45,7 +46,7 @@ struct FirstRunOnboarding: View {
       ChooseFoldersStep(
         selection: $selection, estimates: estimates, back: index > 0 ? { back() } : nil, next: { next() })
     case .ready:
-      ReadyStep(selection: selection, estimates: estimates, back: { back() })
+      ReadyStep(selection: selection, estimates: estimates, retention: $retention, back: { back() })
     }
   }
 
@@ -371,6 +372,7 @@ private struct ReadyStep: View {
   @Environment(AppModel.self) private var model
   let selection: FolderSelection
   let estimates: FolderSizeEstimates
+  @Binding var retention: RetentionPreset
   let back: () -> Void
 
   var body: some View {
@@ -397,20 +399,45 @@ private struct ReadyStep: View {
               .font(.system(size: 11))
               .foregroundStyle(.secondary)
           }
+          Divider()
+          HStack(alignment: .top, spacing: 12) {
+            IconTile(systemName: "clock.arrow.circlepath", tint: .teal)
+            VStack(alignment: .leading, spacing: 3) {
+              HStack {
+                Text("Keep snapshots")
+                  .font(.system(size: 13, weight: .semibold))
+                Spacer()
+                RetentionPresetPicker(selection: $retention)
+              }
+              Text(retentionDetail)
+                .font(.system(size: 11))
+                .foregroundStyle(.secondary)
+            }
+          }
         }
         .padding(.vertical, 4)
       }
       HStack(spacing: 12) {
-        Button("Back Up Now") { model.finishOnboarding(folders: selection.paths, backUpNow: true) }
-          .buttonStyle(PrimaryButtonStyle(large: true))
-          .keyboardShortcut(.defaultAction)
-        Button("Not Now") { model.finishOnboarding(folders: selection.paths, backUpNow: false) }
+        Button("Back Up Now") {
+          model.finishOnboarding(folders: selection.paths, retention: retention, backUpNow: true)
+        }
+        .buttonStyle(PrimaryButtonStyle(large: true))
+        .keyboardShortcut(.defaultAction)
+        Button("Not Now") { model.finishOnboarding(folders: selection.paths, retention: retention, backUpNow: false) }
           .buttonStyle(SecondaryButtonStyle())
       }
       Button("Back", action: back)
         .buttonStyle(.link)
         .font(.system(size: 12))
     }
+  }
+
+  private var retentionDetail: String {
+    let effect =
+      retention == .never
+      ? "Every snapshot is kept, which uses more storage over time."
+      : "Older snapshots are deleted after each backup."
+    return effect + " Custom rules are in Settings."
   }
 
   private var foldersSummary: String {

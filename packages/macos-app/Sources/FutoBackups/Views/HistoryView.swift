@@ -8,7 +8,10 @@ struct HistoryView: View {
   var body: some View {
     ScrollView {
       VStack(alignment: .leading, spacing: 22) {
-        PageHeader(title: "History", subtitle: "Snapshots from the last 60 days. Restore any of them to a folder.") {
+        PageHeader(
+          title: "History",
+          subtitle: "\(model.config.snapshotRetention.historySubtitle) Restore any of them to a folder."
+        ) {
           Button {
             Task { await model.refreshSnapshots() }
           } label: {

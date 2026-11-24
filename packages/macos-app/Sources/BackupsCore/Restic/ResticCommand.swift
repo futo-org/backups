@@ -78,8 +78,9 @@ public enum ResticCommand {
     invocation(context, ["snapshots"], ["--no-lock"])
   }
 
-  public static func forget(_ context: ResticContext, host: String, keepWithin: String) -> ResticInvocation {
-    var flags = ["--host", host, "--group-by", "host", "--keep-within", keepWithin, "--prune"]
+  public static func forget(_ context: ResticContext, host: String, retention: SnapshotRetention) -> ResticInvocation? {
+    guard let policy = retention.prunablePolicy else { return nil }
+    var flags = ["--host", host, "--group-by", "host"] + policy.resticArguments + ["--prune"]
     if let packSizeMiB = context.packSizeMiB {
       flags += ["--pack-size", "\(packSizeMiB)"]
     }

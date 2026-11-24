@@ -42,10 +42,13 @@ public struct AppConfig: Codable, Equatable, Sendable {
   public var excludeDefaultsVersion: Int?
   public var uploadConnections: Int?
   public var readConcurrency: Int?
+  public var retention: SnapshotRetention?
 
   public static let parallelismChoices = [1, 2, 3, 4, 6, 8, 12, 16, 24, 32, 48, 64, 128]
 
   public var usesDiskSnapshots: Bool { diskSnapshots ?? true }
+
+  public var snapshotRetention: SnapshotRetention { retention ?? .standard }
 
   public var scheduleReference: Date? { lastRun?.startedAt ?? scheduleAnchor }
 
