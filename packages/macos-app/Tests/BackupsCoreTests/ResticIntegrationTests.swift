@@ -46,6 +46,66 @@ private final class SummaryCollector: @unchecked Sendable {
   }
 }
 
+private struct LocalRepositoryRunner: ResticExecuting {
+  let runner: ResticRunner
+  let repository: String
+
+  func run(_ invocation: ResticInvocation, onLine: @escaping @Sendable (String) -> Void) async throws
+    -> ResticResult
+  {
+    var local = invocation
+    if local.environment["RESTIC_REPOSITORY"] != nil {
+      local.environment["RESTIC_REPOSITORY"] = repository
+    }
+    return try await runner.run(local, onLine: onLine)
+  }
+}
+
+private struct KeyRotationWorkspace {
+  let root: URL
+  let repository: String
+  let scratch: URL
+  let context: ResticContext
+  let runner: ResticRunner
+
+  init(executable: URL, password: String) throws {
+    let fileManager = FileManager.default
+    root = fileManager.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+    repository = root.appendingPathComponent("repository").path
+    scratch = root.appendingPathComponent("scratch")
+    for name in ["cache", "home", "scratch", "source"] {
+      try fileManager.createDirectory(at: root.appendingPathComponent(name), withIntermediateDirectories: true)
+    }
+    try Data("keep me".utf8).write(to: root.appendingPathComponent("source/a.txt"))
+    context = ResticContext(
+      repository: repository, password: password, cacheDirectory: root.appendingPathComponent("cache"),
+      home: root.appendingPathComponent("home").path, connections: 2)
+    runner = ResticRunner(executable: executable)
+  }
+
+  func engine(secrets: any SecretStore) -> BackupEngine {
+    let api = FakeAPI()
+    return BackupEngine(
+      environment: EngineEnvironment(
+        secrets: secrets,
+        discover: { _ in ServerInfo(apiRoot: testAPIRoot, resticPackSizeMiB: 16, connectionsMath: "2") },
+        makeAPI: { _, _ in api },
+        restic: LocalRepositoryRunner(runner: runner, repository: repository),
+        proxyLauncher: FakeProxyLauncher(),
+        cacheDirectory: context.cacheDirectory,
+        home: context.home,
+        processorCount: 2,
+        now: { Date() },
+        temporaryDirectory: scratch))
+  }
+
+  func exitCode(_ command: (ResticContext) -> ResticInvocation, password: String) async throws -> Int32 {
+    var withPassword = context
+    withPassword.password = password
+    return try await runner.run(command(withPassword), onLine: { _ in }).exitCode
+  }
+}
+
 @Suite(.enabled(if: resticExecutable != nil, "set FUTO_BACKUPS_RESTIC to an executable to run"))
 struct ResticIntegrationTests {
   @Test func fullRepositoryLifecycle() async throws {
@@ -278,5 +338,77 @@ struct ResticIntegrationTests {
     wrongContext.password = try RepositoryKeys.password(masterKey: keyB, repositoryId: repositoryId)
     let withKeyB = try await runner.run(ResticCommand.catConfig(wrongContext), onLine: { _ in })
     #expect(withKeyB.exitCode == ResticExitCode.wrongPassword)
+  }
+
+  @Test func changeMasterKeyRotatesTheRepositoryPassword() async throws {
+    let executable = try #require(resticExecutable)
+    let repositoryId = "repo-1"
+    let oldKey = RepositoryKeys.generateMasterKey()
+    let newKey = RepositoryKeys.generateMasterKey()
+    let oldPassword = try RepositoryKeys.password(masterKey: oldKey, repositoryId: repositoryId)
+    let newPassword = try RepositoryKeys.password(masterKey: newKey, repositoryId: repositoryId)
+    let workspace = try KeyRotationWorkspace(executable: executable, password: oldPassword)
+    defer { try? FileManager.default.removeItem(at: workspace.root) }
+    #expect(try await workspace.exitCode(ResticCommand.initialize, password: oldPassword) == ResticExitCode.success)
+    let backup = try await workspace.runner.run(
+      ResticCommand.backup(
+        workspace.context, paths: [workspace.root.appendingPathComponent("source").path], excludes: [], host: "h"),
+      onLine: { _ in })
+    #expect(backup.exitCode == ResticExitCode.success)
+    let secrets = InMemorySecretStore([.accessToken: "tok", .masterKey: oldKey])
+
+    let outcome = try await workspace.engine(secrets: secrets).changeMasterKey(
+      to: newKey, config: testConfig(repositoryId: repositoryId))
+
+    #expect(outcome == .complete)
+    #expect(try secrets.get(.masterKey) == newKey)
+    #expect(try secrets.get(.pendingKeyRotation) == nil)
+    #expect(
+      try await workspace.exitCode(ResticCommand.catConfig, password: oldPassword) == ResticExitCode.wrongPassword)
+    #expect(try await workspace.exitCode(ResticCommand.catConfig, password: newPassword) == ResticExitCode.success)
+    var newContext = workspace.context
+    newContext.password = newPassword
+    let keys = try ResticOutput.parseKeys(
+      try await workspace.runner.run(ResticCommand.keyList(newContext), onLine: { _ in }).stdout)
+    #expect(keys.count == 1)
+    #expect(keys.first?.current == true)
+    let snapshots = try await workspace.runner.run(ResticCommand.snapshots(newContext), onLine: { _ in })
+    #expect(try ResticOutput.parseSnapshots(snapshots.stdout).count == 1)
+    #expect(try FileManager.default.contentsOfDirectory(atPath: workspace.scratch.path).isEmpty)
+  }
+
+  @Test func finishPendingKeyRotationRemovesTheOldKeyAfterACrash() async throws {
+    let executable = try #require(resticExecutable)
+    let repositoryId = "repo-1"
+    let oldKey = RepositoryKeys.generateMasterKey()
+    let newKey = RepositoryKeys.generateMasterKey()
+    let oldPassword = try RepositoryKeys.password(masterKey: oldKey, repositoryId: repositoryId)
+    let newPassword = try RepositoryKeys.password(masterKey: newKey, repositoryId: repositoryId)
+    let workspace = try KeyRotationWorkspace(executable: executable, password: oldPassword)
+    defer { try? FileManager.default.removeItem(at: workspace.root) }
+    #expect(try await workspace.exitCode(ResticCommand.initialize, password: oldPassword) == ResticExitCode.success)
+    let listed = try await workspace.runner.run(ResticCommand.keyList(workspace.context), onLine: { _ in })
+    let oldKeyId = try #require(try ResticOutput.parseKeys(listed.stdout).first(where: \.current)?.id)
+    let passwordFile = workspace.root.appendingPathComponent("new-password")
+    try Data(newPassword.utf8).write(to: passwordFile)
+    let added = try await workspace.runner.run(
+      ResticCommand.keyAdd(workspace.context, newPasswordFile: passwordFile.path), onLine: { _ in })
+    #expect(added.exitCode == ResticExitCode.success)
+    let pending = PendingKeyRotation(
+      repositoryId: repositoryId, oldKeyId: oldKeyId, previousMasterKey: oldKey, newMasterKey: newKey)
+    let secrets = InMemorySecretStore([
+      .accessToken: "tok", .masterKey: oldKey,
+      .pendingKeyRotation: String(decoding: try JSONEncoder().encode(pending), as: UTF8.self),
+    ])
+
+    let finished = try await workspace.engine(secrets: secrets).finishPendingKeyRotation(
+      config: testConfig(repositoryId: repositoryId))
+
+    #expect(finished)
+    #expect(try secrets.get(.masterKey) == newKey)
+    #expect(try secrets.get(.pendingKeyRotation) == nil)
+    #expect(
+      try await workspace.exitCode(ResticCommand.catConfig, password: oldPassword) == ResticExitCode.wrongPassword)
+    #expect(try await workspace.exitCode(ResticCommand.catConfig, password: newPassword) == ResticExitCode.success)
   }
 }

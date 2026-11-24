@@ -4,6 +4,7 @@ import Security
 public enum SecretKey: String, Sendable, CaseIterable {
   case accessToken = "access-token"
   case masterKey = "master-key"
+  case pendingKeyRotation = "pending-key-rotation"
 }
 
 public protocol SecretStore: Sendable {

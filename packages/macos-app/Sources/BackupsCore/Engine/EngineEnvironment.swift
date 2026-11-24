@@ -17,6 +17,7 @@ public struct EngineEnvironment: Sendable {
   public var snapshotDirectory: URL?
   public var dataVolumePath: @Sendable (String) -> String?
   public var createRestoreDirectory: @Sendable (URL) throws -> Bool
+  public var temporaryDirectory: URL
 
   public init(
     secrets: any SecretStore,
@@ -34,7 +35,8 @@ public struct EngineEnvironment: Sendable {
     diskSnapshots: any DiskSnapshotting = UnavailableDiskSnapshots(),
     snapshotDirectory: URL? = nil,
     dataVolumePath: @escaping @Sendable (String) -> String? = { _ in nil },
-    createRestoreDirectory: @escaping @Sendable (URL) throws -> Bool = RestorePlan.createDirectoryExclusively
+    createRestoreDirectory: @escaping @Sendable (URL) throws -> Bool = RestorePlan.createDirectoryExclusively,
+    temporaryDirectory: URL = FileManager.default.temporaryDirectory
   ) {
     self.secrets = secrets
     self.discover = discover
@@ -52,6 +54,7 @@ public struct EngineEnvironment: Sendable {
     self.snapshotDirectory = snapshotDirectory
     self.dataVolumePath = dataVolumePath
     self.createRestoreDirectory = createRestoreDirectory
+    self.temporaryDirectory = temporaryDirectory
   }
 }
 
@@ -69,4 +72,5 @@ public enum EngineActivity: Equatable, Sendable {
   case backingUp(BackupProgress)
   case pruning
   case restoring
+  case changingRecoveryKey
 }

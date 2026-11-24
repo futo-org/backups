@@ -3,7 +3,7 @@ import Foundation
 public actor BackupEngine {
   public static let keepWithin = "60d"
 
-  private struct Session {
+  struct Session {
     var proxy: any ResticProxyHandle
     var context: ResticContext
   }
@@ -47,9 +47,9 @@ public actor BackupEngine {
     }
   }
 
-  private let environment: EngineEnvironment
+  let environment: EngineEnvironment
   private let outbox: Outbox
-  private var running = false
+  var running = false
   private var staleCleanupTask: Task<Void, Never>?
   private var serverCache: [URL: ServerInfo] = [:]
   private var futoResticCache: Bool?
@@ -737,21 +737,21 @@ public actor BackupEngine {
     }
   }
 
-  private func accessToken() throws -> String {
+  func accessToken() throws -> String {
     guard let token = try environment.secrets.get(.accessToken) else {
       throw EngineError.notLoggedIn
     }
     return token
   }
 
-  private func requireMasterKey() throws -> String {
+  func requireMasterKey() throws -> String {
     guard let masterKey = try storedMasterKey() else {
       throw EngineError.missingMasterKey
     }
     return masterKey
   }
 
-  private func serverInfo(for url: URL) async throws -> ServerInfo {
+  func serverInfo(for url: URL) async throws -> ServerInfo {
     if let cached = serverCache[url] {
       return cached
     }
@@ -760,7 +760,7 @@ public actor BackupEngine {
     return server
   }
 
-  private func report(
+  func report(
     _ api: any YuccaRepositoryAPI, config: AppConfig, _ summary: String,
     _ data: [String: TelemetryValue]
   ) async {
@@ -790,7 +790,7 @@ public actor BackupEngine {
     return futo
   }
 
-  private func startSession(
+  func startSession(
     config: AppConfig, repositoryId: String, masterKey: String, token: String
   ) async throws -> Session {
     let server = try await serverInfo(for: config.serverURL)

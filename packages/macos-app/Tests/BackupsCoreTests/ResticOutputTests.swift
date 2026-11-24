@@ -90,6 +90,18 @@ func parseLineMatches(_ line: String, _ expected: ResticMessage) {
   }
 }
 
+@Test func parseKeysReadsIdAndCurrentFlag() throws {
+  let output = Data(
+    (#"[{"current":false,"id":"bbb","userName":"u","hostName":"h","created":"2026-11-24 09:42:51"},"#
+      + #"{"current":true,"id":"aaa","userName":"u","hostName":"h","created":"2026-11-24 09:42:46"}]"#).utf8)
+  #expect(
+    try ResticOutput.parseKeys(output) == [ResticKey(id: "bbb", current: false), ResticKey(id: "aaa", current: true)])
+  #expect(try ResticOutput.parseKeys(Data("[]".utf8)).isEmpty)
+  #expect(throws: (any Error).self) {
+    try ResticOutput.parseKeys(Data(#"{"id":"aaa"}"#.utf8))
+  }
+}
+
 @Test func parseStatsAndVersion() throws {
   #expect(try ResticOutput.parseStatsTotalSize(Data(#"{"total_size": 12345,"total_file_size":1}"#.utf8)) == 12345)
   #expect(
