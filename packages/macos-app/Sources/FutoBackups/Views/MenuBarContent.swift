@@ -33,7 +33,7 @@ struct MenuBarContent: View {
             Text("Back Up Now")
               .frame(maxWidth: .infinity)
           }
-          .buttonStyle(PrimaryButtonStyle())
+          .buttonStyle(.borderedProminent)
           .disabled(model.config.folders.isEmpty)
         } else if !model.isCancelling, model.activity?.isCancellable == true {
           Button {
@@ -42,7 +42,7 @@ struct MenuBarContent: View {
             Text("Cancel")
               .frame(maxWidth: .infinity)
           }
-          .buttonStyle(SecondaryButtonStyle())
+          .buttonStyle(.bordered)
         }
       }
       Divider()

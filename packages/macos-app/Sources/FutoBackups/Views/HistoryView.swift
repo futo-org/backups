@@ -120,7 +120,7 @@ struct HistoryView: View {
       Button("Try Again") {
         Task { await model.refreshSnapshots() }
       }
-      .buttonStyle(SecondaryButtonStyle())
+      .buttonStyle(.bordered)
       .padding(.top, 4)
     }
     .frame(maxWidth: .infinity)
@@ -213,9 +213,9 @@ struct SnapshotRow: View {
         .font(.system(size: 11, design: .monospaced))
         .foregroundStyle(.tertiary)
       Button("Browse Files…", action: browse)
-        .buttonStyle(SecondaryButtonStyle())
+        .buttonStyle(.bordered)
       Button("Restore All…", action: restore)
-        .buttonStyle(SecondaryButtonStyle())
+        .buttonStyle(.bordered)
         .disabled(model.activity != nil)
     }
     .padding(.horizontal, 14)

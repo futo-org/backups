@@ -61,7 +61,8 @@ struct WelcomeView: View {
     case .idle:
       VStack(spacing: 14) {
         Button("Sign In") { model.startLogin() }
-          .buttonStyle(PrimaryButtonStyle(large: true))
+          .buttonStyle(.borderedProminent)
+          .controlSize(.extraLarge)
           .keyboardShortcut(.defaultAction)
         Text("You'll approve this Mac in your browser.")
           .font(.system(size: 12))
@@ -77,12 +78,12 @@ struct WelcomeView: View {
           Button("Open Browser") {
             if let target = URL(string: url) { NSWorkspace.shared.open(target) }
           }
-          .buttonStyle(PrimaryButtonStyle())
+          .buttonStyle(.borderedProminent)
           Button("Copy Code") {
             NSPasteboard.general.clearContents()
             NSPasteboard.general.setString(userCode, forType: .string)
           }
-          .buttonStyle(SecondaryButtonStyle())
+          .buttonStyle(.bordered)
         }
         HStack(spacing: 8) {
           ProgressView()
@@ -110,7 +111,8 @@ struct WelcomeView: View {
           .copyable(message)
           .frame(maxWidth: 420)
         Button("Try Again") { model.startLogin() }
-          .buttonStyle(PrimaryButtonStyle(large: true))
+          .buttonStyle(.borderedProminent)
+          .controlSize(.extraLarge)
       }
     }
   }
@@ -167,7 +169,7 @@ struct ServerEditor: View {
         Button("Local dev") { use(AppConfig.devServerURL) }
         Spacer()
         Button("Apply", action: apply)
-          .buttonStyle(PrimaryButtonStyle())
+          .buttonStyle(.borderedProminent)
           .disabled(draft == model.config.serverURL.absoluteString)
       }
       Text("Changing the server signs you out.")

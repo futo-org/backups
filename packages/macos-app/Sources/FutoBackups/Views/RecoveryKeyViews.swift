@@ -137,7 +137,8 @@ private struct SaveRecoveryKeyStep: View {
         .toggleStyle(.checkbox)
         .padding(.top, 4)
       Button("Continue") { model.showRecoveryKeyStep(.confirm) }
-        .buttonStyle(PrimaryButtonStyle(large: true))
+        .buttonStyle(.borderedProminent)
+        .controlSize(.large)
         .disabled(!saved || key == nil)
         .keyboardShortcut(.defaultAction)
       if model.canImportRecoveryKey {
@@ -190,7 +191,8 @@ private struct ConfirmRecoveryKeyStep: View {
           .foregroundStyle(.red)
       }
       Button("Confirm") { confirm() }
-        .buttonStyle(PrimaryButtonStyle(large: true))
+        .buttonStyle(.borderedProminent)
+        .controlSize(.large)
         .disabled(input.isEmpty || checking)
         .keyboardShortcut(.defaultAction)
       Button("View recovery key again") { model.showRecoveryKeyStep(.save) }
@@ -301,7 +303,8 @@ private struct RecoveryKeyEntry: View {
           .controlSize(.small)
       } else {
         Button(action) { use() }
-          .buttonStyle(PrimaryButtonStyle(large: true))
+          .buttonStyle(.borderedProminent)
+          .controlSize(.large)
           .disabled(RepositoryKeys.normalizedMasterKey(input) == nil)
           .keyboardShortcut(.defaultAction)
       }
@@ -368,7 +371,7 @@ private struct ChooseRepositoryStep: View {
       .background(CardBackground())
       VStack(spacing: 10) {
         Button("Start a New Backup Instead") { startNew() }
-          .buttonStyle(SecondaryButtonStyle())
+          .buttonStyle(.bordered)
           .disabled(verifyingId != nil || starting)
         if failedId == nil, let errorMessage {
           Text(errorMessage)
@@ -555,7 +558,7 @@ struct RecoveryKeyActions: View {
         Label("Print…", systemImage: "printer")
       }
     }
-    .buttonStyle(SecondaryButtonStyle())
+    .buttonStyle(.bordered)
   }
 
   private var singleLine: String {

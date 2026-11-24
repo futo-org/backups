@@ -50,7 +50,8 @@ struct ThisMacSection: View {
     Section("Remove This Mac") {
       LabeledContent {
         Button("Unlink This Mac…") { sheet = .reset }
-          .buttonStyle(SecondaryButtonStyle(tint: .orange))
+          .buttonStyle(.bordered)
+          .tint(.orange)
       } label: {
         SettingLabel(
           systemName: "arrow.counterclockwise", tint: .orange, title: "Unlink this Mac",
@@ -61,8 +62,9 @@ struct ThisMacSection: View {
       .labeledContentStyle(.centered)
       .padding(.vertical, 4)
       LabeledContent {
-        Button("Delete This Mac's Backup…") { sheet = .deleteBackup }
-          .buttonStyle(SecondaryButtonStyle(tint: .red))
+        Button("Delete This Mac's Backup…", role: .destructive) { sheet = .deleteBackup }
+          .buttonStyle(.bordered)
+          .tint(.red)
       } label: {
         SettingLabel(
           systemName: "trash.fill", tint: .red, title: "Delete this Mac's backup",
@@ -139,7 +141,7 @@ private struct ResetThisMacSheet: View {
             revealing = false
           }
         }
-        .buttonStyle(SecondaryButtonStyle())
+        .buttonStyle(.bordered)
         .disabled(revealing)
       }
       Toggle(isOn: $hasRecoveryKey) {
@@ -151,7 +153,7 @@ private struct ResetThisMacSheet: View {
       .frame(maxWidth: .infinity, alignment: .leading)
       HStack(spacing: 12) {
         Button("Cancel", action: close)
-          .buttonStyle(SecondaryButtonStyle())
+          .buttonStyle(.bordered)
           .keyboardShortcut(.cancelAction)
         Spacer()
         if resetting {
@@ -166,7 +168,8 @@ private struct ResetThisMacSheet: View {
             close()
           }
         }
-        .buttonStyle(SecondaryButtonStyle(tint: .red))
+        .buttonStyle(.bordered)
+        .tint(.red)
         .disabled(!hasRecoveryKey || resetting)
       }
     }
@@ -221,11 +224,12 @@ private struct DeleteBackupSheet: View {
       .frame(maxWidth: .infinity, alignment: .leading)
       HStack(spacing: 12) {
         Button("Cancel", action: dismiss)
-          .buttonStyle(SecondaryButtonStyle())
+          .buttonStyle(.bordered)
           .keyboardShortcut(.cancelAction)
         Spacer()
         Button("Delete Backup…", role: .destructive) { model.startBackupDeletion() }
-          .buttonStyle(SecondaryButtonStyle(tint: .red))
+          .buttonStyle(.bordered)
+          .tint(.red)
           .disabled(!understood)
       }
     }
@@ -252,11 +256,11 @@ private struct DeleteBackupSheet: View {
           model.cancelBackupDeletion()
           close()
         }
-        .buttonStyle(SecondaryButtonStyle())
+        .buttonStyle(.bordered)
         .keyboardShortcut(.cancelAction)
         Spacer()
         Button("Open Browser Again") { NSWorkspace.shared.open(url) }
-          .buttonStyle(SecondaryButtonStyle())
+          .buttonStyle(.bordered)
       }
     }
   }
@@ -293,17 +297,18 @@ private struct DeleteBackupSheet: View {
       }
       HStack(spacing: 12) {
         Button("Close", action: dismiss)
-          .buttonStyle(SecondaryButtonStyle())
+          .buttonStyle(.bordered)
           .keyboardShortcut(.cancelAction)
         Spacer()
         if repositories.isEmpty {
           Button("Try Again") { model.startBackupDeletion() }
-            .buttonStyle(SecondaryButtonStyle())
+            .buttonStyle(.bordered)
         }
         Button("Clear Local Data Anyway", role: .destructive) {
           Task { await model.resetAfterBackupDeletion() }
         }
-        .buttonStyle(SecondaryButtonStyle(tint: .red))
+        .buttonStyle(.bordered)
+        .tint(.red)
         .disabled(model.isResetting)
       }
     }
@@ -315,11 +320,11 @@ private struct DeleteBackupSheet: View {
       SheetText(message)
       HStack(spacing: 12) {
         Button("Close", action: dismiss)
-          .buttonStyle(SecondaryButtonStyle())
+          .buttonStyle(.bordered)
           .keyboardShortcut(.cancelAction)
         Spacer()
         Button("Try Again") { model.startBackupDeletion() }
-          .buttonStyle(SecondaryButtonStyle())
+          .buttonStyle(.bordered)
       }
     }
   }

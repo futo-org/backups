@@ -119,14 +119,14 @@ struct FoldersView: View {
           } label: {
             Label("Add Folder or File…", systemImage: "plus")
           }
-          .buttonStyle(SecondaryButtonStyle())
+          .buttonStyle(.bordered)
           Button {
             patternError = nil
             showPatternEditor = true
           } label: {
             Label("Add Pattern…", systemImage: "asterisk")
           }
-          .buttonStyle(SecondaryButtonStyle())
+          .buttonStyle(.bordered)
           .popover(isPresented: $showPatternEditor, arrowEdge: .bottom) {
             patternEditor
           }
@@ -187,7 +187,7 @@ struct FoldersView: View {
         Spacer()
         Button("Cancel") { showPatternEditor = false }
         Button("Add", action: addPattern)
-          .buttonStyle(PrimaryButtonStyle())
+          .buttonStyle(.borderedProminent)
       }
     }
     .padding(18)
@@ -223,7 +223,7 @@ struct FoldersView: View {
               NSWorkspace.shared.open(url)
             }
           }
-          .buttonStyle(SecondaryButtonStyle())
+          .buttonStyle(.bordered)
         }
       }
     }

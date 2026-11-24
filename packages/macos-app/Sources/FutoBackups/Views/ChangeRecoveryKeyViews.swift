@@ -131,7 +131,8 @@ struct ChangeRecoveryKeySheet: View {
           ? "This Mac's backup now uses your new key. The old key no longer opens it."
           : "This Mac's backup now uses your new key. The old key will stop working after the next backup.")
       Button("Done") { dismiss() }
-        .buttonStyle(PrimaryButtonStyle(large: true))
+        .buttonStyle(.borderedProminent)
+        .controlSize(.large)
         .keyboardShortcut(.defaultAction)
     }
   }
@@ -150,13 +151,14 @@ struct ChangeRecoveryKeySheet: View {
   ) -> some View {
     HStack(spacing: 12) {
       Button(cancelTitle) { dismiss() }
-        .buttonStyle(SecondaryButtonStyle())
+        .buttonStyle(.bordered)
         .keyboardShortcut(.cancelAction)
       Button(primary, action: action)
-        .buttonStyle(PrimaryButtonStyle(large: true))
+        .buttonStyle(.borderedProminent)
         .disabled(disabled)
         .keyboardShortcut(.defaultAction)
     }
+    .controlSize(.large)
     .padding(.top, 4)
   }
 

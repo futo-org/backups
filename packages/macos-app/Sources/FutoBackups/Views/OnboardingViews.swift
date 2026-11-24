@@ -91,7 +91,8 @@ private struct FullDiskAccessStep: View {
           .font(.system(size: 13, weight: .semibold))
           .foregroundStyle(.green)
         Button("Continue", action: next)
-          .buttonStyle(PrimaryButtonStyle(large: true))
+          .buttonStyle(.borderedProminent)
+          .controlSize(.large)
           .keyboardShortcut(.defaultAction)
       } else {
         Text("In System Settings, turn on FUTO Backups in the list, then come back here.")
@@ -99,7 +100,8 @@ private struct FullDiskAccessStep: View {
           .foregroundStyle(.secondary)
           .multilineTextAlignment(.center)
         Button("Open System Settings") { openSettings() }
-          .buttonStyle(PrimaryButtonStyle(large: true))
+          .buttonStyle(.borderedProminent)
+          .controlSize(.large)
           .keyboardShortcut(.defaultAction)
         HStack(spacing: 8) {
           ProgressView()
@@ -193,7 +195,7 @@ private struct ChooseFoldersStep: View {
         } label: {
           Label("Choose Other Folders…", systemImage: "plus")
         }
-        .buttonStyle(SecondaryButtonStyle())
+        .buttonStyle(.bordered)
         Spacer()
         Text("Caches and the Trash are always skipped.")
           .font(.system(size: 11))
@@ -204,7 +206,8 @@ private struct ChooseFoldersStep: View {
         .padding(12)
         .background(CardBackground())
       Button("Continue", action: next)
-        .buttonStyle(PrimaryButtonStyle(large: true))
+        .buttonStyle(.borderedProminent)
+        .controlSize(.large)
         .disabled(!selection.canContinue)
         .keyboardShortcut(.defaultAction)
       if let back {
@@ -458,11 +461,12 @@ private struct ReadyStep: View {
       .frame(maxWidth: .infinity, alignment: .leading)
       HStack(spacing: 12) {
         Button("Back Up Now") { requestFinish(backUpNow: true) }
-          .buttonStyle(PrimaryButtonStyle(large: true))
+          .buttonStyle(.borderedProminent)
           .keyboardShortcut(.defaultAction)
         Button("Not Now") { requestFinish(backUpNow: false) }
-          .buttonStyle(SecondaryButtonStyle())
+          .buttonStyle(.bordered)
       }
+      .controlSize(.large)
       Button("Back", action: back)
         .buttonStyle(.link)
         .font(.system(size: 12))

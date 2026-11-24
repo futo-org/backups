@@ -45,7 +45,7 @@ struct CloudOnlyNotice: View {
         }
         Spacer(minLength: 8)
         Button("Show Files") { showingFiles = true }
-          .buttonStyle(SecondaryButtonStyle())
+          .buttonStyle(.bordered)
       }
     }
     .sheet(isPresented: $showingFiles) {
@@ -125,7 +125,7 @@ struct CloudOnlyFilesSheet: View {
       HStack {
         Spacer()
         Button("Done") { dismiss() }
-          .buttonStyle(PrimaryButtonStyle())
+          .buttonStyle(.borderedProminent)
           .keyboardShortcut(.defaultAction)
       }
     }
