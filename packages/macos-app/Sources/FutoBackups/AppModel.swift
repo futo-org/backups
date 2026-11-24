@@ -781,10 +781,7 @@ final class AppModel {
       return "Session expired, log in again"
     }
     if let loginError = error as? DeviceLoginError {
-      switch loginError {
-      case .expired: return "Login code expired"
-      case .failed(let reason): return "Login failed: \(reason)"
-      }
+      return loginError.message(server: config.serverDisplayName)
     }
     return String(describing: error)
   }

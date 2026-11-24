@@ -96,3 +96,22 @@ private func login(responses: [HTTPResponse], expiresIn: Int, interval: Int?) ->
   let sleeps = await recorder.sleeps
   #expect(sleeps == [.seconds(5), .seconds(5)])
 }
+
+@Test(
+  "login failures read as sentences naming the server",
+  arguments: [
+    (DeviceLoginError.expired, "The sign-in code expired. Try again."),
+    (.failed(reason: "EXPIRED"), "The sign-in code expired. Try again."),
+    (.failed(reason: "ACCESS_DENIED"), "Sign-in was declined in the browser."),
+    (.failed(reason: "EMAIL_NOT_ALLOWED"), "This account can't use FUTO Backups yet."),
+    (.failed(reason: "FEATURE_NOT_ENABLED"), "Mac backups aren't enabled for this account."),
+    (.failed(reason: "UNSUPPORTED_CONNECTION_TYPE"), "futo.cloud doesn't support the Mac app yet."),
+    (
+      .failed(reason: "UNKNOWN"),
+      "futo.cloud couldn't finish signing in this Mac. It may not support the Mac app yet."
+    ),
+    (.failed(reason: "SOMETHING_NEW"), "Sign-in failed (SOMETHING_NEW)."),
+  ])
+func loginFailureMessage(error: DeviceLoginError, expected: String) {
+  #expect(error.message(server: "futo.cloud") == expected)
+}
