@@ -40,6 +40,11 @@ public struct AppConfig: Codable, Equatable, Sendable {
   public var diskSnapshots: Bool?
   public var onboardingCompletedAt: Date?
   public var excludeDefaultsVersion: Int?
+  public var uploadConnections: Int?
+  public var readConcurrency: Int?
+
+  public static let uploadConnectionChoices = [1, 2, 4, 8, 16, 32]
+  public static let readConcurrencyChoices = [1, 2, 4, 8, 16]
 
   public var usesDiskSnapshots: Bool { diskSnapshots ?? true }
 

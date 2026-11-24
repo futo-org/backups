@@ -80,6 +80,30 @@ struct SettingsView: View {
           }
         }
       }
+      Section {
+        Picker(selection: uploadConnectionsBinding) {
+          Text("Automatic").tag(Int?.none)
+          ForEach(AppConfig.uploadConnectionChoices, id: \.self) { Text("\($0)").tag(Int?.some($0)) }
+        } label: {
+          SettingLabel(
+            systemName: "arrow.up.arrow.down", tint: .blue, title: "Simultaneous uploads",
+            detail: "Connections to FUTO Cloud at once. Automatic follows the server's recommendation.")
+        }
+        Picker(selection: readConcurrencyBinding) {
+          Text("Automatic").tag(Int?.none)
+          ForEach(AppConfig.readConcurrencyChoices, id: \.self) { Text("\($0)").tag(Int?.some($0)) }
+        } label: {
+          SettingLabel(
+            systemName: "doc.on.doc", tint: .teal, title: "Files read at once",
+            detail: "More is faster on fast disks; fewer keeps your Mac more responsive.")
+        }
+      } header: {
+        Text("Parallelism")
+      } footer: {
+        Text("Changes apply from the next backup.")
+          .font(.caption)
+          .foregroundStyle(.secondary)
+      }
       Section("General") {
         Toggle(isOn: launchAtLoginBinding) {
           SettingLabel(
@@ -175,6 +199,14 @@ struct SettingsView: View {
 
   private var currentLimitText: String {
     UploadLimit.text(bytesPerSecond: model.config.throttle.bytesPerSec)
+  }
+
+  private var uploadConnectionsBinding: Binding<Int?> {
+    Binding(get: { model.config.uploadConnections }, set: { model.setUploadConnections($0) })
+  }
+
+  private var readConcurrencyBinding: Binding<Int?> {
+    Binding(get: { model.config.readConcurrency }, set: { model.setReadConcurrency($0) })
   }
 
   private var launchAtLoginBinding: Binding<Bool> {

@@ -1796,3 +1796,30 @@ private let skippedFiles = CloudOnlySkip(
   #expect(fixture.restic.commands() == ["version", "unlock"])
   #expect(fixture.proxy.stopCount == 1)
 }
+
+@Test func backupHonorsChosenParallelism() async throws {
+  let fixture = makeFixture(connectionsMath: "16")
+  fixture.restic.set(ResticScript(lines: [summaryLine]), for: "backup")
+  let engine = BackupEngine(environment: fixture.environment)
+  var config = testConfig()
+  config.uploadConnections = 4
+  config.readConcurrency = 8
+  _ = try await engine.backup(config: config) { _ in }
+  let backupArgs = try #require(
+    fixture.restic.invocations().first { $0.arguments.first == "backup" }
+  ).arguments
+  #expect(argumentAfter(backupArgs, "--option") == "rest.connections=4")
+  #expect(argumentAfter(backupArgs, "--read-concurrency") == "8")
+}
+
+@Test func automaticParallelismLeavesResticDefaults() async throws {
+  let fixture = makeFixture(connectionsMath: "16")
+  fixture.restic.set(ResticScript(lines: [summaryLine]), for: "backup")
+  let engine = BackupEngine(environment: fixture.environment)
+  _ = try await engine.backup(config: testConfig()) { _ in }
+  let backupArgs = try #require(
+    fixture.restic.invocations().first { $0.arguments.first == "backup" }
+  ).arguments
+  #expect(argumentAfter(backupArgs, "--option") == "rest.connections=16")
+  #expect(!backupArgs.contains("--read-concurrency"))
+}

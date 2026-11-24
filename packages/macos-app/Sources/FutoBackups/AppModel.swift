@@ -608,6 +608,20 @@ final class AppModel {
     report("Updated schedule", ["schedule": .string(scheduleDescription(schedule))])
   }
 
+  func setUploadConnections(_ connections: Int?) {
+    guard connections != config.uploadConnections else { return }
+    config.uploadConnections = connections
+    saveConfig()
+    report("Updated parallelism", ["uploadConnections": .string(connections.map(String.init) ?? "auto")])
+  }
+
+  func setReadConcurrency(_ concurrency: Int?) {
+    guard concurrency != config.readConcurrency else { return }
+    config.readConcurrency = concurrency
+    saveConfig()
+    report("Updated parallelism", ["readConcurrency": .string(concurrency.map(String.init) ?? "auto")])
+  }
+
   func setDiskSnapshots(_ enabled: Bool) {
     config.diskSnapshots = enabled
     saveConfig()

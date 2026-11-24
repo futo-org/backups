@@ -10,10 +10,11 @@ public struct ResticContext: Sendable, Equatable {
   public var connections: Int
   public var packSizeMiB: Int?
   public var walkConcurrency: Int?
+  public var readConcurrency: Int?
 
   public init(
     repository: String, password: String, cacheDirectory: URL, home: String, connections: Int,
-    packSizeMiB: Int? = nil, walkConcurrency: Int? = nil
+    packSizeMiB: Int? = nil, walkConcurrency: Int? = nil, readConcurrency: Int? = nil
   ) {
     self.repository = repository
     self.password = password
@@ -22,6 +23,7 @@ public struct ResticContext: Sendable, Equatable {
     self.connections = connections
     self.packSizeMiB = packSizeMiB
     self.walkConcurrency = walkConcurrency
+    self.readConcurrency = readConcurrency
   }
 }
 
@@ -61,6 +63,9 @@ public enum ResticCommand {
     }
     if let walkConcurrency = context.walkConcurrency {
       flags += ["--walk-concurrency", "\(walkConcurrency)"]
+    }
+    if let readConcurrency = context.readConcurrency {
+      flags += ["--read-concurrency", "\(readConcurrency)"]
     }
     var result = invocation(context, ["backup"], flags, positional: paths)
     result.currentDirectory = currentDirectory

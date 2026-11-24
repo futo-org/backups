@@ -830,12 +830,13 @@ public actor BackupEngine {
         password: try RepositoryKeys.password(masterKey: masterKey, repositoryId: repositoryId),
         cacheDirectory: environment.cacheDirectory,
         home: environment.home,
-        connections: max(
-          1, Int(server.connectionsMath.trimmingCharacters(in: .whitespaces)) ?? environment.processorCount),
+        connections: config.uploadConnections.map { max(1, $0) }
+          ?? max(1, Int(server.connectionsMath.trimmingCharacters(in: .whitespaces)) ?? environment.processorCount),
         packSizeMiB: min(
           max(server.resticPackSizeMiB, ResticContext.packSizeRangeMiB.lowerBound),
           ResticContext.packSizeRangeMiB.upperBound),
-        walkConcurrency: await isFutoRestic() ? 64 : nil)
+        walkConcurrency: await isFutoRestic() ? 64 : nil,
+        readConcurrency: config.readConcurrency.map { max(1, $0) })
       return Session(proxy: proxy, context: context)
     } catch {
       await proxy.stop()
