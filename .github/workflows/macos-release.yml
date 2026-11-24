@@ -18,11 +18,6 @@ on:
 
 permissions: {}
 
-concurrency:
-  # One global group so two releases can never publish the shared appcast concurrently.
-  group: macos-release
-  cancel-in-progress: false
-
 jobs:
   gate:
     name: Decide whether this release needs a macOS build
@@ -285,6 +280,12 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     environment: macos-release
+    # Serializes updates of the shared appcast. Only this short job joins the
+    # group: a new pending job replaces the pending one, so a gate or a queued
+    # build in it could cancel another release's pending feed update.
+    concurrency:
+      group: macos-appcast
+      cancel-in-progress: false
     permissions:
       contents: write
     env:
