@@ -155,7 +155,7 @@
     </HStack>
   </ModalHeader>
 
-  <ModalBody class="px-8 pt-2 pb-8">
+  <ModalBody class="p-8">
     <BackupStatus
       {title}
       {type}
