@@ -1931,7 +1931,8 @@ func invalidRetentionSkipsForget(policy: RetentionPolicy) async throws {
   #expect(!log.all.contains(.pruning))
   let logs = await fixture.deliveredLogs(engine)
   #expect(logs.map(\.summary) == ["Running backup", "Skipped repository prune", "Backup finished"])
-  #expect(logs[1].data["error"] == .string("invalid retention policy"))
+  let skipped = try #require(logs.first { $0.summary == "Skipped repository prune" })
+  #expect(skipped.data["error"] == .string("invalid retention policy"))
 }
 
 @Test func customRetentionReachesForgetAndTelemetry() async throws {
