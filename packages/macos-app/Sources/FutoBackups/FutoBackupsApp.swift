@@ -1,4 +1,5 @@
 import AppKit
+import BackupsCore
 import SwiftUI
 
 @main
@@ -84,26 +85,33 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
   func applicationDockMenu(_ sender: NSApplication) -> NSMenu? {
     guard let model = Self.model, model.signedIn else { return nil }
-    let action = StatusSummary(model: model, progress: nil).action
-    let item =
-      action == .cancel
-      ? NSMenuItem(
-        title: model.activity == .restoring ? "Cancel Restore" : "Cancel Backup", action: #selector(cancelBackup),
+    let item: NSMenuItem
+    switch QuickBackupAction(model: model) {
+    case .cancel(let activity):
+      dockMenuActivity = activity
+      item = NSMenuItem(
+        title: activity == .restoring ? "Cancel Restore" : "Cancel Backup", action: #selector(cancelBackup),
         keyEquivalent: "")
-      : NSMenuItem(title: "Back Up Now", action: #selector(backUpNow), keyEquivalent: "")
+    case .backUp(let enabled):
+      dockMenuActivity = nil
+      item = NSMenuItem(title: "Back Up Now", action: #selector(backUpNow), keyEquivalent: "")
+      item.isEnabled = enabled
+    }
     item.target = self
-    item.isEnabled = action == .cancel || action == .backUp
     let menu = NSMenu()
     menu.autoenablesItems = false
     menu.addItem(item)
     return menu
   }
 
+  private var dockMenuActivity: ActivityPhase?
+
   @objc private func backUpNow() {
     Self.model?.backupNow()
   }
 
   @objc private func cancelBackup() {
-    Self.model?.cancelBackup()
+    guard let model = Self.model, let shown = dockMenuActivity, model.activity == shown else { return }
+    model.cancelBackup()
   }
 }
