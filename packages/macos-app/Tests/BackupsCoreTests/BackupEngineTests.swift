@@ -267,23 +267,29 @@ private let backupLines = [statusLineOne, statusLineTwo, summaryLine]
   #expect(fixture.proxy.stopCount == 1)
 }
 
-@Test func backupForgetThrowCancellationProducesCancelledRecord() async throws {
+@Test func backupForgetCancellationKeepsTheSavedBackupComplete() async throws {
   let fixture = makeFixture()
   fixture.restic.set(ResticScript(lines: [summaryLine]), for: "backup")
   fixture.restic.set(ResticScript(error: CancellationError()), for: "forget")
   let engine = BackupEngine(environment: fixture.environment)
   let log = ActivityLog()
   let record = try await engine.backup(config: testConfig()) { log.record($0) }
-  #expect(record.status == .cancelled)
-  #expect(record.message == nil)
+  #expect(record.status == .complete)
+  #expect(record.snapshotId == "snapshot-abc")
+  #expect(record.message == "Prune interrupted")
   #expect(log.all == [.preparing, .pruning])
   #expect(fixture.restic.commands() == ["version", "unlock", "backup", "forget"])
   #expect(
     await fixture.deliveredCalls(engine)
       == [
         .start(repositoryId: "repo-1"),
-        .end(repositoryId: "repo-1", status: .cancelled, durationMs: 1000),
+        .end(repositoryId: "repo-1", status: .complete, durationMs: 1000),
       ])
+  let logs = await fixture.deliveredLogs(engine)
+  let finishedPrune = try #require(logs.first { $0.summary == "Finished repository prune" })
+  #expect(finishedPrune.data["error"] == .string("cancelled"))
+  let finished = try #require(logs.last { $0.summary == "Backup finished" })
+  #expect(finished.data["lastBackupStatus"] == .string("complete"))
   #expect(fixture.proxy.stopCount == 1)
 }
 

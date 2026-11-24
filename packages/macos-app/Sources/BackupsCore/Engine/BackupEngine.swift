@@ -308,6 +308,7 @@ public actor BackupEngine {
           status = .failed
           message = ResticOutput.errorMessage(stderr: result.stderr, exitCode: result.exitCode)
         }
+        var pruneInterrupted = false
         if status == .complete {
           onActivity(.pruning)
           await report(
@@ -327,10 +328,11 @@ public actor BackupEngine {
               pruneError = detail
               message = "Prune failed: " + detail
             }
+          } catch is CancellationError {
+            pruneInterrupted = true
+            pruneError = "cancelled"
+            message = "Prune interrupted"
           } catch {
-            if error is CancellationError {
-              throw error
-            }
             let detail = String(describing: error)
             pruneError = detail
             message = "Prune failed: \(detail)"
@@ -345,7 +347,7 @@ public actor BackupEngine {
               ["repositoryId": .string(repositoryId)])
           }
         }
-        if status == .complete || status == .warn {
+        if (status == .complete || status == .warn) && !pruneInterrupted {
           var totalSize: Int64?
           var statsError: String?
           do {
