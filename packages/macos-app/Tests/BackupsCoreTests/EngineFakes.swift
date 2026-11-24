@@ -495,6 +495,8 @@ final class FakeRestoreDirectories: @unchecked Sendable {
   private let lock = NSLock()
   private var existing: Set<String>
   private var attempted: [String] = []
+  private var recordedMoves: [String] = []
+  private var removed: [String] = []
 
   init(existing: Set<String> = []) {
     self.existing = existing
@@ -512,6 +514,29 @@ final class FakeRestoreDirectories: @unchecked Sendable {
     lock.withLock {
       attempted.append(url.path)
       return existing.insert(url.path).inserted
+    }
+  }
+
+  var moves: [String] {
+    lock.withLock { recordedMoves }
+  }
+
+  var removals: [String] {
+    lock.withLock { removed }
+  }
+
+  func move(_ source: URL, _ destination: URL) -> Bool {
+    lock.withLock {
+      guard existing.insert(destination.path).inserted else { return false }
+      recordedMoves.append("\(source.path) -> \(destination.path)")
+      return true
+    }
+  }
+
+  func remove(_ url: URL) {
+    lock.withLock {
+      removed.append(url.path)
+      existing.remove(url.path)
     }
   }
 }
@@ -727,6 +752,8 @@ func makeFixture(
     snapshotDirectory: snapshotDirectory,
     dataVolumePath: dataVolumePath,
     createRestoreDirectory: { restoreDirectories.create($0) },
+    moveRestoredItem: { restoreDirectories.move($0, $1) },
+    removeRestoreStaging: { restoreDirectories.remove($0) },
     cloudOnlyScanner: cloudOnlyScanner,
     uploadTicks: uploadTicks,
     networkChanges: networkChanges)

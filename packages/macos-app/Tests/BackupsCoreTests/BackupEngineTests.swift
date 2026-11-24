@@ -617,6 +617,158 @@ private let restoreItems = [
   #expect(fixture.proxy.stopCount == 1)
 }
 
+@Test func listDirectoryListsOneLevelWithoutLockingAndStopsTheProxy() async throws {
+  let fixture = makeFixture()
+  fixture.restic.set(
+    ResticScript(
+      stdout: """
+        {"id":"snap-1","short_id":"snap-1","paths":["/Users/test/Documents"],"message_type":"snapshot"}
+        {"name":"Documents","type":"dir","path":"/Users/test/Documents","message_type":"node"}
+        {"name":"b.txt","type":"file","path":"/Users/test/Documents/b.txt","size":3,"message_type":"node"}
+        {"name":"Work","type":"dir","path":"/Users/test/Documents/Work","message_type":"node"}
+        """),
+    for: "ls")
+  let engine = BackupEngine(environment: fixture.environment)
+  let entries = try await engine.listDirectory(
+    config: testConfig(), snapshotId: "snap-1", path: "/Users/test/Documents")
+  #expect(
+    entries == [
+      SnapshotEntry(name: "Work", path: "/Users/test/Documents/Work", kind: .directory),
+      SnapshotEntry(name: "b.txt", path: "/Users/test/Documents/b.txt", kind: .file, size: 3),
+    ])
+  let ls = try #require(fixture.restic.invocations().first { $0.arguments.first == "ls" })
+  #expect(Array(ls.arguments.suffix(4)) == ["--no-lock", "--", "snap-1", "/Users/test/Documents"])
+  #expect(fixture.proxy.stopCount == 1)
+  #expect(await fixture.deliveredLogs(engine).isEmpty)
+}
+
+@Test func listDirectoryFailureIsReportedAndMapped() async throws {
+  let fixture = makeFixture()
+  fixture.restic.set(
+    ResticScript(exitCode: 1, stderr: #"{"message_type":"exit_error","code":1,"message":"no such snapshot"}"#),
+    for: "ls")
+  let engine = BackupEngine(environment: fixture.environment)
+  await #expect(throws: EngineError.restic(code: 1, message: "no such snapshot")) {
+    _ = try await engine.listDirectory(config: testConfig(), snapshotId: "snap-1", path: "/")
+  }
+  #expect(fixture.proxy.stopCount == 1)
+  let logs = await fixture.deliveredLogs(engine)
+  #expect(logs.map(\.summary) == ["Failed to list snapshot files"])
+  #expect(logs.first?.data["snapshotId"] == .string("snap-1"))
+  #expect(logs.first?.data["error"] == .string("no such snapshot"))
+  await #expect(throws: EngineError.noRepository) {
+    _ = try await engine.listDirectory(config: testConfig(repositoryId: nil), snapshotId: "snap-1", path: "/")
+  }
+}
+
+@Test func restoreSelectionRestoresEachFolderOnceThroughAStagingFolder() async throws {
+  let fixture = makeFixture()
+  fixture.restoreDirectories.add("/tmp/out/report.pdf")
+  let engine = BackupEngine(environment: fixture.environment)
+  let log = ActivityLog()
+  let report = SnapshotEntry(name: "report.pdf", path: "/Users/test/Documents/report.pdf", kind: .file)
+  let work = SnapshotEntry(name: "Work", path: "/Users/test/Documents/Work", kind: .directory)
+  let trip = SnapshotEntry(name: "Trip", path: "/Users/test/Pictures/Trip", kind: .directory)
+  let restored = try await engine.restore(
+    config: testConfig(), snapshotId: "snap-1", selection: [report, trip, work],
+    into: URL(fileURLWithPath: "/tmp/out")
+  ) { log.record($0) }
+  #expect(restored.map(\.path) == ["/tmp/out/report 2.pdf", "/tmp/out/Work", "/tmp/out/Trip"])
+  #expect(log.all == [.restoring])
+  let restores = fixture.restic.invocations().filter { $0.arguments.first == "restore" }
+  #expect(
+    restores.map { Array($0.arguments.drop { $0 != "--target" }) } == [
+      [
+        "--target", "/tmp/out/.FUTO Backups Restore", "--overwrite", "never", "--include", "/report.pdf",
+        "--include", "/Work", "--", "snap-1:/Users/test/Documents",
+      ],
+      [
+        "--target", "/tmp/out/.FUTO Backups Restore", "--overwrite", "never", "--include", "/Trip", "--",
+        "snap-1:/Users/test/Pictures",
+      ],
+    ])
+  #expect(
+    fixture.restoreDirectories.moves == [
+      "/tmp/out/.FUTO Backups Restore/report.pdf -> /tmp/out/report 2.pdf",
+      "/tmp/out/.FUTO Backups Restore/Work -> /tmp/out/Work",
+      "/tmp/out/.FUTO Backups Restore/Trip -> /tmp/out/Trip",
+    ])
+  #expect(
+    fixture.restoreDirectories.removals == ["/tmp/out/.FUTO Backups Restore", "/tmp/out/.FUTO Backups Restore"])
+  #expect(fixture.proxy.stopCount == 1)
+  let logs = await fixture.deliveredLogs(engine)
+  #expect(
+    logs.map(\.summary) == ["Running repository snapshot restore", "Finished repository snapshot restore"])
+  #expect(logs.last?.data["itemCount"] == .int(3))
+  #expect(logs.last?.data["error"] == nil)
+
+  await #expect(throws: EngineError.noFolders) {
+    try await engine.restore(
+      config: testConfig(), snapshotId: "snap-1", selection: [], into: URL(fileURLWithPath: "/tmp/out")
+    ) { _ in }
+  }
+}
+
+@Test func restoreSelectionOfTheWholeVolumeRestoresIntoItsOwnFolder() async throws {
+  let fixture = makeFixture()
+  let engine = BackupEngine(environment: fixture.environment)
+  let volume = SnapshotEntry(name: "Macintosh HD", path: "/", kind: .directory)
+  let restored = try await engine.restore(
+    config: testConfig(), snapshotId: "snap-1", selection: [volume], into: URL(fileURLWithPath: "/tmp/out")
+  ) { _ in }
+  #expect(restored.map(\.path) == ["/tmp/out/Macintosh HD"])
+  let restore = try #require(fixture.restic.invocations().first { $0.arguments.first == "restore" })
+  #expect(argumentAfter(restore.arguments, "--target") == "/tmp/out/Macintosh HD")
+  #expect(restore.arguments.last == "snap-1:/")
+  #expect(!restore.arguments.contains("--include"))
+  #expect(fixture.restoreDirectories.moves.isEmpty)
+}
+
+@Test func restoreSelectionFailureRemovesTheStagingFolderAndIsReported() async throws {
+  let fixture = makeFixture()
+  fixture.restic.set(
+    ResticScript(exitCode: 1, stderr: #"{"message_type":"exit_error","code":1,"message":"restore failed"}"#),
+    for: "restore")
+  let engine = BackupEngine(environment: fixture.environment)
+  let report = SnapshotEntry(name: "report.pdf", path: "/Users/test/Documents/report.pdf", kind: .file)
+  await #expect(throws: EngineError.restic(code: 1, message: "restore failed")) {
+    try await engine.restore(
+      config: testConfig(), snapshotId: "snap-1", selection: [report], into: URL(fileURLWithPath: "/tmp/out")
+    ) { _ in }
+  }
+  #expect(fixture.restoreDirectories.moves.isEmpty)
+  #expect(fixture.restoreDirectories.removals == ["/tmp/out/.FUTO Backups Restore"])
+  #expect(fixture.proxy.stopCount == 1)
+  let logs = await fixture.deliveredLogs(engine)
+  #expect(logs.last?.data["error"] == .string("restore failed"))
+}
+
+@Test func cancellingASelectionRestoreRemovesTheStagingFolder() async throws {
+  let fixture = makeFixture()
+  let proxy = fixture.proxy
+  fixture.restic.set(
+    ResticScript(
+      afterLines: {
+        await waitUntil { proxy.networkChangeCount > 0 }
+      }, error: CancellationError()),
+    for: "restore")
+  let engine = BackupEngine(environment: fixture.environment)
+  let report = SnapshotEntry(name: "report.pdf", path: "/Users/test/Documents/report.pdf", kind: .file)
+  let task = Task {
+    try await engine.restore(
+      config: testConfig(), snapshotId: "snap-1", selection: [report], into: URL(fileURLWithPath: "/tmp/out")
+    ) { _ in }
+  }
+  await waitUntil { fixture.restic.commands().contains("restore") }
+  task.cancel()
+  await #expect(throws: CancellationError.self) {
+    try await task.value
+  }
+  #expect(proxy.networkChangeCount == 1)
+  #expect(fixture.restoreDirectories.removals == ["/tmp/out/.FUTO Backups Restore"])
+  #expect(await fixture.deliveredLogs(engine).last?.data["error"] == .string("cancelled"))
+}
+
 @Test func storedMasterKeyReturnsStoredValueAndNeverGenerates() async throws {
   let fresh = makeFixture(masterKey: nil)
   let freshEngine = BackupEngine(environment: fresh.environment)

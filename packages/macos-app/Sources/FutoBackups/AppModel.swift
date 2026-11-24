@@ -18,6 +18,12 @@ enum SnapshotsLoad: Equatable {
   case failed(String)
 }
 
+struct SnapshotBrowserUnavailable: Error, CustomStringConvertible {
+  let message: String
+
+  var description: String { message }
+}
+
 struct RecoveryKeyChangeFailure: Error {
   let message: String
 
@@ -903,6 +909,22 @@ final class AppModel {
   }
 
   func restore(snapshot: Snapshot, to url: URL) {
+    let items = RestorePlan.items(paths: snapshot.paths, into: url)
+    startRestore { engine, config, onActivity in
+      try await engine.restore(config: config, snapshotId: snapshot.id, items: items, onActivity: onActivity)
+    }
+  }
+
+  func restore(snapshot: Snapshot, selection: [SnapshotEntry], to url: URL) {
+    startRestore { engine, config, onActivity in
+      try await engine.restore(
+        config: config, snapshotId: snapshot.id, selection: selection, into: url, onActivity: onActivity)
+    }
+  }
+
+  private func startRestore(
+    _ run: @escaping (BackupEngine, AppConfig, @escaping @Sendable (EngineActivity) -> Void) async throws -> [URL]
+  ) {
     guard activity == nil, operationTask == nil else {
       lastError = "Another operation is running"
       return
@@ -923,11 +945,9 @@ final class AppModel {
     let generation = sessionGeneration
     activity = .restoring
     restoredFolders = []
-    let items = RestorePlan.items(paths: snapshot.paths, into: url)
     operationTask = Task {
       do {
-        let restored = try await engine.restore(config: configSnapshot, snapshotId: snapshot.id, items: items) {
-          activity in
+        let restored = try await run(engine, configSnapshot) { activity in
           Task { @MainActor in
             guard self.operationTask != nil, generation == self.sessionGeneration else { return }
             self.show(activity)
@@ -947,6 +967,25 @@ final class AppModel {
         self.finishOperation()
         self.lastError = self.message(for: error)
       }
+    }
+  }
+
+  var canRestore: Bool {
+    activity == nil && operationTask == nil
+  }
+
+  func snapshotBrowser(for snapshot: Snapshot) -> SnapshotBrowser {
+    let engine = engine
+    let config = config
+    let missingHelperText = missingHelperText
+    return SnapshotBrowser(
+      snapshot: snapshot,
+      describe: { [weak self] error in
+        self?.message(for: error) ?? String(describing: error)
+      }
+    ) { path in
+      guard let engine else { throw SnapshotBrowserUnavailable(message: missingHelperText ?? "Setup incomplete") }
+      return try await engine.listDirectory(config: config, snapshotId: snapshot.id, path: path)
     }
   }
 

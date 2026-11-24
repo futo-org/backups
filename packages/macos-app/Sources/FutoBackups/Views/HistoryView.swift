@@ -4,6 +4,7 @@ import SwiftUI
 
 struct HistoryView: View {
   @Environment(AppModel.self) private var model
+  @State private var browser: SnapshotBrowser?
 
   var body: some View {
     ScrollView {
@@ -11,7 +12,8 @@ struct HistoryView: View {
         PageHeader(
           title: "History",
           subtitle:
-            "Restore any snapshot to a folder. Retention for this Mac: \(model.config.snapshotRetention.summary)."
+            "Restore a whole snapshot, or browse it for single files. "
+            + "Retention for this Mac: \(model.config.snapshotRetention.summary)."
         ) {
           Button {
             Task { await model.refreshSnapshots() }
@@ -52,9 +54,10 @@ struct HistoryView: View {
                     Divider()
                       .padding(.leading, 54)
                   }
-                  SnapshotRow(snapshot: snapshot, latest: snapshot.id == model.snapshots.first?.id) {
-                    restore(snapshot)
-                  }
+                  SnapshotRow(
+                    snapshot: snapshot, latest: snapshot.id == model.snapshots.first?.id,
+                    restore: { restore(snapshot) },
+                    browse: { browser = model.snapshotBrowser(for: snapshot) })
                 }
               }
               .background(CardBackground())
@@ -65,6 +68,14 @@ struct HistoryView: View {
       .padding(28)
       .frame(maxWidth: 820)
       .frame(maxWidth: .infinity)
+    }
+    .sheet(item: $browser) { browser in
+      SnapshotBrowserView(
+        browser: browser, canRestore: model.canRestore,
+        restore: { entries in restore(entries, from: browser) },
+        close: { self.browser = nil }
+      )
+      .onDisappear { browser.close() }
     }
   }
 
@@ -124,6 +135,19 @@ struct HistoryView: View {
   }
 
   private func restore(_ snapshot: Snapshot) {
+    if let url = chooseRestoreFolder() {
+      model.restore(snapshot: snapshot, to: url)
+    }
+  }
+
+  private func restore(_ entries: [SnapshotEntry], from browser: SnapshotBrowser) {
+    if let url = chooseRestoreFolder() {
+      model.restore(snapshot: browser.snapshot, selection: entries, to: url)
+      self.browser = nil
+    }
+  }
+
+  private func chooseRestoreFolder() -> URL? {
     let panel = NSOpenPanel()
     panel.canChooseDirectories = true
     panel.canChooseFiles = false
@@ -131,9 +155,7 @@ struct HistoryView: View {
     panel.allowsMultipleSelection = false
     panel.prompt = "Restore Here"
     panel.message = "Choose a folder to restore into."
-    if panel.runModal() == .OK, let url = panel.url {
-      model.restore(snapshot: snapshot, to: url)
-    }
+    return panel.runModal() == .OK ? panel.url : nil
   }
 }
 
@@ -141,6 +163,7 @@ struct SnapshotRow: View {
   let snapshot: Snapshot
   let latest: Bool
   let restore: () -> Void
+  let browse: () -> Void
   @Environment(AppModel.self) private var model
 
   var body: some View {
@@ -188,7 +211,9 @@ struct SnapshotRow: View {
       Text(snapshot.shortId)
         .font(.system(size: 11, design: .monospaced))
         .foregroundStyle(.tertiary)
-      Button("Restore…", action: restore)
+      Button("Browse Files…", action: browse)
+        .buttonStyle(SecondaryButtonStyle())
+      Button("Restore All…", action: restore)
         .buttonStyle(SecondaryButtonStyle())
         .disabled(model.activity != nil)
     }

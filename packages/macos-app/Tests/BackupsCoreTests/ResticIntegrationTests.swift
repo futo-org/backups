@@ -279,6 +279,92 @@ struct ResticIntegrationTests {
     #expect(snapshots[0].paths == [realPath(of: mount.path) + "/Users/x/Docs"])
   }
 
+  @Test func browsingAndRestoringPickedItemsPutsEachDirectlyInTheDestination() async throws {
+    let executable = try #require(resticExecutable)
+    let fileManager = FileManager.default
+    let tempRoot = fileManager.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+    try fileManager.createDirectory(at: tempRoot, withIntermediateDirectories: true)
+    let resolvedRoot = URL(fileURLWithPath: realPath(of: tempRoot.path))
+    defer { try? fileManager.removeItem(at: resolvedRoot) }
+    let snapshotDirectory = resolvedRoot.appendingPathComponent("Snapshot")
+    let mount = snapshotDirectory.appendingPathComponent("Volume")
+    let docs = mount.appendingPathComponent("Users/x/Docs")
+    let project = docs.appendingPathComponent("Projects/Site")
+    let destination = resolvedRoot.appendingPathComponent("destination")
+    for directory in [
+      resolvedRoot.appendingPathComponent("cache"), project.appendingPathComponent("assets"), destination,
+    ] {
+      try fileManager.createDirectory(at: directory, withIntermediateDirectories: true)
+    }
+    let notes = Data("nested notes".utf8)
+    try notes.write(to: docs.appendingPathComponent("Projects/notes[1].txt"))
+    try Data("sibling".utf8).write(to: docs.appendingPathComponent("Projects/notes1.txt"))
+    try Data("index".utf8).write(to: project.appendingPathComponent("index.html"))
+    try Data("logo".utf8).write(to: project.appendingPathComponent("assets/logo.svg"))
+    try Data("top".utf8).write(to: docs.appendingPathComponent("top.txt"))
+    try Data("already here".utf8).write(to: destination.appendingPathComponent("notes[1].txt"))
+
+    let repository = resolvedRoot.appendingPathComponent("repository").path
+    let context = ResticContext(
+      repository: repository,
+      password: try RepositoryKeys.password(masterKey: testMasterKey, repositoryId: "repo-1"),
+      cacheDirectory: resolvedRoot.appendingPathComponent("cache"), home: resolvedRoot.path, connections: 2)
+    let runner = ResticRunner(executable: executable)
+    #expect(try await runner.run(ResticCommand.initialize(context), onLine: { _ in }).exitCode == 0)
+    let summaries = SummaryCollector()
+    let backup = try await runner.run(
+      ResticCommand.backup(
+        context, paths: ["Users/x/Docs"], excludes: [], host: "h", currentDirectory: mount.path,
+        tags: ["disk-snapshot"])
+    ) { line in
+      if case .summary(let summary) = ResticOutput.parseLine(line) {
+        summaries.set(summary)
+      }
+    }
+    #expect(backup.exitCode == ResticExitCode.success)
+    let snapshotId = try #require(summaries.get()?.snapshotId)
+
+    let secrets = InMemorySecretStore([.accessToken: "tok", .masterKey: testMasterKey])
+    let config = testConfig(folders: ["/Users/x/Docs"])
+    let engine = BackupEngine(
+      environment: EngineEnvironment(
+        secrets: secrets,
+        discover: { _ in ServerInfo(apiRoot: testAPIRoot, resticPackSizeMiB: 16, connectionsMath: "2") },
+        makeAPI: { _, _ in FakeAPI() },
+        restic: LocalRepositoryRunner(runner: runner, repository: repository),
+        proxyLauncher: FakeProxyLauncher(),
+        cacheDirectory: context.cacheDirectory,
+        home: context.home,
+        processorCount: 2,
+        now: { Date() },
+        snapshotDirectory: snapshotDirectory))
+
+    let snapshots = try await engine.snapshots(config: config)
+    let roots = SnapshotListing.roots(of: try #require(snapshots.first).paths)
+    #expect(roots == [SnapshotEntry(name: "Docs", path: "/Users/x/Docs", kind: .directory)])
+    let top = try await engine.listDirectory(config: config, snapshotId: snapshotId, path: roots[0].path)
+    #expect(top.map(\.name) == ["Projects", "top.txt"])
+    let projects = try await engine.listDirectory(config: config, snapshotId: snapshotId, path: top[0].path)
+    #expect(projects.map(\.name) == ["Site", "notes[1].txt", "notes1.txt"])
+    #expect(projects.map(\.path) == ["Site", "notes[1].txt", "notes1.txt"].map { "/Users/x/Docs/Projects/" + $0 })
+    #expect(projects.map(\.kind) == [.directory, .file, .file])
+    #expect(projects[1].size == Int64(notes.count))
+
+    let picked = [projects[1], projects[0]]
+    let restored = try await engine.restore(
+      config: config, snapshotId: snapshotId, selection: picked, into: destination
+    ) { _ in }
+    #expect(restored.map(\.lastPathComponent) == ["notes[1] 2.txt", "Site"])
+    #expect(
+      Set(try fileManager.contentsOfDirectory(atPath: destination.path))
+        == ["notes[1].txt", "notes[1] 2.txt", "Site"])
+    #expect(try Data(contentsOf: destination.appendingPathComponent("notes[1] 2.txt")) == notes)
+    #expect(try Data(contentsOf: destination.appendingPathComponent("notes[1].txt")) == Data("already here".utf8))
+    #expect(try fileNameSet(in: destination.appendingPathComponent("Site")) == ["index.html", "logo.svg"])
+    #expect(
+      try Data(contentsOf: destination.appendingPathComponent("Site/assets/logo.svg")) == Data("logo".utf8))
+  }
+
   @Test func unreadableFilesAreReportedOnStderrAndStdoutIsNotRetained() async throws {
     let executable = try #require(resticExecutable)
     let fileManager = FileManager.default

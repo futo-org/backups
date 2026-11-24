@@ -720,10 +720,84 @@ public actor BackupEngine {
     }
   }
 
+  public func listDirectory(config: AppConfig, snapshotId: String, path: String) async throws -> [SnapshotEntry] {
+    guard let repositoryId = config.repositoryId else {
+      throw EngineError.noRepository
+    }
+    let token = try accessToken()
+    let session = try await startSession(
+      config: config, repositoryId: repositoryId, masterKey: try requireMasterKey(), token: token)
+    let server = try await serverInfo(for: config.serverURL)
+    let api = environment.makeAPI(server.apiRoot, token)
+    do {
+      let result = try await runRestic(
+        ResticCommand.ls(session.context, snapshotId: snapshotId, directory: path), interrupting: session.proxy)
+      guard result.exitCode == ResticExitCode.success else {
+        throw EngineError.restic(
+          code: result.exitCode, message: ResticOutput.errorMessage(stderr: result.stderr, exitCode: result.exitCode))
+      }
+      let entries = try SnapshotListing.parse(result.stdout, directory: path)
+      await session.proxy.stop()
+      return entries
+    } catch {
+      await session.proxy.stop()
+      if !(error is CancellationError) {
+        await report(
+          api, config: config, "Failed to list snapshot files",
+          [
+            "repositoryId": .string(repositoryId), "snapshotId": .string(snapshotId),
+            "error": .string(telemetryDescription(error)),
+          ])
+      }
+      throw error
+    }
+  }
+
   @discardableResult
   public func restore(
     config: AppConfig, snapshotId: String, items: [RestoreItem],
     onActivity: @escaping @Sendable (EngineActivity) -> Void
+  ) async throws -> [URL] {
+    try await restoring(config: config, snapshotId: snapshotId, isEmpty: items.isEmpty, onActivity: onActivity) {
+      session in
+      var restored: [URL] = []
+      for item in items {
+        restored.append(
+          try await self.restoreFolder(item, snapshotId: snapshotId, session: session, avoiding: restored))
+      }
+      return restored
+    }
+  }
+
+  @discardableResult
+  public func restore(
+    config: AppConfig, snapshotId: String, selection: [SnapshotEntry], into target: URL,
+    onActivity: @escaping @Sendable (EngineActivity) -> Void
+  ) async throws -> [URL] {
+    try await restoring(
+      config: config, snapshotId: snapshotId, isEmpty: selection.isEmpty, onActivity: onActivity,
+      extraData: ["itemCount": .int(Int64(selection.count))]
+    ) { session in
+      var restored: [URL] = []
+      for batch in RestorePlan.batches(for: selection, into: target) {
+        switch batch {
+        case .folder(let item):
+          restored.append(
+            try await self.restoreFolder(item, snapshotId: snapshotId, session: session, avoiding: restored))
+        case .children(let children, let parent):
+          restored += try await self.restoreChildren(
+            children, of: parent, into: target, snapshotId: snapshotId, session: session, avoiding: restored)
+        }
+      }
+      return restored
+    }
+  }
+
+  private func restoring(
+    config: AppConfig, snapshotId: String, isEmpty: Bool,
+    onActivity: @escaping @Sendable (EngineActivity) -> Void,
+    extraData: [String: TelemetryValue] = [:],
+    _ body: (Session) async throws -> [URL]
   ) async throws -> [URL] {
     if running {
       throw EngineError.busy
@@ -731,7 +805,7 @@ public actor BackupEngine {
     guard let repositoryId = config.repositoryId else {
       throw EngineError.noRepository
     }
-    guard !items.isEmpty else {
+    guard !isEmpty else {
       throw EngineError.noFolders
     }
     let token = try accessToken()
@@ -746,38 +820,79 @@ public actor BackupEngine {
     var restoreData: [String: TelemetryValue] = [
       "repositoryId": .string(repositoryId),
       "snapshotId": .string(snapshotId),
-    ]
+    ].merging(extraData) { current, _ in current }
     await report(api, config: config, "Running repository snapshot restore", restoreData)
-    var restored: [URL] = []
-    for item in items {
-      let target: URL
-      let result: ResticResult
-      do {
-        target = try RestorePlan.claimTarget(
-          for: item, avoiding: Set(restored.map { $0.lastPathComponent.lowercased() }),
-          createDirectory: environment.createRestoreDirectory)
-        result = try await runRestic(
-          ResticCommand.restore(
-            session.context, snapshotId: snapshotId, subfolder: item.snapshotPath, target: target.path),
-          interrupting: session.proxy)
-      } catch {
-        await session.proxy.stop()
-        restoreData["error"] = .string(error is CancellationError ? "cancelled" : String(describing: error))
-        await report(api, config: config, "Finished repository snapshot restore", restoreData)
-        throw error
-      }
-      guard result.exitCode == ResticExitCode.success else {
-        await session.proxy.stop()
-        let detail = ResticOutput.errorMessage(stderr: result.stderr, exitCode: result.exitCode)
-        restoreData["error"] = .string(detail)
-        await report(api, config: config, "Finished repository snapshot restore", restoreData)
-        throw EngineError.restic(code: result.exitCode, message: detail)
-      }
-      restored.append(target)
+    let restored: [URL]
+    do {
+      restored = try await body(session)
+    } catch {
+      await session.proxy.stop()
+      restoreData["error"] = .string(telemetryDescription(error))
+      await report(api, config: config, "Finished repository snapshot restore", restoreData)
+      throw error
     }
     await session.proxy.stop()
     await report(api, config: config, "Finished repository snapshot restore", restoreData)
     return restored
+  }
+
+  private func restoreFolder(
+    _ item: RestoreItem, snapshotId: String, session: Session, avoiding restored: [URL]
+  ) async throws -> URL {
+    let target = try RestorePlan.claimTarget(
+      for: item, avoiding: takenNames(restored), createDirectory: environment.createRestoreDirectory)
+    try await runRestore(
+      ResticCommand.restore(
+        session.context, snapshotId: snapshotId, subfolder: item.snapshotPath, target: target.path),
+      session: session)
+    return target
+  }
+
+  private func restoreChildren(
+    _ children: [SnapshotEntry], of parent: String, into target: URL, snapshotId: String, session: Session,
+    avoiding restored: [URL]
+  ) async throws -> [URL] {
+    let staging = try RestorePlan.claimStaging(in: target, createDirectory: environment.createRestoreDirectory)
+    do {
+      try await runRestore(
+        ResticCommand.restore(
+          session.context, snapshotId: snapshotId, subfolder: parent, target: staging.path,
+          includingChildren: children.map(\.name)),
+        session: session)
+      var moved: [URL] = []
+      for child in children {
+        let source = staging.appendingPathComponent(child.name)
+        moved.append(
+          try RestorePlan.claimName(for: child, in: target, avoiding: takenNames(restored + moved)) {
+            try self.environment.moveRestoredItem(source, $0)
+          })
+      }
+      environment.removeRestoreStaging(staging)
+      return moved
+    } catch {
+      environment.removeRestoreStaging(staging)
+      throw error
+    }
+  }
+
+  private func runRestore(_ invocation: ResticInvocation, session: Session) async throws {
+    let result = try await runRestic(invocation, interrupting: session.proxy)
+    guard result.exitCode == ResticExitCode.success else {
+      throw EngineError.restic(
+        code: result.exitCode, message: ResticOutput.errorMessage(stderr: result.stderr, exitCode: result.exitCode))
+    }
+  }
+
+  private func takenNames(_ restored: [URL]) -> Set<String> {
+    Set(restored.map { $0.lastPathComponent.lowercased() })
+  }
+
+  private func telemetryDescription(_ error: any Error) -> String {
+    switch error {
+    case is CancellationError: return "cancelled"
+    case EngineError.restic(_, let message): return message
+    default: return String(describing: error)
+    }
   }
 
   public func macRepositories(config: AppConfig) async throws -> [RemoteRepository] {
