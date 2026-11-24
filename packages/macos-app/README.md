@@ -29,7 +29,10 @@ Unbundled (`swift run FutoBackups`) needs `FUTO_BACKUPS_RESTIC` and `FUTO_BACKUP
    (`https://meta.futo.cloud/.well-known/yucca.json`): pick Local dev on the welcome screen for k3d, or set the server to
    `http://localhost:3020/api/meta` for the compose stack.
 2. `mise run mac:open`, Account → Log in, approve the code in the browser (mock-oidc).
-3. Folders → add a folder, Schedule → Back up now, then Snapshots → Restore… into an empty folder.
+3. Folders → add a folder, Schedule → Back up now, then History → Restore All… into an empty folder.
+   Then History → Browse Files…, tick a file and a folder in a subfolder, and Restore them into a folder that already
+   holds a file with the picked file's name: both land directly in it, the picked file as `<name> 2.<ext>`, and the
+   existing file is untouched.
 4. The connection shows up as type `macos` in the web app's connections page.
 5. Closing the window, ⌘Q (also with the menu-bar panel open) and Dock → Quit keep the same process running in the
    menu bar with no Dock icon; Open FUTO Backups in the panel, or opening the app again, brings the window back.
