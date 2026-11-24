@@ -1,5 +1,48 @@
 # Changelog
 
+## [1.21.0](https://github.com/futo-org/backups/compare/v1.20.1...v1.21.0) (2026-11-24)
+
+
+### Features
+
+* **macos-app:** browse a snapshot and restore individual files and folders ([#332](https://github.com/futo-org/backups/issues/332)) ([c9e92ac](https://github.com/futo-org/backups/commit/c9e92acfd7c3bf5fad0bf4e1e7104a19bb753ee8))
+* **macos-app:** configurable snapshot retention ([#319](https://github.com/futo-org/backups/issues/319)) ([8972a54](https://github.com/futo-org/backups/commit/8972a549fc84b12b9d7570129441fde1005eeb2b))
+* **macos-app:** keep running in the menu bar when the window is closed or the app is quit ([#321](https://github.com/futo-org/backups/issues/321)) ([eae14db](https://github.com/futo-org/backups/commit/eae14db6a6113e7253d340d116965ccdb73b4103))
+* **macos-app:** require macOS 26 so the app gets the current native controls ([4740842](https://github.com/futo-org/backups/commit/474084212d037277fd95740e769f356c73c9bc35))
+* **macos-app:** show every file a backup with warnings skipped ([#314](https://github.com/futo-org/backups/issues/314)) ([d4d63f1](https://github.com/futo-org/backups/commit/d4d63f1527cea862ff49c7019bfec345cb3f1a27))
+* **macos-app:** show restore progress with percent, bytes and items ([#334](https://github.com/futo-org/backups/issues/334)) ([682d5e8](https://github.com/futo-org/backups/commit/682d5e8e3081e5106951074aa292c92c329c86ee))
+* **macos-app:** turn on open at login and update checks during onboarding ([#313](https://github.com/futo-org/backups/issues/313)) ([e257f43](https://github.com/futo-org/backups/commit/e257f43271c81f300cb77fb46256e366c5726682))
+* **yucca-api:** report unsupported connection types in the device flow ([#304](https://github.com/futo-org/backups/issues/304)) ([08d2599](https://github.com/futo-org/backups/commit/08d25996116e98fc42bfad1f5bcd88a0d84da914))
+
+
+### Bug Fixes
+
+* **macos-app:** center setting controls next to two-line labels ([#330](https://github.com/futo-org/backups/issues/330)) ([169211f](https://github.com/futo-org/backups/commit/169211f3010b479583fdc9bbb6760663664bb258))
+* **macos-app:** harden restore ([#337](https://github.com/futo-org/backups/issues/337)) ([1fb30dd](https://github.com/futo-org/backups/commit/1fb30dd9a23efc4ff0041e2c041112f9bb80e252))
+* **macos-app:** keep each server's backup and offer existing ones instead of creating a new one ([#322](https://github.com/futo-org/backups/issues/322)) ([441f8ca](https://github.com/futo-org/backups/commit/441f8cae7dbdcbf30bb5213a30b9441774366fdc))
+* **macos-app:** keep the night hours row inside the settings form ([#324](https://github.com/futo-org/backups/issues/324)) ([982ec4b](https://github.com/futo-org/backups/commit/982ec4b0f146da224f12b002c0356ad4a5c2517c))
+* **macos-app:** lay out folder cards in two columns at every width ([#326](https://github.com/futo-org/backups/issues/326)) ([0fd89b7](https://github.com/futo-org/backups/commit/0fd89b7b20f7557602aa4a1aca0f0ab651d53446))
+* **macos-app:** let dev builds auto-update to the next release ([#315](https://github.com/futo-org/backups/issues/315)) ([788e1ad](https://github.com/futo-org/backups/commit/788e1ad0400672ff69e0e62af3e2bf7a8019e1ad))
+* **macos-app:** recover from network switches and cancel backups promptly ([#316](https://github.com/futo-org/backups/issues/316)) ([ed80e59](https://github.com/futo-org/backups/commit/ed80e59c88a0631cdb26a22bbb6fd0d8019f46eb))
+* **macos-app:** rename "Reset This Mac" to "Unlink This Mac" ([#325](https://github.com/futo-org/backups/issues/325)) ([ea11517](https://github.com/futo-org/backups/commit/ea115175a29515687e4cd4febf5ac8da1f0a34b3))
+* **macos-app:** reword the unlink and delete backup sheets in plain language ([#333](https://github.com/futo-org/backups/issues/333)) ([aaea170](https://github.com/futo-org/backups/commit/aaea17017cdd2e94d715efbfdf8d1726121dd678))
+* **macos-app:** save the recovery key on a single line ([#323](https://github.com/futo-org/backups/issues/323)) ([2629ad7](https://github.com/futo-org/backups/commit/2629ad7ccd4fdbd5ecfdacbd26029c9a885cd51e))
+* **macos-app:** shorten the restore destination prompt ([#328](https://github.com/futo-org/backups/issues/328)) ([04a83bd](https://github.com/futo-org/backups/commit/04a83bd9a303a6966dedc62c6d5004cf399dfb66))
+* **macos-app:** use a native field for the upload limit and align setting text fields ([#335](https://github.com/futo-org/backups/issues/335)) ([dd8046f](https://github.com/futo-org/backups/commit/dd8046fad2218434e51f901aa6bbb46f373af6a6))
+* **restic-proxy:** fail aborted uploads promptly between body reads ([#329](https://github.com/futo-org/backups/issues/329)) ([7b91ec4](https://github.com/futo-org/backups/commit/7b91ec4f6a21e5dbc81f7560838879a873eb0d41))
+
+
+### Performance Improvements
+
+* **macos-app:** stop backup progress from redrawing the whole window ([#317](https://github.com/futo-org/backups/issues/317)) ([a6b4981](https://github.com/futo-org/backups/commit/a6b4981f33a70184b05ddfc4a9964aa8befc29dd))
+
+
+### Tests
+
+* **macos-app:** give the cancelled cloud-only scan time to notice on busy runners ([#336](https://github.com/futo-org/backups/issues/336)) ([2375e55](https://github.com/futo-org/backups/commit/2375e5511f098f5e18a7c866c0e4eaf1e26144ac))
+* **restic-proxy:** check progress coalescing by when the latest total arrives ([#331](https://github.com/futo-org/backups/issues/331)) ([ff8b927](https://github.com/futo-org/backups/commit/ff8b927cc3f58ccc85d64229e87c6f79e9d2b7bc))
+* **yucca-api:** cover unsupported connection type in the device poll response ([#320](https://github.com/futo-org/backups/issues/320)) ([24058ba](https://github.com/futo-org/backups/commit/24058bae3919de9c58428358743b955c0deca553))
+
 ## [1.20.1](https://github.com/futo-org/backups/compare/v1.20.0...v1.20.1) (2026-11-24)
 
 
