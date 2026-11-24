@@ -302,6 +302,7 @@ func packSizeIsClampedToResticLimits(serverPackSize: Int, expected: String) asyn
         total: 2))
   let finished = try #require(await fixture.deliveredLogs(engine).last { $0.summary == "Backup finished" })
   #expect(finished.data["warningCount"] == .int(2))
+  #expect(finished.data["error"] == .string("2 files couldn't be backed up."))
   let encoded = String(decoding: try JSONEncoder().encode(finished), as: UTF8.self)
   #expect(!encoded.contains("/a/c"))
   #expect(!encoded.contains("Busy"))
@@ -318,7 +319,9 @@ func packSizeIsClampedToResticLimits(serverPackSize: Int, expected: String) asyn
   let failed = try await engine.backup(config: testConfig()) { _ in }
   #expect(failed.status == .failed)
   #expect(failed.warnings == nil)
-  for log in await fixture.deliveredLogs(engine) where log.summary == "Backup finished" {
+  let finished = await fixture.deliveredLogs(engine).filter { $0.summary == "Backup finished" }
+  #expect(finished.count == 2)
+  for log in finished {
     #expect(log.data["warningCount"] == nil)
   }
 }
