@@ -1,5 +1,14 @@
 # Changelog
 
+## [1.20.1](https://github.com/futo-org/backups/compare/v1.20.0...v1.20.1) (2026-11-24)
+
+
+### Bug Fixes
+
+* **ci:** create Mac releases with the release bot token ([#309](https://github.com/futo-org/backups/issues/309)) ([74b0426](https://github.com/futo-org/backups/commit/74b0426704025062a77470901004bcccda21c338))
+* **ci:** request workflows access for the Mac release tag ([#312](https://github.com/futo-org/backups/issues/312)) ([c3a8daf](https://github.com/futo-org/backups/commit/c3a8daf87a754bbbb6b04237d2429c59128f5d9b))
+* **macos-app:** remove server selection from release builds ([#311](https://github.com/futo-org/backups/issues/311)) ([71b0b5c](https://github.com/futo-org/backups/commit/71b0b5cd866b6562cfae4796e6a6c8aed4a1d4b4))
+
 ## [1.20.0](https://github.com/futo-org/backups/compare/v1.19.0...v1.20.0) (2026-11-24)
 
 
