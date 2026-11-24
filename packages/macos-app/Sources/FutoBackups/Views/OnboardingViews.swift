@@ -149,9 +149,7 @@ private struct ChooseFoldersStep: View {
 
   var body: some View {
     VStack(spacing: 22) {
-      StepTitle(
-        systemName: "folder.fill", tint: Brand.blue, title: "Choose what to back up",
-        subtitle: "Start with a bundle, then fine-tune the list. You can change it any time on the Folders page.")
+      StepTitle(systemName: "folder.fill", tint: Brand.blue, title: "Choose what to back up")
       HStack(spacing: 10) {
         ForEach(FolderBundle.allCases) { bundle in
           BundleCard(bundle: bundle, selected: selection.bundle == bundle) {

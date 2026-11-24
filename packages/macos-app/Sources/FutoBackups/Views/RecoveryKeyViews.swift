@@ -83,7 +83,7 @@ struct StepTitle: View {
   let systemName: String
   let tint: Color
   let title: String
-  let subtitle: String
+  var subtitle: String?
 
   var body: some View {
     VStack(spacing: 10) {
@@ -91,11 +91,13 @@ struct StepTitle: View {
         .padding(.bottom, 6)
       Text(title)
         .font(.system(size: 28, weight: .bold, design: .rounded))
-      Text(subtitle)
-        .font(.system(size: 14))
-        .foregroundStyle(.secondary)
-        .multilineTextAlignment(.center)
-        .fixedSize(horizontal: false, vertical: true)
+      if let subtitle {
+        Text(subtitle)
+          .font(.system(size: 14))
+          .foregroundStyle(.secondary)
+          .multilineTextAlignment(.center)
+          .fixedSize(horizontal: false, vertical: true)
+      }
     }
   }
 }
