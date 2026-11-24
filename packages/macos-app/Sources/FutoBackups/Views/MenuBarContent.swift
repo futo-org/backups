@@ -20,13 +20,12 @@ struct MenuBarContent: View {
             .font(.system(size: 11))
             .foregroundStyle(.secondary)
             .lineLimit(2)
-          if model.signedIn, case .backingUp(_, let speed) = model.activity {
-            UploadSpeedBadge(speed: speed)
-              .padding(.top, 2)
-          }
         }
         Spacer(minLength: 0)
         AlphaBadge()
+      }
+      if model.signedIn, case .backingUp(_, let speed) = model.activity {
+        UploadSpeedBadge(speed: speed)
       }
       if let error = model.lastError ?? model.setupError {
         Label(error, systemImage: "exclamationmark.triangle.fill")

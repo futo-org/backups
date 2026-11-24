@@ -70,8 +70,10 @@ struct UploadSpeedBadge: View {
         Text(UploadSpeed.rateText(speed.bytesPerSecond))
           .font(.system(size: 12, weight: .semibold, design: .rounded))
           .monospacedDigit()
+          .lineLimit(1)
+          .fixedSize()
         UploadSparkline(speed: speed, interactive: false)
-          .frame(width: 64, height: 16)
+          .frame(maxWidth: .infinity, minHeight: 18, maxHeight: 18)
       } else {
         Text("Preparing upload…")
           .font(.system(size: 12))
