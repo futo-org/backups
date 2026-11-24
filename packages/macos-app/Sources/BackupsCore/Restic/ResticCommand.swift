@@ -128,10 +128,17 @@ public enum ResticCommand {
 
   private static let standardPath = "/usr/bin:/bin:/usr/sbin:/sbin"
 
-  private static let patternSpecials: Set<Character> = ["\\", "[", "]", "*", "?"]
+  private static let patternSpecials: Set<Unicode.Scalar> = ["\\", "[", "]", "*", "?"]
 
   static func childPattern(_ name: String) -> String {
-    "/" + name.flatMap { patternSpecials.contains($0) ? ["\\", $0] : [$0] }
+    var pattern = "/"
+    for scalar in name.unicodeScalars {
+      if patternSpecials.contains(scalar) {
+        pattern.unicodeScalars.append("\\")
+      }
+      pattern.unicodeScalars.append(scalar)
+    }
+    return pattern
   }
 
   private static func environment(_ context: ResticContext) -> [String: String] {

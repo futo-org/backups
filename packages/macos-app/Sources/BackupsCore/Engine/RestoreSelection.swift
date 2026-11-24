@@ -38,6 +38,7 @@ public struct RestoreSelection: Equatable, Sendable {
   }
 
   static func isDescendant(_ path: String, of folder: String) -> Bool {
-    path != folder && path.hasPrefix(folder == SnapshotListing.rootPath ? folder : folder + "/")
+    let prefix = folder == SnapshotListing.rootPath ? folder : folder + "/"
+    return path != folder && path.unicodeScalars.starts(with: prefix.unicodeScalars)
   }
 }
