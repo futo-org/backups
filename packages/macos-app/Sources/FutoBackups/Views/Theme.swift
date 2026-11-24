@@ -4,15 +4,19 @@ import SwiftUI
 
 enum Brand {
   static let blue = Color(
-    nsColor: NSColor(name: nil) { appearance in
-      appearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua
-        ? NSColor(srgbRed: 0.49, green: 0.58, blue: 0.94, alpha: 1)
-        : NSColor(srgbRed: 0.259, green: 0.349, blue: 0.722, alpha: 1)
-    })
+    standard: appearanceAware(light: (0.259, 0.349, 0.722), dark: (0.49, 0.58, 0.94)),
+    increasedContrast: appearanceAware(light: (0.18, 0.24, 0.55), dark: (0.56, 0.65, 1.0)))
   static let logo = Color(red: 0.259, green: 0.349, blue: 0.722)
   static let deep = Color(red: 0.2, green: 0.27, blue: 0.6)
   static let gradient = LinearGradient(
-    colors: [Color(red: 0.34, green: 0.44, blue: 0.84), Color(red: 0.23, green: 0.31, blue: 0.65)],
+    colors: [
+      Color(
+        standard: Color(red: 0.34, green: 0.44, blue: 0.84),
+        increasedContrast: appearanceAware(light: (0.22, 0.3, 0.66), dark: (0.34, 0.44, 0.84))),
+      Color(
+        standard: Color(red: 0.23, green: 0.31, blue: 0.65),
+        increasedContrast: appearanceAware(light: (0.15, 0.2, 0.48), dark: (0.23, 0.31, 0.65))),
+    ],
     startPoint: .topLeading, endPoint: .bottomTrailing)
   static let ringGradient = AngularGradient(
     colors: [
@@ -20,6 +24,29 @@ enum Brand {
       Color(red: 0.34, green: 0.44, blue: 0.84),
     ],
     center: .center)
+
+  private static func appearanceAware(light: (Double, Double, Double), dark: (Double, Double, Double)) -> Color {
+    Color(
+      nsColor: NSColor(name: nil) { appearance in
+        let (red, green, blue) = appearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua ? dark : light
+        return NSColor(srgbRed: red, green: green, blue: blue, alpha: 1)
+      })
+  }
+}
+
+struct ContrastAwareColor: ShapeStyle, Hashable {
+  let standard: Color
+  let increasedContrast: Color
+
+  func resolve(in environment: EnvironmentValues) -> Color.Resolved {
+    (environment.colorSchemeContrast == .increased ? increasedContrast : standard).resolve(in: environment)
+  }
+}
+
+extension Color {
+  init(standard: Color, increasedContrast: Color) {
+    self.init(ContrastAwareColor(standard: standard, increasedContrast: increasedContrast))
+  }
 }
 
 struct Card<Content: View>: View {
@@ -36,15 +63,27 @@ struct Card<Content: View>: View {
 
 struct CardBackground: View {
   @Environment(\.colorScheme) private var colorScheme
+  @Environment(\.colorSchemeContrast) private var contrast
 
   var body: some View {
     RoundedRectangle(cornerRadius: 14, style: .continuous)
-      .fill(colorScheme == .dark ? Color.white.opacity(0.045) : Color.white)
+      .fill(fill)
       .overlay(
         RoundedRectangle(cornerRadius: 14, style: .continuous)
-          .strokeBorder(Color.primary.opacity(colorScheme == .dark ? 0.08 : 0.06), lineWidth: 1)
+          .strokeBorder(Color.primary.opacity(borderOpacity), lineWidth: 1)
       )
       .shadow(color: .black.opacity(colorScheme == .dark ? 0 : 0.05), radius: 6, y: 2)
+  }
+
+  private var increasedContrast: Bool { contrast == .increased }
+
+  private var fill: Color {
+    colorScheme == .dark ? Color.white.opacity(increasedContrast ? 0.1 : 0.045) : Color.white
+  }
+
+  private var borderOpacity: Double {
+    if increasedContrast { return colorScheme == .dark ? 0.5 : 0.4 }
+    return colorScheme == .dark ? 0.08 : 0.06
   }
 }
 
