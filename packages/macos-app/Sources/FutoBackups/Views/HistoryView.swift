@@ -130,9 +130,7 @@ struct HistoryView: View {
     panel.canCreateDirectories = true
     panel.allowsMultipleSelection = false
     panel.prompt = "Restore Here"
-    panel.message =
-      "Choose where to restore the snapshot from \(Format.relative(snapshot.time, inSentence: true)). "
-      + "Each backed-up folder is restored inside it under its own name."
+    panel.message = "Choose a folder to restore into."
     if panel.runModal() == .OK, let url = panel.url {
       model.restore(snapshot: snapshot, to: url)
     }
