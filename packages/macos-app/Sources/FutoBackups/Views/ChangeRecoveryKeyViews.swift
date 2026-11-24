@@ -18,6 +18,8 @@ struct ChangeRecoveryKeySheet: View {
   @State private var saved = false
   @State private var input = ""
   @State private var mismatch = false
+  @State private var authenticating = false
+  @State private var pendingChange: Task<Void, Never>?
 
   var body: some View {
     ScrollView {
@@ -43,6 +45,7 @@ struct ChangeRecoveryKeySheet: View {
     .frame(minHeight: 420)
     .background(OnboardingBackground())
     .interactiveDismissDisabled(step == .applying)
+    .onDisappear { pendingChange?.cancel() }
   }
 
   private var explainStep: some View {
@@ -100,7 +103,7 @@ struct ChangeRecoveryKeySheet: View {
           .font(.system(size: 12, weight: .medium))
           .foregroundStyle(.red)
       }
-      buttons(primary: "Change Key", disabled: input.isEmpty) { confirm() }
+      buttons(primary: "Change Key", disabled: input.isEmpty || authenticating) { confirm() }
       Button("View new key again") { step = .save }
         .buttonStyle(.link)
         .font(.system(size: 12))
@@ -138,7 +141,7 @@ struct ChangeRecoveryKeySheet: View {
       StepTitle(
         systemName: "xmark.octagon.fill", tint: .red, title: "Couldn't change the recovery key",
         subtitle: message + " Your current recovery key still works.")
-      buttons(primary: "Try Again", cancelTitle: "Close") { apply() }
+      buttons(primary: "Try Again", cancelTitle: "Close", disabled: authenticating) { apply() }
     }
   }
 
@@ -166,8 +169,19 @@ struct ChangeRecoveryKeySheet: View {
   }
 
   private func apply() {
-    step = .applying
-    Task {
+    authenticating = true
+    pendingChange = Task {
+      let authentication = await OwnerAuthentication.confirm(reason: "change your recovery key")
+      authenticating = false
+      guard !Task.isCancelled else { return }
+      switch authentication {
+      case .confirmed: break
+      case .declined: return
+      case .unavailable:
+        step = .failed(OwnerAuthentication.unavailableMessage)
+        return
+      }
+      step = .applying
       switch await model.changeRecoveryKey(to: newKey) {
       case .success(let outcome):
         step = .done(outcome)

@@ -6,6 +6,7 @@ struct SettingsView: View {
   @Environment(AppModel.self) private var model
   @Environment(Updater.self) private var updater
   @State private var limitDraft = ""
+  @State private var revealing = false
   @State private var formMargin: CGFloat = 0
   @State private var limitError: String?
   @FocusState private var limitFocused: Bool
@@ -122,11 +123,14 @@ struct SettingsView: View {
             RecoveryKeyActions(key: recoveryKey)
           } else {
             Button("Reveal Recovery Key") {
+              revealing = true
               Task {
-                self.recoveryKey = await self.model.recoveryKey()
+                self.recoveryKey = await self.model.revealRecoveryKey()
+                revealing = false
               }
             }
             .buttonStyle(SecondaryButtonStyle())
+            .disabled(revealing)
           }
           Button("Change Recovery Key…") { changingRecoveryKey = true }
             .buttonStyle(SecondaryButtonStyle())
