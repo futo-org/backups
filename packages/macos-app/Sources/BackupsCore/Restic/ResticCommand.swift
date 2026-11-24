@@ -109,7 +109,9 @@ public enum ResticCommand {
     var arguments = command + ["--json"]
     arguments += ["--option", "rest.connections=\(context.connections)", "--cache-dir", context.cacheDirectory.path]
     arguments += flags
-    arguments += positional
+    if !positional.isEmpty {
+      arguments += ["--"] + positional
+    }
     return ResticInvocation(arguments: arguments, environment: environment(context))
   }
 }

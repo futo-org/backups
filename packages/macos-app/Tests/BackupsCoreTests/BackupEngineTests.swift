@@ -393,9 +393,9 @@ private let restoreItems = [
   #expect(log.all == [.restoring])
   let restores = fixture.restic.invocations().filter { $0.arguments.first == "restore" }
   #expect(
-    restores.map { Array($0.arguments.suffix(3)) } == [
-      ["--target", "/tmp/out/Documents", "snap-1:/Users/test/Documents"],
-      ["--target", "/tmp/out/Documents 2", "snap-1:/Volumes/Work/Documents"],
+    restores.map { Array($0.arguments.suffix(4)) } == [
+      ["--target", "/tmp/out/Documents", "--", "snap-1:/Users/test/Documents"],
+      ["--target", "/tmp/out/Documents 2", "--", "snap-1:/Volumes/Work/Documents"],
     ])
   #expect(fixture.proxy.stopCount == 1)
 

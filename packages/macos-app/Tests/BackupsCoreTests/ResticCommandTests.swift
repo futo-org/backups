@@ -59,7 +59,7 @@ private let commandCases: [CommandCase] = [
     name: "backup minimal",
     invocation: ResticCommand.backup(plainContext, paths: ["/p/one", "/p/two"], excludes: [], host: "host-a"),
     arguments: ["backup", "--json"] + common
-      + ["--host", "host-a", "--group-by", "host", "--exclude-caches", "/p/one", "/p/two"]),
+      + ["--host", "host-a", "--group-by", "host", "--exclude-caches", "--", "/p/one", "/p/two"]),
   CommandCase(
     name: "backup full",
     invocation: ResticCommand.backup(
@@ -70,7 +70,7 @@ private let commandCases: [CommandCase] = [
     arguments: ["backup", "--json"] + common
       + [
         "--host", "host-a", "--group-by", "host", "--exclude-caches", "--exclude", "/p/skip-a",
-        "--exclude", "/p/skip-b", "--pack-size", "4", "--walk-concurrency", "2", "/p/one",
+        "--exclude", "/p/skip-b", "--pack-size", "4", "--walk-concurrency", "2", "--", "/p/one",
       ]),
   CommandCase(
     name: "forget without pack size",
@@ -85,12 +85,12 @@ private let commandCases: [CommandCase] = [
   CommandCase(
     name: "restore whole snapshot",
     invocation: ResticCommand.restore(plainContext, snapshotId: "abc123", target: "/target"),
-    arguments: ["restore", "--json"] + common + ["--target", "/target", "abc123"]),
+    arguments: ["restore", "--json"] + common + ["--target", "/target", "--", "abc123"]),
   CommandCase(
     name: "restore subfolder",
     invocation: ResticCommand.restore(
       plainContext, snapshotId: "abc123", subfolder: "/Users/x/My Docs", target: "/target/My Docs"),
-    arguments: ["restore", "--json"] + common + ["--target", "/target/My Docs", "abc123:/Users/x/My Docs"]),
+    arguments: ["restore", "--json"] + common + ["--target", "/target/My Docs", "--", "abc123:/Users/x/My Docs"]),
 ]
 
 @Test(arguments: commandCases)
@@ -138,6 +138,15 @@ func environmentIsReplacedWithExactlyFourVariables(_ testCase: CommandCase) {
   #expect(
     Array(tagged.arguments[cachesIndex...].prefix(7))
       == ["--exclude-caches", "--tag", "disk-snapshot", "--tag", "beta", "--exclude", "/skip"])
+}
+
+@Test func positionalsThatLookLikeFlagsFollowEndOfOptions() {
+  let backup = ResticCommand.backup(plainContext, paths: ["--dry-run", "-x"], excludes: [], host: "host-a")
+  #expect(Array(backup.arguments.suffix(3)) == ["--", "--dry-run", "-x"])
+  let restore = ResticCommand.restore(
+    plainContext, snapshotId: "abc123", subfolder: "--verify", target: "/target")
+  #expect(Array(restore.arguments.suffix(2)) == ["--", "abc123:--verify"])
+  #expect(!ResticCommand.snapshots(plainContext).arguments.contains("--"))
 }
 
 @Test func forgetGroupsByHostNotPaths() {
