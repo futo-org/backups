@@ -1,7 +1,9 @@
 # FUTO Backups for macOS (alpha)
 
 Native SwiftUI client: device-flow login, pick folders, back up on a schedule with the bundled FUTO restic through
-the bundled restic-proxy, list snapshots, restore, forget/prune (`--keep-within 60d`), upload throttling.
+the bundled restic-proxy, list snapshots, restore, forget/prune after each successful backup, upload throttling.
+Snapshot retention defaults to `--keep-within 60d`; onboarding and Settings → Snapshots offer the Immich presets,
+custom `--keep-*` rules or Keep All, and a change applies from the next backup started with it.
 
 ```bash
 cd packages/macos-app
@@ -10,9 +12,11 @@ mise run mac:bundle   # build/FUTO Backups.app with restic + restic-proxy in Con
 mise run mac:open     # bundle and launch
 ```
 
-`mise run mac:install` builds a dev version (`0.0.0-dev.<commit>`, automatic update checks off), signs it with FUTO's
-Developer ID certificate from Infisical (or `CODESIGN_IDENTITY` from your keychain), installs it in `/Applications`
-and launches it; `NOTARIZE=1` also notarizes it.
+`mise run mac:install` builds a dev version (`<release>-dev.<commit>`, where `<release>` is the newest
+`vMAJOR.MINOR.PATCH` tag in the commit's history, with that release's build number, so it auto-updates to the next
+release but never back to the one it's based on), signs it with FUTO's Developer ID certificate from Infisical (or
+`CODESIGN_IDENTITY` from your keychain), installs it in `/Applications` and launches it; `NOTARIZE=1` also notarizes
+it. It refuses to replace the installed app while that app is backing up or restoring.
 
 Unbundled (`swift run FutoBackups`) needs `FUTO_BACKUPS_RESTIC` and `FUTO_BACKUPS_RESTIC_PROXY` pointing at the helpers.
 

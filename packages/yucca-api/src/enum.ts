@@ -45,6 +45,7 @@ export enum DeviceFlowFailureReason {
   FeatureNotEnabled = 'FEATURE_NOT_ENABLED',
   Expired = 'EXPIRED',
   AccessDenied = 'ACCESS_DENIED',
+  UnsupportedConnectionType = 'UNSUPPORTED_CONNECTION_TYPE',
 }
 
 export enum DeviceFlowPollStatus {

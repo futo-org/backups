@@ -125,7 +125,7 @@ private let backupLines = [statusLineOne, statusLineTwo, summaryLine]
   #expect(argumentAfter(backupArgs, "--host") == "test-host")
   let forgetInvocation = try #require(
     fixture.restic.invocations().first { $0.arguments.first == "forget" })
-  #expect(argumentAfter(forgetInvocation.arguments, "--keep-within") == BackupEngine.keepWithin)
+  #expect(argumentAfter(forgetInvocation.arguments, "--keep-within") == "60d")
   #expect(argumentAfter(forgetInvocation.arguments, "--host") == "test-host")
   #expect(
     log.all
@@ -677,6 +677,59 @@ func missingMasterKeyThrowsAndIsNeverGenerated(
   let expectedPassword = try RepositoryKeys.password(masterKey: testMasterKey, repositoryId: "new-repo")
   #expect(initInvocation.environment["RESTIC_PASSWORD"] == expectedPassword)
   #expect(fixture.proxy.stopCount == 1)
+}
+
+@Test func setUpRepositoryOffersExistingMacBackupsWithoutCreating() async throws {
+  let existing = RemoteRepository(id: "old-mac", name: "test-host", worm: false, connectionType: "macos")
+  let fixture = makeFixture()
+  await fixture.api.setRepositories([existing])
+  let engine = BackupEngine(environment: fixture.environment)
+  let setup = try await engine.setUpRepository(config: testConfig(repositoryId: nil), offeringExisting: true)
+  #expect(setup == .chooseExisting([existing], masterKey: testMasterKey))
+  #expect(await fixture.deliveredCalls(engine) == [.list])
+  #expect(fixture.restic.commands().isEmpty)
+}
+
+@Test func setUpRepositoryStartingNewCreatesOnceWithoutListing() async throws {
+  let existing = RemoteRepository(id: "old-mac", name: "test-host", worm: false, connectionType: "macos")
+  let fixture = makeFixture()
+  await fixture.api.setRepositories([existing])
+  let engine = BackupEngine(environment: fixture.environment)
+  let setup = try await engine.setUpRepository(config: testConfig(repositoryId: nil), offeringExisting: false)
+  #expect(setup == .ready(repositoryId: "new-repo"))
+  #expect(await fixture.deliveredCalls(engine) == [.create(name: "test-host")])
+}
+
+@Test func setUpRepositoryCreatesWhenNoMacBackupExists() async throws {
+  let fixture = makeFixture()
+  await fixture.api.setRepositories([RemoteRepository(id: "web", name: "web", worm: false)])
+  let engine = BackupEngine(environment: fixture.environment)
+  let setup = try await engine.setUpRepository(config: testConfig(repositoryId: nil), offeringExisting: true)
+  #expect(setup == .ready(repositoryId: "new-repo"))
+  #expect(await fixture.deliveredCalls(engine) == [.list, .create(name: "test-host")])
+}
+
+@Test func setUpRepositoryKeepsTheRepositoryOnRecord() async throws {
+  let fixture = makeFixture()
+  await fixture.api.setRepositories([
+    RemoteRepository(id: "old-mac", name: "test-host", worm: false, connectionType: "macos")
+  ])
+  let engine = BackupEngine(environment: fixture.environment)
+  let setup = try await engine.setUpRepository(config: testConfig(), offeringExisting: true)
+  #expect(setup == .ready(repositoryId: "repo-1"))
+  #expect(await fixture.deliveredCalls(engine).isEmpty)
+}
+
+@Test func setUpRepositoryWithoutStoredKeyNeverCreates() async throws {
+  let fixture = makeFixture(masterKey: nil)
+  await fixture.api.setRepositories([
+    RemoteRepository(id: "old-mac", name: "test-host", worm: false, connectionType: "macos")
+  ])
+  let engine = BackupEngine(environment: fixture.environment)
+  await #expect(throws: EngineError.missingMasterKey) {
+    _ = try await engine.setUpRepository(config: testConfig(repositoryId: nil), offeringExisting: true)
+  }
+  #expect(await fixture.deliveredCalls(engine) == [.list])
 }
 
 @Test func macRepositoriesFiltersAndSortsThisMacFirstThenByLastBackupThenName() async throws {
@@ -1962,4 +2015,139 @@ private let skippedFiles = CloudOnlySkip(
   let log = ActivityLog()
   _ = try await engine.backup(config: testConfig()) { log.record($0) }
   #expect(!log.all.contains(.finishing(.removingDiskSnapshot)))
+}
+
+@Test func keepingAllSnapshotsSkipsForgetAndTidyingUp() async throws {
+  let fixture = makeFixture()
+  fixture.restic.set(ResticScript(lines: backupLines), for: "backup")
+  fixture.restic.set(ResticScript(stdout: statsStdout), for: "stats")
+  let engine = BackupEngine(environment: fixture.environment)
+  var config = testConfig()
+  config.retention = .keepAll
+  let log = ActivityLog()
+  let record = try await engine.backup(config: config) { log.record($0) }
+  #expect(record.status == .complete)
+  #expect(record.message == nil)
+  #expect(fixture.restic.commands() == ["version", "unlock", "backup", "stats"])
+  #expect(!log.all.contains(.pruning))
+  let logs = await fixture.deliveredLogs(engine)
+  #expect(logs.map(\.summary) == ["Running backup", "Backup finished"])
+}
+
+@Test(
+  "a retention policy without valid rules never reaches restic",
+  arguments: [
+    RetentionPolicy(),
+    RetentionPolicy(keepLast: 0),
+    RetentionPolicy(keepWithin: "0d"),
+    RetentionPolicy(keepWithin: "forever"),
+  ])
+func invalidRetentionSkipsForget(policy: RetentionPolicy) async throws {
+  let fixture = makeFixture()
+  fixture.restic.set(ResticScript(lines: backupLines), for: "backup")
+  fixture.restic.set(ResticScript(stdout: statsStdout), for: "stats")
+  let engine = BackupEngine(environment: fixture.environment)
+  var config = testConfig()
+  config.retention = .policy(policy)
+  let log = ActivityLog()
+  let record = try await engine.backup(config: config) { log.record($0) }
+  #expect(record.status == .complete)
+  #expect(record.message == "Old snapshots were kept: the snapshot retention setting is invalid")
+  #expect(fixture.restic.commands() == ["version", "unlock", "backup", "stats"])
+  #expect(!log.all.contains(.pruning))
+  let logs = await fixture.deliveredLogs(engine)
+  #expect(logs.map(\.summary) == ["Running backup", "Skipped repository prune", "Backup finished"])
+  let skipped = try #require(logs.first { $0.summary == "Skipped repository prune" })
+  #expect(skipped.data["error"] == .string("invalid retention policy"))
+}
+
+@Test func customRetentionReachesForgetAndTelemetry() async throws {
+  let fixture = makeFixture()
+  fixture.restic.set(ResticScript(lines: backupLines), for: "backup")
+  fixture.restic.set(ResticScript(stdout: statsStdout), for: "stats")
+  let engine = BackupEngine(environment: fixture.environment)
+  var config = testConfig()
+  config.retention = .policy(RetentionPolicy(keepLast: 3, keepWithinDaily: "1m"))
+  _ = try await engine.backup(config: config) { _ in }
+  let forget = try #require(fixture.restic.invocations().first { $0.arguments.first == "forget" })
+  #expect(argumentAfter(forget.arguments, "--keep-last") == "3")
+  #expect(argumentAfter(forget.arguments, "--keep-within-daily") == "1m")
+  #expect(!forget.arguments.contains("--keep-within"))
+  let logs = await fixture.deliveredLogs(engine)
+  let running = try #require(logs.first { $0.summary == "Running repository prune" })
+  #expect(running.data["retentionPolicy"] == .string("keep-last 3, keep-within-daily 1m"))
+}
+
+private func waitUntil(_ condition: () -> Bool, timeout: Duration = .seconds(5)) async {
+  let deadline = ContinuousClock.now + timeout
+  while !condition(), ContinuousClock.now < deadline {
+    try? await Task.sleep(for: .milliseconds(5))
+  }
+}
+
+@Test func networkChangesDuringABackupResetTheProxyUntilTheSessionEnds() async throws {
+  let changes = FakeNetworkChanges()
+  let fixture = makeFixture(networkChanges: { changes.stream() })
+  let proxy = fixture.proxy
+  fixture.restic.set(
+    ResticScript(
+      lines: [summaryLine],
+      afterLines: {
+        changes.change()
+        await waitUntil { proxy.networkChangeCount == 1 }
+      }),
+    for: "backup")
+  fixture.restic.set(ResticScript(stdout: statsStdout), for: "stats")
+  let engine = BackupEngine(environment: fixture.environment)
+  let record = try await engine.backup(config: testConfig()) { _ in }
+  #expect(record.status == .complete)
+  #expect(proxy.networkChangeCount == 1)
+  await waitUntil { changes.terminatedCount == 1 }
+  #expect(changes.terminatedCount == 1)
+  changes.change()
+  try await Task.sleep(for: .milliseconds(50))
+  #expect(proxy.networkChangeCount == 1)
+}
+
+@Test func cancellingABackupResetsTheProxyWhileResticIsStillRunning() async throws {
+  let fixture = makeFixture()
+  fixture.restic.set(ResticScript(lines: [summaryLine]), for: "backup")
+  fixture.restic.gateNextBackup(checkingCancellation: true)
+  let engine = BackupEngine(environment: fixture.environment)
+  let task = Task {
+    try await engine.backup(config: testConfig()) { _ in }
+  }
+  await waitUntil { fixture.restic.waitingAtGate == 1 }
+  try #require(fixture.restic.waitingAtGate == 1)
+  #expect(fixture.proxy.networkChangeCount == 0)
+  task.cancel()
+  await waitUntil { fixture.proxy.networkChangeCount == 1 }
+  #expect(fixture.proxy.networkChangeCount == 1)
+  #expect(fixture.proxy.stopCount == 0)
+  fixture.restic.releaseBackups()
+  let record = try await task.value
+  #expect(record.status == .cancelled)
+  #expect(fixture.proxy.stopCount == 1)
+}
+
+@Test func cancellingARestoreResetsTheProxyWhileResticIsStillRunning() async throws {
+  let fixture = makeFixture()
+  let proxy = fixture.proxy
+  fixture.restic.set(
+    ResticScript(
+      afterLines: {
+        await waitUntil { proxy.networkChangeCount > 0 }
+      }, error: CancellationError()),
+    for: "restore")
+  let engine = BackupEngine(environment: fixture.environment)
+  let task = Task {
+    try await engine.restore(config: testConfig(), snapshotId: "snap-1", items: restoreItems) { _ in }
+  }
+  await waitUntil { fixture.restic.commands().contains("restore") }
+  task.cancel()
+  await #expect(throws: CancellationError.self) {
+    try await task.value
+  }
+  #expect(proxy.networkChangeCount == 1)
+  #expect(proxy.stopCount == 1)
 }

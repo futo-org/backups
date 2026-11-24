@@ -17,6 +17,15 @@ private func realPath(of path: String) -> String {
   return String(cString: resolved)
 }
 
+private struct ForgetGroup: Decodable {
+  struct Snapshot: Decodable {
+    var tags: [String]
+  }
+
+  var keep: [Snapshot]
+  var remove: [Snapshot]?
+}
+
 private func fileNameSet(in directory: URL) throws -> Set<String> {
   let walker = FileManager.default.enumerator(at: directory, includingPropertiesForKeys: [.isRegularFileKey])
   var names = Set<String>()
@@ -195,7 +204,9 @@ struct ResticIntegrationTests {
       onLine: { _ in })
     #expect(secondBackup.exitCode == ResticExitCode.success)
 
-    let forget = try await runner.run(ResticCommand.forget(context, host: host, keepWithin: "1h"), onLine: { _ in })
+    let forgetInvocation = try #require(
+      ResticCommand.forget(context, host: host, retention: .policy(RetentionPolicy(keepWithin: "1h"))))
+    let forget = try await runner.run(forgetInvocation, onLine: { _ in })
     #expect(forget.exitCode == ResticExitCode.success)
 
     let versionResult = try await runner.run(ResticCommand.version(home: homeDirectory.path), onLine: { _ in })
@@ -462,6 +473,74 @@ struct ResticIntegrationTests {
     wrongContext.password = try RepositoryKeys.password(masterKey: keyB, repositoryId: repositoryId)
     let withKeyB = try await runner.run(ResticCommand.catConfig(wrongContext), onLine: { _ in })
     #expect(withKeyB.exitCode == ResticExitCode.wrongPassword)
+  }
+
+  @Test func customRetentionFlagsAreAcceptedByRestic() async throws {
+    let executable = try #require(resticExecutable)
+    let workspace = try KeyRotationWorkspace(executable: executable, password: "pw-\(UUID().uuidString)")
+    defer { try? FileManager.default.removeItem(at: workspace.root) }
+    let context = workspace.context
+    let runner = workspace.runner
+    #expect(
+      try await runner.run(ResticCommand.initialize(context), onLine: { _ in }).exitCode == ResticExitCode.success)
+    for _ in 0..<2 {
+      let backup = try await runner.run(
+        ResticCommand.backup(
+          context, paths: [workspace.root.appendingPathComponent("source").path], excludes: [], host: "h"),
+        onLine: { _ in })
+      #expect(backup.exitCode == ResticExitCode.success)
+    }
+    let policy = RetentionPolicy(
+      keepLast: 1, keepWithin: "1y6m", keepWithinHourly: "2d", keepWithinDaily: "1m", keepWithinWeekly: "6m",
+      keepWithinMonthly: "2y", keepWithinYearly: "10y")
+    var dryRun = try #require(ResticCommand.forget(context, host: "h", retention: .policy(policy)))
+    dryRun.arguments.append("--dry-run")
+    let forget = try await runner.run(dryRun, onLine: { _ in })
+    #expect(forget.exitCode == ResticExitCode.success, "\(forget.stderr)")
+
+    var withoutRules = try #require(ResticCommand.forget(context, host: "h", retention: .standard))
+    withoutRules.arguments.removeAll { $0 == "--keep-within" || $0 == "60d" }
+    let refused = try await runner.run(withoutRules, onLine: { _ in })
+    #expect(refused.exitCode != ResticExitCode.success)
+
+    let snapshots = try await runner.run(ResticCommand.snapshots(context), onLine: { _ in })
+    #expect(try ResticOutput.parseSnapshots(snapshots.stdout).count == 2)
+  }
+
+  @Test func customRetentionKeepsWhatEachRuleMatches() async throws {
+    let executable = try #require(resticExecutable)
+    let workspace = try KeyRotationWorkspace(executable: executable, password: "pw-\(UUID().uuidString)")
+    defer { try? FileManager.default.removeItem(at: workspace.root) }
+    let context = workspace.context
+    let runner = workspace.runner
+    #expect(
+      try await runner.run(ResticCommand.initialize(context), onLine: { _ in }).exitCode == ResticExitCode.success)
+    let snapshotTimes = [
+      "ancient": "2024-01-10 12:00:00",
+      "may-early": "2026-05-10 12:00:00",
+      "may-last": "2026-05-20 12:00:00",
+      "june-early": "2026-06-01 12:00:00",
+      "recent": "2026-06-13 12:00:00",
+      "latest": "2026-06-15 12:00:00",
+    ]
+    for (tag, time) in snapshotTimes {
+      var backup = ResticCommand.backup(
+        context, paths: [workspace.root.appendingPathComponent("source").path], excludes: [], host: "h", tags: [tag])
+      let separator = try #require(backup.arguments.firstIndex(of: "--"))
+      backup.arguments.insert(contentsOf: ["--time", time], at: separator)
+      #expect(try await runner.run(backup, onLine: { _ in }).exitCode == ResticExitCode.success)
+    }
+    let policy = RetentionPolicy(keepLast: 1, keepWithin: "3d", keepWithinMonthly: "1y")
+    var dryRun = try #require(ResticCommand.forget(context, host: "h", retention: .policy(policy)))
+    dryRun.arguments.append("--dry-run")
+    let forget = try await runner.run(dryRun, onLine: { _ in })
+    #expect(forget.exitCode == ResticExitCode.success, "\(forget.stderr)")
+    let groupsLine = try #require(forget.stdout.split(separator: UInt8(ascii: "\n")).first)
+    let groups = try JSONDecoder().decode([ForgetGroup].self, from: Data(groupsLine))
+    let group = try #require(groups.first)
+    #expect(groups.count == 1)
+    #expect(Set(group.keep.flatMap(\.tags)) == ["latest", "recent", "may-last"])
+    #expect(Set((group.remove ?? []).flatMap(\.tags)) == ["june-early", "may-early", "ancient"])
   }
 
   @Test func changeMasterKeyRotatesTheRepositoryPassword() async throws {

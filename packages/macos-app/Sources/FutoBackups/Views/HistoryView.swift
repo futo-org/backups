@@ -8,7 +8,11 @@ struct HistoryView: View {
   var body: some View {
     ScrollView {
       VStack(alignment: .leading, spacing: 22) {
-        PageHeader(title: "History", subtitle: "Snapshots from the last 60 days. Restore any of them to a folder.") {
+        PageHeader(
+          title: "History",
+          subtitle:
+            "Restore any snapshot to a folder. Retention for this Mac: \(model.config.snapshotRetention.summary)."
+        ) {
           Button {
             Task { await model.refreshSnapshots() }
           } label: {
@@ -126,9 +130,7 @@ struct HistoryView: View {
     panel.canCreateDirectories = true
     panel.allowsMultipleSelection = false
     panel.prompt = "Restore Here"
-    panel.message =
-      "Choose where to restore the snapshot from \(Format.relative(snapshot.time, inSentence: true)). "
-      + "Each backed-up folder is restored inside it under its own name."
+    panel.message = "Choose a folder to restore into."
     if panel.runModal() == .OK, let url = panel.url {
       model.restore(snapshot: snapshot, to: url)
     }

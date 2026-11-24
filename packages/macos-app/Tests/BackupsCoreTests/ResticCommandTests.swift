@@ -95,12 +95,14 @@ private let commandCases: [CommandCase] = [
     environment: backupEnvironment, retainsStdout: false),
   CommandCase(
     name: "forget without pack size",
-    invocation: ResticCommand.forget(plainContext, host: "host-a", keepWithin: "1h"),
+    invocation: ResticCommand.forget(
+      plainContext, host: "host-a", retention: .policy(RetentionPolicy(keepWithin: "1h")))!,
     arguments: ["forget", "--json"] + common
       + ["--host", "host-a", "--group-by", "host", "--keep-within", "1h", "--prune"]),
   CommandCase(
     name: "forget with pack size",
-    invocation: ResticCommand.forget(packedContext, host: "host-a", keepWithin: "30d"),
+    invocation: ResticCommand.forget(
+      packedContext, host: "host-a", retention: .policy(RetentionPolicy(keepWithin: "30d")))!,
     arguments: ["forget", "--json"] + common
       + ["--host", "host-a", "--group-by", "host", "--keep-within", "30d", "--prune", "--pack-size", "4"]),
   CommandCase(
@@ -181,8 +183,8 @@ func onlyCommandsWhoseOutputIsReadRetainStdout(_ testCase: CommandCase) {
   #expect(!ResticCommand.snapshots(plainContext).arguments.contains("--"))
 }
 
-@Test func forgetGroupsByHostNotPaths() {
-  let arguments = ResticCommand.forget(plainContext, host: "host-a", keepWithin: "60d").arguments
+@Test func forgetGroupsByHostNotPaths() throws {
+  let arguments = try #require(ResticCommand.forget(plainContext, host: "host-a", retention: .standard)).arguments
   #expect(argumentAfter(arguments, "--group-by") == "host")
   #expect(!arguments.contains("paths"))
 }
@@ -199,13 +201,59 @@ func onlyCommandsWhoseOutputIsReadRetainStdout(_ testCase: CommandCase) {
   }
 }
 
-@Test func everyBackupSkipsCloudOnlyFiles() {
+@Test func everyBackupSkipsCloudOnlyFiles() throws {
   let live = ResticCommand.backup(plainContext, paths: ["/p"], excludes: [], host: "host-a")
   let mounted = ResticCommand.backup(
     packedContext, paths: ["p"], excludes: ["/skip"], host: "host-a", currentDirectory: "/mnt",
     tags: ["disk-snapshot"])
   #expect(live.arguments.filter { $0 == "--exclude-cloud-files" }.count == 1)
   #expect(mounted.arguments.filter { $0 == "--exclude-cloud-files" }.count == 1)
+  let forget = try #require(ResticCommand.forget(plainContext, host: "host-a", retention: .standard))
+  #expect(!forget.arguments.contains("--exclude-cloud-files"))
+}
+
+@Test(
+  "forget emits the flags of each retention preset",
+  arguments: [
+    (RetentionPreset.days15, ["--keep-within", "15d"]),
+    (.days30, ["--keep-within", "30d"]),
+    (.days60, ["--keep-within", "60d"]),
+    (.days90, ["--keep-within", "90d"]),
+    (.latestTwo, ["--keep-last", "2"]),
+  ])
+func forgetFlagsForPresets(preset: RetentionPreset, flags: [String]) throws {
+  let invocation = try #require(ResticCommand.forget(plainContext, host: "host-a", retention: preset.retention))
   #expect(
-    !ResticCommand.forget(plainContext, host: "host-a", keepWithin: "1h").arguments.contains("--exclude-cloud-files"))
+    invocation.arguments == ["forget", "--json"] + common + ["--host", "host-a", "--group-by", "host"] + flags + [
+      "--prune"
+    ])
+}
+
+@Test func forgetEmitsEveryCustomRuleInRestOrder() throws {
+  let policy = RetentionPolicy(
+    keepLast: 3, keepWithin: "7d", keepWithinHourly: "2d", keepWithinDaily: "1m", keepWithinWeekly: "6m",
+    keepWithinMonthly: "2y", keepWithinYearly: "10y")
+  let invocation = try #require(ResticCommand.forget(packedContext, host: "host-a", retention: .policy(policy)))
+  #expect(
+    invocation.arguments == ["forget", "--json"] + common
+      + [
+        "--host", "host-a", "--group-by", "host", "--keep-last", "3", "--keep-within", "7d", "--keep-within-hourly",
+        "2d", "--keep-within-daily", "1m", "--keep-within-weekly", "6m", "--keep-within-monthly", "2y",
+        "--keep-within-yearly", "10y", "--prune", "--pack-size", "4",
+      ])
+}
+
+@Test(
+  "forget refuses retention that would not prune or that restic would reject",
+  arguments: [
+    SnapshotRetention.keepAll,
+    .policy(RetentionPolicy()),
+    .policy(RetentionPolicy(keepLast: 0)),
+    .policy(RetentionPolicy(keepWithin: "0d")),
+    .policy(RetentionPolicy(keepWithin: "")),
+    .policy(RetentionPolicy(keepWithin: "60")),
+    .policy(RetentionPolicy(keepLast: 2, keepWithinDaily: "1w")),
+  ])
+func forgetRefusesUnprunableRetention(retention: SnapshotRetention) {
+  #expect(ResticCommand.forget(plainContext, host: "host-a", retention: retention) == nil)
 }

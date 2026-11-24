@@ -443,8 +443,8 @@ struct RecoveryKeyActions: View {
   }
 
   private var document: String {
-    "FUTO Backups recovery key\n\n" + RepositoryKeys.displayLines(key).joined(separator: "\n")
-      + "\n\nThis is one key. Keep it somewhere safe: you need it to restore your backups.\n"
+    "FUTO Backups recovery key\n\n" + singleLine
+      + "\n\nKeep it somewhere safe: you need it to restore your backups.\n"
   }
 
   private func saveToFile() {

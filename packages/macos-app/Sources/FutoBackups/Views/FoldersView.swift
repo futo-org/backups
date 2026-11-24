@@ -24,7 +24,7 @@ struct FoldersView: View {
         if model.config.folders.isEmpty {
           dropZone
         } else {
-          LazyVGrid(columns: [GridItem(.adaptive(minimum: 220), spacing: 14)], spacing: 14) {
+          LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 14), count: 2), spacing: 14) {
             ForEach(model.config.folders, id: \.self) { folder in
               FolderCard(path: folder) { model.removeFolder(folder) }
             }

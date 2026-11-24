@@ -197,6 +197,51 @@ private let bigPipeScript = #"head -c 4194304 /dev/zero | tr "\0" a >&2; head -c
   #expect(elapsed < .seconds(5), "elapsed \(elapsed.components.seconds)s")
 }
 
+@Test func cancellationKillsAChildThatIgnoresSigterm() async throws {
+  let sink = LineCollector()
+  let runner = ResticRunner(executable: sh, terminationGrace: .milliseconds(300))
+  let task = Task {
+    try await runner.run(shInvocation("trap '' TERM; echo $$; exec sleep 60")) { line in
+      sink.append(line)
+    }
+  }
+  let deadline = ContinuousClock.now.advanced(by: .seconds(5))
+  while sink.snapshot().isEmpty, ContinuousClock.now < deadline {
+    try await Task.sleep(for: .milliseconds(10))
+  }
+  let pid = try #require(sink.snapshot().first.flatMap { pid_t($0) })
+  let start = ContinuousClock.now
+  task.cancel()
+  await #expect(throws: CancellationError.self) {
+    _ = try await task.value
+  }
+  let elapsed = ContinuousClock.now - start
+  #expect(elapsed >= .milliseconds(300), "elapsed \(elapsed)")
+  #expect(elapsed < .seconds(5), "elapsed \(elapsed)")
+  #expect(kill(pid, 0) == -1 && errno == ESRCH)
+}
+
+@Test func cancellationLetsAChildThatHonoursSigtermExitBeforeTheGrace() async throws {
+  let sink = LineCollector()
+  let runner = ResticRunner(executable: sh, terminationGrace: .seconds(30))
+  let task = Task {
+    try await runner.run(shInvocation("echo ready; exec sleep 60")) { line in
+      sink.append(line)
+    }
+  }
+  let deadline = ContinuousClock.now.advanced(by: .seconds(5))
+  while sink.snapshot().isEmpty, ContinuousClock.now < deadline {
+    try await Task.sleep(for: .milliseconds(10))
+  }
+  try #require(sink.snapshot() == ["ready"])
+  let start = ContinuousClock.now
+  task.cancel()
+  await #expect(throws: CancellationError.self) {
+    _ = try await task.value
+  }
+  #expect(ContinuousClock.now - start < .seconds(5))
+}
+
 @Test func currentDirectorySetsWorkingDirectory() async throws {
   let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
   try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
