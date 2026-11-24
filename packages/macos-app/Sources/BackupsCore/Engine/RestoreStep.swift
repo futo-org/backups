@@ -19,19 +19,23 @@ public struct RestoreStep: Equatable, Sendable {
 
   public var fraction: Double? {
     guard let progress, progress.hasStarted else { return nil }
-    return progress.percentDone
+    return progress.fractionDone
   }
 
   public var overallFraction: Double? {
     partCount == 1 ? fraction : nil
   }
 
-  public func subtitle(locale: Locale = .current, formatBytes: (Int64) -> String) -> String {
-    var parts = partCount > 1 ? [name] : []
+  public func subtitle(
+    namingPart: Bool = true, locale: Locale = .current, formatBytes: (Int64) -> String
+  ) -> String {
+    var parts = namingPart && partCount > 1 ? [name] : []
     if let progress, progress.hasStarted {
       let files = progress.filesRestored.formatted(.number.locale(locale))
       let total = progress.totalFiles.formatted(.number.locale(locale))
-      parts.append("\(formatBytes(progress.bytesRestored)) of \(formatBytes(progress.totalBytes))")
+      if progress.totalBytes > 0 {
+        parts.append("\(formatBytes(progress.bytesRestored)) of \(formatBytes(progress.totalBytes))")
+      }
       parts.append("\(files) of \(total) \(progress.totalFiles == 1 ? "item" : "items")")
     } else {
       parts.append("Bringing your files back…")

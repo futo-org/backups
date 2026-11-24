@@ -62,6 +62,7 @@ struct StatusSummary {
         subtitle: restore?.subtitle { Format.bytes($0) } ?? "Bringing your files back…", symbol: "arrow.down",
         tint: Brand.blue, progress: fraction, busy: fraction == nil, action: .cancel,
         menuBarSymbol: "arrow.down.circle")
+      compactSubtitle = restore?.subtitle(namingPart: false) { Format.bytes($0) }
       return
     case .changingRecoveryKey:
       self.init(

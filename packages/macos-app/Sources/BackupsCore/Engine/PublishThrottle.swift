@@ -17,12 +17,14 @@ public struct PublishThrottle<Value: Equatable & Sendable>: Sendable {
     self.interval = interval
   }
 
-  public mutating func offer(_ value: Value, at now: ContinuousClock.Instant) -> Decision {
+  public mutating func offer(
+    _ value: Value, at now: ContinuousClock.Instant, immediately: Bool = false
+  ) -> Decision {
     guard value != published else {
       pending = nil
       return .hold
     }
-    if let publishedAt, publishedAt.duration(to: now) < interval {
+    if !immediately, let publishedAt, publishedAt.duration(to: now) < interval {
       pending = value
       guard !flushScheduled else { return .hold }
       flushScheduled = true

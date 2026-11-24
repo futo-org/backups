@@ -178,7 +178,7 @@ struct ResticIntegrationTests {
     let restore = try await runner.run(
       ResticCommand.restore(context, snapshotId: snapshotId, subfolder: item.snapshotPath, target: target.path)
     ) { line in
-      if let progress = RestoreProgress.parse(line) {
+      if case .summary(let progress) = RestoreMessage.parse(line) {
         restoreProgress.set(progress)
       }
     }

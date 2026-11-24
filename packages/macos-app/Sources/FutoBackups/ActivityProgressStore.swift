@@ -15,7 +15,7 @@ final class ActivityProgressStore {
   @ObservationIgnored private let clock = ContinuousClock()
 
   func receive(_ sample: ActivitySample) {
-    switch throttle.offer(sample, at: clock.now) {
+    switch throttle.offer(sample, at: clock.now, immediately: sample.startsNewRestorePart(after: restore)) {
     case .publish(let sample):
       flushTask?.cancel()
       flushTask = nil

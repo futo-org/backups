@@ -23,23 +23,36 @@ public struct RestoreProgress: Equatable, Sendable {
     filesRestored > 0 || bytesRestored > 0
   }
 
-  public static func parse(_ line: String) -> RestoreProgress? {
+  public var fractionDone: Double {
+    guard totalBytes == 0, totalFiles > 0 else { return percentDone }
+    return min(1, Double(filesRestored) / Double(totalFiles))
+  }
+}
+
+public enum RestoreMessage: Equatable, Sendable {
+  case status(RestoreProgress)
+  case summary(RestoreProgress)
+
+  public static func parse(_ line: String) -> RestoreMessage? {
     let decoder = JSONDecoder()
     decoder.keyDecodingStrategy = .convertFromSnakeCase
     guard let data = line.data(using: .utf8), let status = try? decoder.decode(RestoreStatusLine.self, from: data)
     else { return nil }
-    let percentDone: Double
-    switch status.messageType {
-    case "status": percentDone = status.percentDone ?? 0
-    case "summary": percentDone = 1
-    default: return nil
-    }
-    return RestoreProgress(
-      percentDone: percentDone,
+    var progress = RestoreProgress(
+      percentDone: status.percentDone ?? 0,
       totalFiles: status.totalFiles ?? 0,
       filesRestored: status.filesRestored ?? 0,
       totalBytes: status.totalBytes ?? 0,
       bytesRestored: status.bytesRestored ?? 0)
+    switch status.messageType {
+    case "status":
+      return .status(progress)
+    case "summary":
+      progress.percentDone = 1
+      return .summary(progress)
+    default:
+      return nil
+    }
   }
 }
 

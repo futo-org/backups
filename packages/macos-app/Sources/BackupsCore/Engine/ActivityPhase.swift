@@ -16,6 +16,11 @@ public enum ActivityPhase: Equatable, Sendable {
 public enum ActivitySample: Equatable, Sendable {
   case backup(BackupSample)
   case restore(RestoreStep)
+
+  public func startsNewRestorePart(after shown: RestoreStep?) -> Bool {
+    guard case .restore(let step) = self else { return false }
+    return step.part != shown?.part
+  }
 }
 
 public struct BackupSample: Equatable, Sendable {

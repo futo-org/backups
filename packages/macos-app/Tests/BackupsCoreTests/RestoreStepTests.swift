@@ -44,3 +44,18 @@ func nothingWrittenYetShowsNoPercent(progress: RestoreProgress?) {
     progress: RestoreProgress(percentDone: 1, totalFiles: 1, filesRestored: 1, totalBytes: 5, bytesRestored: 5))
   #expect(subtitle(step) == "5 B of 5 B · 1 of 1 item")
 }
+
+@Test func emptyFilesProgressByItemsWithoutAByteCounter() {
+  let step = RestoreStep(
+    part: 1, partCount: 1, name: "Notes", progress: RestoreProgress(totalFiles: 4, filesRestored: 1))
+  #expect(step.fraction == 0.25)
+  #expect(step.overallFraction == 0.25)
+  #expect(subtitle(step) == "1 of 4 items")
+}
+
+@Test func theCompactSubtitleLeavesThePartNameToTheTitle() {
+  let step = RestoreStep(part: 2, partCount: 3, name: String(repeating: "long name\n", count: 20), progress: started)
+  #expect(step.subtitle(namingPart: false, locale: english) { "\($0) B" } == "1200 B of 3400 B · 1,200 of 4,000 items")
+  let waiting = RestoreStep(part: 2, partCount: 3, name: "Pictures")
+  #expect(waiting.subtitle(namingPart: false, locale: english) { "\($0) B" } == "Bringing your files back…")
+}

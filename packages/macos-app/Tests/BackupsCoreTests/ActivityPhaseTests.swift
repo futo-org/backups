@@ -36,6 +36,16 @@ func phaseDropsTheProgressPayload(activity: EngineActivity, phase: ActivityPhase
   #expect(EngineActivity.changingRecoveryKey.sample == nil)
 }
 
+@Test func onlyARestoreSampleForAnotherPartStartsANewPart() {
+  var later = step
+  later.progress = RestoreProgress(percentDone: 0.9, totalFiles: 2, filesRestored: 1)
+  let next = RestoreStep(part: 2, partCount: 2, name: "Pictures")
+  #expect(ActivitySample.restore(step).startsNewRestorePart(after: nil))
+  #expect(!ActivitySample.restore(later).startsNewRestorePart(after: step))
+  #expect(ActivitySample.restore(next).startsNewRestorePart(after: step))
+  #expect(!ActivitySample.backup(BackupSample(progress: progress, speed: speed)).startsNewRestorePart(after: step))
+}
+
 @Test(arguments: [
   (0.0, 0.0), (0.004, 0.0), (0.005, 0.01), (0.125, 0.13), (0.4249, 0.42), (0.999, 1.0), (1.0, 1.0),
 ])

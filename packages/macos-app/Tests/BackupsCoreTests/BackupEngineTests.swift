@@ -572,11 +572,19 @@ private let restoreItems = [
   #expect(fixture.proxy.stopCount == 1)
 
   fixture.restic.set(
-    ResticScript(exitCode: 1, stderr: #"{"message_type":"exit_error","code":1,"message":"restore failed"}"#),
+    ResticScript(
+      lines: [restoreStatusLine, restoreSummaryLine], exitCode: 1,
+      stderr: #"{"message_type":"exit_error","code":1,"message":"restore failed"}"#),
     for: "restore")
+  let failedLog = ActivityLog()
   await #expect(throws: EngineError.restic(code: 1, message: "restore failed")) {
-    try await engine.restore(config: testConfig(), snapshotId: "snap-1", items: items) { _ in }
+    try await engine.restore(config: testConfig(), snapshotId: "snap-1", items: items) { failedLog.record($0) }
   }
+  #expect(
+    failedLog.all == [
+      .restoring(RestoreStep(part: 1, partCount: 2, name: "Documents")),
+      .restoring(RestoreStep(part: 1, partCount: 2, name: "Documents", progress: restoreHalfway)),
+    ])
   #expect(fixture.restic.invocations().filter { $0.arguments.first == "restore" }.count == 3)
   #expect(fixture.proxy.stopCount == 2)
 
@@ -741,6 +749,7 @@ private let restoreDone = RestoreProgress(
 @Test func restoreSelectionRestoresEachFolderOnceThroughAStagingFolder() async throws {
   let fixture = makeFixture()
   fixture.restoreDirectories.add("/tmp/out/report.pdf")
+  fixture.restic.set(ResticScript(lines: [restoreStatusLine, restoreSummaryLine]), for: "restore")
   let engine = BackupEngine(environment: fixture.environment)
   let log = ActivityLog()
   let report = SnapshotEntry(name: "report.pdf", path: "/Users/test/Documents/report.pdf", kind: .file)
@@ -752,10 +761,12 @@ private let restoreDone = RestoreProgress(
   ) { log.record($0) }
   #expect(restored.map(\.path) == ["/tmp/out/report 2.pdf", "/tmp/out/Work", "/tmp/out/Trip"])
   #expect(
-    log.all == [
-      .restoring(RestoreStep(part: 1, partCount: 2, name: "Documents")),
-      .restoring(RestoreStep(part: 2, partCount: 2, name: "Trip")),
-    ])
+    log.all
+      == [(1, "Documents"), (2, "Trip")].flatMap { part, name in
+        [nil, restoreHalfway, restoreDone].map {
+          EngineActivity.restoring(RestoreStep(part: part, partCount: 2, name: name, progress: $0))
+        }
+      })
   let restores = fixture.restic.invocations().filter { $0.arguments.first == "restore" }
   #expect(
     restores.map { Array($0.arguments.drop { $0 != "--target" }) } == [
@@ -808,15 +819,23 @@ private let restoreDone = RestoreProgress(
 @Test func restoreSelectionFailureRemovesTheStagingFolderAndIsReported() async throws {
   let fixture = makeFixture()
   fixture.restic.set(
-    ResticScript(exitCode: 1, stderr: #"{"message_type":"exit_error","code":1,"message":"restore failed"}"#),
+    ResticScript(
+      lines: [restoreStatusLine, restoreSummaryLine], exitCode: 1,
+      stderr: #"{"message_type":"exit_error","code":1,"message":"restore failed"}"#),
     for: "restore")
   let engine = BackupEngine(environment: fixture.environment)
+  let log = ActivityLog()
   let report = SnapshotEntry(name: "report.pdf", path: "/Users/test/Documents/report.pdf", kind: .file)
   await #expect(throws: EngineError.restic(code: 1, message: "restore failed")) {
     try await engine.restore(
       config: testConfig(), snapshotId: "snap-1", selection: [report], into: URL(fileURLWithPath: "/tmp/out")
-    ) { _ in }
+    ) { log.record($0) }
   }
+  #expect(
+    log.all == [
+      .restoring(RestoreStep(part: 1, partCount: 1, name: "report.pdf")),
+      .restoring(RestoreStep(part: 1, partCount: 1, name: "report.pdf", progress: restoreHalfway)),
+    ])
   #expect(fixture.restoreDirectories.moves.isEmpty)
   #expect(fixture.restoreDirectories.removals == ["/tmp/out/.FUTO Backups Restore"])
   #expect(fixture.proxy.stopCount == 1)

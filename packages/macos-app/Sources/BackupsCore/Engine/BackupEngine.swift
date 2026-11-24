@@ -849,6 +849,7 @@ public actor BackupEngine {
       ResticCommand.restore(
         session.context, snapshotId: snapshotId, subfolder: item.snapshotPath, target: target.path),
       session: session, reporter: reporter)
+    reporter.finished()
     return target
   }
 
@@ -872,6 +873,7 @@ public actor BackupEngine {
           })
       }
       environment.removeRestoreStaging(staging)
+      reporter.finished()
       return moved
     } catch {
       environment.removeRestoreStaging(staging)
@@ -1097,9 +1099,11 @@ final class BackingUpActivity: @unchecked Sendable {
   }
 }
 
-struct RestoreReporter: Sendable {
-  let step: RestoreStep
-  let onActivity: @Sendable (EngineActivity) -> Void
+final class RestoreReporter: @unchecked Sendable {
+  private let step: RestoreStep
+  private let onActivity: @Sendable (EngineActivity) -> Void
+  private let lock = NSLock()
+  private var summary: RestoreProgress?
 
   init(part: Int, of partCount: Int, batch: RestoreBatch, onActivity: @escaping @Sendable (EngineActivity) -> Void) {
     step = RestoreStep(part: part, partCount: partCount, name: batch.name)
@@ -1111,7 +1115,19 @@ struct RestoreReporter: Sendable {
   }
 
   func received(_ line: String) {
-    guard let progress = RestoreProgress.parse(line) else { return }
+    switch RestoreMessage.parse(line) {
+    case .status(let progress): report(progress)
+    case .summary(let progress): lock.withLock { summary = progress }
+    case nil: break
+    }
+  }
+
+  func finished() {
+    guard let summary = lock.withLock({ summary }) else { return }
+    report(summary)
+  }
+
+  private func report(_ progress: RestoreProgress) {
     var step = step
     step.progress = progress
     onActivity(.restoring(step))
