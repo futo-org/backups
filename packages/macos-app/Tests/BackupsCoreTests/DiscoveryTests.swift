@@ -91,6 +91,48 @@ func packSizeAcceptsOnlyWholeMebibytesWithinResticLimits(json: String, expected:
   try await expectInvalidDiscovery(metaURL, responses: [jsonResponse(#"{"api_root":null}"#)])
 }
 
+@Test(arguments: [
+  "http://localhost:3020/.well-known/futo-backups", "http://LOCALHOST/meta", "http://127.0.0.1:8080/meta",
+  "http://[::1]:3020/meta", "HTTPS://server.example/meta",
+])
+func httpsOrLoopbackHttpIsAcceptedAtEveryHop(url: String) async throws {
+  let local = try #require(URL(string: url))
+  let (info, transport) = try await resolve(
+    local,
+    responses: [
+      jsonResponse(#"{"meta_url":"\#(url)"}"#),
+      jsonResponse(#"{"api_root":"\#(url)/api"}"#),
+    ])
+  #expect(info.apiRoot.absoluteString == "\(url)/api")
+  #expect(await transport.requests.map(\.url) == [local, local])
+}
+
+@Test(arguments: [
+  "http://server.example/.well-known/futo-backups", "http://localhost.evil.example/meta", "http://127.0.0.2/meta",
+  "http://10.0.0.1/meta", "ftp://server.example/meta",
+])
+func plainHttpToAnotherHostIsRejectedBeforeAnyRequest(url: String) async throws {
+  let transport = StubTransport(responses: [])
+  await #expect(throws: YuccaError.self) {
+    _ = try await Discovery(transport: transport).resolve(try #require(URL(string: url)))
+  }
+  #expect(await transport.requests.isEmpty)
+}
+
+@Test func plainHttpMetaURLIsRejectedBeforeFollowingIt() async throws {
+  let transport = StubTransport(responses: [jsonResponse(#"{"meta_url":"http://server.example/meta"}"#)])
+  await #expect(throws: YuccaError.invalidDiscovery("meta_url http://server.example/meta must use https")) {
+    _ = try await Discovery(transport: transport).resolve(wellKnownURL)
+  }
+  #expect(await transport.requests.count == 1)
+}
+
+@Test func plainHttpApiRootIsRejected() async throws {
+  await #expect(throws: YuccaError.invalidDiscovery("api_root http://server.example/api must use https")) {
+    _ = try await resolve(metaURL, responses: [jsonResponse(#"{"api_root":"http://server.example/api"}"#)])
+  }
+}
+
 @Test func non2xxStatusBecomesHttpError() async throws {
   let transport = StubTransport(responses: [HTTPResponse(status: 503, body: Data("down".utf8))])
   await #expect(throws: YuccaError.http(status: 503, body: "down")) {

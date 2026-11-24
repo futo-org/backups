@@ -20,11 +20,13 @@ public struct Discovery: Sendable {
   }
 
   public func resolve(_ url: URL) async throws -> ServerInfo {
+    try requireSecureTransport(url, "server URL")
     let document = try await fetchDocument(at: url)
     if case .string = document["api_root"] {
       return try serverInfo(from: document)
     }
     if case .string(let metaURLString)? = document["meta_url"], let metaURL = URL(string: metaURLString) {
+      try requireSecureTransport(metaURL, "meta_url")
       let meta = try await fetchDocument(at: metaURL)
       if case .string = meta["api_root"] {
         return try serverInfo(from: meta)
@@ -69,14 +71,26 @@ private enum JSONValue: Decodable {
   }
 }
 
+private let loopbackHosts: Set<String> = ["localhost", "127.0.0.1", "::1"]
+
+private func requireSecureTransport(_ url: URL, _ name: String) throws {
+  switch url.scheme?.lowercased() {
+  case "https":
+    return
+  case "http" where loopbackHosts.contains(url.host(percentEncoded: false)?.lowercased() ?? ""):
+    return
+  case "http":
+    throw YuccaError.invalidDiscovery("\(name) \(url.absoluteString) must use https")
+  default:
+    throw YuccaError.invalidDiscovery("\(name) \(url.absoluteString) is not a valid http(s) URL")
+  }
+}
+
 private func serverInfo(from document: [String: JSONValue]) throws -> ServerInfo {
-  guard case .string(let apiRootString)? = document["api_root"],
-    let apiRoot = URL(string: apiRootString),
-    let scheme = apiRoot.scheme?.lowercased(),
-    scheme == "http" || scheme == "https"
-  else {
+  guard case .string(let apiRootString)? = document["api_root"], let apiRoot = URL(string: apiRootString) else {
     throw YuccaError.invalidDiscovery("meta document api_root is not a valid http(s) URL")
   }
+  try requireSecureTransport(apiRoot, "api_root")
   var resticPackSizeMiB = 16
   var connectionsMath = "16"
   if case .object(let config)? = document["config"] {
