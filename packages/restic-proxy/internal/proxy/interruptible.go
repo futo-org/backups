@@ -60,12 +60,18 @@ func (reader *interruptible) retire() {
 	reader.mu.Unlock()
 }
 
-func interruptOnClose(request *http.Request, interrupt func()) (retire func()) {
+func (reader *interruptible) unfinished() bool {
+	reader.mu.Lock()
+	defer reader.mu.Unlock()
+	return !reader.finished
+}
+
+func interruptOnClose(request *http.Request, interrupt func()) (retire func(), unfinished func() bool) {
 	if request.Body == nil || request.Body == http.NoBody {
-		return func() {}
+		return func() {}, func() bool { return false }
 	}
 
 	body := &interruptible{body: request.Body, interrupt: interrupt}
 	request.Body = body
-	return body.retire
+	return body.retire, body.unfinished
 }
