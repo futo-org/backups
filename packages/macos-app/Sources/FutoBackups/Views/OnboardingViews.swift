@@ -235,15 +235,15 @@ private struct BundleCard: View {
     Button(action: action) {
       VStack(alignment: .leading, spacing: 8) {
         HStack {
-          IconTile(systemName: systemName, tint: selected ? Brand.blue : .gray, size: 30)
+          IconTile(systemName: bundle.systemName, tint: selected ? Brand.blue : .gray, size: 30)
           Spacer()
           Image(systemName: selected ? "checkmark.circle.fill" : "circle")
             .font(.system(size: 16))
             .foregroundStyle(selected ? AnyShapeStyle(Brand.blue) : AnyShapeStyle(.tertiary))
         }
-        Text(title)
+        Text(bundle.title)
           .font(.system(size: 13, weight: .semibold))
-        Text(detail)
+        Text(bundle.detail)
           .font(.system(size: 11))
           .foregroundStyle(.secondary)
           .fixedSize(horizontal: false, vertical: true)
@@ -260,28 +260,30 @@ private struct BundleCard: View {
     }
     .buttonStyle(.plain)
   }
+}
 
-  private var systemName: String {
-    switch bundle {
+extension FolderBundle {
+  var systemName: String {
+    switch self {
     case .essentials: "doc.text.fill"
     case .essentialsAndMedia: "photo.on.rectangle.angled"
     case .everything: "house.fill"
     }
   }
 
-  private var title: String {
-    switch bundle {
+  var title: String {
+    switch self {
     case .essentials: "Essentials"
     case .essentialsAndMedia: "Essentials + Media"
     case .everything: "Everything"
     }
   }
 
-  private var detail: String {
-    switch bundle {
+  var detail: String {
+    switch self {
     case .essentials: "Documents and Desktop."
     case .essentialsAndMedia: "Adds Pictures, including your Photos library, Movies and Music."
-    case .everything: "Your whole home folder. Caches and the Trash are skipped."
+    case .everything: "Your whole home folder, except anything excluded."
     }
   }
 }
