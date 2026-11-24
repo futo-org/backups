@@ -77,15 +77,23 @@ final class AppModel {
   private var appActiveObserver: (any NSObjectProtocol)?
   private var backupDeletionTask: Task<Void, Never>?
 
+  static let allowsServerSelection =
+    Bundle.main.object(forInfoDictionaryKey: "FUTOServerSelection") as? Bool ?? true
+
   init() {
     let home = NSHomeDirectory()
     let host = Host.current().localizedName ?? "Mac"
     var loaded = AppConfig.defaults(host: host, home: home)
     var loadFailure: String?
+    var pinnedToProduction = false
     do {
       loaded = try ConfigStore.standard().load(defaultHost: host, home: home)
       if loaded.addNewDefaultExcludes(home: home) {
         try? ConfigStore.standard().save(loaded)
+      }
+      if !Self.allowsServerSelection, loaded.pinToProductionServer() {
+        try? ConfigStore.standard().save(loaded)
+        pinnedToProduction = true
       }
     } catch {
       loadFailure = "Could not load config: \(error)"
@@ -156,7 +164,11 @@ final class AppModel {
     }
     scheduler = Scheduler(model: self)
     scheduler?.start()
+    let clearsSession = pinnedToProduction
     Task { @MainActor in
+      if clearsSession {
+        try? await vault.delete(.accessToken)
+      }
       if !configLoadFailed {
         let storedToken: String? = (try? await vault.get(.accessToken)) ?? nil
         hasSession = storedToken != nil

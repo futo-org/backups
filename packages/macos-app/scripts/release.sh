@@ -80,7 +80,7 @@ trap 'rm -rf "$work"' EXIT
 
 "$package/scripts/build-helpers.sh" "$work/helpers"
 
-app=$(cd "$package" && UNIVERSAL=1 HELPERS_DIR="$work/helpers" MAC_APP_VERSION="$version" MAC_APP_BUILD="$build" scripts/bundle.sh |
+app=$(cd "$package" && UNIVERSAL=1 SERVER_SELECTION=false HELPERS_DIR="$work/helpers" MAC_APP_VERSION="$version" MAC_APP_BUILD="$build" scripts/bundle.sh |
   tee /dev/stderr | tail -n 1)
 
 if [ "$notary_set" -eq 3 ]; then
