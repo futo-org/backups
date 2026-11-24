@@ -5,7 +5,7 @@ import Testing
 @Test("defaults expand home in excludes and keep globs verbatim")
 func defaults() {
   let config = AppConfig.defaults(host: "book-pro", home: "/Users/test")
-  #expect(AppConfig.devServerURL.absoluteString == "http://localhost:8080/.well-known/yucca.json")
+  #expect(AppConfig.devServerURL.absoluteString == "http://localhost:8081/.well-known/yucca.json")
   #expect(AppConfig.productionServerURL.absoluteString == "https://meta.futo.cloud/.well-known/yucca.json")
   #expect(config.serverURL == AppConfig.productionServerURL)
   #expect(config.folders == [])
@@ -207,7 +207,7 @@ func roundTripDiskSnapshots() throws {
   "server display name shows futo.cloud for production and host:port otherwise",
   arguments: [
     ("https://meta.futo.cloud/.well-known/yucca.json", "futo.cloud"),
-    ("http://localhost:8080/.well-known/yucca.json", "localhost:8080"),
+    ("http://localhost:8081/.well-known/yucca.json", "localhost:8081"),
     ("http://localhost:3020/api/meta", "localhost:3020"),
     ("https://backups.example.org/.well-known/yucca.json", "backups.example.org"),
   ])

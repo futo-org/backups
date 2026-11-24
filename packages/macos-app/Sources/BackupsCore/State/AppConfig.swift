@@ -49,7 +49,7 @@ public struct AppConfig: Codable, Equatable, Sendable {
     return serverURL.port.map { "\(host):\($0)" } ?? host
   }
 
-  public static let devServerURL: URL = URL(string: "http://localhost:8080/.well-known/yucca.json")!
+  public static let devServerURL: URL = URL(string: "http://localhost:8081/.well-known/yucca.json")!
   public static let productionServerURL: URL = URL(string: "https://meta.futo.cloud/.well-known/yucca.json")!
 
   public static let defaultExcludes: [String] = [
