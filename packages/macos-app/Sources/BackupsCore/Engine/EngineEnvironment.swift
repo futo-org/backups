@@ -79,6 +79,11 @@ public enum EngineError: Error, Equatable, Sendable {
   case restic(code: Int32, message: String)
 }
 
+public enum RepositorySetup: Equatable, Sendable {
+  case ready(repositoryId: String)
+  case chooseExisting([RemoteRepository], masterKey: String)
+}
+
 public enum FinishingStep: Equatable, Sendable {
   case removingDiskSnapshot
   case checkingCloudOnlyFiles

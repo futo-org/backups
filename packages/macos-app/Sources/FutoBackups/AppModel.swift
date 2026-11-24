@@ -379,7 +379,7 @@ final class AppModel {
         try await engine.importMasterKey(normalized)
         guard generation == onboardingGeneration, hasSession else { return nil }
         hasMasterKey = true
-        markRecoveryKeyConfirmed()
+        markRecoveryKeyConfirmed(offeringExistingRepositories: false)
         return nil
       }
       pendingRecoveryKey = normalized
@@ -448,17 +448,17 @@ final class AppModel {
     }
     hasMasterKey = true
     pendingRecoveryKey = nil
-    markRecoveryKeyConfirmed()
+    markRecoveryKeyConfirmed(offeringExistingRepositories: false)
     return nil
   }
 
-  private func markRecoveryKeyConfirmed() {
+  private func markRecoveryKeyConfirmed(offeringExistingRepositories: Bool = true) {
     config.recoveryKeyConfirmedAt = Date()
     saveConfig()
-    continueSetup()
+    continueSetup(offeringExistingRepositories: offeringExistingRepositories)
   }
 
-  private func continueSetup() {
+  private func continueSetup(offeringExistingRepositories: Bool = true) {
     if isRecoveringLostKey {
       recoveryKeyStep = .importKey
       return
@@ -482,15 +482,22 @@ final class AppModel {
     let generation = loginGeneration
     loginTask = Task {
       do {
-        let repositoryId = try await engine.ensureRepository(config: self.config)
+        let setup = try await engine.setUpRepository(
+          config: self.config, offeringExisting: offeringExistingRepositories)
         guard generation == self.loginGeneration else { return }
-        self.config.repositoryId = repositoryId
-        self.saveConfig()
         self.loginTask = nil
         self.login = .idle
-        self.signedIn = true
-        self.recomputeNextRun()
-        await self.refreshSnapshots()
+        switch setup {
+        case .chooseExisting(let existing, let key):
+          self.pendingRecoveryKey = key
+          self.recoveryKeyStep = .chooseRepository(existing)
+        case .ready(let repositoryId):
+          self.config.repositoryId = repositoryId
+          self.saveConfig()
+          self.signedIn = true
+          self.recomputeNextRun()
+          await self.refreshSnapshots()
+        }
       } catch {
         guard generation == self.loginGeneration else { return }
         self.loginTask = nil
@@ -661,8 +668,7 @@ final class AppModel {
   func setServerURL(_ url: URL) {
     guard url != config.serverURL else { return }
     logout()
-    config.serverURL = url
-    config.repositoryId = nil
+    config.switchServer(to: url)
     saveConfig()
   }
 
