@@ -18,6 +18,13 @@ public enum OnboardingStep: Int, CaseIterable, Sendable {
   }
 }
 
+public struct OnboardingChoices: Equatable, Sendable {
+  public var openAtLogin = true
+  public var checkForUpdates = true
+
+  public init() {}
+}
+
 extension AppConfig {
   public var needsOnboarding: Bool {
     onboardingCompletedAt == nil && folders.isEmpty

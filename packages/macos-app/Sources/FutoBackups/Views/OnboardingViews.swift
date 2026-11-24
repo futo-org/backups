@@ -8,6 +8,7 @@ struct FirstRunOnboarding: View {
   @State private var index = 0
   @State private var selection = FolderSelection(home: NSHomeDirectory())
   @State private var estimates: FolderSizeEstimates?
+  @State private var choices = OnboardingChoices()
 
   var body: some View {
     ZStack {
@@ -45,7 +46,7 @@ struct FirstRunOnboarding: View {
       ChooseFoldersStep(
         selection: $selection, estimates: estimates, back: index > 0 ? { back() } : nil, next: { next() })
     case .ready:
-      ReadyStep(selection: selection, estimates: estimates, back: { back() })
+      ReadyStep(selection: selection, estimates: estimates, choices: $choices, back: { back() })
     }
   }
 
@@ -372,9 +373,8 @@ private struct ReadyStep: View {
   @Environment(Updater.self) private var updater
   let selection: FolderSelection
   let estimates: FolderSizeEstimates
+  @Binding var choices: OnboardingChoices
   let back: () -> Void
-  @State private var openAtLogin = true
-  @State private var checkForUpdates = true
 
   var body: some View {
     VStack(spacing: 22) {
@@ -404,9 +404,9 @@ private struct ReadyStep: View {
         .padding(.vertical, 4)
       }
       VStack(alignment: .leading, spacing: 8) {
-        Toggle("Open FUTO Backups at login, so scheduled backups keep running", isOn: $openAtLogin)
+        Toggle("Open FUTO Backups at login, so scheduled backups keep running", isOn: $choices.openAtLogin)
         if updater.isAvailable {
-          Toggle("Check for updates automatically", isOn: $checkForUpdates)
+          Toggle("Check for updates automatically", isOn: $choices.checkForUpdates)
         }
       }
       .toggleStyle(.checkbox)
@@ -426,12 +426,11 @@ private struct ReadyStep: View {
   }
 
   private func finish(backUpNow: Bool) {
-    if model.launchAtLogin != openAtLogin {
-      model.launchAtLogin = openAtLogin
+    model.setLaunchAtLogin(choices.openAtLogin)
+    if updater.isAvailable, updater.automaticallyChecksForUpdates != choices.checkForUpdates {
+      updater.automaticallyChecksForUpdates = choices.checkForUpdates
     }
-    if updater.isAvailable, updater.automaticallyChecksForUpdates != checkForUpdates {
-      updater.automaticallyChecksForUpdates = checkForUpdates
-    }
+    updater.start()
     model.finishOnboarding(folders: selection.paths, backUpNow: backUpNow)
   }
 
