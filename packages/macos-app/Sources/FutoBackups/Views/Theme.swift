@@ -149,7 +149,6 @@ struct StatusRing: View {
   let symbol: String
   let tint: Color
   var size: CGFloat = 132
-  @State private var spin = false
 
   var body: some View {
     ZStack {
@@ -165,12 +164,13 @@ struct StatusRing: View {
           .font(.system(size: size * 0.21, weight: .bold, design: .rounded))
           .monospacedDigit()
       } else if busy {
-        Circle()
-          .trim(from: 0, to: 0.28)
-          .stroke(Brand.ringGradient, style: StrokeStyle(lineWidth: lineWidth, lineCap: .round))
-          .rotationEffect(.degrees(spin ? 360 : 0))
-          .animation(.linear(duration: 1.1).repeatForever(autoreverses: false), value: spin)
-          .onAppear { spin = true }
+        TimelineView(.animation) { timeline in
+          Circle()
+            .trim(from: 0, to: 0.28)
+            .stroke(Brand.ringGradient, style: StrokeStyle(lineWidth: lineWidth, lineCap: .round))
+            .rotationEffect(
+              .degrees(timeline.date.timeIntervalSinceReferenceDate.remainder(dividingBy: 1.1) / 1.1 * 360))
+        }
         Image(systemName: symbol)
           .font(.system(size: size * 0.26, weight: .semibold))
           .foregroundStyle(Brand.gradient)

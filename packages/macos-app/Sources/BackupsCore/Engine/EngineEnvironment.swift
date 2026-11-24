@@ -1,4 +1,5 @@
 import Foundation
+import Synchronization
 
 public struct EngineEnvironment: Sendable {
   public var secrets: any SecretStore
@@ -75,10 +76,26 @@ public enum EngineError: Error, Equatable, Sendable {
   case restic(code: Int32, message: String)
 }
 
+public enum FinishingStep: Equatable, Sendable {
+  case removingDiskSnapshot
+  case checkingCloudOnlyFiles
+}
+
 public enum EngineActivity: Equatable, Sendable {
   case preparing
   case backingUp(BackupProgress, UploadSpeed)
+  case finishing(FinishingStep)
   case pruning
   case restoring
   case changingRecoveryKey
+}
+
+final class OnceFlag: Sendable {
+  private let value = Atomic<Bool>(false)
+
+  var isSet: Bool { value.load(ordering: .acquiring) }
+
+  func set() {
+    value.store(true, ordering: .releasing)
+  }
 }

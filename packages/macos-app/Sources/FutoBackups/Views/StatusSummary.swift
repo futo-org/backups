@@ -22,6 +22,11 @@ struct StatusSummary {
   @MainActor
   init(model: AppModel) {
     switch model.activity {
+    case .backingUp(let progress, _) where progress.percentDone >= 0.999:
+      self.init(
+        title: "Finishing backup", subtitle: "Uploading the last changes…", symbol: "arrow.up", tint: Brand.blue,
+        busy: true, action: .cancel, menuBarSymbol: "arrow.clockwise.icloud")
+      return
     case .backingUp(let progress, _):
       var parts = ["\(Format.bytes(progress.bytesDone)) of \(Format.bytes(progress.totalBytes))"]
       if let seconds = progress.secondsRemaining { parts.append(Format.duration(seconds)) }
@@ -33,6 +38,13 @@ struct StatusSummary {
       self.init(
         title: "Preparing backup", subtitle: "Looking for changes in your folders…", symbol: "magnifyingglass",
         tint: Brand.blue, busy: true, action: .cancel, menuBarSymbol: "arrow.clockwise.icloud")
+      return
+    case .finishing(let step):
+      self.init(
+        title: "Finishing backup",
+        subtitle: step == .removingDiskSnapshot
+          ? "Removing the disk snapshot…" : "Checking for files kept only in the cloud…",
+        symbol: "checkmark", tint: Brand.blue, busy: true, action: .none, menuBarSymbol: "arrow.clockwise.icloud")
       return
     case .pruning:
       self.init(

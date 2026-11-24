@@ -1867,3 +1867,26 @@ private let skippedFiles = CloudOnlySkip(
   #expect(argumentAfter(backupArgs, "--option") == "rest.connections=16")
   #expect(!backupArgs.contains("--read-concurrency"))
 }
+
+@Test func diskSnapshotBackupReportsRemovingTheSnapshotBeforeTidyingUp() async throws {
+  let snapshots = FakeDiskSnapshots()
+  let snapshot = makeSnapshotFixture(diskSnapshots: snapshots)
+  defer { try? FileManager.default.removeItem(at: snapshot.directory) }
+  let engine = BackupEngine(environment: snapshot.fixture.environment)
+  let log = ActivityLog()
+  let record = try await engine.backup(config: snapshot.config) { log.record($0) }
+  #expect(record.status == .complete)
+  let removing = try #require(log.all.firstIndex(of: .finishing(.removingDiskSnapshot)))
+  let pruning = try #require(log.all.firstIndex(of: .pruning))
+  #expect(removing < pruning)
+  #expect(log.all.filter { $0 == .finishing(.removingDiskSnapshot) }.count == 1)
+}
+
+@Test func liveBackupNeverReportsRemovingASnapshot() async throws {
+  let fixture = makeFixture()
+  fixture.restic.set(ResticScript(lines: [summaryLine]), for: "backup")
+  let engine = BackupEngine(environment: fixture.environment)
+  let log = ActivityLog()
+  _ = try await engine.backup(config: testConfig()) { log.record($0) }
+  #expect(!log.all.contains(.finishing(.removingDiskSnapshot)))
+}

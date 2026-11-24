@@ -143,6 +143,7 @@ public actor BackupEngine {
     var snapshotFailure: DiskSnapshotError?
     var api: (any YuccaRepositoryAPI)?
     var cloudOnlyScan: Task<CloudOnlySkip?, Never>?
+    let cloudOnlyScanFinished = OnceFlag()
     var everyFolderCloudOnly = false
     do {
       let server = try await serverInfo(for: config.serverURL)
@@ -160,8 +161,11 @@ public actor BackupEngine {
         try Task.checkCancellation()
         let scanner = environment.cloudOnlyScanner
         let folders = config.folders.filter { !scanner.isCloudOnly($0) }
+        let scanFinished = cloudOnlyScanFinished
         cloudOnlyScan = Task.detached(priority: .background) {
-          await scanner.scan(folders: config.folders, excludes: config.excludes)
+          let result = await scanner.scan(folders: config.folders, excludes: config.excludes)
+          scanFinished.set()
+          return result
         }
         guard !folders.isEmpty else {
           everyFolderCloudOnly = true
@@ -308,6 +312,9 @@ public actor BackupEngine {
           snapshotLock = nil
           throw error
         }
+        if createdSnapshot != nil, !snapshotCleanedUp {
+          onActivity(.finishing(.removingDiskSnapshot))
+        }
         await runSnapshotCleanup()
         snapshotLock?.release()
         snapshotLock = nil
@@ -412,6 +419,9 @@ public actor BackupEngine {
     var cloudOnlySkipped: CloudOnlySkip?
     if let cloudOnlyScan {
       if status == .complete || status == .warn || everyFolderCloudOnly {
+        if !cloudOnlyScanFinished.isSet {
+          onActivity(.finishing(.checkingCloudOnlyFiles))
+        }
         cloudOnlySkipped = await withTaskCancellationHandler {
           await cloudOnlyScan.value
         } onCancel: {
