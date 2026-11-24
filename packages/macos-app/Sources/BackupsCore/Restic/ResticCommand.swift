@@ -99,6 +99,18 @@ public enum ResticCommand {
     invocation(context, ["cat", "config"], [])
   }
 
+  public static func keyList(_ context: ResticContext) -> ResticInvocation {
+    invocation(context, ["key", "list"], [])
+  }
+
+  public static func keyAdd(_ context: ResticContext, newPasswordFile: String) -> ResticInvocation {
+    invocation(context, ["key", "add"], ["--new-password-file", newPasswordFile])
+  }
+
+  public static func keyRemove(_ context: ResticContext, id: String) -> ResticInvocation {
+    invocation(context, ["key", "remove"], [], positional: [id])
+  }
+
   private static let standardPath = "/usr/bin:/bin:/usr/sbin:/sbin"
 
   private static func environment(_ context: ResticContext) -> [String: String] {

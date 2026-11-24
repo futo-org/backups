@@ -78,6 +78,11 @@ public struct Snapshot: Equatable, Sendable, Identifiable {
   }
 }
 
+public struct ResticKey: Equatable, Sendable, Decodable {
+  public var id: String
+  public var current: Bool
+}
+
 public enum ResticOutput {
   public static func parseLine(_ line: String) -> ResticMessage {
     guard let data = line.data(using: .utf8), let kind = try? makeDecoder().decode(MessageKind.self, from: data)
@@ -139,6 +144,10 @@ public enum ResticOutput {
 
   public static func parseVersion(_ data: Data) throws -> String {
     try makeDecoder().decode(VersionLine.self, from: data).version
+  }
+
+  public static func parseKeys(_ data: Data) throws -> [ResticKey] {
+    try makeDecoder().decode([ResticKey].self, from: data)
   }
 
   public static func lastItemError(stderr: String) -> String? {

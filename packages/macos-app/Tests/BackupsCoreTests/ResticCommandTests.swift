@@ -60,6 +60,18 @@ private let commandCases: [CommandCase] = [
     invocation: ResticCommand.catConfig(plainContext),
     arguments: ["cat", "config", "--json"] + common),
   CommandCase(
+    name: "key list",
+    invocation: ResticCommand.keyList(plainContext),
+    arguments: ["key", "list", "--json"] + common),
+  CommandCase(
+    name: "key add",
+    invocation: ResticCommand.keyAdd(plainContext, newPasswordFile: "/private/tmp/k/password"),
+    arguments: ["key", "add", "--json"] + common + ["--new-password-file", "/private/tmp/k/password"]),
+  CommandCase(
+    name: "key remove",
+    invocation: ResticCommand.keyRemove(plainContext, id: "-abc123"),
+    arguments: ["key", "remove", "--json"] + common + ["--", "-abc123"]),
+  CommandCase(
     name: "backup minimal",
     invocation: ResticCommand.backup(plainContext, paths: ["/p/one", "/p/two"], excludes: [], host: "host-a"),
     arguments: ["backup", "--json"] + common
@@ -168,4 +180,16 @@ func onlyCommandsWhoseOutputIsReadRetainStdout(_ testCase: CommandCase) {
   let arguments = ResticCommand.forget(plainContext, host: "host-a", keepWithin: "60d").arguments
   #expect(argumentAfter(arguments, "--group-by") == "host")
   #expect(!arguments.contains("paths"))
+}
+
+@Test func keyCommandsKeepPasswordsOutOfArguments() {
+  let invocations = [
+    ResticCommand.keyList(plainContext),
+    ResticCommand.keyAdd(plainContext, newPasswordFile: "/private/tmp/k/password"),
+    ResticCommand.keyRemove(plainContext, id: "abc123"),
+  ]
+  for invocation in invocations {
+    #expect(!invocation.arguments.contains { $0.contains("secret") })
+    #expect(invocation.environment["RESTIC_PASSWORD"] == "secret")
+  }
 }
