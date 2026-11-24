@@ -455,6 +455,31 @@ final class FakeDiskSnapshots: DiskSnapshotting, @unchecked Sendable {
   }
 }
 
+final class FakeRestoreDirectories: @unchecked Sendable {
+  private let lock = NSLock()
+  private var existing: Set<String>
+  private var attempted: [String] = []
+
+  init(existing: Set<String> = []) {
+    self.existing = existing
+  }
+
+  func add(_ path: String) {
+    lock.withLock { _ = existing.insert(path) }
+  }
+
+  var attempts: [String] {
+    lock.withLock { attempted }
+  }
+
+  func create(_ url: URL) -> Bool {
+    lock.withLock {
+      attempted.append(url.path)
+      return existing.insert(url.path).inserted
+    }
+  }
+}
+
 final class Counter: @unchecked Sendable {
   private let lock = NSLock()
   private var stored = 0
@@ -506,6 +531,7 @@ struct EngineFixture {
   var secrets: InMemorySecretStore
   var discoverCount: Counter
   var diskSnapshots: FakeDiskSnapshots
+  var restoreDirectories: FakeRestoreDirectories
 }
 
 extension EngineFixture {
@@ -539,6 +565,7 @@ func makeFixture(
   let secrets = InMemorySecretStore(secretValues)
   let discoverCount = Counter()
   let clock = FixedClock()
+  let restoreDirectories = FakeRestoreDirectories()
   let environment = EngineEnvironment(
     secrets: secrets,
     discover: { _ in
@@ -557,10 +584,11 @@ func makeFixture(
     telemetryTimeout: telemetryTimeout,
     diskSnapshots: diskSnapshots,
     snapshotDirectory: snapshotDirectory,
-    dataVolumePath: dataVolumePath)
+    dataVolumePath: dataVolumePath,
+    createRestoreDirectory: { restoreDirectories.create($0) })
   return EngineFixture(
     environment: environment, api: api, restic: restic, proxy: proxy, secrets: secrets,
-    discoverCount: discoverCount, diskSnapshots: diskSnapshots)
+    discoverCount: discoverCount, diskSnapshots: diskSnapshots, restoreDirectories: restoreDirectories)
 }
 
 func testConfig(

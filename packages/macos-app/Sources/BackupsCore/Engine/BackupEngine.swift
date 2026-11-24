@@ -564,10 +564,11 @@ public actor BackupEngine {
     }
   }
 
+  @discardableResult
   public func restore(
     config: AppConfig, snapshotId: String, items: [RestoreItem],
     onActivity: @escaping @Sendable (EngineActivity) -> Void
-  ) async throws {
+  ) async throws -> [URL] {
     if running {
       throw EngineError.busy
     }
@@ -591,12 +592,17 @@ public actor BackupEngine {
       "snapshotId": .string(snapshotId),
     ]
     await report(api, config: config, "Running repository snapshot restore", restoreData)
+    var restored: [URL] = []
     for item in items {
+      let target: URL
       let result: ResticResult
       do {
+        target = try RestorePlan.claimTarget(
+          for: item, avoiding: Set(restored.map { $0.lastPathComponent.lowercased() }),
+          createDirectory: environment.createRestoreDirectory)
         result = try await environment.restic.run(
           ResticCommand.restore(
-            session.context, snapshotId: snapshotId, subfolder: item.snapshotPath, target: item.target.path),
+            session.context, snapshotId: snapshotId, subfolder: item.snapshotPath, target: target.path),
           onLine: { _ in })
       } catch {
         await session.proxy.stop()
@@ -611,9 +617,11 @@ public actor BackupEngine {
         await report(api, config: config, "Finished repository snapshot restore", restoreData)
         throw EngineError.restic(code: result.exitCode, message: detail)
       }
+      restored.append(target)
     }
     await session.proxy.stop()
     await report(api, config: config, "Finished repository snapshot restore", restoreData)
+    return restored
   }
 
   public func macRepositories(config: AppConfig) async throws -> [RemoteRepository] {

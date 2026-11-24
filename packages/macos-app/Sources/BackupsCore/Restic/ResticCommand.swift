@@ -80,7 +80,7 @@ public enum ResticCommand {
     _ context: ResticContext, snapshotId: String, subfolder: String? = nil, target: String
   ) -> ResticInvocation {
     let source = subfolder.map { "\(snapshotId):\($0)" } ?? snapshotId
-    return invocation(context, ["restore"], ["--target", target], positional: [source])
+    return invocation(context, ["restore"], ["--target", target, "--overwrite", "never"], positional: [source])
   }
 
   public static func stats(_ context: ResticContext) -> ResticInvocation {

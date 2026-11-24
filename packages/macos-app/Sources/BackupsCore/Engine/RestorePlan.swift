@@ -1,3 +1,4 @@
+import Darwin
 import Foundation
 
 public struct RestoreItem: Equatable, Sendable {
@@ -29,6 +30,34 @@ public enum RestorePlan {
       taken.insert(name.lowercased())
       return RestoreItem(snapshotPath: path, target: target.appendingPathComponent(name))
     }
+  }
+
+  public static func claimTarget(
+    for item: RestoreItem, avoiding taken: Set<String>, createDirectory: (URL) throws -> Bool
+  ) throws -> URL {
+    let parent = item.target.deletingLastPathComponent()
+    let base = folderName(of: item.snapshotPath)
+    var name = item.target.lastPathComponent
+    var suffix = 2
+    while true {
+      let candidate = parent.appendingPathComponent(name)
+      if !taken.contains(name.lowercased()), try createDirectory(candidate) {
+        return candidate
+      }
+      name = "\(base) \(suffix)"
+      suffix += 1
+    }
+  }
+
+  public static func createDirectoryExclusively(_ url: URL) throws -> Bool {
+    if mkdir(url.path, 0o777) == 0 {
+      return true
+    }
+    let code = errno
+    if code == EEXIST {
+      return false
+    }
+    throw POSIXError(POSIXErrorCode(rawValue: code) ?? .EIO)
   }
 
   static func folderName(of path: String) -> String {

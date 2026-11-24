@@ -389,14 +389,18 @@ private let restoreItems = [
     RestoreItem(snapshotPath: "/Users/test/Documents", target: URL(fileURLWithPath: "/tmp/out/Documents")),
     RestoreItem(snapshotPath: "/Volumes/Work/Documents", target: URL(fileURLWithPath: "/tmp/out/Documents 2")),
   ]
-  try await engine.restore(config: testConfig(), snapshotId: "snap-1", items: items) { log.record($0) }
+  let restored = try await engine.restore(config: testConfig(), snapshotId: "snap-1", items: items) {
+    log.record($0)
+  }
+  #expect(restored == items.map(\.target))
   #expect(log.all == [.restoring])
   let restores = fixture.restic.invocations().filter { $0.arguments.first == "restore" }
   #expect(
-    restores.map { Array($0.arguments.suffix(4)) } == [
-      ["--target", "/tmp/out/Documents", "--", "snap-1:/Users/test/Documents"],
-      ["--target", "/tmp/out/Documents 2", "--", "snap-1:/Volumes/Work/Documents"],
+    restores.map { Array($0.arguments.suffix(6)) } == [
+      ["--target", "/tmp/out/Documents", "--overwrite", "never", "--", "snap-1:/Users/test/Documents"],
+      ["--target", "/tmp/out/Documents 2", "--overwrite", "never", "--", "snap-1:/Volumes/Work/Documents"],
     ])
+  #expect(fixture.restoreDirectories.attempts == ["/tmp/out/Documents", "/tmp/out/Documents 2"])
   #expect(fixture.proxy.stopCount == 1)
 
   fixture.restic.set(
@@ -411,6 +415,42 @@ private let restoreItems = [
   await #expect(throws: EngineError.noFolders) {
     try await engine.restore(config: testConfig(), snapshotId: "snap-1", items: []) { _ in }
   }
+}
+
+@Test func restoreClaimsTheNextFreeTargetWhenOneAppearedAfterPlanning() async throws {
+  let fixture = makeFixture()
+  fixture.restoreDirectories.add("/tmp/out/Documents")
+  fixture.restoreDirectories.add("/tmp/out/Documents 3")
+  let engine = BackupEngine(environment: fixture.environment)
+  let items = [
+    RestoreItem(snapshotPath: "/Users/test/Documents", target: URL(fileURLWithPath: "/tmp/out/Documents")),
+    RestoreItem(snapshotPath: "/Volumes/Work/Documents", target: URL(fileURLWithPath: "/tmp/out/Documents 2")),
+  ]
+  let restored = try await engine.restore(config: testConfig(), snapshotId: "snap-1", items: items) { _ in }
+  #expect(restored.map(\.path) == ["/tmp/out/Documents 2", "/tmp/out/Documents 4"])
+  let targets = fixture.restic.invocations().filter { $0.arguments.first == "restore" }.map {
+    argumentAfter($0.arguments, "--target")
+  }
+  #expect(targets == ["/tmp/out/Documents 2", "/tmp/out/Documents 4"])
+  #expect(
+    fixture.restoreDirectories.attempts == [
+      "/tmp/out/Documents", "/tmp/out/Documents 2", "/tmp/out/Documents 3", "/tmp/out/Documents 4",
+    ])
+}
+
+@Test func restoreTargetCreationFailureStopsBeforeRestic() async throws {
+  let fixture = makeFixture()
+  let failing = EngineEnvironment(
+    secrets: fixture.environment.secrets, discover: fixture.environment.discover,
+    makeAPI: fixture.environment.makeAPI, restic: fixture.restic, proxyLauncher: fixture.proxy,
+    cacheDirectory: fixture.environment.cacheDirectory, home: fixture.environment.home, processorCount: 8,
+    now: fixture.environment.now, createRestoreDirectory: { _ in throw POSIXError(.EACCES) })
+  let engine = BackupEngine(environment: failing)
+  await #expect(throws: POSIXError(.EACCES)) {
+    try await engine.restore(config: testConfig(), snapshotId: "snap-1", items: restoreItems) { _ in }
+  }
+  #expect(!fixture.restic.commands().contains("restore"))
+  #expect(fixture.proxy.stopCount == 1)
 }
 
 @Test func storedMasterKeyReturnsStoredValueAndNeverGenerates() async throws {

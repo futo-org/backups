@@ -643,7 +643,7 @@ final class AppModel {
     let items = RestorePlan.items(paths: snapshot.paths, into: url)
     operationTask = Task {
       do {
-        try await engine.restore(config: configSnapshot, snapshotId: snapshot.id, items: items) {
+        let restored = try await engine.restore(config: configSnapshot, snapshotId: snapshot.id, items: items) {
           activity in
           Task { @MainActor in
             guard self.operationTask != nil, generation == self.sessionGeneration else { return }
@@ -655,7 +655,7 @@ final class AppModel {
           return
         }
         self.finishOperation()
-        self.restoredFolders = items.map(\.target)
+        self.restoredFolders = restored
       } catch {
         guard generation == self.sessionGeneration else {
           self.finishOperation()
