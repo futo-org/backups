@@ -43,9 +43,9 @@ struct OnboardingBackground: View {
   }
 }
 
-private struct StepIndicator: View {
+struct StepIndicator: View {
   let current: Int
-  private let titles = ["Sign in", "Save key", "Confirm"]
+  var titles = ["Sign in", "Save key", "Confirm"]
 
   var body: some View {
     HStack(spacing: 10) {
@@ -79,7 +79,7 @@ private struct StepIndicator: View {
   }
 }
 
-private struct StepTitle: View {
+struct StepTitle: View {
   let systemName: String
   let tint: Color
   let title: String

@@ -32,6 +32,8 @@ struct MainWindow: View {
         LaunchView()
       } else if model.config.telemetryConsentedAt == nil {
         TelemetryConsentView()
+      } else if model.signedIn && model.needsOnboarding {
+        FirstRunOnboarding()
       } else if model.signedIn {
         NavigationSplitView {
           sidebar

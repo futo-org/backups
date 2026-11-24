@@ -136,6 +136,9 @@ final class AppModel {
     config = loaded
     lastError = loadFailure
     nextRun = loaded.schedule.nextRun(after: loaded.scheduleReference, now: .now, calendar: .current)
+    if loadFailure == nil, config.treatExistingFoldersAsOnboarded(at: Date()) {
+      saveConfig()
+    }
     scheduler = Scheduler(model: self)
     scheduler?.start()
     Task { @MainActor in
@@ -520,6 +523,20 @@ final class AppModel {
     }
     saveConfig()
     reportRepositoryChange()
+  }
+
+  var needsOnboarding: Bool {
+    config.needsOnboarding
+  }
+
+  func finishOnboarding(folders: [String], backUpNow startBackup: Bool) {
+    config.completeOnboarding(folders: folders, at: Date())
+    saveConfig()
+    recomputeNextRun()
+    reportRepositoryChange()
+    if startBackup {
+      backupNow()
+    }
   }
 
   func removeFolder(_ path: String) {
