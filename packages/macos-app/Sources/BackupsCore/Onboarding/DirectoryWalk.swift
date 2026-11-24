@@ -6,16 +6,22 @@ struct DirectoryEntry {
     case directory
     case file(bytes: Int64, cloudOnly: Bool)
     case other
+    case unreadable
   }
 
   let name: String
   let kind: Kind
 }
 
+struct DirectoryListing {
+  var entries: [DirectoryEntry]
+  var isComplete = true
+}
+
 enum DirectoryWalk {
   static let cloudOnlyFlag = UInt32(0x4000_0000)
 
-  static func entries(of path: String) -> [DirectoryEntry]? {
+  static func listing(of path: String) -> DirectoryListing? {
     let descriptor = open(path, O_RDONLY | O_DIRECTORY | O_NOFOLLOW | O_CLOEXEC)
     guard descriptor >= 0 else { return nil }
     defer { close(descriptor) }
@@ -31,8 +37,8 @@ enum DirectoryWalk {
     var result: [DirectoryEntry] = []
     while true {
       let count = getattrlistbulk(descriptor, &request, buffer, capacity, 0)
-      if count < 0 { return result.isEmpty ? nil : result }
-      if count == 0 { return result }
+      if count < 0 { return result.isEmpty ? nil : DirectoryListing(entries: result, isComplete: false) }
+      if count == 0 { return DirectoryListing(entries: result) }
       var record = buffer
       for _ in 0..<count {
         let length = Int(record.load(as: UInt32.self))
@@ -48,13 +54,18 @@ enum DirectoryWalk {
     var field = record + MemoryLayout<UInt32>.size
     let returned = field.loadUnaligned(as: attribute_set_t.self)
     field += MemoryLayout<attribute_set_t>.size
+    var failed = false
     if returned.commonattr & attrgroup_t(ATTR_CMN_ERROR) != 0 {
+      failed = field.loadUnaligned(as: UInt32.self) != 0
       field += MemoryLayout<UInt32>.size
     }
-    guard returned.commonattr & attrgroup_t(ATTR_CMN_NAME) != 0 else { return nil }
+    guard returned.commonattr & attrgroup_t(ATTR_CMN_NAME) != 0 else {
+      return failed ? DirectoryEntry(name: "", kind: .unreadable) : nil
+    }
     let nameReference = field.loadUnaligned(as: attrreference_t.self)
     let name = String(cString: (field + Int(nameReference.attr_dataoffset)).assumingMemoryBound(to: CChar.self))
     field += MemoryLayout<attrreference_t>.size
+    if failed { return DirectoryEntry(name: name, kind: .unreadable) }
     guard returned.commonattr & attrgroup_t(ATTR_CMN_OBJTYPE) != 0 else { return nil }
     let type = field.loadUnaligned(as: fsobj_type_t.self)
     field += MemoryLayout<fsobj_type_t>.size
@@ -80,16 +91,16 @@ enum DirectoryWalk {
     isExcluded: (String) -> Bool, isCancelled: () -> Bool
   ) -> FolderSize {
     let base = root.count > 1 && root.hasSuffix("/") ? String(root.dropLast()) : root
-    guard let rootEntries = entries(of: base) else { return .unavailable }
+    guard let rootListing = listing(of: base) else { return .unavailable }
     let state = WalkState()
-    state.add(rootEntries, in: base, isExcluded: isExcluded)
+    state.add(rootListing, in: base, isExcluded: isExcluded)
     DispatchQueue.concurrentPerform(iterations: max(1, workers)) { _ in
       while let directory = state.next() {
         if isCancelled() {
           state.cancel()
           return
         }
-        if let found = entries(of: directory) {
+        if let found = listing(of: directory) {
           state.add(found, in: directory, isExcluded: isExcluded)
         } else {
           state.markUnreadable()
@@ -102,7 +113,7 @@ enum DirectoryWalk {
   }
 }
 
-private final class WalkState: @unchecked Sendable {
+final class WalkState: @unchecked Sendable {
   private let condition = NSCondition()
   private var pending: [String] = []
   private var active = 0
@@ -110,10 +121,11 @@ private final class WalkState: @unchecked Sendable {
   private(set) var isCancelled = false
   private(set) var isComplete = true
 
-  func add(_ found: [DirectoryEntry], in directory: String, isExcluded: (String) -> Bool) {
+  func add(_ found: DirectoryListing, in directory: String, isExcluded: (String) -> Bool) {
     var bytes: Int64 = 0
     var directories: [String] = []
-    for entry in found {
+    var complete = found.isComplete
+    for entry in found.entries {
       let path = directory == "/" ? "/" + entry.name : directory + "/" + entry.name
       switch entry.kind {
       case .directory:
@@ -122,9 +134,12 @@ private final class WalkState: @unchecked Sendable {
         if !cloudOnly, !isExcluded(path) { bytes += size }
       case .other:
         continue
+      case .unreadable:
+        if entry.name.isEmpty || !isExcluded(path) { complete = false }
       }
     }
     condition.lock()
+    if !complete { isComplete = false }
     total += bytes
     pending.append(contentsOf: directories)
     condition.broadcast()
