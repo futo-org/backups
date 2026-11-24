@@ -467,7 +467,15 @@ func (relay *freezableRelay) close() {
 	}
 }
 
-func TestHTTP2PingFailure_FailsAStalledUploadWithoutANetworkChange(t *testing.T) {
+type pingedUpload struct {
+	relay    *freezableRelay
+	proxy    *httptest.Server
+	arrived  chan struct{}
+	statuses <-chan int
+}
+
+func uploadOverAPingedHTTP2Backend(t *testing.T, backendConfig *http.HTTP2Config, body io.Reader) pingedUpload {
+	t.Helper()
 	arrived := make(chan struct{}, 1)
 	release := make(chan struct{})
 	backend := httptest.NewUnstartedServer(http.HandlerFunc(func(_ http.ResponseWriter, request *http.Request) {
@@ -479,6 +487,7 @@ func TestHTTP2PingFailure_FailsAStalledUploadWithoutANetworkChange(t *testing.T)
 		}
 	}))
 	backend.EnableHTTP2 = true
+	backend.Config.HTTP2 = backendConfig
 	backend.StartTLS()
 	t.Cleanup(backend.Close)
 	t.Cleanup(func() { close(release) })
@@ -491,25 +500,54 @@ func TestHTTP2PingFailure_FailsAStalledUploadWithoutANetworkChange(t *testing.T)
 		PingTimeout:     100 * time.Millisecond,
 	}
 
-	body, writer := io.Pipe()
-	t.Cleanup(func() { _ = writer.Close() })
-	go func() { _, _ = writer.Write([]byte("partial pack")) }()
-
-	statuses := uploadInBackground(proxy, body)
+	upload := pingedUpload{relay: relay, proxy: proxy, arrived: arrived, statuses: uploadInBackground(proxy, body)}
 	select {
 	case <-arrived:
 	case <-time.After(5 * time.Second):
 		t.Fatal("the upload never reached the backend")
 	}
+	return upload
+}
 
-	relay.freeze()
+func (upload pingedUpload) expectBadGatewayAfterFreezing(t *testing.T) {
+	t.Helper()
+	upload.relay.freeze()
 
 	select {
-	case status := <-statuses:
+	case status := <-upload.statuses:
 		if status != http.StatusBadGateway {
 			t.Errorf("expected 502, got %d", status)
 		}
 	case <-time.After(3 * time.Second):
 		t.Fatal("the stalled upload outlived the HTTP/2 ping timeout")
 	}
+}
+
+func TestHTTP2PingFailure_FailsAStalledUploadWithoutANetworkChange(t *testing.T) {
+	body, writer := io.Pipe()
+	t.Cleanup(func() { _ = writer.Close() })
+	go func() { _, _ = writer.Write([]byte("partial pack")) }()
+
+	uploadOverAPingedHTTP2Backend(t, nil, body).expectBadGatewayAfterFreezing(t)
+}
+
+func TestHTTP2PingFailure_FailsAnUploadWaitingForFlowControlWhileResticIsStalled(t *testing.T) {
+	const window = 64 << 10
+	body, writer := io.Pipe()
+	t.Cleanup(func() { _ = writer.Close() })
+	sent := make(chan struct{})
+	go func() {
+		_, _ = writer.Write(make([]byte, 2*window))
+		close(sent)
+	}()
+
+	upload := uploadOverAPingedHTTP2Backend(t,
+		&http.HTTP2Config{MaxReceiveBufferPerStream: window, MaxReceiveBufferPerConnection: window}, body)
+	select {
+	case <-sent:
+	case <-time.After(5 * time.Second):
+		t.Fatal("the proxy never took the whole partial pack")
+	}
+
+	upload.expectBadGatewayAfterFreezing(t)
 }

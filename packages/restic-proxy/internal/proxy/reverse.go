@@ -13,9 +13,10 @@ import (
 )
 
 type routed struct {
-	key   string
-	grant client.Grant
-	path  string
+	key       string
+	grant     client.Grant
+	path      string
+	interrupt func()
 }
 
 type contextKey struct{}
@@ -55,14 +56,16 @@ func reverseProxy(grants *hashmap.Map[string, client.Grant], transport http.Roun
 			return nil
 		},
 		ErrorHandler: func(writer http.ResponseWriter, request *http.Request, err error) {
+			// Replying drains the unread upload first, which waits on restic if it has stalled. Interrupting leaves the
+			// connection unable to read another request.
+			request.Context().Value(contextKey{}).(routed).interrupt()
+			writer.Header().Set("Connection", "close")
+			http.Error(writer, "backend unreachable", http.StatusBadGateway)
+
 			if errors.Is(context.Cause(request.Context()), errNetworkChanged) {
-				writer.Header().Set("Connection", "close")
-				http.Error(writer, "backend unreachable", http.StatusBadGateway)
 				log.Warn().Err(err).Msg("Interrupted an upstream request after a network change")
 				return
 			}
-
-			http.Error(writer, "backend unreachable", http.StatusBadGateway)
 			log.Error().Err(err).Msg("backend unreachable")
 		},
 	}

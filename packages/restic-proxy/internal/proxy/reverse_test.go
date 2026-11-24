@@ -70,6 +70,9 @@ func TestReverse_BackendUnreachable(t *testing.T) {
 	if response.StatusCode != http.StatusBadGateway {
 		t.Errorf("expected 502, got %d", response.StatusCode)
 	}
+	if !response.Close {
+		t.Error("expected the 502 to close a connection its interrupt left unable to read another request")
+	}
 }
 
 func TestBufferPool_RoundTrip(t *testing.T) {
