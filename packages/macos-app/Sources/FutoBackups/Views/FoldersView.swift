@@ -23,6 +23,7 @@ struct FoldersView: View {
         }
         if model.config.folders.isEmpty {
           dropZone
+          presets
         } else {
           LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 14), count: 2), spacing: 14) {
             ForEach(model.config.folders, id: \.self) { folder in
@@ -65,6 +66,22 @@ struct FoldersView: View {
           RoundedRectangle(cornerRadius: 16, style: .continuous)
             .strokeBorder(
               Brand.blue.opacity(dropTargeted ? 0.8 : 0.35), style: StrokeStyle(lineWidth: 1.5, dash: [7, 5]))))
+  }
+
+  private var presets: some View {
+    VStack(alignment: .leading, spacing: 10) {
+      Text("Or start from a preset")
+        .font(.system(size: 13, weight: .semibold))
+      HStack(alignment: .top, spacing: 12) {
+        ForEach(FolderBundle.allCases) { bundle in
+          let paths = FolderSelection(home: NSHomeDirectory(), bundle: bundle).paths
+          FolderPresetButton(bundle: bundle) {
+            model.addFolders(paths.map { URL(fileURLWithPath: $0) })
+          }
+          .disabled(paths.isEmpty)
+        }
+      }
+    }
   }
 
   private var skipped: some View {
@@ -274,6 +291,33 @@ private struct ExclusionChip: View {
     .background(Capsule().fill(Color.primary.opacity(isDefault ? 0.06 : 0.1)))
     .help(pattern)
     .onHover { hovering = $0 }
+  }
+}
+
+private struct FolderPresetButton: View {
+  let bundle: FolderBundle
+  let action: () -> Void
+  @Environment(\.isEnabled) private var isEnabled
+
+  var body: some View {
+    Button(action: action) {
+      VStack(alignment: .leading, spacing: 8) {
+        IconTile(systemName: bundle.systemName, tint: Brand.blue, size: 30)
+        Text(bundle.title)
+          .font(.system(size: 13, weight: .semibold))
+        Text(bundle.detail)
+          .font(.system(size: 11))
+          .foregroundStyle(.secondary)
+          .fixedSize(horizontal: false, vertical: true)
+        Spacer(minLength: 0)
+      }
+      .padding(12)
+      .frame(maxWidth: .infinity, minHeight: 120, alignment: .topLeading)
+      .background(CardBackground())
+      .contentShape(Rectangle())
+      .opacity(isEnabled ? 1 : 0.45)
+    }
+    .buttonStyle(.plain)
   }
 }
 
