@@ -1,4 +1,5 @@
 import AppKit
+import BackupsCore
 import SwiftUI
 
 @MainActor
@@ -7,15 +8,19 @@ final class MenuBarResidency {
   static let mainWindowID = "main"
 
   var openMainWindow: (() -> Void)?
-  private var quitRequested = false
+  private var quitPolicy = QuitPolicy()
 
   func quit() {
-    quitRequested = true
+    quitPolicy.chooseQuit()
     NSApp.terminate(nil)
   }
 
-  func allowQuit() {
-    quitRequested = true
+  func updateWillRelaunch() {
+    quitPolicy.updateWillRelaunch()
+  }
+
+  func updateCycleEnded() {
+    quitPolicy.updateCycleEnded()
   }
 
   func showMainWindow() {
@@ -45,11 +50,13 @@ final class MenuBarResidency {
   }
 
   func terminateReply() -> NSApplication.TerminateReply {
-    if quitRequested || Self.quitComesFromSystemOrScript() {
+    switch quitPolicy.decision(for: Self.currentQuitEvent()) {
+    case .quit:
       return .terminateNow
+    case .stayInMenuBar:
+      hideToMenuBar()
+      return .terminateCancel
     }
-    hideToMenuBar()
-    return .terminateCancel
   }
 
   static func launchedAsLoginItem() -> Bool {
@@ -60,17 +67,15 @@ final class MenuBarResidency {
       == OSType(keyAELaunchedAsLogInItem)
   }
 
-  private static func quitComesFromSystemOrScript() -> Bool {
+  private static func currentQuitEvent() -> QuitEvent? {
     guard let event = NSAppleEventManager.shared().currentAppleEvent,
       event.eventClass == AEEventClass(kCoreEventClass), event.eventID == AEEventID(kAEQuitApplication)
-    else { return false }
-    if event.paramDescriptor(forKeyword: AEKeyword(kAEQuitReason)) != nil
-      || event.attributeDescriptor(forKeyword: AEKeyword(kAEQuitReason)) != nil
-    {
-      return true
-    }
+    else { return nil }
     let sender = event.attributeDescriptor(forKeyword: AEKeyword(keySenderPIDAttr))?.int32Value ?? 0
-    return NSRunningApplication(processIdentifier: sender)?.bundleIdentifier != "com.apple.dock"
+    return QuitEvent(
+      hasQuitReason: event.paramDescriptor(forKeyword: AEKeyword(kAEQuitReason)) != nil
+        || event.attributeDescriptor(forKeyword: AEKeyword(kAEQuitReason)) != nil,
+      senderBundleIdentifier: NSRunningApplication(processIdentifier: sender)?.bundleIdentifier)
   }
 
   private var mainWindows: [NSWindow] {

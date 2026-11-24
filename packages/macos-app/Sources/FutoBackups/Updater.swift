@@ -42,6 +42,14 @@ final class Updater {
 
 private final class RelaunchDelegate: NSObject, SPUUpdaterDelegate {
   func updaterWillRelaunchApplication(_ updater: SPUUpdater) {
-    MainActor.assumeIsolated { MenuBarResidency.shared.allowQuit() }
+    MainActor.assumeIsolated { MenuBarResidency.shared.updateWillRelaunch() }
+  }
+
+  func updater(_ updater: SPUUpdater, didAbortWithError error: any Error) {
+    MainActor.assumeIsolated { MenuBarResidency.shared.updateCycleEnded() }
+  }
+
+  func updater(_ updater: SPUUpdater, didFinishUpdateCycleFor updateCheck: SPUUpdateCheck, error: (any Error)?) {
+    MainActor.assumeIsolated { MenuBarResidency.shared.updateCycleEnded() }
   }
 }
