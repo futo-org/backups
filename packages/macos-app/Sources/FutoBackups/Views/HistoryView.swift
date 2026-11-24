@@ -22,11 +22,11 @@ struct HistoryView: View {
           .buttonStyle(SecondaryButtonStyle())
           .disabled(refreshing)
         }
-        if let restoredFolder = model.restoredFolder {
+        if !model.restoredFolders.isEmpty {
           Banner(
             systemName: "checkmark.circle.fill", tint: .green, text: "Restore complete", actionTitle: "Show in Finder",
-            action: { NSWorkspace.shared.activateFileViewerSelecting([restoredFolder]) },
-            dismiss: { model.restoredFolder = nil })
+            action: { NSWorkspace.shared.activateFileViewerSelecting(model.restoredFolders) },
+            dismiss: { model.restoredFolders = [] })
         }
         if case .restoring = model.activity {
           Banner(systemName: "arrow.down.circle.fill", tint: Brand.blue, text: "Restoring files…") {}
@@ -92,7 +92,8 @@ struct HistoryView: View {
     panel.allowsMultipleSelection = false
     panel.prompt = "Restore Here"
     panel.message =
-      "Choose an empty folder to restore the snapshot from \(Format.relative(snapshot.time, inSentence: true))."
+      "Choose where to restore the snapshot from \(Format.relative(snapshot.time, inSentence: true)). "
+      + "Each backed-up folder is restored inside it under its own name."
     if panel.runModal() == .OK, let url = panel.url {
       model.restore(snapshot: snapshot, to: url)
     }

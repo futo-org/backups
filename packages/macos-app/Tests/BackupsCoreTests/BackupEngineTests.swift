@@ -339,9 +339,7 @@ private let backupLines = [statusLineOne, statusLineTwo, summaryLine]
     _ = try await engine.backup(config: testConfig()) { _ in }
   }
   await #expect(throws: EngineError.busy) {
-    try await engine.restore(
-      config: testConfig(), snapshotId: "snap-1", target: URL(fileURLWithPath: "/tmp/out"), include: []
-    ) { _ in }
+    try await engine.restore(config: testConfig(), snapshotId: "snap-1", items: restoreItems) { _ in }
   }
   fixture.restic.releaseBackups()
   let first = try await task.value
@@ -379,30 +377,40 @@ private let backupLines = [statusLineOne, statusLineTwo, summaryLine]
   }
 }
 
-@Test func restoreRunsExpectedCommandAndMapsFailure() async throws {
+private let restoreItems = [
+  RestoreItem(snapshotPath: "/Users/test/Documents", target: URL(fileURLWithPath: "/tmp/out/Documents"))
+]
+
+@Test func restoreRunsOneSubfolderRestorePerItemAndMapsFailure() async throws {
   let fixture = makeFixture()
   let engine = BackupEngine(environment: fixture.environment)
   let log = ActivityLog()
-  try await engine.restore(
-    config: testConfig(), snapshotId: "snap-1", target: URL(fileURLWithPath: "/tmp/out"), include: ["/a", "/b"]
-  ) { log.record($0) }
+  let items = [
+    RestoreItem(snapshotPath: "/Users/test/Documents", target: URL(fileURLWithPath: "/tmp/out/Documents")),
+    RestoreItem(snapshotPath: "/Volumes/Work/Documents", target: URL(fileURLWithPath: "/tmp/out/Documents 2")),
+  ]
+  try await engine.restore(config: testConfig(), snapshotId: "snap-1", items: items) { log.record($0) }
   #expect(log.all == [.restoring])
-  let restoreInvocation = try #require(
-    fixture.restic.invocations().first { $0.arguments.first == "restore" })
+  let restores = fixture.restic.invocations().filter { $0.arguments.first == "restore" }
   #expect(
-    Array(restoreInvocation.arguments.suffix(7))
-      == ["--target", "/tmp/out", "--include", "/a", "--include", "/b", "snap-1"])
+    restores.map { Array($0.arguments.suffix(3)) } == [
+      ["--target", "/tmp/out/Documents", "snap-1:/Users/test/Documents"],
+      ["--target", "/tmp/out/Documents 2", "snap-1:/Volumes/Work/Documents"],
+    ])
   #expect(fixture.proxy.stopCount == 1)
 
   fixture.restic.set(
     ResticScript(exitCode: 1, stderr: #"{"message_type":"exit_error","code":1,"message":"restore failed"}"#),
     for: "restore")
   await #expect(throws: EngineError.restic(code: 1, message: "restore failed")) {
-    try await engine.restore(
-      config: testConfig(), snapshotId: "snap-1", target: URL(fileURLWithPath: "/tmp/out"), include: []
-    ) { _ in }
+    try await engine.restore(config: testConfig(), snapshotId: "snap-1", items: items) { _ in }
   }
+  #expect(fixture.restic.invocations().filter { $0.arguments.first == "restore" }.count == 3)
   #expect(fixture.proxy.stopCount == 2)
+
+  await #expect(throws: EngineError.noFolders) {
+    try await engine.restore(config: testConfig(), snapshotId: "snap-1", items: []) { _ in }
+  }
 }
 
 @Test func storedMasterKeyReturnsStoredValueAndNeverGenerates() async throws {
@@ -421,9 +429,7 @@ private let missingKeyOperations: [(name: String, run: @Sendable (BackupEngine) 
   (
     "restore",
     { engine in
-      try await engine.restore(
-        config: testConfig(), snapshotId: "snap-1", target: URL(fileURLWithPath: "/tmp/out"), include: []
-      ) { _ in }
+      try await engine.restore(config: testConfig(), snapshotId: "snap-1", items: restoreItems) { _ in }
     }
   ),
 ]
@@ -828,9 +834,7 @@ func missingMasterKeyThrowsAndIsNeverGenerated(
 @Test func restoreEmitsStartAndFinishEventsOnSuccessAndFailure() async throws {
   let fixture = makeFixture()
   let engine = BackupEngine(environment: fixture.environment)
-  try await engine.restore(
-    config: testConfig(), snapshotId: "snap-1", target: URL(fileURLWithPath: "/tmp/out"), include: []
-  ) { _ in }
+  try await engine.restore(config: testConfig(), snapshotId: "snap-1", items: restoreItems) { _ in }
   var logs = await fixture.deliveredLogs(engine)
   #expect(
     logs.map(\.summary)
@@ -845,9 +849,7 @@ func missingMasterKeyThrowsAndIsNeverGenerated(
     ResticScript(exitCode: 1, stderr: #"{"message_type":"exit_error","code":1,"message":"restore failed"}"#),
     for: "restore")
   await #expect(throws: EngineError.restic(code: 1, message: "restore failed")) {
-    try await engine.restore(
-      config: testConfig(), snapshotId: "snap-2", target: URL(fileURLWithPath: "/tmp/out"), include: []
-    ) { _ in }
+    try await engine.restore(config: testConfig(), snapshotId: "snap-2", items: restoreItems) { _ in }
   }
   logs = await fixture.deliveredLogs(engine)
   let failure = logs.dropFirst(2)

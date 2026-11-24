@@ -76,14 +76,11 @@ public enum ResticCommand {
     return invocation(context, ["forget"], flags)
   }
 
-  public static func restore(_ context: ResticContext, snapshotId: String, target: String, include: [String])
-    -> ResticInvocation
-  {
-    var flags = ["--target", target]
-    for path in include {
-      flags += ["--include", path]
-    }
-    return invocation(context, ["restore"], flags, positional: [snapshotId])
+  public static func restore(
+    _ context: ResticContext, snapshotId: String, subfolder: String? = nil, target: String
+  ) -> ResticInvocation {
+    let source = subfolder.map { "\(snapshotId):\($0)" } ?? snapshotId
+    return invocation(context, ["restore"], ["--target", target], positional: [source])
   }
 
   public static func stats(_ context: ResticContext) -> ResticInvocation {

@@ -565,7 +565,7 @@ public actor BackupEngine {
   }
 
   public func restore(
-    config: AppConfig, snapshotId: String, target: URL, include: [String],
+    config: AppConfig, snapshotId: String, items: [RestoreItem],
     onActivity: @escaping @Sendable (EngineActivity) -> Void
   ) async throws {
     if running {
@@ -573,6 +573,9 @@ public actor BackupEngine {
     }
     guard let repositoryId = config.repositoryId else {
       throw EngineError.noRepository
+    }
+    guard !items.isEmpty else {
+      throw EngineError.noFolders
     }
     let token = try accessToken()
     let masterKey = try requireMasterKey()
@@ -588,24 +591,28 @@ public actor BackupEngine {
       "snapshotId": .string(snapshotId),
     ]
     await report(api, config: config, "Running repository snapshot restore", restoreData)
-    let result: ResticResult
-    do {
-      result = try await environment.restic.run(
-        ResticCommand.restore(session.context, snapshotId: snapshotId, target: target.path, include: include),
-        onLine: { _ in })
-    } catch {
-      await session.proxy.stop()
-      restoreData["error"] = .string(error is CancellationError ? "cancelled" : String(describing: error))
-      await report(api, config: config, "Finished repository snapshot restore", restoreData)
-      throw error
+    for item in items {
+      let result: ResticResult
+      do {
+        result = try await environment.restic.run(
+          ResticCommand.restore(
+            session.context, snapshotId: snapshotId, subfolder: item.snapshotPath, target: item.target.path),
+          onLine: { _ in })
+      } catch {
+        await session.proxy.stop()
+        restoreData["error"] = .string(error is CancellationError ? "cancelled" : String(describing: error))
+        await report(api, config: config, "Finished repository snapshot restore", restoreData)
+        throw error
+      }
+      guard result.exitCode == ResticExitCode.success else {
+        await session.proxy.stop()
+        let detail = ResticOutput.errorMessage(stderr: result.stderr, exitCode: result.exitCode)
+        restoreData["error"] = .string(detail)
+        await report(api, config: config, "Finished repository snapshot restore", restoreData)
+        throw EngineError.restic(code: result.exitCode, message: detail)
+      }
     }
     await session.proxy.stop()
-    guard result.exitCode == ResticExitCode.success else {
-      let detail = ResticOutput.errorMessage(stderr: result.stderr, exitCode: result.exitCode)
-      restoreData["error"] = .string(detail)
-      await report(api, config: config, "Finished repository snapshot restore", restoreData)
-      throw EngineError.restic(code: result.exitCode, message: detail)
-    }
     await report(api, config: config, "Finished repository snapshot restore", restoreData)
   }
 

@@ -30,7 +30,7 @@ final class AppModel {
   var nextRun: Date?
   var setupError: String?
   var signedIn = false
-  var restoredFolder: URL?
+  var restoredFolders: [URL] = []
   var recoveryKeyStep: RecoveryKeyStep?
   var sessionLoaded = false
   var hasSession = false
@@ -471,7 +471,7 @@ final class AppModel {
     snapshots = []
     signedIn = false
     hasSession = false
-    restoredFolder = nil
+    restoredFolders = []
     recoveryKeyStep = nil
     pendingRecoveryKey = nil
     loginGeneration += 1
@@ -639,10 +639,11 @@ final class AppModel {
     let configSnapshot = config
     let generation = sessionGeneration
     activity = .restoring
-    restoredFolder = nil
+    restoredFolders = []
+    let items = RestorePlan.items(paths: snapshot.paths, into: url)
     operationTask = Task {
       do {
-        try await engine.restore(config: configSnapshot, snapshotId: snapshot.id, target: url, include: []) {
+        try await engine.restore(config: configSnapshot, snapshotId: snapshot.id, items: items) {
           activity in
           Task { @MainActor in
             guard self.operationTask != nil, generation == self.sessionGeneration else { return }
@@ -654,7 +655,7 @@ final class AppModel {
           return
         }
         self.finishOperation()
-        self.restoredFolder = snapshot.paths.first.map { url.appendingPathComponent($0) } ?? url
+        self.restoredFolders = items.map(\.target)
       } catch {
         guard generation == self.sessionGeneration else {
           self.finishOperation()

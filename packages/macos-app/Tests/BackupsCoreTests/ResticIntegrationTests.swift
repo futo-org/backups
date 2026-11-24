@@ -101,13 +101,14 @@ struct ResticIntegrationTests {
     #expect(statsResult.exitCode == ResticExitCode.success)
     #expect(try ResticOutput.parseStatsTotalSize(statsResult.stdout) > 0)
 
+    let item = try #require(RestorePlan.items(paths: snapshots[0].paths, into: restoreDirectory).first)
     let restore = try await runner.run(
-      ResticCommand.restore(context, snapshotId: snapshotId, target: restoreDirectory.path, include: []),
+      ResticCommand.restore(
+        context, snapshotId: snapshotId, subfolder: item.snapshotPath, target: item.target.path),
       onLine: { _ in })
     #expect(restore.exitCode == ResticExitCode.success)
-    let restoredNames = try fileNameSet(in: restoreDirectory)
-    #expect(restoredNames.isSuperset(of: ["a.txt", "b.txt", "c.txt"]))
-    #expect(!restoredNames.contains("secret.txt"))
+    let restored = try fileManager.contentsOfDirectory(atPath: restoreDirectory.appendingPathComponent("source").path)
+    #expect(Set(restored) == ["a.txt", "b.txt", "c.txt"])
 
     try Data("more".utf8).write(
       to: sourceDirectory.appendingPathComponent("d.txt"))
@@ -172,12 +173,14 @@ struct ResticIntegrationTests {
     let snapshotId = try #require(summaries.get()?.snapshotId)
 
     let restore = try await runner.run(
-      ResticCommand.restore(context, snapshotId: snapshotId, target: restoreDirectory.path, include: []),
+      ResticCommand.restore(
+        context, snapshotId: snapshotId, subfolder: "/Users/x/Docs",
+        target: restoreDirectory.appendingPathComponent("Docs").path),
       onLine: { _ in })
     #expect(restore.exitCode == ResticExitCode.success)
-    let restoredNames = try fileNameSet(in: restoreDirectory)
-    #expect(restoredNames.contains("a.txt"))
-    #expect(!restoredNames.contains("c.txt"))
+    let restoredDocs = restoreDirectory.appendingPathComponent("Docs")
+    #expect(fileManager.fileExists(atPath: restoredDocs.appendingPathComponent("a.txt").path))
+    #expect(try fileNameSet(in: restoreDirectory) == ["a.txt"])
 
     let snapshotsResult = try await runner.run(ResticCommand.snapshots(context), onLine: { _ in })
     #expect(snapshotsResult.exitCode == ResticExitCode.success)

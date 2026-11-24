@@ -83,18 +83,14 @@ private let commandCases: [CommandCase] = [
     arguments: ["forget", "--json"] + common
       + ["--host", "host-a", "--group-by", "host", "--keep-within", "30d", "--prune", "--pack-size", "4"]),
   CommandCase(
-    name: "restore without includes",
-    invocation: ResticCommand.restore(plainContext, snapshotId: "abc123", target: "/target", include: []),
+    name: "restore whole snapshot",
+    invocation: ResticCommand.restore(plainContext, snapshotId: "abc123", target: "/target"),
     arguments: ["restore", "--json"] + common + ["--target", "/target", "abc123"]),
   CommandCase(
-    name: "restore with includes",
+    name: "restore subfolder",
     invocation: ResticCommand.restore(
-      plainContext,
-      snapshotId: "abc123",
-      target: "/target",
-      include: ["/p/one", "/p/two"]),
-    arguments: ["restore", "--json"] + common
-      + ["--target", "/target", "--include", "/p/one", "--include", "/p/two", "abc123"]),
+      plainContext, snapshotId: "abc123", subfolder: "/Users/x/My Docs", target: "/target/My Docs"),
+    arguments: ["restore", "--json"] + common + ["--target", "/target/My Docs", "abc123:/Users/x/My Docs"]),
 ]
 
 @Test(arguments: commandCases)
