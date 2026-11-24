@@ -16,9 +16,9 @@ struct OverviewView: View {
   var body: some View {
     ScrollView {
       VStack(alignment: .leading, spacing: 18) {
-        StatusHero(progress: model.backupProgress, showFolders: showFolders)
+        StatusHero(progress: model.activityProgress, showFolders: showFolders)
         if model.activity == .backingUp {
-          LiveUploadSpeedCard(progress: model.backupProgress)
+          LiveUploadSpeedCard(progress: model.activityProgress)
         }
         if model.activity == nil, let skipped = model.config.lastRun?.cloudOnlySkipped {
           CloudOnlyNotice(skipped: skipped)
@@ -190,11 +190,11 @@ struct OverviewView: View {
 
 struct StatusHero: View {
   @Environment(AppModel.self) private var model
-  let progress: BackupProgressStore
+  let progress: ActivityProgressStore
   let showFolders: () -> Void
 
   var body: some View {
-    let status = StatusSummary(model: model, progress: progress.progress)
+    let status = StatusSummary(model: model, progress: progress.progress, restore: progress.restore)
     HStack(spacing: 30) {
       StatusRing(progress: status.progress, busy: status.busy, symbol: status.symbol, tint: status.tint)
       VStack(alignment: .leading, spacing: 8) {
@@ -248,7 +248,7 @@ struct StatusHero: View {
 }
 
 struct LiveUploadSpeedCard: View {
-  let progress: BackupProgressStore
+  let progress: ActivityProgressStore
 
   var body: some View {
     if let speed = progress.speed {

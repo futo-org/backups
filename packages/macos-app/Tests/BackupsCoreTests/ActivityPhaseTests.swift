@@ -5,6 +5,8 @@ import Testing
 
 private let progress = BackupProgress(percentDone: 0.42, totalBytes: 100, bytesDone: 42)
 private let speed = UploadSpeed(uploadedBytes: 42, bytesPerSecond: 10)
+private let step = RestoreStep(
+  part: 1, partCount: 2, name: "Documents", progress: RestoreProgress(percentDone: 0.5, totalFiles: 2))
 
 @Test(arguments: [
   (EngineActivity.preparing, ActivityPhase.preparing),
@@ -12,7 +14,7 @@ private let speed = UploadSpeed(uploadedBytes: 42, bytesPerSecond: 10)
   (.finishing(.removingDiskSnapshot), .finishing(.removingDiskSnapshot)),
   (.finishing(.checkingCloudOnlyFiles), .finishing(.checkingCloudOnlyFiles)),
   (.pruning, .pruning),
-  (.restoring, .restoring),
+  (.restoring(step), .restoring),
   (.changingRecoveryKey, .changingRecoveryKey),
 ])
 func phaseDropsTheProgressPayload(activity: EngineActivity, phase: ActivityPhase) {
@@ -25,11 +27,13 @@ func phaseDropsTheProgressPayload(activity: EngineActivity, phase: ActivityPhase
   #expect(EngineActivity.backingUp(progress, speed).phase == EngineActivity.backingUp(later, UploadSpeed()).phase)
 }
 
-@Test func onlyBackingUpCarriesASample() {
-  #expect(EngineActivity.backingUp(progress, speed).backupSample == BackupSample(progress: progress, speed: speed))
-  #expect(EngineActivity.preparing.backupSample == nil)
-  #expect(EngineActivity.finishing(.removingDiskSnapshot).backupSample == nil)
-  #expect(EngineActivity.restoring.backupSample == nil)
+@Test func onlyBackingUpAndRestoringCarryASample() {
+  #expect(EngineActivity.backingUp(progress, speed).sample == .backup(BackupSample(progress: progress, speed: speed)))
+  #expect(EngineActivity.restoring(step).sample == .restore(step))
+  #expect(EngineActivity.preparing.sample == nil)
+  #expect(EngineActivity.finishing(.removingDiskSnapshot).sample == nil)
+  #expect(EngineActivity.pruning.sample == nil)
+  #expect(EngineActivity.changingRecoveryKey.sample == nil)
 }
 
 @Test(arguments: [

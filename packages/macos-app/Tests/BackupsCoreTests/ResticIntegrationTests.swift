@@ -38,17 +38,17 @@ private func fileNameSet(in directory: URL) throws -> Set<String> {
   return names
 }
 
-private final class SummaryCollector: @unchecked Sendable {
+private final class LatestValue<Value: Sendable>: @unchecked Sendable {
   private let lock = NSLock()
-  private var value: BackupSummary?
+  private var value: Value?
 
-  func set(_ summary: BackupSummary) {
+  func set(_ newValue: Value) {
     lock.lock()
-    value = summary
+    value = newValue
     lock.unlock()
   }
 
-  func get() -> BackupSummary? {
+  func get() -> Value? {
     lock.lock()
     defer { lock.unlock() }
     return value
@@ -149,7 +149,7 @@ struct ResticIntegrationTests {
     let initialized = try await runner.run(ResticCommand.initialize(context), onLine: { _ in })
     #expect(initialized.exitCode == ResticExitCode.success)
 
-    let summaries = SummaryCollector()
+    let summaries = LatestValue<BackupSummary>()
     let backup = try await runner.run(
       ResticCommand.backup(context, paths: [sourceDirectory.path], excludes: [excluded.path], host: host)
     ) { line in
@@ -174,10 +174,21 @@ struct ResticIntegrationTests {
     let target = try RestorePlan.claimTarget(
       for: item, avoiding: [], createDirectory: RestorePlan.createDirectoryExclusively)
     #expect(target.path == restoreDirectory.appendingPathComponent("source").path)
+    let restoreProgress = LatestValue<RestoreProgress>()
     let restore = try await runner.run(
-      ResticCommand.restore(context, snapshotId: snapshotId, subfolder: item.snapshotPath, target: target.path),
-      onLine: { _ in })
+      ResticCommand.restore(context, snapshotId: snapshotId, subfolder: item.snapshotPath, target: target.path)
+    ) { line in
+      if let progress = RestoreProgress.parse(line) {
+        restoreProgress.set(progress)
+      }
+    }
     #expect(restore.exitCode == ResticExitCode.success)
+    let finalProgress = try #require(restoreProgress.get())
+    #expect(finalProgress.percentDone == 1)
+    #expect(finalProgress.totalFiles == 3)
+    #expect(finalProgress.filesRestored == 3)
+    #expect(finalProgress.totalBytes > 0)
+    #expect(finalProgress.bytesRestored == finalProgress.totalBytes)
     let restored = try fileManager.contentsOfDirectory(atPath: target.path)
     #expect(Set(restored) == ["a.txt", "b.txt", "c.txt"])
     for name in ["a.txt", "b.txt", "c.txt"] {
@@ -246,7 +257,7 @@ struct ResticIntegrationTests {
     let initialized = try await runner.run(ResticCommand.initialize(context), onLine: { _ in })
     #expect(initialized.exitCode == ResticExitCode.success)
 
-    let summaries = SummaryCollector()
+    let summaries = LatestValue<BackupSummary>()
     let backup = try await runner.run(
       ResticCommand.backup(
         context,
@@ -311,7 +322,7 @@ struct ResticIntegrationTests {
       cacheDirectory: resolvedRoot.appendingPathComponent("cache"), home: resolvedRoot.path, connections: 2)
     let runner = ResticRunner(executable: executable)
     #expect(try await runner.run(ResticCommand.initialize(context), onLine: { _ in }).exitCode == 0)
-    let summaries = SummaryCollector()
+    let summaries = LatestValue<BackupSummary>()
     let backup = try await runner.run(
       ResticCommand.backup(
         context, paths: ["Users/x/Docs"], excludes: [], host: "h", currentDirectory: mount.path,
@@ -514,7 +525,7 @@ struct ResticIntegrationTests {
       ["Movies"],
     ]
     for excludes in cases {
-      let summaries = SummaryCollector()
+      let summaries = LatestValue<BackupSummary>()
       let backup = try await runner.run(
         ResticCommand.backup(context, paths: [docs.path], excludes: excludes, host: "h")
       ) { line in

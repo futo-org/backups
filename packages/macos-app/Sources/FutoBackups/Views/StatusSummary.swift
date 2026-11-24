@@ -20,7 +20,7 @@ struct StatusSummary {
   var menuBarSymbol: String
 
   @MainActor
-  init(model: AppModel, progress: BackupProgress?) {
+  init(model: AppModel, progress: BackupProgress?, restore: RestoreStep? = nil) {
     if model.isCancelling, model.activity != nil {
       self.init(
         title: "Cancelling…", subtitle: "Stopping safely…", symbol: "xmark", tint: Brand.blue, busy: true,
@@ -56,9 +56,12 @@ struct StatusSummary {
         tint: Brand.blue, busy: true, action: .none, menuBarSymbol: "arrow.clockwise.icloud")
       return
     case .restoring:
+      let fraction = restore?.fraction
       self.init(
-        title: "Restoring", subtitle: "Bringing your files back…", symbol: "arrow.down", tint: Brand.blue,
-        busy: true, action: .cancel, menuBarSymbol: "arrow.down.circle")
+        title: restore?.title ?? "Restoring",
+        subtitle: restore?.subtitle { Format.bytes($0) } ?? "Bringing your files back…", symbol: "arrow.down",
+        tint: Brand.blue, progress: fraction, busy: fraction == nil, action: .cancel,
+        menuBarSymbol: "arrow.down.circle")
       return
     case .changingRecoveryKey:
       self.init(

@@ -28,7 +28,7 @@ private let standardEnvironment = [
   "PATH": "/usr/bin:/bin:/usr/sbin:/sbin",
 ]
 
-private let backupEnvironment = standardEnvironment.merging(["RESTIC_PROGRESS_FPS": "2"]) { $1 }
+private let progressEnvironment = standardEnvironment.merging(["RESTIC_PROGRESS_FPS": "2"]) { $1 }
 
 struct CommandCase: Sendable {
   var name: String
@@ -79,7 +79,7 @@ private let commandCases: [CommandCase] = [
         "--host", "host-a", "--group-by", "host", "--exclude-caches", "--exclude-cloud-files", "--", "/p/one",
         "/p/two",
       ],
-    environment: backupEnvironment, retainsStdout: false),
+    environment: progressEnvironment, retainsStdout: false),
   CommandCase(
     name: "backup full",
     invocation: ResticCommand.backup(
@@ -92,7 +92,7 @@ private let commandCases: [CommandCase] = [
         "--host", "host-a", "--group-by", "host", "--exclude-caches", "--exclude-cloud-files", "--exclude",
         "/p/skip-a", "--exclude", "/p/skip-b", "--pack-size", "4", "--walk-concurrency", "2", "--", "/p/one",
       ],
-    environment: backupEnvironment, retainsStdout: false),
+    environment: progressEnvironment, retainsStdout: false),
   CommandCase(
     name: "forget without pack size",
     invocation: ResticCommand.forget(
@@ -109,7 +109,7 @@ private let commandCases: [CommandCase] = [
     name: "restore whole snapshot",
     invocation: ResticCommand.restore(plainContext, snapshotId: "abc123", target: "/target"),
     arguments: ["restore", "--json"] + common + ["--target", "/target", "--overwrite", "never", "--", "abc123"],
-    retainsStdout: false),
+    environment: progressEnvironment, retainsStdout: false),
   CommandCase(
     name: "restore subfolder",
     invocation: ResticCommand.restore(
@@ -117,7 +117,7 @@ private let commandCases: [CommandCase] = [
     arguments: ["restore", "--json"] + common + [
       "--target", "/target/My Docs", "--overwrite", "never", "--", "abc123:/Users/x/My Docs",
     ],
-    retainsStdout: false),
+    environment: progressEnvironment, retainsStdout: false),
   CommandCase(
     name: "restore children of a folder",
     invocation: ResticCommand.restore(
@@ -127,7 +127,7 @@ private let commandCases: [CommandCase] = [
       "--target", "/target/.staging", "--overwrite", "never", "--include", "/a.txt", "--include", "/Sub Folder",
       "--", "abc123:/Users/x/My Docs",
     ],
-    retainsStdout: false),
+    environment: progressEnvironment, retainsStdout: false),
   CommandCase(
     name: "ls one directory",
     invocation: ResticCommand.ls(plainContext, snapshotId: "abc123", directory: "/Users/x/My Docs"),

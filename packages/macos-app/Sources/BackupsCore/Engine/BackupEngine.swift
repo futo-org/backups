@@ -758,12 +758,14 @@ public actor BackupEngine {
     config: AppConfig, snapshotId: String, items: [RestoreItem],
     onActivity: @escaping @Sendable (EngineActivity) -> Void
   ) async throws -> [URL] {
-    try await restoring(config: config, snapshotId: snapshotId, isEmpty: items.isEmpty, onActivity: onActivity) {
-      session in
+    try await restoring(config: config, snapshotId: snapshotId, isEmpty: items.isEmpty) { session in
       var restored: [URL] = []
-      for item in items {
+      for (index, item) in items.enumerated() {
+        let reporter = RestoreReporter(
+          part: index + 1, of: items.count, batch: .folder(item), onActivity: onActivity)
         restored.append(
-          try await self.restoreFolder(item, snapshotId: snapshotId, session: session, avoiding: restored))
+          try await self.restoreFolder(
+            item, snapshotId: snapshotId, session: session, reporter: reporter, avoiding: restored))
       }
       return restored
     }
@@ -775,18 +777,22 @@ public actor BackupEngine {
     onActivity: @escaping @Sendable (EngineActivity) -> Void
   ) async throws -> [URL] {
     try await restoring(
-      config: config, snapshotId: snapshotId, isEmpty: selection.isEmpty, onActivity: onActivity,
+      config: config, snapshotId: snapshotId, isEmpty: selection.isEmpty,
       extraData: ["itemCount": .int(Int64(selection.count))]
     ) { session in
       var restored: [URL] = []
-      for batch in RestorePlan.batches(for: selection, into: target) {
+      let batches = RestorePlan.batches(for: selection, into: target)
+      for (index, batch) in batches.enumerated() {
+        let reporter = RestoreReporter(part: index + 1, of: batches.count, batch: batch, onActivity: onActivity)
         switch batch {
         case .folder(let item):
           restored.append(
-            try await self.restoreFolder(item, snapshotId: snapshotId, session: session, avoiding: restored))
+            try await self.restoreFolder(
+              item, snapshotId: snapshotId, session: session, reporter: reporter, avoiding: restored))
         case .children(let children, let parent):
           restored += try await self.restoreChildren(
-            children, of: parent, into: target, snapshotId: snapshotId, session: session, avoiding: restored)
+            children, of: parent, into: target, snapshotId: snapshotId, session: session, reporter: reporter,
+            avoiding: restored)
         }
       }
       return restored
@@ -795,7 +801,6 @@ public actor BackupEngine {
 
   private func restoring(
     config: AppConfig, snapshotId: String, isEmpty: Bool,
-    onActivity: @escaping @Sendable (EngineActivity) -> Void,
     extraData: [String: TelemetryValue] = [:],
     _ body: (Session) async throws -> [URL]
   ) async throws -> [URL] {
@@ -816,7 +821,6 @@ public actor BackupEngine {
       config: config, repositoryId: repositoryId, masterKey: masterKey, token: token)
     let server = try await serverInfo(for: config.serverURL)
     let api = environment.makeAPI(server.apiRoot, token)
-    onActivity(.restoring)
     var restoreData: [String: TelemetryValue] = [
       "repositoryId": .string(repositoryId),
       "snapshotId": .string(snapshotId),
@@ -837,20 +841,20 @@ public actor BackupEngine {
   }
 
   private func restoreFolder(
-    _ item: RestoreItem, snapshotId: String, session: Session, avoiding restored: [URL]
+    _ item: RestoreItem, snapshotId: String, session: Session, reporter: RestoreReporter, avoiding restored: [URL]
   ) async throws -> URL {
     let target = try RestorePlan.claimTarget(
       for: item, avoiding: takenNames(restored), createDirectory: environment.createRestoreDirectory)
     try await runRestore(
       ResticCommand.restore(
         session.context, snapshotId: snapshotId, subfolder: item.snapshotPath, target: target.path),
-      session: session)
+      session: session, reporter: reporter)
     return target
   }
 
   private func restoreChildren(
     _ children: [SnapshotEntry], of parent: String, into target: URL, snapshotId: String, session: Session,
-    avoiding restored: [URL]
+    reporter: RestoreReporter, avoiding restored: [URL]
   ) async throws -> [URL] {
     let staging = try RestorePlan.claimStaging(in: target, createDirectory: environment.createRestoreDirectory)
     do {
@@ -858,7 +862,7 @@ public actor BackupEngine {
         ResticCommand.restore(
           session.context, snapshotId: snapshotId, subfolder: parent, target: staging.path,
           includingChildren: children.map(\.name)),
-        session: session)
+        session: session, reporter: reporter)
       var moved: [URL] = []
       for child in children {
         let source = staging.appendingPathComponent(child.name)
@@ -875,8 +879,9 @@ public actor BackupEngine {
     }
   }
 
-  private func runRestore(_ invocation: ResticInvocation, session: Session) async throws {
-    let result = try await runRestic(invocation, interrupting: session.proxy)
+  private func runRestore(_ invocation: ResticInvocation, session: Session, reporter: RestoreReporter) async throws {
+    reporter.started()
+    let result = try await runRestic(invocation, interrupting: session.proxy, onLine: reporter.received)
     guard result.exitCode == ResticExitCode.success else {
       throw EngineError.restic(
         code: result.exitCode, message: ResticOutput.errorMessage(stderr: result.stderr, exitCode: result.exitCode))
@@ -1089,6 +1094,27 @@ final class BackingUpActivity: @unchecked Sendable {
       let speed = meter.record(uploadedBytes, at: instant)
       return progress.map { .backingUp($0, speed) }
     }
+  }
+}
+
+struct RestoreReporter: Sendable {
+  let step: RestoreStep
+  let onActivity: @Sendable (EngineActivity) -> Void
+
+  init(part: Int, of partCount: Int, batch: RestoreBatch, onActivity: @escaping @Sendable (EngineActivity) -> Void) {
+    step = RestoreStep(part: part, partCount: partCount, name: batch.name)
+    self.onActivity = onActivity
+  }
+
+  func started() {
+    onActivity(.restoring(step))
+  }
+
+  func received(_ line: String) {
+    guard let progress = RestoreProgress.parse(line) else { return }
+    var step = step
+    step.progress = progress
+    onActivity(.restoring(step))
   }
 }
 

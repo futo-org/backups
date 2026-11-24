@@ -557,7 +557,11 @@ private let restoreItems = [
     log.record($0)
   }
   #expect(restored == items.map(\.target))
-  #expect(log.all == [.restoring])
+  #expect(
+    log.all == [
+      .restoring(RestoreStep(part: 1, partCount: 2, name: "Documents")),
+      .restoring(RestoreStep(part: 2, partCount: 2, name: "Documents")),
+    ])
   let restores = fixture.restic.invocations().filter { $0.arguments.first == "restore" }
   #expect(
     restores.map { Array($0.arguments.suffix(6)) } == [
@@ -579,6 +583,79 @@ private let restoreItems = [
   await #expect(throws: EngineError.noFolders) {
     try await engine.restore(config: testConfig(), snapshotId: "snap-1", items: []) { _ in }
   }
+}
+
+private let restoreCountingLine =
+  #"{"message_type":"status","percent_done":0,"total_files":42,"total_bytes":80000003}"#
+private let restoreStatusLine =
+  #"{"message_type":"status","seconds_elapsed":1,"percent_done":0.4558744579047078,"total_files":42,"files_restored":16,"total_bytes":80000003,"bytes_restored":36469958}"#
+private let restoreSummaryLine =
+  #"{"message_type":"summary","seconds_elapsed":2,"total_files":42,"files_restored":42,"total_bytes":80000003,"bytes_restored":80000003}"#
+private let restoreCounting = RestoreProgress(totalFiles: 42, totalBytes: 80_000_003)
+private let restoreHalfway = RestoreProgress(
+  percentDone: 0.4558744579047078, totalFiles: 42, filesRestored: 16, totalBytes: 80_000_003,
+  bytesRestored: 36_469_958)
+private let restoreDone = RestoreProgress(
+  percentDone: 1, totalFiles: 42, filesRestored: 42, totalBytes: 80_000_003, bytesRestored: 80_000_003)
+
+@Test func restoreReportsEachResticRunAsOnePartWithItsOwnProgress() async throws {
+  let fixture = makeFixture()
+  fixture.restic.set(
+    ResticScript(
+      lines: [
+        restoreCountingLine, restoreStatusLine,
+        #"{"message_type":"verbose_status","action":"restored","item":"/a","size":3}"#, restoreSummaryLine,
+      ]),
+    for: "restore")
+  let engine = BackupEngine(environment: fixture.environment)
+  let log = ActivityLog()
+  let items = [
+    RestoreItem(snapshotPath: "/Users/test/Documents", target: URL(fileURLWithPath: "/tmp/out/Documents")),
+    RestoreItem(snapshotPath: "/Users/test/Pictures", target: URL(fileURLWithPath: "/tmp/out/Pictures")),
+  ]
+  try await engine.restore(config: testConfig(), snapshotId: "snap-1", items: items) { log.record($0) }
+  let parts = [(1, "Documents"), (2, "Pictures")]
+  #expect(
+    log.all
+      == parts.flatMap { part, name in
+        [nil, restoreCounting, restoreHalfway, restoreDone].map {
+          EngineActivity.restoring(RestoreStep(part: part, partCount: 2, name: name, progress: $0))
+        }
+      })
+}
+
+@Test func cancellingAMultiPartRestoreStopsAtThePartItReached() async throws {
+  let fixture = makeFixture()
+  let proxy = fixture.proxy
+  fixture.restic.set(
+    ResticScript(
+      lines: [restoreStatusLine],
+      afterLines: {
+        await waitUntil { proxy.networkChangeCount > 0 }
+      }, error: CancellationError()),
+    for: "restore")
+  let engine = BackupEngine(environment: fixture.environment)
+  let log = ActivityLog()
+  let items = [
+    RestoreItem(snapshotPath: "/Users/test/Documents", target: URL(fileURLWithPath: "/tmp/out/Documents")),
+    RestoreItem(snapshotPath: "/Users/test/Pictures", target: URL(fileURLWithPath: "/tmp/out/Pictures")),
+  ]
+  let task = Task {
+    try await engine.restore(config: testConfig(), snapshotId: "snap-1", items: items) { log.record($0) }
+  }
+  await log.waitForCount(2)
+  task.cancel()
+  await #expect(throws: CancellationError.self) {
+    try await task.value
+  }
+  #expect(
+    log.all == [
+      .restoring(RestoreStep(part: 1, partCount: 2, name: "Documents")),
+      .restoring(RestoreStep(part: 1, partCount: 2, name: "Documents", progress: restoreHalfway)),
+    ])
+  #expect(fixture.restic.commands().filter { $0 == "restore" }.count == 1)
+  #expect(proxy.networkChangeCount == 1)
+  #expect(proxy.stopCount == 1)
 }
 
 @Test func restoreClaimsTheNextFreeTargetWhenOneAppearedAfterPlanning() async throws {
@@ -674,7 +751,11 @@ private let restoreItems = [
     into: URL(fileURLWithPath: "/tmp/out")
   ) { log.record($0) }
   #expect(restored.map(\.path) == ["/tmp/out/report 2.pdf", "/tmp/out/Work", "/tmp/out/Trip"])
-  #expect(log.all == [.restoring])
+  #expect(
+    log.all == [
+      .restoring(RestoreStep(part: 1, partCount: 2, name: "Documents")),
+      .restoring(RestoreStep(part: 2, partCount: 2, name: "Trip")),
+    ])
   let restores = fixture.restic.invocations().filter { $0.arguments.first == "restore" }
   #expect(
     restores.map { Array($0.arguments.drop { $0 != "--target" }) } == [
