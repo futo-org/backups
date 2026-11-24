@@ -869,6 +869,15 @@ final class AppModel {
     }
   }
 
+  var canBackUpNow: Bool {
+    signedIn && !config.folders.isEmpty && activity == nil && operationTask == nil && !isResetting
+      && backupDeletionTask == nil
+  }
+
+  var canCancelActivity: Bool {
+    operationTask != nil && !isCancelling && activity?.isCancellable == true
+  }
+
   func cancelBackup() {
     guard let operationTask, activity?.isCancellable ?? true else { return }
     isCancelling = true

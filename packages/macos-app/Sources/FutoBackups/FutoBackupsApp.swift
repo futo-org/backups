@@ -28,6 +28,7 @@ struct FutoBackupsApp: App {
         Button("Check for Updates…") { updater.checkForUpdates() }
           .disabled(!updater.canCheckForUpdates)
       }
+      AppCommands(model: model)
     }
     MenuBarExtra {
       MenuBarContent()
