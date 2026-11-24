@@ -127,7 +127,8 @@ public struct AppConfig: Codable, Equatable, Sendable {
     guard seen < Self.currentExcludeDefaultsVersion else { return false }
     for pattern in Self.defaultExcludesByVersion.dropFirst(seen).flatMap({ $0 }) {
       let expanded = Self.expandingHome(pattern, home: home)
-      if !excludes.contains(expanded) {
+      let coversChosenFolder = ExcludePattern(expanded).map { folders.contains(where: $0.matches) } ?? false
+      if !excludes.contains(expanded), !coversChosenFolder {
         excludes.append(expanded)
       }
     }

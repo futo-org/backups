@@ -387,3 +387,16 @@ func forgetRepositoryWithoutRepository() {
   #expect(config.excludes.contains("/Users/t/Library/Biome"))
   #expect(config.excludeDefaultsVersion == AppConfig.currentExcludeDefaultsVersion)
 }
+
+@Test func newDefaultsSkipPatternsThatWouldExcludeAChosenFolder() {
+  var config = AppConfig.defaults(host: "mac", home: "/Users/t")
+  config.excludeDefaultsVersion = 2
+  config.excludes = Array(config.excludes.prefix(AppConfig.defaultExcludesByVersion[0...1].joined().count))
+  config.folders = ["/Users/t/Library/Biome/streams", "/Users/t/Library/Trial", "/Users/t/Documents"]
+  let changed = config.addNewDefaultExcludes(home: "/Users/t")
+  #expect(changed)
+  #expect(!config.excludes.contains("/Users/t/Library/Biome"))
+  #expect(!config.excludes.contains("/Users/t/Library/Trial"))
+  #expect(config.excludes.contains("/Users/t/Library/Application Support/FileProvider"))
+  #expect(config.excludes.contains("/Users/t/Library/DuetExpertCenter"))
+}
