@@ -740,7 +740,7 @@ final class AppModel {
   }
 
   func cancelBackup() {
-    guard let operationTask else { return }
+    guard let operationTask, activity?.isCancellable ?? true else { return }
     isCancelling = true
     operationTask.cancel()
   }

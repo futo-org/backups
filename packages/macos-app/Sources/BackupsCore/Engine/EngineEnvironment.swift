@@ -91,6 +91,10 @@ public enum EngineActivity: Equatable, Sendable {
   case pruning
   case restoring
   case changingRecoveryKey
+
+  public var isCancellable: Bool {
+    self != .changingRecoveryKey
+  }
 }
 
 final class OnceFlag: Sendable {

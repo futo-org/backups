@@ -50,7 +50,7 @@ struct MenuBarContent: View {
           }
           .buttonStyle(PrimaryButtonStyle())
           .disabled(model.config.folders.isEmpty)
-        } else if !model.isCancelling {
+        } else if !model.isCancelling, model.activity?.isCancellable == true {
           Button {
             model.cancelBackup()
           } label: {
