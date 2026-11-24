@@ -45,6 +45,8 @@ final class AppModel {
   var hasMasterKey = false
   var hasFullDiskAccess = FullDiskAccess.isGranted()
   var configLoadFailure: String?
+  var backupDeletion: BackupDeletionState = .idle
+  var isResetting = false
 
   private let store = ConfigStore.standard()
   private let vault = SecretVault(store: KeychainSecretStore())
@@ -65,6 +67,7 @@ final class AppModel {
   private var configNeedsMovingAside: Bool
   private var pendingBootstrapError: String? = nil
   private var appActiveObserver: (any NSObjectProtocol)?
+  private var backupDeletionTask: Task<Void, Never>?
 
   init() {
     let home = NSHomeDirectory()
@@ -567,7 +570,7 @@ final class AppModel {
   }
 
   func backupNow(scheduled: Bool = false) {
-    guard activity == nil, operationTask == nil else { return }
+    guard activity == nil, operationTask == nil, !isResetting, backupDeletionTask == nil else { return }
     guard engine != nil else {
       lastError = missingHelperText
       return
@@ -641,6 +644,126 @@ final class AppModel {
 
   func cancelBackup() {
     operationTask?.cancel()
+  }
+
+  func resetThisMac() async {
+    guard !isResetting, backupDeletionTask == nil else { return }
+    await resetLocally(signingOut: true)
+  }
+
+  func startBackupDeletion() {
+    guard backupDeletionTask == nil, !isResetting, let repositoryId = config.repositoryId else { return }
+    backupDeletion = .starting
+    let telemetryVersion = config.telemetryConsentedAt != nil ? appVersion : nil
+    backupDeletionTask = Task {
+      await stopRunningWork()
+      do {
+        let deletion = BackupDeletion(
+          api: try await makeAPIClient(),
+          openBrowser: { url in await MainActor.run { _ = NSWorkspace.shared.open(url) } },
+          telemetryVersion: telemetryVersion)
+        let result = try await deletion.run(repositoryId: repositoryId) { step in
+          await self.showBackupDeletionStep(step)
+        }
+        backupDeletionTask = nil
+        switch result {
+        case .deleted:
+          await resetLocally(signingOut: false)
+        case .connectionKeepsRepositories(let repositories):
+          backupDeletion = .macStillLinked(otherRepositories: repositories, detail: nil)
+        }
+      } catch {
+        backupDeletionTask = nil
+        backupDeletion = BackupDeletionState(error: error)
+      }
+    }
+  }
+
+  func cancelBackupDeletion() {
+    backupDeletionTask?.cancel()
+  }
+
+  func dismissBackupDeletion() {
+    guard backupDeletionTask == nil else { return }
+    backupDeletion = .idle
+  }
+
+  func resetAfterBackupDeletion() async {
+    guard backupDeletionTask == nil, !isResetting else { return }
+    await resetLocally(signingOut: true)
+  }
+
+  private func showBackupDeletionStep(_ step: BackupDeletionStep) {
+    guard backupDeletionTask != nil else { return }
+    switch step {
+    case .confirmingInBrowser(let url): backupDeletion = .confirmingInBrowser(url)
+    case .removingThisMac: backupDeletion = .removingThisMac
+    }
+  }
+
+  private func stopRunningWork() async {
+    loginGeneration += 1
+    loginTask?.cancel()
+    loginTask = nil
+    let running = operationTask
+    running?.cancel()
+    await running?.value
+  }
+
+  private func resetLocally(signingOut: Bool) async {
+    isResetting = true
+    await stopRunningWork()
+    let token = signingOut ? sessionToken : nil
+    let server = token == nil ? nil : try? await discovery.resolve(config.serverURL)
+    let api = server.flatMap { server in
+      token.map { YuccaClient(apiRoot: server.apiRoot, transport: transport, accessToken: $0) }
+    }
+    var log: StructuredLog?
+    if config.telemetryConsentedAt != nil {
+      var data: [String: TelemetryValue] = [:]
+      data["repositoryId"] = config.repositoryId.map { .string($0) }
+      log = StructuredLog(summary: "Reset this Mac", data: data, version: appVersion)
+    }
+    let engine = engine
+    let reset = MacReset(
+      files: .standard(home: URL(fileURLWithPath: NSHomeDirectory())),
+      secrets: KeychainSecretStore(),
+      cleanUpDiskSnapshots: { await engine?.cleanUpStaleDiskSnapshots() })
+    let failed = await reset.run(signingOut: api, log: log)
+    returnToFirstScreen()
+    if !failed.isEmpty {
+      configLoadFailure =
+        "FUTO Backups couldn't remove everything from this Mac: "
+        + failed.map(\.title).joined(separator: ", ") + "."
+    }
+    isResetting = false
+  }
+
+  private func returnToFirstScreen() {
+    sessionToken = nil
+    sessionGeneration += 1
+    onboardingGeneration += 1
+    loginGeneration += 1
+    config = AppConfig.defaults(host: Host.current().localizedName ?? "Mac", home: NSHomeDirectory())
+    account = nil
+    login = .idle
+    activity = nil
+    operationTask = nil
+    snapshots = []
+    snapshotsLoad = .notLoaded
+    lastError = nil
+    setupError = nil
+    signedIn = false
+    hasSession = false
+    hasMasterKey = false
+    restoredFolders = []
+    recoveryKeyStep = nil
+    pendingRecoveryKey = nil
+    configLoadFailure = nil
+    configNeedsMovingAside = false
+    pendingBootstrapError = nil
+    backupDeletion = .idle
+    recomputeNextRun()
   }
 
   func restore(snapshot: Snapshot, to url: URL) {
