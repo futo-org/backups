@@ -34,12 +34,7 @@ struct FoldersView: View {
     .navigationSubtitle("Everything inside these folders is encrypted and backed up.")
     .toolbar {
       ToolbarItem(placement: .primaryAction) {
-        Button {
-          addFolders()
-        } label: {
-          Label("Add Folder…", systemImage: "plus")
-            .labelStyle(.titleAndIcon)
-        }
+        Button("Add Folder…") { addFolders() }
       }
     }
     .dropDestination(for: URL.self) { urls, _ in
