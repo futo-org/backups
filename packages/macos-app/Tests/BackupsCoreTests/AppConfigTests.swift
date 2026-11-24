@@ -7,7 +7,7 @@ func defaults() {
   let config = AppConfig.defaults(host: "book-pro", home: "/Users/test")
   #expect(AppConfig.devServerURL.absoluteString == "http://localhost:8080/.well-known/yucca.json")
   #expect(AppConfig.productionServerURL.absoluteString == "https://meta.futo.cloud/.well-known/yucca.json")
-  #expect(config.serverURL == AppConfig.devServerURL)
+  #expect(config.serverURL == AppConfig.productionServerURL)
   #expect(config.folders == [])
   #expect(
     config.excludes == [
@@ -31,7 +31,7 @@ func defaults() {
 @Test("AppConfig round trips through JSON with a lastRun")
 func roundTripWithLastRun() throws {
   var config = AppConfig.defaults(host: "book-pro", home: "/Users/test")
-  config.serverURL = AppConfig.productionServerURL
+  config.serverURL = AppConfig.devServerURL
   config.folders = ["/Users/test/Documents", "/Users/test/Pictures"]
   config.repositoryId = "0b6a1f6e-3c1d-4c2a-9f7e-5d4b3a2c1e0f"
   config.schedule = .hourly

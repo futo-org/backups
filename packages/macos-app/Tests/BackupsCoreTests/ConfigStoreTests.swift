@@ -21,7 +21,7 @@ func saveThenLoadRoundTrip() throws {
   defer { try? FileManager.default.removeItem(at: root) }
   let store = ConfigStore(fileURL: root.appendingPathComponent("FUTO Backups").appendingPathComponent("config.json"))
   var config = AppConfig.defaults(host: "host-b", home: "/Users/test")
-  config.serverURL = AppConfig.productionServerURL
+  config.serverURL = AppConfig.devServerURL
   config.folders = ["/Users/test/Documents"]
   config.repositoryId = "0b6a1f6e-3c1d-4c2a-9f7e-5d4b3a2c1e0f"
   config.lastRun = RunRecord(

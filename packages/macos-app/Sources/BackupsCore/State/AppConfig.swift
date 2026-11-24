@@ -56,7 +56,7 @@ public struct AppConfig: Codable, Equatable, Sendable {
 
   public static func defaults(host: String, home: String) -> AppConfig {
     AppConfig(
-      serverURL: devServerURL,
+      serverURL: productionServerURL,
       folders: [],
       excludes: defaultExcludes.map { $0.hasPrefix("~/") ? home + $0.dropFirst() : $0 },
       schedule: .daily(hour: 12, minute: 0),

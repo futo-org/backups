@@ -14,8 +14,9 @@ Unbundled (`swift run FutoBackups`) needs `FUTO_BACKUPS_RESTIC` and `FUTO_BACKUP
 
 ## Smoke test against the dev stack
 
-1. `mise k3d:up && mise tilt:up` at the repo root (the app defaults to `http://localhost:8080/.well-known/yucca.json`;
-   for the compose stack set the server to `http://localhost:3020/api/meta` in Account).
+1. `mise k3d:up && mise tilt:up` at the repo root. The app defaults to FUTO Cloud
+   (`https://meta.futo.cloud/.well-known/yucca.json`): pick Local dev on the welcome screen for k3d, or set the server to
+   `http://localhost:3020/api/meta` for the compose stack.
 2. `mise run mac:open`, Account → Log in, approve the code in the browser (mock-oidc).
 3. Folders → add a folder, Schedule → Back up now, then Snapshots → Restore… into an empty folder.
 4. The connection shows up as type `macos` in the web app's connections page.
