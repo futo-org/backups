@@ -30,10 +30,13 @@ struct MainWindow: View {
     Group {
       if !model.sessionLoaded {
         LaunchView()
+          .fullWindow(reservingBanner: model.configLoadFailure != nil)
       } else if model.config.telemetryConsentedAt == nil {
         TelemetryConsentView()
+          .fullWindow(reservingBanner: model.configLoadFailure != nil)
       } else if model.signedIn && model.needsOnboarding {
         FirstRunOnboarding()
+          .fullWindow(reservingBanner: model.configLoadFailure != nil)
       } else if model.signedIn {
         NavigationSplitView {
           sidebar
@@ -43,8 +46,10 @@ struct MainWindow: View {
         }
       } else if model.recoveryKeyStep != nil {
         RecoveryKeyOnboarding()
+          .fullWindow(reservingBanner: model.configLoadFailure != nil)
       } else {
         WelcomeView()
+          .fullWindow(reservingBanner: model.configLoadFailure != nil)
       }
     }
     .safeAreaInset(edge: .top, spacing: 0) {
@@ -58,7 +63,6 @@ struct MainWindow: View {
       }
     }
     .frame(minWidth: 820, minHeight: 580)
-    .toolbar(removing: .title)
   }
 
   private var sidebar: some View {
@@ -99,10 +103,10 @@ struct MainWindow: View {
         .padding(.top, 16)
       }
       switch selection ?? .overview {
-      case .overview: OverviewView(showFolders: { selection = .folders })
+      case .overview: OverviewView(showFolders: { selection = .folders }).navigationTitle("Overview")
       case .folders: FoldersView()
       case .history: HistoryView()
-      case .settings: SettingsView()
+      case .settings: SettingsView().navigationTitle("Settings")
       }
     }
   }
@@ -150,5 +154,13 @@ struct AccountChip: View {
 
   private var initial: String {
     String(model.account?.email.first ?? "F").uppercased()
+  }
+}
+
+extension View {
+  fileprivate func fullWindow(reservingBanner: Bool) -> some View {
+    toolbar(removing: .title)
+      .toolbarBackgroundVisibility(.hidden, for: .windowToolbar)
+      .ignoresSafeArea(edges: reservingBanner ? [] : .top)
   }
 }

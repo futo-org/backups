@@ -13,14 +13,6 @@ struct FoldersView: View {
   var body: some View {
     ScrollView {
       VStack(alignment: .leading, spacing: 22) {
-        PageHeader(title: "Folders", subtitle: "Everything inside these folders is encrypted and backed up.") {
-          Button {
-            addFolders()
-          } label: {
-            Label("Add Folder", systemImage: "plus")
-          }
-          .buttonStyle(PrimaryButtonStyle())
-        }
         if model.config.folders.isEmpty {
           dropZone
           presets
@@ -37,6 +29,18 @@ struct FoldersView: View {
       .padding(28)
       .frame(maxWidth: 820)
       .frame(maxWidth: .infinity)
+    }
+    .navigationTitle("Folders")
+    .navigationSubtitle("Everything inside these folders is encrypted and backed up.")
+    .toolbar {
+      ToolbarItem(placement: .primaryAction) {
+        Button {
+          addFolders()
+        } label: {
+          Label("Add Folder", systemImage: "plus")
+            .labelStyle(.titleAndIcon)
+        }
+      }
     }
     .dropDestination(for: URL.self) { urls, _ in
       let folders = urls.filter { (try? $0.resourceValues(forKeys: [.isDirectoryKey]).isDirectory) == true }

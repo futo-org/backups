@@ -6,6 +6,7 @@ struct SettingsView: View {
   @Environment(AppModel.self) private var model
   @Environment(Updater.self) private var updater
   @State private var limitDraft = ""
+  @State private var formMargin: CGFloat = 0
   @State private var limitError: String?
   @FocusState private var limitFocused: Bool
   @State private var quietError: String?
@@ -194,8 +195,12 @@ struct SettingsView: View {
     }
     .formStyle(.grouped)
     .scrollContentBackground(.hidden)
-    .frame(maxWidth: 720)
-    .frame(maxWidth: .infinity)
+    .contentMargins(.horizontal, formMargin, for: .scrollContent)
+    .onGeometryChange(for: CGFloat.self) {
+      max(0, ($0.size.width - 720) / 2)
+    } action: {
+      formMargin = $0
+    }
     .onAppear(perform: syncDrafts)
     .onDisappear {
       if model.signedIn { applyChangedLimit() }
