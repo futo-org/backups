@@ -202,3 +202,17 @@ func roundTripDiskSnapshots() throws {
   #expect(decoded.diskSnapshots == false)
   #expect(!decoded.usesDiskSnapshots)
 }
+
+@Test(
+  "server display name shows futo.cloud for production and host:port otherwise",
+  arguments: [
+    ("https://meta.futo.cloud/.well-known/yucca.json", "futo.cloud"),
+    ("http://localhost:8080/.well-known/yucca.json", "localhost:8080"),
+    ("http://localhost:3020/api/meta", "localhost:3020"),
+    ("https://backups.example.org/.well-known/yucca.json", "backups.example.org"),
+  ])
+func serverDisplayName(url: String, expected: String) throws {
+  var config = AppConfig.defaults(host: "book-pro", home: "/Users/test")
+  config.serverURL = try #require(URL(string: url))
+  #expect(config.serverDisplayName == expected)
+}

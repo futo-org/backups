@@ -41,6 +41,14 @@ public struct AppConfig: Codable, Equatable, Sendable {
 
   public var scheduleReference: Date? { lastRun?.startedAt ?? scheduleAnchor }
 
+  public var serverDisplayName: String {
+    if serverURL == Self.productionServerURL {
+      return "futo.cloud"
+    }
+    guard let host = serverURL.host() else { return serverURL.absoluteString }
+    return serverURL.port.map { "\(host):\($0)" } ?? host
+  }
+
   public static let devServerURL: URL = URL(string: "http://localhost:8080/.well-known/yucca.json")!
   public static let productionServerURL: URL = URL(string: "https://meta.futo.cloud/.well-known/yucca.json")!
 

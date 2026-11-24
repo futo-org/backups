@@ -25,7 +25,7 @@ struct SettingsView: View {
           VStack(alignment: .leading, spacing: 2) {
             Text(model.account?.email ?? "Signed in")
               .font(.system(size: 13, weight: .semibold))
-            Text("\(model.config.host) · \(model.config.serverURL.host() ?? "")")
+            Text("\(model.config.host) · \(model.config.serverDisplayName)")
               .font(.system(size: 12))
               .foregroundStyle(.secondary)
           }

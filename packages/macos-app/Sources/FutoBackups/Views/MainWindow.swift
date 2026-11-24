@@ -107,7 +107,7 @@ struct AccountChip: View {
           .font(.system(size: 12, weight: .semibold))
           .lineLimit(1)
           .truncationMode(.middle)
-        Text(model.config.serverURL.host() ?? "")
+        Text(model.config.serverDisplayName)
           .font(.system(size: 11))
           .foregroundStyle(.secondary)
           .lineLimit(1)

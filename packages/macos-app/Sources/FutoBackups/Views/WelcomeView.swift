@@ -27,7 +27,7 @@ struct WelcomeView: View {
         Button {
           showServer = true
         } label: {
-          Label(model.config.serverURL.host() ?? "Server", systemImage: "server.rack")
+          Label(model.config.serverDisplayName, systemImage: "server.rack")
             .font(.system(size: 12))
             .foregroundStyle(.secondary)
         }
