@@ -47,7 +47,7 @@ export type DeviceFlowPollRequestDto = {
     connectionName?: string;
 };
 export type DeviceFlowPollStatus = "PENDING" | "SLOW_DOWN" | "SUCCESS" | "FAILURE";
-export type DeviceFlowFailureReason = "UNKNOWN" | "EMAIL_NOT_ALLOWED" | "FEATURE_NOT_ENABLED" | "EXPIRED" | "ACCESS_DENIED";
+export type DeviceFlowFailureReason = "UNKNOWN" | "EMAIL_NOT_ALLOWED" | "FEATURE_NOT_ENABLED" | "EXPIRED" | "ACCESS_DENIED" | "UNSUPPORTED_CONNECTION_TYPE";
 export type DeviceFlowPollDto = {
     status: DeviceFlowPollStatus;
     /** Device session token */

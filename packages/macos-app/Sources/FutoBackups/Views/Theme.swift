@@ -1,4 +1,5 @@
 import AppKit
+import BackupsCore
 import SwiftUI
 
 enum Brand {
@@ -160,7 +161,7 @@ struct StatusRing: View {
           .stroke(Brand.ringGradient, style: StrokeStyle(lineWidth: lineWidth, lineCap: .round))
           .rotationEffect(.degrees(-90))
           .animation(.easeOut(duration: 0.4), value: progress)
-        Text(progress, format: .percent.precision(.fractionLength(0)))
+        Text(progress.wholePercentFraction, format: .percent.precision(.fractionLength(0)))
           .font(.system(size: size * 0.21, weight: .bold, design: .rounded))
           .monospacedDigit()
       } else if busy {
@@ -322,12 +323,21 @@ enum Format {
     return date.formatted(.dateTime.weekday(.wide).month(.wide).day())
   }
 
+  @MainActor
   static func duration(_ seconds: Int) -> String {
     if seconds < 60 { return "under a minute left" }
-    let formatter = DateComponentsFormatter()
-    formatter.allowedUnits = seconds >= 3600 ? [.hour, .minute] : [.minute]
-    formatter.unitsStyle = .short
+    let formatter = seconds >= 3600 ? hoursAndMinutes : minutes
     return "\(formatter.string(from: TimeInterval(seconds)) ?? "") left"
+  }
+
+  @MainActor private static let hoursAndMinutes = durationFormatter([.hour, .minute])
+  @MainActor private static let minutes = durationFormatter([.minute])
+
+  private static func durationFormatter(_ units: NSCalendar.Unit) -> DateComponentsFormatter {
+    let formatter = DateComponentsFormatter()
+    formatter.allowedUnits = units
+    formatter.unitsStyle = .short
+    return formatter
   }
 
   static func abbreviatedPath(_ path: String) -> String {

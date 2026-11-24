@@ -39,7 +39,7 @@ final class AppModel {
   var config: AppConfig
   var account: AuthInfo?
   var login: LoginState = .idle
-  var activity: EngineActivity?
+  var activity: ActivityPhase?
   var isCancelling = false
   var snapshots: [Snapshot] = []
   var snapshotsLoad: SnapshotsLoad = .notLoaded
@@ -56,6 +56,7 @@ final class AppModel {
   var configLoadFailure: String?
   var backupDeletion: BackupDeletionState = .idle
   var isResetting = false
+  let backupProgress = BackupProgressStore()
 
   private let store = ConfigStore.standard()
   private let vault = SecretVault(store: KeychainSecretStore())
@@ -705,7 +706,7 @@ final class AppModel {
         let record = try await engine.backup(config: configSnapshot) { activity in
           Task { @MainActor in
             guard self.operationTask != nil, generation == self.sessionGeneration else { return }
-            self.activity = activity
+            self.show(activity)
           }
         }
         guard generation == self.sessionGeneration else {
@@ -847,6 +848,7 @@ final class AppModel {
     account = nil
     login = .idle
     activity = nil
+    backupProgress.clear()
     operationTask = nil
     isCancelling = false
     snapshots = []
@@ -894,7 +896,7 @@ final class AppModel {
           activity in
           Task { @MainActor in
             guard self.operationTask != nil, generation == self.sessionGeneration else { return }
-            self.activity = activity
+            self.show(activity)
           }
         }
         guard generation == self.sessionGeneration else {
@@ -1056,8 +1058,19 @@ final class AppModel {
 
   private func finishOperation() {
     activity = nil
+    backupProgress.clear()
     operationTask = nil
     isCancelling = false
+  }
+
+  private func show(_ engineActivity: EngineActivity) {
+    let phase = engineActivity.phase
+    if activity != phase { activity = phase }
+    if let sample = engineActivity.backupSample {
+      backupProgress.receive(sample)
+    } else {
+      backupProgress.clear()
+    }
   }
 
   private func saveConfig() {
