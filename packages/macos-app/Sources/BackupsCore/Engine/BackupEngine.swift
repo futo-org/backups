@@ -981,6 +981,40 @@ public actor BackupEngine {
     }
   }
 
+  public func unlockExistingRepository(
+    _ repositoryId: String, with key: ExistingBackupKey, config: AppConfig
+  ) async throws -> ExistingBackupUnlock {
+    switch key {
+    case .stored(let stored):
+      guard try await verifyMasterKey(stored, config: config, repositoryId: repositoryId) else { return .needsKey }
+      try importMasterKey(stored)
+    case .entered(let entered):
+      guard try await verifyMasterKey(entered, config: config, repositoryId: repositoryId) else { return .wrongKey }
+      try importMasterKey(entered)
+    }
+    return .unlocked
+  }
+
+  public func checkStoredKey(
+    _ storedKey: String, against repositoryIds: [String], config: AppConfig,
+    onCheck: @escaping @Sendable (String, StoredKeyCheck) async -> Void
+  ) async {
+    for repositoryId in repositoryIds {
+      guard !Task.isCancelled else { return }
+      await onCheck(repositoryId, .checking)
+      guard !Task.isCancelled else { return }
+      let check: StoredKeyCheck
+      do {
+        check =
+          try await verifyMasterKey(storedKey, config: config, repositoryId: repositoryId) ? .opens : .doesNotOpen
+      } catch {
+        check = .unknown
+      }
+      guard !Task.isCancelled else { return }
+      await onCheck(repositoryId, check)
+    }
+  }
+
   func accessToken() throws -> String {
     guard let token = try environment.secrets.get(.accessToken) else {
       throw EngineError.notLoggedIn

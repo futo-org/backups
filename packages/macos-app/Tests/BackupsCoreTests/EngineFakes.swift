@@ -143,6 +143,7 @@ final class FakeRestic: ResticExecuting, @unchecked Sendable {
   private var scripts: [String: ResticScript] = [
     "version": ResticScript(stdout: "{\"version\":\"0.19.1+futo.3\"}")
   ]
+  private var passwordScripts: [String: [String: ResticScript]] = [:]
   private var gateActive = false
   private var gateChecksCancellation = false
   private var gateWaits: [CheckedContinuation<Void, Never>] = []
@@ -159,6 +160,10 @@ final class FakeRestic: ResticExecuting, @unchecked Sendable {
 
   func set(_ script: ResticScript, for command: String) {
     lock.withLock { scripts[command] = script }
+  }
+
+  func set(_ script: ResticScript, for command: String, password: String) {
+    lock.withLock { passwordScripts[command, default: [:]][password] = script }
   }
 
   func invocations() -> [ResticInvocation] {
@@ -200,7 +205,9 @@ final class FakeRestic: ResticExecuting, @unchecked Sendable {
       recorded.append(invocation)
       timeline?.record(command)
       return (
-        scripts[command] ?? ResticScript(), gateActive && command == "backup", gateChecksCancellation
+        passwordScripts[command]?[invocation.environment["RESTIC_PASSWORD"] ?? ""] ?? scripts[command]
+          ?? ResticScript(),
+        gateActive && command == "backup", gateChecksCancellation
       )
     }
     if gated {

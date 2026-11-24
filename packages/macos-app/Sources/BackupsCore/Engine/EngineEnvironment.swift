@@ -93,6 +93,24 @@ public enum RepositorySetup: Equatable, Sendable {
   case chooseExisting([RemoteRepository], masterKey: String)
 }
 
+public enum ExistingBackupKey: Equatable, Sendable {
+  case stored(String)
+  case entered(String)
+}
+
+public enum StoredKeyCheck: Equatable, Sendable {
+  case checking
+  case opens
+  case doesNotOpen
+  case unknown
+}
+
+public enum ExistingBackupUnlock: Equatable, Sendable {
+  case unlocked
+  case needsKey
+  case wrongKey
+}
+
 public enum FinishingStep: Equatable, Sendable {
   case removingDiskSnapshot
   case checkingCloudOnlyFiles
