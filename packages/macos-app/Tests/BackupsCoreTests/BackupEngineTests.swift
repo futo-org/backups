@@ -252,7 +252,7 @@ func packSizeIsClampedToResticLimits(serverPackSize: Int, expected: String) asyn
   let log = ActivityLog()
   let record = try await engine.backup(config: testConfig()) { log.record($0) }
   #expect(record.status == .warn)
-  #expect(record.message == "/a/b: permission denied")
+  #expect(record.message == "2 files couldn't be backed up.")
   #expect(fixture.restic.commands() == ["version", "unlock", "backup", "stats"])
   #expect(log.all == [.preparing])
   #expect(
@@ -278,6 +278,79 @@ func packSizeIsClampedToResticLimits(serverPackSize: Int, expected: String) asyn
     ResticScript(exitCode: 3, stderr: #"{"message_type":"exit_error","code":3,"message":"read failed"}"#),
     for: "backup")
   #expect(try await engine.backup(config: testConfig()) { _ in }.message == "read failed")
+}
+
+@Test func backupExitThreeRecordsEveryWarningAndReportsOnlyTheirCount() async throws {
+  let fixture = makeFixture()
+  fixture.restic.set(
+    ResticScript(
+      lines: [summaryLine], exitCode: 3,
+      stderr: [otherErrorLine, errorLine, errorLine, #"{"message_type":"exit_error","code":3,"message":"x"}"#]
+        .joined(separator: "\n")),
+    for: "backup")
+  fixture.restic.set(ResticScript(stdout: statsStdout), for: "stats")
+  let engine = BackupEngine(environment: fixture.environment)
+  let record = try await engine.backup(config: testConfig()) { _ in }
+  #expect(record.status == .warn)
+  #expect(record.message == "2 files couldn't be backed up.")
+  #expect(
+    record.warnings
+      == BackupWarnings(
+        items: [
+          BackupWarning(path: "/a/c", reason: "Busy"), BackupWarning(path: "/a/b", reason: "Permission denied"),
+        ],
+        total: 2))
+  let finished = try #require(await fixture.deliveredLogs(engine).last { $0.summary == "Backup finished" })
+  #expect(finished.data["warningCount"] == .int(2))
+  #expect(finished.data["error"] == .string("2 files couldn't be backed up."))
+  let encoded = String(decoding: try JSONEncoder().encode(finished), as: UTF8.self)
+  #expect(!encoded.contains("/a/c"))
+  #expect(!encoded.contains("Busy"))
+}
+
+@Test func backupWithoutWarningsStoresAndReportsNone() async throws {
+  let fixture = makeFixture()
+  fixture.restic.set(ResticScript(lines: [summaryLine], stderr: errorLine), for: "backup")
+  let engine = BackupEngine(environment: fixture.environment)
+  let complete = try await engine.backup(config: testConfig()) { _ in }
+  #expect(complete.status == .complete)
+  #expect(complete.warnings == nil)
+  fixture.restic.set(ResticScript(exitCode: 1, stderr: errorLine), for: "backup")
+  let failed = try await engine.backup(config: testConfig()) { _ in }
+  #expect(failed.status == .failed)
+  #expect(failed.warnings == nil)
+  let finished = await fixture.deliveredLogs(engine).filter { $0.summary == "Backup finished" }
+  #expect(finished.count == 2)
+  for log in finished {
+    #expect(log.data["warningCount"] == nil)
+  }
+}
+
+@Test func diskSnapshotWarningsUseLivePaths() async throws {
+  let snapshot = makeSnapshotFixture()
+  defer { try? FileManager.default.removeItem(at: snapshot.directory) }
+  let mount = snapshot.mountPoint.path
+  snapshot.fixture.restic.set(
+    ResticScript(
+      lines: [summaryLine], exitCode: 3,
+      stderr: [
+        #"{"message_type":"error","error":{"message":"\#(mount)/Users/test/Documents/a.txt: open "#
+          + #"Users/test/Documents/a.txt: permission denied"},"during":"archival","item":"\#(mount)/Users/test/Documents/a.txt"}"#,
+        #"{"message_type":"error","error":{"message":"openfile for readdirnames failed: open Users/test/Documents/Mail: "#
+          + #"operation not permitted"},"during":"archival","item":"Users/test/Documents/Mail"}"#,
+        #"{"message_type":"error","error":{"message":"read \#(externalFolder)/b.jpg: input/output error"},"#
+          + #""during":"archival","item":"\#(externalFolder)/b.jpg"}"#,
+      ].joined(separator: "\n")),
+    for: "backup")
+  let engine = BackupEngine(environment: snapshot.fixture.environment)
+  let record = try await engine.backup(config: snapshot.config) { _ in }
+  #expect(record.status == .warn)
+  #expect(
+    record.warnings?.items == [
+      BackupWarning(path: "/Users/test/Documents/a.txt", reason: "Permission denied"),
+      BackupWarning(path: "/Users/test/Documents/Mail", reason: "Operation not permitted"),
+      BackupWarning(path: externalFolder + "/b.jpg", reason: "Input/output error"),
+    ])
 }
 
 @Test func backupExitOneFailsWithoutForgetOrStats() async throws {

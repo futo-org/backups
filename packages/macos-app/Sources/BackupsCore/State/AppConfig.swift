@@ -9,10 +9,12 @@ public struct RunRecord: Codable, Equatable, Sendable {
   public var dataAdded: Int64?
   public var message: String?
   public var cloudOnlySkipped: CloudOnlySkip?
+  public var warnings: BackupWarnings?
 
   public init(
     startedAt: Date, finishedAt: Date, status: BackupStatus, snapshotId: String? = nil,
-    filesNew: Int? = nil, dataAdded: Int64? = nil, message: String? = nil, cloudOnlySkipped: CloudOnlySkip? = nil
+    filesNew: Int? = nil, dataAdded: Int64? = nil, message: String? = nil, cloudOnlySkipped: CloudOnlySkip? = nil,
+    warnings: BackupWarnings? = nil
   ) {
     self.startedAt = startedAt
     self.finishedAt = finishedAt
@@ -22,6 +24,7 @@ public struct RunRecord: Codable, Equatable, Sendable {
     self.dataAdded = dataAdded
     self.message = message
     self.cloudOnlySkipped = cloudOnlySkipped
+    self.warnings = warnings
   }
 }
 
@@ -96,6 +99,16 @@ public struct AppConfig: Codable, Equatable, Sendable {
       "~/.lima/*/diffdisk",
       "~/.local/share/containers/podman/machine",
     ],
+    [
+      "~/Library/Application Support/FileProvider",
+      "~/Library/Application Support/com.apple.TCC",
+      "~/Library/Group Containers/group.com.apple.secure-control-center-preferences",
+      "~/Library/Biome",
+      "~/Library/Metadata/CoreSpotlight",
+      "~/Library/Daemon Containers",
+      "~/Library/Trial",
+      "~/Library/DuetExpertCenter",
+    ],
   ]
 
   public static let defaultExcludes: [String] = defaultExcludesByVersion.flatMap { $0 }
@@ -143,7 +156,8 @@ public struct AppConfig: Codable, Equatable, Sendable {
     guard seen < Self.currentExcludeDefaultsVersion else { return false }
     for pattern in Self.defaultExcludesByVersion.dropFirst(seen).flatMap({ $0 }) {
       let expanded = Self.expandingHome(pattern, home: home)
-      if !excludes.contains(expanded) {
+      let coversChosenFolder = ExcludePattern(expanded).map { folders.contains(where: $0.matches) } ?? false
+      if !excludes.contains(expanded), !coversChosenFolder {
         excludes.append(expanded)
       }
     }

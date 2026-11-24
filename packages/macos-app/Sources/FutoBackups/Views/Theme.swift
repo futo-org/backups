@@ -342,6 +342,7 @@ enum Format {
 
   static func abbreviatedPath(_ path: String) -> String {
     let home = NSHomeDirectory()
-    return path.hasPrefix(home) ? "~" + path.dropFirst(home.count) : path
+    guard path == home || path.hasPrefix(home + "/") else { return path }
+    return "~" + path.dropFirst(home.count)
   }
 }

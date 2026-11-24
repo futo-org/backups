@@ -26,6 +26,14 @@ func defaults() {
       "/Users/test/.lima/*/basedisk",
       "/Users/test/.lima/*/diffdisk",
       "/Users/test/.local/share/containers/podman/machine",
+      "/Users/test/Library/Application Support/FileProvider",
+      "/Users/test/Library/Application Support/com.apple.TCC",
+      "/Users/test/Library/Group Containers/group.com.apple.secure-control-center-preferences",
+      "/Users/test/Library/Biome",
+      "/Users/test/Library/Metadata/CoreSpotlight",
+      "/Users/test/Library/Daemon Containers",
+      "/Users/test/Library/Trial",
+      "/Users/test/Library/DuetExpertCenter",
     ])
   #expect(config.schedule == .daily(hour: 12, minute: 0))
   #expect(config.throttle == .unthrottled)
@@ -104,6 +112,28 @@ func roundTripCloudOnlySkips() throws {
   #expect(decoded.cloudOnlySkipped?.count == 12)
   #expect(decoded.cloudOnlySkipped?.bytes == 340_000_000)
   #expect(decoded.cloudOnlySkipped?.sample == ["/Users/test/Documents/ws.pptx"])
+}
+
+@Test("RunRecord saved before backup warnings existed decodes without them")
+func decodeRunRecordWithoutWarnings() throws {
+  let json = #"{"startedAt":0,"finishedAt":5,"status":"warn","message":"/a: permission denied"}"#
+  let decoded = try JSONDecoder().decode(RunRecord.self, from: Data(json.utf8))
+  #expect(decoded.status == .warn)
+  #expect(decoded.message == "/a: permission denied")
+  #expect(decoded.warnings == nil)
+}
+
+@Test("RunRecord round trips backup warnings")
+func roundTripWarnings() throws {
+  let warnings = BackupWarnings(
+    items: [BackupWarning(path: "/Users/test/Documents/locked.txt", reason: "Permission denied")], total: 640)
+  let record = RunRecord(
+    startedAt: Date(timeIntervalSince1970: 1_781_092_800),
+    finishedAt: Date(timeIntervalSince1970: 1_781_092_805),
+    status: .warn, message: "/Users/test/Documents/locked.txt: permission denied", warnings: warnings)
+  let decoded = try JSONDecoder().decode(RunRecord.self, from: JSONEncoder().encode(record))
+  #expect(decoded == record)
+  #expect(decoded.warnings == warnings)
 }
 
 @Test("scheduleReference prefers lastRun then anchor then nil")
@@ -422,4 +452,28 @@ func forgetRepositoryWithoutRepository() {
   config.switchServer(to: AppConfig.devServerURL)
   #expect(config.repositoriesByServer == nil)
   #expect(config.repositoryId == nil)
+}
+
+@Test func configsOnTheSecondDefaultsGainTheProtectedSystemFolders() throws {
+  var config = AppConfig.defaults(host: "mac", home: "/Users/t")
+  config.excludeDefaultsVersion = 2
+  config.excludes = config.excludes.filter { !$0.contains("FileProvider") && !$0.contains("Biome") }
+  let changed = config.addNewDefaultExcludes(home: "/Users/t")
+  #expect(changed)
+  #expect(config.excludes.contains("/Users/t/Library/Application Support/FileProvider"))
+  #expect(config.excludes.contains("/Users/t/Library/Biome"))
+  #expect(config.excludeDefaultsVersion == AppConfig.currentExcludeDefaultsVersion)
+}
+
+@Test func newDefaultsSkipPatternsThatWouldExcludeAChosenFolder() {
+  var config = AppConfig.defaults(host: "mac", home: "/Users/t")
+  config.excludeDefaultsVersion = 2
+  config.excludes = Array(config.excludes.prefix(AppConfig.defaultExcludesByVersion[0...1].joined().count))
+  config.folders = ["/Users/t/Library/Biome/streams", "/Users/t/Library/Trial", "/Users/t/Documents"]
+  let changed = config.addNewDefaultExcludes(home: "/Users/t")
+  #expect(changed)
+  #expect(!config.excludes.contains("/Users/t/Library/Biome"))
+  #expect(!config.excludes.contains("/Users/t/Library/Trial"))
+  #expect(config.excludes.contains("/Users/t/Library/Application Support/FileProvider"))
+  #expect(config.excludes.contains("/Users/t/Library/DuetExpertCenter"))
 }

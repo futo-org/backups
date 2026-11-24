@@ -152,6 +152,7 @@ public actor BackupEngine {
     var snapshotFailure: DiskSnapshotError?
     var api: (any YuccaRepositoryAPI)?
     var cloudOnlyScan: Task<CloudOnlySkip?, Never>?
+    var warnings: BackupWarnings?
     let cloudOnlyScanFinished = OnceFlag()
     var everyFolderCloudOnly = false
     do {
@@ -333,9 +334,15 @@ public actor BackupEngine {
           status = .complete
         } else if result.exitCode == ResticExitCode.couldNotReadSource {
           status = .warn
+          let snapshotMounts = [backupCurrentDirectory, snapshotMountPoint?.path].compactMap { $0 }
+          let collected = BackupWarnings.collect(stderr: result.stderr, snapshotMounts: snapshotMounts)
+          warnings = collected
           message =
-            ResticOutput.lastItemError(stderr: result.stderr) ?? lastError
-            ?? ResticOutput.errorMessage(stderr: result.stderr, exitCode: result.exitCode)
+            collected.summary
+            ?? BackupWarnings.livePaths(
+              in: ResticOutput.lastItemError(stderr: result.stderr) ?? lastError
+                ?? ResticOutput.errorMessage(stderr: result.stderr, exitCode: result.exitCode),
+              snapshotMounts: snapshotMounts)
         } else {
           status = .failed
           message = ResticOutput.errorMessage(stderr: result.stderr, exitCode: result.exitCode)
@@ -450,6 +457,7 @@ public actor BackupEngine {
     let durationMs = Int(startedElapsed.duration(to: environment.elapsedNow()) / .milliseconds(1))
     let endStatus = status
     let endMessage = (status == .failed || status == .warn) ? message : nil
+    let keptWarnings = status == .warn ? warnings.flatMap { $0.total > 0 ? $0 : nil } : nil
     if let endAPI = api {
       outbox.enqueue {
         try? await endAPI.submitBackupEnd(
@@ -465,6 +473,9 @@ public actor BackupEngine {
         data["cloudOnlyFiles"] = .int(Int64(cloudOnlySkipped.count))
         data["cloudOnlySize"] = .string(cloudOnlySkipped.telemetrySizeBucket)
       }
+      if let keptWarnings {
+        data["warningCount"] = .int(Int64(keptWarnings.total))
+      }
       if let snapshotFailure {
         data["error"] = .string("disk snapshot: \(snapshotFailure.telemetryCode)")
       } else if let endMessage {
@@ -475,7 +486,7 @@ public actor BackupEngine {
     return RunRecord(
       startedAt: startedAt, finishedAt: finishedAt, status: status, snapshotId: summary?.snapshotId,
       filesNew: summary?.filesNew, dataAdded: summary?.dataAdded, message: message,
-      cloudOnlySkipped: cloudOnlySkipped.flatMap { $0.count > 0 ? $0 : nil })
+      cloudOnlySkipped: cloudOnlySkipped.flatMap { $0.count > 0 ? $0 : nil }, warnings: keptWarnings)
   }
 
   private func runBackupCommand(

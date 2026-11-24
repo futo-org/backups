@@ -182,6 +182,9 @@ struct SnapshotRow: View {
           .background(Capsule().fill(Color.green.opacity(0.12)))
           .help("New data uploaded by this backup")
       }
+      if let warnings = model.config.lastRun?.warnings(forSnapshot: snapshot.id) {
+        BackupWarningsBadge(warnings: warnings)
+      }
       Text(snapshot.shortId)
         .font(.system(size: 11, design: .monospaced))
         .foregroundStyle(.tertiary)
