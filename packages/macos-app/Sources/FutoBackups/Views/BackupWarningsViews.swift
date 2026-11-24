@@ -59,7 +59,8 @@ struct BackupWarningsSheet: View {
           Text(warnings.headline)
             .font(.system(size: 20, weight: .bold, design: .rounded))
           Text(
-            "The rest of your backup completed. These were skipped this time, and the next backup tries them again."
+            "The rest of your backup completed. These couldn't be read in full this time, and the next backup tries "
+              + "them again."
           )
           .font(.system(size: 13))
           .foregroundStyle(.secondary)
