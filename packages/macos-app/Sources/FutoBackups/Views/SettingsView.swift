@@ -83,7 +83,7 @@ struct SettingsView: View {
       Section {
         Picker(selection: uploadConnectionsBinding) {
           Text("Automatic").tag(Int?.none)
-          ForEach(AppConfig.uploadConnectionChoices, id: \.self) { Text("\($0)").tag(Int?.some($0)) }
+          ForEach(AppConfig.parallelismChoices, id: \.self) { Text("\($0)").tag(Int?.some($0)) }
         } label: {
           SettingLabel(
             systemName: "arrow.up.arrow.down", tint: .blue, title: "Simultaneous uploads",
@@ -91,7 +91,7 @@ struct SettingsView: View {
         }
         Picker(selection: readConcurrencyBinding) {
           Text("Automatic").tag(Int?.none)
-          ForEach(AppConfig.readConcurrencyChoices, id: \.self) { Text("\($0)").tag(Int?.some($0)) }
+          ForEach(AppConfig.parallelismChoices, id: \.self) { Text("\($0)").tag(Int?.some($0)) }
         } label: {
           SettingLabel(
             systemName: "doc.on.doc", tint: .teal, title: "Files read at once",

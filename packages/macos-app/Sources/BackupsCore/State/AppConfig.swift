@@ -43,8 +43,7 @@ public struct AppConfig: Codable, Equatable, Sendable {
   public var uploadConnections: Int?
   public var readConcurrency: Int?
 
-  public static let uploadConnectionChoices = [1, 2, 4, 8, 16, 32]
-  public static let readConcurrencyChoices = [1, 2, 4, 8, 16]
+  public static let parallelismChoices = [1, 2, 3, 4, 6, 8, 12, 16, 24, 32, 48, 64, 128]
 
   public var usesDiskSnapshots: Bool { diskSnapshots ?? true }
 
