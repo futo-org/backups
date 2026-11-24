@@ -13,11 +13,16 @@ struct MenuBarContent: View {
         MenuBarUploadSpeed(progress: model.activityProgress)
       }
       if let error = model.lastError ?? model.setupError {
-        Label(error, systemImage: "exclamationmark.triangle.fill")
-          .font(.system(size: 11))
-          .foregroundStyle(.orange)
-          .lineLimit(3)
-          .copyable(error)
+        Label {
+          Text(error)
+            .foregroundStyle(.secondary)
+        } icon: {
+          Image(systemName: "exclamationmark.triangle.fill")
+            .foregroundStyle(.orange)
+        }
+        .font(.system(size: 11))
+        .lineLimit(3)
+        .copyable(error)
       }
       if model.signedIn {
         VStack(spacing: 8) {
@@ -75,7 +80,10 @@ struct MenuBarLabel: View {
   let model: AppModel
 
   var body: some View {
-    Image(systemName: StatusSummary(model: model, progress: nil).menuBarSymbol)
+    let status = StatusSummary(model: model, progress: nil)
+    Image(systemName: status.menuBarSymbol)
+      .accessibilityLabel("FUTO Backups")
+      .accessibilityValue(model.signedIn ? status.title : "Not signed in")
   }
 }
 
@@ -87,7 +95,8 @@ private struct MenuBarStatus: View {
     let status = StatusSummary(model: model, progress: progress.progress, restore: progress.restore)
     HStack(spacing: 12) {
       StatusRing(
-        progress: status.progress, busy: status.busy, symbol: status.symbol, tint: status.tint, size: 42)
+        title: model.signedIn ? status.title : "Not signed in", progress: status.progress, busy: status.busy,
+        symbol: status.symbol, tint: status.tint, size: 42)
       VStack(alignment: .leading, spacing: 2) {
         Text(model.signedIn ? status.title : "Not signed in")
           .font(.system(size: 14, weight: .semibold, design: .rounded))

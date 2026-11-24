@@ -194,20 +194,25 @@ struct SnapshotRow: View {
       }
       Spacer()
       if let added = snapshot.dataAdded {
-        Text("+\(Format.bytes(added))")
-          .font(.system(size: 11, weight: .semibold, design: .rounded))
-          .foregroundStyle(.green)
-          .padding(.horizontal, 8)
-          .padding(.vertical, 3)
-          .background(Capsule().fill(Color.green.opacity(0.12)))
-          .help("New data uploaded by this backup")
+        Label {
+          Text("+\(Format.bytes(added))")
+            .foregroundStyle(.secondary)
+        } icon: {
+          Image(systemName: "arrow.up")
+            .foregroundStyle(.green)
+        }
+        .font(.system(size: 11, weight: .semibold, design: .rounded))
+        .padding(.horizontal, 8)
+        .padding(.vertical, 3)
+        .background(Capsule().fill(Color.green.opacity(0.12)))
+        .help("New data uploaded by this backup")
       }
       if let warnings = model.config.lastRun?.warnings(forSnapshot: snapshot.id) {
         BackupWarningsBadge(warnings: warnings)
       }
       Text(snapshot.shortId)
         .font(.system(size: 11, design: .monospaced))
-        .foregroundStyle(.tertiary)
+        .foregroundStyle(.secondary)
       Button("Browse Files…", action: browse)
         .buttonStyle(SecondaryButtonStyle())
       Button("Restore All…", action: restore)

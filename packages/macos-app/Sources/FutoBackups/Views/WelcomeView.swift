@@ -65,7 +65,7 @@ struct WelcomeView: View {
           .keyboardShortcut(.defaultAction)
         Text("You'll approve this Mac in your browser.")
           .font(.system(size: 12))
-          .foregroundStyle(.tertiary)
+          .foregroundStyle(.secondary)
       }
     case .waiting(let userCode, let url):
       VStack(spacing: 18) {
@@ -104,11 +104,15 @@ struct WelcomeView: View {
       }
     case .failed(let message):
       VStack(spacing: 14) {
-        Label(message, systemImage: "exclamationmark.triangle.fill")
-          .foregroundStyle(.orange)
-          .multilineTextAlignment(.center)
-          .copyable(message)
-          .frame(maxWidth: 420)
+        Label {
+          Text(message)
+        } icon: {
+          Image(systemName: "exclamationmark.triangle.fill")
+            .foregroundStyle(.orange)
+        }
+        .multilineTextAlignment(.center)
+        .copyable(message)
+        .frame(maxWidth: 420)
         Button("Try Again") { model.startLogin() }
           .buttonStyle(PrimaryButtonStyle(large: true))
       }

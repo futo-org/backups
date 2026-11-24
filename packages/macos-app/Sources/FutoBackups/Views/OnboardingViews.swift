@@ -387,7 +387,7 @@ private struct SizeLabel: View {
         .help("Some folders inside couldn't be read.")
     case .unavailable:
       Text("—")
-        .foregroundStyle(.tertiary)
+        .foregroundStyle(.secondary)
         .help("This folder couldn't be read.")
     case nil:
       EmptyView()
