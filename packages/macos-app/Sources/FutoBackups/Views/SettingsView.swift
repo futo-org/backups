@@ -7,6 +7,7 @@ struct SettingsView: View {
   @Environment(Updater.self) private var updater
   @State private var limitDraft = ""
   @State private var limitError: String?
+  @FocusState private var limitFocused: Bool
   @State private var quietError: String?
   @State private var quietEnabled = false
   @State private var quietStart = SettingsView.clockDate(ClockTime(hour: 22, minute: 0))
@@ -39,24 +40,17 @@ struct SettingsView: View {
         .padding(.vertical, 4)
       }
       Section("Bandwidth") {
-        LabeledContent {
-          HStack(spacing: 6) {
-            TextField("", text: $limitDraft, prompt: Text("Unlimited"))
-              .textFieldStyle(.roundedBorder)
-              .multilineTextAlignment(.trailing)
-              .frame(width: 90)
-              .onSubmit(applyLimit)
-              .onChange(of: limitDraft) { _, _ in limitError = nil }
-            Text("KB/s")
-              .foregroundStyle(.secondary)
-            Button("Apply", action: applyLimit)
-              .disabled(limitDraft == currentLimitText)
-          }
-        } label: {
+        TextField(text: $limitDraft, prompt: Text("Unlimited")) {
           SettingLabel(
-            systemName: "speedometer", tint: .green, title: "Upload limit", detail: "Leave empty for no limit.")
+            systemName: "speedometer", tint: .green, title: "Upload limit",
+            detail: "In KB/s. Leave empty for no limit.")
         }
-        .labeledContentStyle(.centered)
+        .focused($limitFocused)
+        .onSubmit(applyLimit)
+        .onChange(of: limitFocused) { _, focused in
+          if !focused { applyLimit() }
+        }
+        .onChange(of: limitDraft) { _, _ in limitError = nil }
         if let limitError {
           InlineError(text: limitError)
         }
@@ -262,6 +256,7 @@ struct SettingsView: View {
   }
 
   private func applyLimit() {
+    guard limitDraft != currentLimitText else { return }
     do {
       let bytesPerSec = try UploadLimit.bytesPerSecond(parsing: limitDraft)
       limitError = nil

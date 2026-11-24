@@ -31,6 +31,7 @@ struct RetentionSection: View {
         ForEach(RetentionField.allCases) { field in
           LabeledContent {
             TextField("", text: $draft[field], prompt: Text(field.placeholder))
+              .labelsHidden()
               .textFieldStyle(.roundedBorder)
               .multilineTextAlignment(.trailing)
               .frame(width: 90)
