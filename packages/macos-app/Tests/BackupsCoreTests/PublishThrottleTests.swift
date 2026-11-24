@@ -55,6 +55,16 @@ private func at(_ milliseconds: Int) -> ContinuousClock.Instant {
   #expect(throttle.flush(at: at(1000)) == 4)
 }
 
+@Test func anImmediateOfferInsideTheIntervalPublishesAndDropsThePendingValue() {
+  var throttle = PublishThrottle<Int>(interval: .milliseconds(500))
+  _ = throttle.offer(1, at: at(0))
+  #expect(throttle.offer(2, at: at(100)) == .flush(after: .milliseconds(400)))
+  #expect(throttle.offer(10, at: at(200), immediately: true) == .publish(10))
+  #expect(throttle.flush(at: at(500)) == nil)
+  #expect(throttle.offer(11, at: at(300)) == .flush(after: .milliseconds(400)))
+  #expect(throttle.flush(at: at(700)) == 11)
+}
+
 @Test func returningToThePublishedValueCancelsThePendingOne() {
   var throttle = PublishThrottle<Int>(interval: .milliseconds(500))
   _ = throttle.offer(1, at: at(0))

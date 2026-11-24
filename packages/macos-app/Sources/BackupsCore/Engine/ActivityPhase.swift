@@ -13,6 +13,16 @@ public enum ActivityPhase: Equatable, Sendable {
   }
 }
 
+public enum ActivitySample: Equatable, Sendable {
+  case backup(BackupSample)
+  case restore(RestoreStep)
+
+  public func startsNewRestorePart(after shown: RestoreStep?) -> Bool {
+    guard case .restore(let step) = self else { return false }
+    return step.part != shown?.part
+  }
+}
+
 public struct BackupSample: Equatable, Sendable {
   public var progress: BackupProgress
   public var speed: UploadSpeed
@@ -35,9 +45,12 @@ extension EngineActivity {
     }
   }
 
-  public var backupSample: BackupSample? {
-    guard case .backingUp(let progress, let speed) = self else { return nil }
-    return BackupSample(progress: progress, speed: speed)
+  public var sample: ActivitySample? {
+    switch self {
+    case .backingUp(let progress, let speed): return .backup(BackupSample(progress: progress, speed: speed))
+    case .restoring(let step): return .restore(step)
+    default: return nil
+    }
   }
 }
 

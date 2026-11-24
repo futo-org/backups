@@ -114,6 +114,18 @@ private func entry(_ path: String, _ kind: SnapshotEntry.Kind = .file) -> Snapsh
     ])
 }
 
+@Test func batchesAreNamedAfterWhatTheyBringBack() {
+  let item = RestoreItem(snapshotPath: "/Users/x/Documents", target: target.appendingPathComponent("Documents"))
+  let volume = RestoreItem(snapshotPath: "/", target: target.appendingPathComponent("Macintosh HD"))
+  let report = entry("/Users/x/Documents/report.pdf")
+  let notes = entry("/Users/x/Documents/Work", .directory)
+  #expect(RestoreBatch.folder(item).name == "Documents")
+  #expect(RestoreBatch.folder(volume).name == "Macintosh HD")
+  #expect(RestoreBatch.children([report], of: "/Users/x/Documents").name == "report.pdf")
+  #expect(RestoreBatch.children([report, notes], of: "/Users/x/Documents").name == "Documents")
+  #expect(RestoreBatch.children([report, notes], of: "/").name == "Macintosh HD")
+}
+
 @Test(arguments: [
   ("report.pdf", SnapshotEntry.Kind.file, ["report.pdf", "report 2.pdf", "report 3.pdf"]),
   ("archive.tar.gz", .file, ["archive.tar.gz", "archive.tar 2.gz", "archive.tar 3.gz"]),

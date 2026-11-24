@@ -62,7 +62,7 @@ final class AppModel {
   var configLoadFailure: String?
   var backupDeletion: BackupDeletionState = .idle
   var isResetting = false
-  let backupProgress = BackupProgressStore()
+  let activityProgress = ActivityProgressStore()
 
   private let store = ConfigStore.standard()
   private let vault = SecretVault(store: KeychainSecretStore())
@@ -888,7 +888,7 @@ final class AppModel {
     account = nil
     login = .idle
     activity = nil
-    backupProgress.clear()
+    activityProgress.clear()
     operationTask = nil
     isCancelling = false
     snapshots = []
@@ -1131,7 +1131,7 @@ final class AppModel {
 
   private func finishOperation() {
     activity = nil
-    backupProgress.clear()
+    activityProgress.clear()
     operationTask = nil
     isCancelling = false
   }
@@ -1139,10 +1139,10 @@ final class AppModel {
   private func show(_ engineActivity: EngineActivity) {
     let phase = engineActivity.phase
     if activity != phase { activity = phase }
-    if let sample = engineActivity.backupSample {
-      backupProgress.receive(sample)
+    if let sample = engineActivity.sample {
+      activityProgress.receive(sample)
     } else {
-      backupProgress.clear()
+      activityProgress.clear()
     }
   }
 

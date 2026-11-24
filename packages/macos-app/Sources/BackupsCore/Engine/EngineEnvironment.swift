@@ -100,7 +100,7 @@ public enum EngineActivity: Equatable, Sendable {
   case backingUp(BackupProgress, UploadSpeed)
   case finishing(FinishingStep)
   case pruning
-  case restoring
+  case restoring(RestoreStep)
   case changingRecoveryKey
 
   public var isCancellable: Bool {

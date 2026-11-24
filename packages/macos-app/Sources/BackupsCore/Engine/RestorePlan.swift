@@ -14,6 +14,15 @@ public struct RestoreItem: Equatable, Sendable {
 public enum RestoreBatch: Equatable, Sendable {
   case folder(RestoreItem)
   case children([SnapshotEntry], of: String)
+
+  public var name: String {
+    switch self {
+    case .folder(let item):
+      return RestorePlan.folderName(of: item.snapshotPath)
+    case .children(let children, let parent):
+      return children.count == 1 ? children[0].name : RestorePlan.folderName(of: parent)
+    }
+  }
 }
 
 public enum RestorePlan {

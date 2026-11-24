@@ -98,6 +98,7 @@ public enum ResticCommand {
     }
     var result = invocation(context, ["restore"], flags, positional: [source])
     result.retainsStdout = false
+    result.environment["RESTIC_PROGRESS_FPS"] = "2"
     return result
   }
 

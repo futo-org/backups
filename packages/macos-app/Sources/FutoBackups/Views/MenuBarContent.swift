@@ -8,9 +8,9 @@ struct MenuBarContent: View {
 
   var body: some View {
     VStack(alignment: .leading, spacing: 14) {
-      MenuBarStatus(progress: model.backupProgress)
+      MenuBarStatus(progress: model.activityProgress)
       if model.signedIn, model.activity == .backingUp {
-        MenuBarUploadSpeed(progress: model.backupProgress)
+        MenuBarUploadSpeed(progress: model.activityProgress)
       }
       if let error = model.lastError ?? model.setupError {
         Label(error, systemImage: "exclamationmark.triangle.fill")
@@ -82,10 +82,10 @@ struct MenuBarLabel: View {
 
 private struct MenuBarStatus: View {
   @Environment(AppModel.self) private var model
-  let progress: BackupProgressStore
+  let progress: ActivityProgressStore
 
   var body: some View {
-    let status = StatusSummary(model: model, progress: progress.progress)
+    let status = StatusSummary(model: model, progress: progress.progress, restore: progress.restore)
     HStack(spacing: 12) {
       StatusRing(
         progress: status.progress, busy: status.busy, symbol: status.symbol, tint: status.tint, size: 42)
@@ -104,7 +104,7 @@ private struct MenuBarStatus: View {
 }
 
 private struct MenuBarUploadSpeed: View {
-  let progress: BackupProgressStore
+  let progress: ActivityProgressStore
 
   var body: some View {
     if let speed = progress.speed {
