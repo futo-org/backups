@@ -985,11 +985,7 @@ public actor BackupEngine {
     _ repositoryId: String, with key: ExistingBackupKey, config: AppConfig
   ) async throws -> ExistingBackupUnlock {
     switch key {
-    case .stored(let stored, check: .opens):
-      try importMasterKey(stored)
-    case .stored(_, check: .doesNotOpen):
-      return .needsKey
-    case .stored(let stored, check: _):
+    case .stored(let stored):
       guard try await verifyMasterKey(stored, config: config, repositoryId: repositoryId) else { return .needsKey }
       try importMasterKey(stored)
     case .entered(let entered):
@@ -1006,6 +1002,7 @@ public actor BackupEngine {
     for repositoryId in repositoryIds {
       guard !Task.isCancelled else { return }
       await onCheck(repositoryId, .checking)
+      guard !Task.isCancelled else { return }
       let check: StoredKeyCheck
       do {
         check =

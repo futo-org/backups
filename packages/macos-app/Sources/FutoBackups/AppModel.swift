@@ -85,6 +85,7 @@ final class AppModel {
   private var loginGeneration = 0
   private var operationTask: Task<Void, Never>?
   private var pendingRecoveryKey: String?
+  private var pendingRecoveryKeyConfirmed = false
   private var storedKeyCheckTask: Task<Void, Never>?
   private var sessionToken: String?
   private var sessionGeneration = 0
@@ -339,7 +340,7 @@ final class AppModel {
   }
 
   func showRecoveryKeyStep(_ step: RecoveryKeyStep) {
-    guard step != .importKey || canImportRecoveryKey else { return }
+    guard step != .importKey || isRecoveringLostKey else { return }
     onboardingGeneration += 1
     switch step {
     case .chooseRepository(let repositories):
@@ -359,9 +360,15 @@ final class AppModel {
     guard let engine else { return missingHelperText ?? "Setup incomplete" }
     do {
       let repositories = try await engine.macRepositories(config: config)
+      let storedKey = hasMasterKey ? ((try? await engine.storedMasterKey()) ?? nil) : nil
       guard generation == onboardingGeneration, hasSession else { return nil }
-      holdRecoveryKey(nil)
-      recoveryKeyStep = repositories.isEmpty ? .importKey : .chooseRepository(repositories)
+      guard !repositories.isEmpty else {
+        holdRecoveryKey(nil)
+        showRecoveryKeyStep(.newBackupKey([]))
+        return nil
+      }
+      holdRecoveryKey(storedKey, confirmed: false)
+      showRecoveryKeyStep(.chooseRepository(repositories))
       return nil
     } catch {
       guard generation == onboardingGeneration, hasSession else { return nil }
@@ -381,40 +388,20 @@ final class AppModel {
   }
 
   func importRecoveryKey(_ input: String) async -> String? {
-    guard canImportRecoveryKey else { return "This Mac already has a recovery key." }
-    guard let engine else { return missingHelperText ?? "Setup incomplete" }
+    guard isRecoveringLostKey, let repositoryId = config.repositoryId else {
+      return "This Mac already has a recovery key."
+    }
     guard let normalized = RepositoryKeys.normalizedMasterKey(input) else {
       return "That isn't a valid recovery key."
     }
-    if isRecoveringLostKey, let repositoryId = config.repositoryId {
-      switch await unlockRepository(repositoryId, with: .entered(normalized)) {
-      case .superseded: return nil
-      case .failed(let message): return message
-      case .finished(.unlocked):
-        hasMasterKey = true
-        markRecoveryKeyConfirmed()
-        return nil
-      case .finished: return "That key doesn't open this Mac's backup."
-      }
-    }
-    onboardingGeneration += 1
-    let generation = onboardingGeneration
-    do {
-      let repositories = try await engine.macRepositories(config: config)
-      guard generation == onboardingGeneration, hasSession else { return nil }
-      if repositories.isEmpty {
-        guard config.repositoryId == nil else { return nil }
-        try await engine.importMasterKey(normalized)
-        guard generation == onboardingGeneration, hasSession else { return nil }
-        hasMasterKey = true
-        markRecoveryKeyConfirmed(offeringExistingRepositories: false)
-        return nil
-      }
-      showRecoveryKeyStep(.chooseRepository(repositories))
+    switch await unlockRepository(repositoryId, with: .entered(normalized)) {
+    case .superseded: return nil
+    case .failed(let message): return message
+    case .finished(.unlocked):
+      hasMasterKey = true
+      markRecoveryKeyConfirmed()
       return nil
-    } catch {
-      guard generation == onboardingGeneration, hasSession else { return nil }
-      return message(for: error)
+    case .finished: return "That key doesn't open this Mac's backup."
     }
   }
 
@@ -423,8 +410,7 @@ final class AppModel {
       showRecoveryKeyStep(.repositoryKey(repository, among: repositories, storedKeyFailed: false))
       return nil
     }
-    let check = storedKeyChecks[repository.id]
-    switch await unlockRepository(repository.id, with: .stored(storedKey, check: check)) {
+    switch await unlockRepository(repository.id, with: .stored(storedKey)) {
     case .superseded: return nil
     case .failed(let message):
       startStoredKeyChecks(repositories)
@@ -454,7 +440,7 @@ final class AppModel {
     onboardingGeneration += 1
     let generation = onboardingGeneration
     guard let engine else { return missingHelperText ?? "Setup incomplete" }
-    guard let key = pendingRecoveryKey else {
+    guard let key = pendingRecoveryKey, pendingRecoveryKeyConfirmed else {
       showRecoveryKeyStep(.newBackupKey(repositories))
       return nil
     }
@@ -478,6 +464,8 @@ final class AppModel {
     let generation = onboardingGeneration
     guard config.repositoryId == nil else { return "This Mac already has a backup." }
     guard let engine else { return missingHelperText ?? "Setup incomplete" }
+    await stopStoredKeyChecks()
+    guard generation == onboardingGeneration, hasSession else { return nil }
     do {
       try await engine.importMasterKey(input)
       guard generation == onboardingGeneration, hasSession else { return nil }
@@ -486,6 +474,7 @@ final class AppModel {
       return message(for: error)
     }
     hasMasterKey = true
+    holdRecoveryKey(nil)
     markRecoveryKeyConfirmed(offeringExistingRepositories: false)
     return nil
   }
@@ -529,7 +518,8 @@ final class AppModel {
     await refreshSnapshots()
   }
 
-  private func holdRecoveryKey(_ key: String?) {
+  private func holdRecoveryKey(_ key: String?, confirmed: Bool = false) {
+    pendingRecoveryKeyConfirmed = key != nil && confirmed
     guard key == nil || key != pendingRecoveryKey else { return }
     storedKeyCheckTask?.cancel()
     storedKeyCheckTask = nil
@@ -539,7 +529,7 @@ final class AppModel {
 
   private func startStoredKeyChecks(_ repositories: [RemoteRepository]) {
     guard let engine, let storedKey = pendingRecoveryKey, storedKeyCheckTask == nil else { return }
-    let unchecked = repositories.map(\.id).filter { storedKeyChecks[$0] == nil }
+    let unchecked = repositories.map(\.id).filter { storedKeyChecks[$0] == nil || storedKeyChecks[$0] == .unknown }
     guard !unchecked.isEmpty else { return }
     let config = config
     storedKeyCheckTask = Task { [weak self] in
@@ -599,7 +589,7 @@ final class AppModel {
         self.login = .idle
         switch setup {
         case .chooseExisting(let existing, let key):
-          self.holdRecoveryKey(key)
+          self.holdRecoveryKey(key, confirmed: true)
           self.showRecoveryKeyStep(.chooseRepository(existing))
         case .ready(let repositoryId):
           self.config.repositoryId = repositoryId

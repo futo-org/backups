@@ -1257,35 +1257,38 @@ private func scriptKeyOpens(_ fixture: EngineFixture, masterKey: String, reposit
   }
 }
 
-@Test(arguments: [nil, StoredKeyCheck.checking, .unknown])
-func unlockExistingRepositoryTriesTheStoredKeyWhenItsCheckIsUnsettled(_ check: StoredKeyCheck?) async throws {
+@Test func unlockExistingRepositoryTriesTheStoredKey() async throws {
   let fixture = makeFixture()
   try scriptKeyOpens(fixture, masterKey: testMasterKey, repositoryIds: ["old-mac"])
   let engine = BackupEngine(environment: fixture.environment)
   let config = testConfig(repositoryId: nil)
 
   #expect(
-    try await engine.unlockExistingRepository("other-mac", with: .stored(testMasterKey, check: check), config: config)
-      == .needsKey)
+    try await engine.unlockExistingRepository("other-mac", with: .stored(testMasterKey), config: config) == .needsKey)
   #expect(
-    try await engine.unlockExistingRepository("old-mac", with: .stored(testMasterKey, check: check), config: config)
-      == .unlocked)
+    try await engine.unlockExistingRepository("old-mac", with: .stored(testMasterKey), config: config) == .unlocked)
   #expect(try fixture.secrets.get(.masterKey) == testMasterKey)
   #expect(fixture.restic.commands().filter { $0 == "cat" }.count == 2)
 }
 
-@Test func unlockExistingRepositoryTrustsASettledStoredKeyCheck() async throws {
-  let fixture = makeFixture()
+@Test func unlockExistingRepositoryReverifiesTheStoredKeyAfterItsCheck() async throws {
+  let fixture = makeFixture(masterKey: otherMasterKey)
+  try scriptKeyOpens(fixture, masterKey: testMasterKey, repositoryIds: ["rotated"])
   let engine = BackupEngine(environment: fixture.environment)
   let config = testConfig(repositoryId: nil)
+  let log = StoredKeyCheckLog()
+  await engine.checkStoredKey(testMasterKey, against: ["rotated", "added"], config: config) { log.record($0, $1) }
+  #expect(log.entries == ["rotated checking", "rotated opens", "added checking", "added doesNotOpen"])
+
+  try scriptKeyOpens(fixture, masterKey: testMasterKey, repositoryIds: ["added"])
+  fixture.restic.set(
+    ResticScript(exitCode: ResticExitCode.wrongPassword), for: "cat",
+    password: try RepositoryKeys.password(masterKey: testMasterKey, repositoryId: "rotated"))
+
   #expect(
-    try await engine.unlockExistingRepository("old-mac", with: .stored(testMasterKey, check: .opens), config: config)
-      == .unlocked)
-  #expect(
-    try await engine.unlockExistingRepository(
-      "other-mac", with: .stored(testMasterKey, check: .doesNotOpen), config: config) == .needsKey)
-  #expect(fixture.restic.commands().isEmpty)
-  #expect(fixture.proxy.starts.isEmpty)
+    try await engine.unlockExistingRepository("rotated", with: .stored(testMasterKey), config: config) == .needsKey)
+  #expect(try fixture.secrets.get(.masterKey) == otherMasterKey)
+  #expect(try await engine.unlockExistingRepository("added", with: .stored(testMasterKey), config: config) == .unlocked)
   #expect(try fixture.secrets.get(.masterKey) == testMasterKey)
 }
 
@@ -1297,7 +1300,7 @@ func unlockExistingRepositoryTriesTheStoredKeyWhenItsCheckIsUnsettled(_ check: S
   let engine = BackupEngine(environment: fixture.environment)
   await #expect(throws: EngineError.restic(code: 1, message: "network gone")) {
     _ = try await engine.unlockExistingRepository(
-      "old-mac", with: .stored(testMasterKey, check: nil), config: testConfig(repositoryId: nil))
+      "old-mac", with: .stored(testMasterKey), config: testConfig(repositoryId: nil))
   }
   await #expect(throws: EngineError.restic(code: 1, message: "network gone")) {
     _ = try await engine.unlockExistingRepository(
@@ -1349,7 +1352,8 @@ func unlockExistingRepositoryTriesTheStoredKeyWhenItsCheckIsUnsettled(_ check: S
   }
   await task.value
   #expect(log.entries == ["first checking"])
-  #expect(fixture.restic.commands().filter { $0 == "cat" }.count <= 1)
+  #expect(fixture.proxy.starts.isEmpty)
+  #expect(fixture.restic.commands().isEmpty)
   #expect(try await engine.verifyMasterKey(testMasterKey, config: testConfig(), repositoryId: "second"))
 }
 

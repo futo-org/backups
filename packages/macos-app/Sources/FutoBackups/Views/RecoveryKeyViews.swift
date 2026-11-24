@@ -210,22 +210,14 @@ private struct ConfirmRecoveryKeyStep: View {
 
 private struct ImportRecoveryKeyStep: View {
   @Environment(AppModel.self) private var model
+  @State private var checking = false
 
   var body: some View {
     VStack(spacing: 22) {
       StepTitle(
-        systemName: "key.horizontal.fill", tint: Brand.blue,
-        title: model.isRecoveringLostKey ? "Enter your recovery key" : "Use your existing recovery key",
-        subtitle: model.isRecoveringLostKey
-          ? "This Mac's recovery key is missing. Enter it to keep backing up."
-          : "Enter the recovery key you saved on another device. "
-            + "This Mac will encrypt its backups with it.")
-      RecoveryKeyEntry(action: "Use This Key") { await model.importRecoveryKey($0) }
-      if !model.isRecoveringLostKey {
-        Button("Back") { model.showRecoveryKeyStep(.save) }
-          .buttonStyle(.link)
-          .font(.system(size: 12))
-      }
+        systemName: "key.horizontal.fill", tint: Brand.blue, title: "Enter your recovery key",
+        subtitle: "This Mac's recovery key is missing. Enter it to keep backing up.")
+      RecoveryKeyEntry(action: "Use This Key", checking: $checking) { await model.importRecoveryKey($0) }
     }
   }
 }
@@ -233,16 +225,28 @@ private struct ImportRecoveryKeyStep: View {
 private struct NewBackupKeyStep: View {
   @Environment(AppModel.self) private var model
   let repositories: [RemoteRepository]
+  @State private var checking = false
 
   var body: some View {
     VStack(spacing: 22) {
-      StepTitle(
-        systemName: "plus.circle.fill", tint: Brand.blue, title: "Start a new backup",
-        subtitle: "Enter your recovery key. This Mac will encrypt its new backup with it.")
-      RecoveryKeyEntry(action: "Start New Backup") { await model.startNewBackup(withKey: $0) }
-      Button("Back") { model.showRecoveryKeyStep(.chooseRepository(repositories)) }
-        .buttonStyle(.link)
-        .font(.system(size: 12))
+      if repositories.isEmpty {
+        StepTitle(
+          systemName: "key.horizontal.fill", tint: Brand.blue, title: "Use your existing recovery key",
+          subtitle: "Enter the recovery key you saved on another device. This Mac will encrypt its backups with it.")
+      } else {
+        StepTitle(
+          systemName: "plus.circle.fill", tint: Brand.blue, title: "Start a new backup",
+          subtitle: "Enter your recovery key. This Mac will encrypt its new backup with it.")
+      }
+      RecoveryKeyEntry(action: repositories.isEmpty ? "Use This Key" : "Start New Backup", checking: $checking) {
+        await model.startNewBackup(withKey: $0)
+      }
+      Button("Back") {
+        model.showRecoveryKeyStep(repositories.isEmpty ? .save : .chooseRepository(repositories))
+      }
+      .buttonStyle(.link)
+      .font(.system(size: 12))
+      .disabled(checking)
     }
   }
 }
@@ -252,6 +256,7 @@ private struct RepositoryKeyStep: View {
   let repository: RemoteRepository
   let repositories: [RemoteRepository]
   let storedKeyFailed: Bool
+  @State private var checking = false
 
   var body: some View {
     VStack(spacing: 22) {
@@ -263,20 +268,23 @@ private struct RepositoryKeyStep: View {
       RepositoryRow(repository: repository, storedKeyCheck: nil, trailing: nil)
         .padding(6)
         .background(CardBackground())
-      RecoveryKeyEntry(action: "Continue This Backup") { await model.enterRepositoryKey($0, for: repository) }
+      RecoveryKeyEntry(action: "Continue This Backup", checking: $checking) {
+        await model.enterRepositoryKey($0, for: repository)
+      }
       Button("Back") { model.showRecoveryKeyStep(.chooseRepository(repositories)) }
         .buttonStyle(.link)
         .font(.system(size: 12))
+        .disabled(checking)
     }
   }
 }
 
 private struct RecoveryKeyEntry: View {
   let action: String
+  @Binding var checking: Bool
   let submit: (String) async -> String?
   @State private var input = ""
   @State private var errorMessage: String?
-  @State private var checking = false
 
   var body: some View {
     VStack(spacing: 22) {

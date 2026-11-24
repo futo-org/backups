@@ -94,7 +94,7 @@ public enum RepositorySetup: Equatable, Sendable {
 }
 
 public enum ExistingBackupKey: Equatable, Sendable {
-  case stored(String, check: StoredKeyCheck?)
+  case stored(String)
   case entered(String)
 }
 
