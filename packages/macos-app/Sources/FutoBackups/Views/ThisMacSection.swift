@@ -66,7 +66,7 @@ struct ThisMacSection: View {
         SettingLabel(
           systemName: "trash.fill", tint: .red, title: "Delete this Mac's backup",
           detail:
-            "Permanently delete this Mac's backups from FUTO Cloud and remove this Mac from your account."
+            "Permanently delete this Mac's backup and its history from FUTO Cloud, and remove this Mac from your account."
         )
       }
       .padding(.vertical, 4)
@@ -207,7 +207,7 @@ private struct DeleteBackupSheet: View {
     Group {
       SheetHeader(systemName: "trash.fill", tint: .red, title: "Delete This Mac's Backup?")
       SheetText(
-        "Every backup of \(model.config.host) will be permanently deleted from FUTO Cloud. This can't be undone. Your other Macs' backups aren't affected. This Mac is then removed from your account and signed out."
+        "The backup \(model.config.host) uses, and all its history, will be permanently deleted from FUTO Cloud. This can't be undone. Your other Macs' backups aren't affected. This Mac is then removed from your account, and FUTO Backups' settings, sign-in, recovery key and cache are cleared from it."
       )
       SheetText("Your browser opens to confirm: sign in again, then click Permanently Delete.")
       Toggle(isOn: $understood) {
