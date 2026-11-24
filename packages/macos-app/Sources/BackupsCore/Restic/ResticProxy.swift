@@ -9,6 +9,10 @@ public protocol ResticProxyHandle: Sendable {
   func stop() async
 }
 
+extension ResticProxyHandle {
+  public func networkChanged() throws {}
+}
+
 public protocol ResticProxyLaunching: Sendable {
   func start(apiRoot: URL, throttle: Throttle) async throws -> any ResticProxyHandle
 }

@@ -79,6 +79,18 @@ private struct Control: Decodable {
   #expect(lines == [#"{"type":"network-changed"}"#])
 }
 
+private struct HandleWithoutNetworkReset: ResticProxyHandle {
+  let address = "127.0.0.1:1"
+  let uploadedBytes: Int64 = 0
+  func setThrottle(_ throttle: Throttle) throws {}
+  func stop() async {}
+}
+
+@Test func handlesWithoutANetworkResetIgnoreNetworkChanges() throws {
+  let handle: any ResticProxyHandle = HandleWithoutNetworkReset()
+  try handle.networkChanged()
+}
+
 @Test func exitedBeforeReady() async throws {
   let directory = try makeTempDirectory()
   defer { try? FileManager.default.removeItem(at: directory) }
