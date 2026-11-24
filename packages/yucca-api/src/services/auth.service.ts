@@ -32,7 +32,12 @@ import { SessionRepository } from 'src/repositories/session.repository.js';
 import { TicketRepository } from 'src/repositories/ticket.repository.js';
 import { RegistrationRepositories, UserRepository } from 'src/repositories/user.repository.js';
 import { UserAllowlistRepository } from 'src/repositories/userAllowlist.repository.js';
-import { EmailNotAllowedException, FeatureNotEnabledException, TicketRequiredException } from 'src/utils/exceptions.js';
+import {
+  EmailNotAllowedException,
+  FeatureNotEnabledException,
+  TicketRequiredException,
+  UnsupportedConnectionTypeException,
+} from 'src/utils/exceptions.js';
 
 import { isInAppPath } from 'src/utils/redirect.js';
 import { ensureOwned } from 'src/utils/repository.js';
@@ -324,7 +329,7 @@ export class AuthService {
     }
 
     if (!isConnectionType(connectionType)) {
-      throw new BadRequestException(`Unknown connection type '${connectionType}'`);
+      throw new UnsupportedConnectionTypeException(connectionType);
     }
 
     const flag = connectionTypeFlag(connectionType);
@@ -526,6 +531,10 @@ export class AuthService {
 
     if (error instanceof FeatureNotEnabledException) {
       return DeviceFlowFailureReason.FeatureNotEnabled;
+    }
+
+    if (error instanceof UnsupportedConnectionTypeException) {
+      return DeviceFlowFailureReason.UnsupportedConnectionType;
     }
 
     return DeviceFlowFailureReason.Unknown;

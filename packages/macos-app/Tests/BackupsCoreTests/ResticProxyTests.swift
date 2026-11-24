@@ -62,6 +62,35 @@ private struct Control: Decodable {
   #expect(control.throttle.quietHours == "22:00-06:00")
 }
 
+@Test func networkChangedWritesAControlLine() async throws {
+  let directory = try makeTempDirectory()
+  defer { try? FileManager.default.removeItem(at: directory) }
+  let outFile = directory.appendingPathComponent("control-out")
+  let script = try makeScript(
+    "printf '{\"address\":\"127.0.0.1:5555\",\"port\":5555}\\n' >&3\ncat <&3 > '" + outFile.path + "' &\n",
+    in: directory)
+  let launcher = ResticProxyLauncher(executable: script, readyTimeout: .seconds(10))
+  let handle = try await launcher.start(
+    apiRoot: URL(string: "http://127.0.0.1:9/api")!,
+    throttle: .unthrottled)
+  try handle.networkChanged()
+  await handle.stop()
+  let lines = try await waitForFileLines(outFile)
+  #expect(lines == [#"{"type":"network-changed"}"#])
+}
+
+private struct HandleWithoutNetworkReset: ResticProxyHandle {
+  let address = "127.0.0.1:1"
+  let uploadedBytes: Int64 = 0
+  func setThrottle(_ throttle: Throttle) throws {}
+  func stop() async {}
+}
+
+@Test func handlesWithoutANetworkResetIgnoreNetworkChanges() throws {
+  let handle: any ResticProxyHandle = HandleWithoutNetworkReset()
+  try handle.networkChanged()
+}
+
 @Test func exitedBeforeReady() async throws {
   let directory = try makeTempDirectory()
   defer { try? FileManager.default.removeItem(at: directory) }

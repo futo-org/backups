@@ -21,6 +21,7 @@ public struct EngineEnvironment: Sendable {
   public var temporaryDirectory: URL
   public var cloudOnlyScanner: any CloudOnlyScanning
   public var uploadTicks: @Sendable () -> AsyncStream<ContinuousClock.Instant>
+  public var networkChanges: @Sendable () -> AsyncStream<Void>
 
   public init(
     secrets: any SecretStore,
@@ -43,7 +44,8 @@ public struct EngineEnvironment: Sendable {
     cloudOnlyScanner: any CloudOnlyScanning = NoCloudOnlyScan(),
     uploadTicks: @escaping @Sendable () -> AsyncStream<ContinuousClock.Instant> = {
       UploadSpeedMeter.ticks(every: .seconds(1))
-    }
+    },
+    networkChanges: @escaping @Sendable () -> AsyncStream<Void> = { NetworkChanges.live() }
   ) {
     self.secrets = secrets
     self.discover = discover
@@ -64,6 +66,7 @@ public struct EngineEnvironment: Sendable {
     self.temporaryDirectory = temporaryDirectory
     self.cloudOnlyScanner = cloudOnlyScanner
     self.uploadTicks = uploadTicks
+    self.networkChanges = networkChanges
   }
 }
 
@@ -74,6 +77,11 @@ public enum EngineError: Error, Equatable, Sendable {
   case missingMasterKey
   case busy
   case restic(code: Int32, message: String)
+}
+
+public enum RepositorySetup: Equatable, Sendable {
+  case ready(repositoryId: String)
+  case chooseExisting([RemoteRepository], masterKey: String)
 }
 
 public enum FinishingStep: Equatable, Sendable {
@@ -88,6 +96,10 @@ public enum EngineActivity: Equatable, Sendable {
   case pruning
   case restoring
   case changingRecoveryKey
+
+  public var isCancellable: Bool {
+    self != .changingRecoveryKey
+  }
 }
 
 final class OnceFlag: Sendable {

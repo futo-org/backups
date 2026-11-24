@@ -20,19 +20,23 @@ struct StatusSummary {
   var menuBarSymbol: String
 
   @MainActor
-  init(model: AppModel) {
+  init(model: AppModel, progress: BackupProgress?) {
+    if model.isCancelling, model.activity != nil {
+      self.init(
+        title: "Cancelling…", subtitle: "Stopping safely…", symbol: "xmark", tint: Brand.blue, busy: true,
+        action: .none, menuBarSymbol: "arrow.clockwise.icloud")
+      return
+    }
     switch model.activity {
-    case .backingUp(let progress, _) where progress.percentDone >= 0.999:
+    case .backingUp where (progress?.percentDone ?? 0) >= 0.999:
       self.init(
         title: "Finishing backup", subtitle: "Uploading the last changes…", symbol: "arrow.up", tint: Brand.blue,
         busy: true, action: .cancel, menuBarSymbol: "arrow.clockwise.icloud")
       return
-    case .backingUp(let progress, _):
-      var parts = ["\(Format.bytes(progress.bytesDone)) of \(Format.bytes(progress.totalBytes))"]
-      if let seconds = progress.secondsRemaining { parts.append(Format.duration(seconds)) }
+    case .backingUp:
       self.init(
-        title: "Backing up", subtitle: parts.joined(separator: " · "), symbol: "arrow.up", tint: Brand.blue,
-        progress: progress.percentDone, action: .cancel, menuBarSymbol: "arrow.clockwise.icloud")
+        title: "Backing up", subtitle: progress.map(Self.transferred) ?? "", symbol: "arrow.up", tint: Brand.blue,
+        progress: progress?.percentDone ?? 0, action: .cancel, menuBarSymbol: "arrow.clockwise.icloud")
       return
     case .preparing:
       self.init(
@@ -100,6 +104,13 @@ struct StatusSummary {
         title: "Backup cancelled", subtitle: "Stopped \(when).", symbol: "pause",
         tint: .secondary, action: .backUp, menuBarSymbol: "icloud")
     }
+  }
+
+  @MainActor
+  private static func transferred(_ progress: BackupProgress) -> String {
+    var parts = ["\(Format.bytes(progress.bytesDone)) of \(Format.bytes(progress.totalBytes))"]
+    if let seconds = progress.secondsRemaining { parts.append(Format.duration(seconds)) }
+    return parts.joined(separator: " · ")
   }
 
   private init(

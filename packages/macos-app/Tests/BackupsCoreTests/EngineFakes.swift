@@ -171,6 +171,10 @@ final class FakeRestic: ResticExecuting, @unchecked Sendable {
     }
   }
 
+  var waitingAtGate: Int {
+    lock.withLock { gateWaits.count }
+  }
+
   func releaseBackups() {
     let waits = lock.withLock { () -> [CheckedContinuation<Void, Never>] in
       gateActive = false
@@ -196,7 +200,14 @@ final class FakeRestic: ResticExecuting, @unchecked Sendable {
     }
     if gated {
       await withCheckedContinuation { (wait: CheckedContinuation<Void, Never>) in
-        lock.withLock { gateWaits.append(wait) }
+        let stillGated = lock.withLock { () -> Bool in
+          guard gateActive else { return false }
+          gateWaits.append(wait)
+          return true
+        }
+        if !stillGated {
+          wait.resume()
+        }
       }
       if checksCancellation {
         try Task.checkCancellation()
@@ -232,6 +243,10 @@ final class FakeProxyHandle: ResticProxyHandle, @unchecked Sendable {
 
   func setThrottle(_ throttle: Throttle) throws {}
 
+  func networkChanged() throws {
+    launcher.recordNetworkChange()
+  }
+
   func stop() async {
     launcher.recordStop()
   }
@@ -241,6 +256,7 @@ final class FakeProxyLauncher: ResticProxyLaunching, @unchecked Sendable {
   private let lock = NSLock()
   private var started: [ProxyStartArg] = []
   private var stops = 0
+  private var networkChanges = 0
   private var failure: (any Error)?
   private var onStartHook: (@Sendable () -> Void)?
   private var uploaded: Int64 = 0
@@ -268,6 +284,14 @@ final class FakeProxyLauncher: ResticProxyLaunching, @unchecked Sendable {
 
   func recordStop() {
     lock.withLock { stops += 1 }
+  }
+
+  var networkChangeCount: Int {
+    lock.withLock { networkChanges }
+  }
+
+  func recordNetworkChange() {
+    lock.withLock { networkChanges += 1 }
   }
 
   func start(apiRoot: URL, throttle: Throttle) async throws -> any ResticProxyHandle {
@@ -575,6 +599,29 @@ final class FixedClock: @unchecked Sendable {
   }
 }
 
+final class FakeNetworkChanges: @unchecked Sendable {
+  private let lock = NSLock()
+  private var continuations: [AsyncStream<Void>.Continuation] = []
+  private var terminated = 0
+
+  func stream() -> AsyncStream<Void> {
+    let (stream, continuation) = AsyncStream<Void>.makeStream()
+    continuation.onTermination = { _ in self.lock.withLock { self.terminated += 1 } }
+    lock.withLock { continuations.append(continuation) }
+    return stream
+  }
+
+  func change() {
+    for continuation in lock.withLock({ continuations }) {
+      continuation.yield()
+    }
+  }
+
+  var terminatedCount: Int {
+    lock.withLock { terminated }
+  }
+}
+
 final class FakeUploadTicks: @unchecked Sendable {
   let stream: AsyncStream<ContinuousClock.Instant>
   private let continuation: AsyncStream<ContinuousClock.Instant>.Continuation
@@ -643,7 +690,8 @@ func makeFixture(
   clock: FixedClock = FixedClock(),
   dataVolumePath: @escaping @Sendable (String) -> String? = { _ in nil },
   cloudOnlyScanner: any CloudOnlyScanning = NoCloudOnlyScan(),
-  uploadTicks: @escaping @Sendable () -> AsyncStream<ContinuousClock.Instant> = { AsyncStream { $0.finish() } }
+  uploadTicks: @escaping @Sendable () -> AsyncStream<ContinuousClock.Instant> = { AsyncStream { $0.finish() } },
+  networkChanges: @escaping @Sendable () -> AsyncStream<Void> = { AsyncStream { $0.finish() } }
 ) -> EngineFixture {
   let api = FakeAPI()
   let restic = FakeRestic()
@@ -680,7 +728,8 @@ func makeFixture(
     dataVolumePath: dataVolumePath,
     createRestoreDirectory: { restoreDirectories.create($0) },
     cloudOnlyScanner: cloudOnlyScanner,
-    uploadTicks: uploadTicks)
+    uploadTicks: uploadTicks,
+    networkChanges: networkChanges)
   return EngineFixture(
     environment: environment, api: api, restic: restic, proxy: proxy, secrets: secrets,
     discoverCount: discoverCount, diskSnapshots: diskSnapshots, restoreDirectories: restoreDirectories)

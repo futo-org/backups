@@ -1132,7 +1132,8 @@
           "EMAIL_NOT_ALLOWED",
           "FEATURE_NOT_ENABLED",
           "EXPIRED",
-          "ACCESS_DENIED"
+          "ACCESS_DENIED",
+          "UNSUPPORTED_CONNECTION_TYPE"
         ]
       },
       "DeviceFlowPollDto": {

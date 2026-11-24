@@ -28,8 +28,9 @@ type denial struct {
 }
 
 type Handler struct {
-	client  client.Client
-	reverse *httputil.ReverseProxy
+	client   client.Client
+	reverse  *httputil.ReverseProxy
+	upstream *upstream
 
 	sessionToken        string
 	smartAutoRepository bool
@@ -45,10 +46,12 @@ type Handler struct {
 
 func New(cl client.Client, sessionToken string, smartAutoRepository bool) *Handler {
 	grants := hashmap.New[string, client.Grant]()
+	upstream := newUpstream()
 
 	handler := &Handler{
-		client:  cl,
-		reverse: reverseProxy(grants),
+		client:   cl,
+		reverse:  reverseProxy(grants, upstream.transport),
+		upstream: upstream,
 
 		sessionToken:        sessionToken,
 		smartAutoRepository: smartAutoRepository,
@@ -73,6 +76,12 @@ func (handler *Handler) Throttle(bytesPerSec int, quietHours string) error {
 
 func (handler *Handler) Uploaded() int64 {
 	return handler.uploaded.Load()
+}
+
+func (handler *Handler) NetworkChanged() {
+	closed := handler.upstream.reset()
+	handler.client.CloseIdleConnections()
+	log.Info().Int("connections", closed).Msg("Reset upstream connections after a network change")
 }
 
 func (handler *Handler) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
@@ -124,6 +133,11 @@ func (handler *Handler) ServeHTTP(writer http.ResponseWriter, request *http.Requ
 	}
 
 	log.Debug().Msg("handled request")
+	// The transport reports a failure only after its body copy, blocked reading from restic, returns.
+	interrupt := func() { _ = http.NewResponseController(writer).SetReadDeadline(time.Now()) }
+	ctx, release := handler.upstream.bind(ctx, interrupt)
+	defer release()
+	defer interruptOnClose(request, interrupt)()
 	request.Body = count(pace(ctx, request.Body, &handler.throttle), &handler.uploaded)
 
 	route := routed{key: repositoryId, grant: grant, path: path}
@@ -155,7 +169,7 @@ func (handler *Handler) smartResolve(name string, sessionToken string) (string, 
 	}
 
 	value, err, _ := handler.minting.Do("resolve:"+reference, func() (any, error) {
-		ctx, cancel := context.WithTimeout(context.Background(), refreshTimeout)
+		ctx, cancel := context.WithTimeout(handler.upstream.current(), refreshTimeout)
 		defer cancel()
 
 		repositories, err := handler.client.ListRepositories(ctx, sessionToken)
@@ -222,7 +236,7 @@ func (handler *Handler) mint(key string, sessionToken string) (client.Grant, err
 	}
 
 	value, err, _ := handler.minting.Do(reference, func() (any, error) {
-		ctx, cancel := context.WithTimeout(context.Background(), refreshTimeout)
+		ctx, cancel := context.WithTimeout(handler.upstream.current(), refreshTimeout)
 		defer cancel()
 
 		grant, err := handler.client.Grant(ctx, sessionToken, key)

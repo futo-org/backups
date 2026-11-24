@@ -8,7 +8,16 @@ revision=$(git -C "$package" rev-parse --short HEAD)
 if [ -n "$(git -C "$package" status --porcelain -- .)" ]; then
   revision="$revision.dirty"
 fi
-version="0.0.0-dev.$revision"
+release=$(git -C "$package" tag --merged HEAD --list 'v*' --sort=-v:refname |
+  grep -E -m 1 '^v[0-9]+\.[0-9]+\.[0-9]+$' || true)
+if [ -z "$release" ]; then
+  echo "no vMAJOR.MINOR.PATCH release tag in HEAD's history; fetch tags (git fetch --tags) and retry" >&2
+  exit 1
+fi
+release=${release#v}
+IFS=. read -r major minor patch <<<"$release"
+build=$((10#$major * 1000000 + 10#$minor * 1000 + 10#$patch))
+version="$release-dev.$revision"
 
 work=$(mktemp -d)
 chmod 700 "$work"
@@ -48,8 +57,8 @@ else
   security list-keychains -d user -s "$keychain" "${search_list[@]}"
 fi
 
-app=$(cd "$package" && CODESIGN_IDENTITY="$identity" MAC_APP_VERSION="$version" MAC_APP_BUILD=0 \
-  SPARKLE_AUTOMATIC_CHECKS=false scripts/bundle.sh | tail -n 1)
+app=$(cd "$package" && CODESIGN_IDENTITY="$identity" MAC_APP_VERSION="$version" MAC_APP_BUILD="$build" \
+  scripts/bundle.sh | tail -n 1)
 
 if [ "${NOTARIZE:-}" = "1" ]; then
   secret APPLE_NOTARY_API_KEY__P8 >"$work/notary.p8"
@@ -60,11 +69,31 @@ if [ "${NOTARIZE:-}" = "1" ]; then
   xcrun stapler staple "$app"
 fi
 
+executable="$destination/Contents/MacOS/FutoBackups"
+refuse_if_busy() {
+  if pgrep -f "^$destination/Contents/Helpers/" >/dev/null; then
+    echo "FUTO Backups is backing up or restoring; let it finish, then run mac:install again" >&2
+    exit 1
+  fi
+}
+refuse_if_busy
 osascript -e 'quit app id "org.futo.backups.mac"' >/dev/null 2>&1 || true
 for _ in $(seq 1 20); do
-  pgrep -x FutoBackups >/dev/null || break
+  pgrep -f -x "$executable" >/dev/null || break
   sleep 0.5
 done
+if pgrep -f -x "$executable" >/dev/null; then
+  refuse_if_busy
+  pkill -TERM -f -x "$executable" || true
+  for _ in $(seq 1 20); do
+    pgrep -f -x "$executable" >/dev/null || break
+    sleep 0.5
+  done
+fi
+if pgrep -f -x "$executable" >/dev/null; then
+  echo "FUTO Backups is still running; quit it and run mac:install again" >&2
+  exit 1
+fi
 rm -rf "$destination"
 ditto "$app" "$destination"
 codesign --verify --deep --strict "$destination"

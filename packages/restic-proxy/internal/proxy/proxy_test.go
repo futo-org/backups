@@ -62,6 +62,11 @@ func newBackend(t *testing.T, status int, seen *backendRequest) *httptest.Server
 
 func newAPI(t *testing.T, backendURL string, status int, mints *atomic.Int64) client.Client {
 	t.Helper()
+	backend, err := url.Parse(backendURL)
+	if err != nil {
+		t.Fatalf("parse %s: %v", backendURL, err)
+	}
+
 	server := httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, _ *http.Request) {
 		if mints != nil {
 			mints.Add(1)
@@ -73,7 +78,7 @@ func newAPI(t *testing.T, backendURL string, status int, mints *atomic.Int64) cl
 
 		token := makeJWT(t, map[string]any{"exp": time.Now().Add(time.Hour).Unix()})
 		writer.WriteHeader(http.StatusCreated)
-		fmt.Fprintf(writer, `{"url":"rest:%s://restic:%s@%s/%s"}`, "http", token, hostOf(t, backendURL), testRepository)
+		fmt.Fprintf(writer, `{"url":"rest:%s://restic:%s@%s/%s"}`, backend.Scheme, token, backend.Host, testRepository)
 	}))
 	t.Cleanup(server.Close)
 	return client.New(meta.Api{Url: server.URL})
