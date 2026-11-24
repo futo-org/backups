@@ -33,6 +33,7 @@ jobs:
       run: ${{ steps.decision.outputs.run }}
       version: ${{ steps.decision.outputs.version }}
       previous: ${{ steps.decision.outputs.previous }}
+      sha: ${{ steps.decision.outputs.sha }}
     env:
       TAG: ${{ github.event.release.tag_name || inputs.tag }}
       GH_TOKEN: ${{ github.token }}
@@ -87,6 +88,7 @@ jobs:
             echo "::notice::$TAG is a prerelease"
             exit 0
           fi
+          sha=$(git rev-parse "refs/tags/$TAG^{commit}")
           if gh release view "macos-v$version" > /dev/null 2>&1; then
             echo "run=false" >> "$GITHUB_OUTPUT"
             echo "::notice::macos-v$version is already published"
@@ -109,15 +111,15 @@ jobs:
                 exit 0
               fi
               if git rev-parse -q --verify "refs/tags/v$previous" > /dev/null &&
-                git diff --quiet "v$previous" "$TAG" -- packages/macos-app packages/restic-proxy .mise/config.toml &&
-                [ "$(restic_image "v$previous")" = "$(restic_image "$TAG")" ]; then
+                git diff --quiet "v$previous" "$sha" -- packages/macos-app packages/restic-proxy .mise/config.toml &&
+                [ "$(restic_image "v$previous")" = "$(restic_image "$sha")" ]; then
                 echo "run=false" >> "$GITHUB_OUTPUT"
                 echo "::notice::macOS app inputs unchanged since v$previous"
                 exit 0
               fi
             fi
           fi
-          printf 'run=true\nversion=%s\nprevious=%s\n' "$version" "$previous" >> "$GITHUB_OUTPUT"
+          printf 'run=true\nversion=%s\nprevious=%s\nsha=%s\n' "$version" "$previous" "$sha" >> "$GITHUB_OUTPUT"
 
   release:
     name: Build, notarize and publish the macOS app
@@ -131,7 +133,7 @@ jobs:
     permissions:
       contents: write
     env:
-      TAG: ${{ github.event.release.tag_name || inputs.tag }}
+      SHA: ${{ needs.gate.outputs.sha }}
       GH_TOKEN: ${{ github.token }}
       GH_REPO: ${{ github.repository }}
     steps:
@@ -161,7 +163,7 @@ jobs:
       - name: Checkout release tree
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
-          ref: refs/tags/${{ github.event.release.tag_name || inputs.tag }}
+          ref: ${{ needs.gate.outputs.sha }}
           fetch-depth: 0
           persist-credentials: false
 
@@ -176,11 +178,11 @@ jobs:
           set -euo pipefail
           notes="$GITHUB_WORKSPACE/packages/macos-app/scripts/release-notes.sh"
           if [ -n "$PREVIOUS" ] && git rev-parse -q --verify "refs/tags/v$PREVIOUS" > /dev/null; then
-            "$notes" markdown "$TAG" "v$PREVIOUS" > "$RUNNER_TEMP/macos-notes.md"
-            "$notes" html "$TAG" "v$PREVIOUS" > "$RUNNER_TEMP/macos-notes.html"
+            "$notes" markdown "$SHA" "v$PREVIOUS" > "$RUNNER_TEMP/macos-notes.md"
+            "$notes" html "$SHA" "v$PREVIOUS" > "$RUNNER_TEMP/macos-notes.html"
           else
-            "$notes" markdown "$TAG" > "$RUNNER_TEMP/macos-notes.md"
-            "$notes" html "$TAG" > "$RUNNER_TEMP/macos-notes.html"
+            "$notes" markdown "$SHA" > "$RUNNER_TEMP/macos-notes.md"
+            "$notes" html "$SHA" > "$RUNNER_TEMP/macos-notes.html"
           fi
           printf '\nBuilt from v%s.\n' "$VERSION" >> "$RUNNER_TEMP/macos-notes.md"
 
@@ -260,7 +262,7 @@ jobs:
             exit 1
           fi
           gh release create "macos-v$VERSION" "$OUT_DIR/FUTO-Backups-$VERSION.zip" \
-            --target "$(git rev-parse "refs/tags/$TAG^{commit}")" \
+            --target "$SHA" \
             --title "FUTO Backups for macOS $VERSION" \
             --notes-file "$RUNNER_TEMP/macos-notes.md" \
             --latest=false
