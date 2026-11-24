@@ -1282,6 +1282,31 @@ private func excludeValues(in arguments: [String]) -> [String] {
     unchanged.map(\.paths) == [["\(mount)/Users/test/Documents", "/Volumes/Ext/Photos", mount]])
 }
 
+@Test(arguments: [nil, URL(fileURLWithPath: "/Users/test/Library/Application Support/FUTO Backups/Snapshot")])
+func snapshotsMapsAnotherMacsSnapshotMountToLivePaths(snapshotDirectory: URL?) async throws {
+  let aliceMount = "/Users/alice/Library/Application Support/FUTO Backups/Snapshot/Volume"
+  let resolvedMount =
+    "/private/var/root/Library/Containers/x/Data/Library/Application Support/FUTO Backups/Snapshot/Volume"
+  let json = """
+    [{"id":"tagged","short_id":"tagged","time":"2026-11-23T12:00:00Z","hostname":"alice-mac",\
+    "tags":["disk-snapshot"],"paths":["\(aliceMount)/Users/alice/Docs","\(aliceMount)",\
+    "\(resolvedMount)/Users/alice/Mom's Taxes, 2025","/Volumes/Ext/Photos","\(aliceMount)2/Users/alice/Docs"]},\
+    {"id":"untagged","short_id":"untagged","time":"2026-11-22T12:00:00Z","hostname":"alice-mac",\
+    "paths":["\(aliceMount)/Users/alice/Docs"]}]
+    """
+  let fixture = makeFixture(snapshotDirectory: snapshotDirectory)
+  fixture.restic.set(ResticScript(stdout: json), for: "snapshots")
+  let listed = try await BackupEngine(environment: fixture.environment).snapshots(config: testConfig())
+  let tagged = try #require(listed.first { $0.id == "tagged" })
+  #expect(
+    tagged.paths == [
+      "/Users/alice/Docs", "/", "/Users/alice/Mom's Taxes, 2025", "/Volumes/Ext/Photos",
+      "\(aliceMount)2/Users/alice/Docs",
+    ])
+  let untagged = try #require(listed.first { $0.id == "untagged" })
+  #expect(untagged.paths == ["\(aliceMount)/Users/alice/Docs"])
+}
+
 private func waitForSnapshotCall(_ snapshots: FakeDiskSnapshots, prefix: String) async {
   var waited = 0
   while !snapshots.calls.contains(where: { $0.hasPrefix(prefix) }) {

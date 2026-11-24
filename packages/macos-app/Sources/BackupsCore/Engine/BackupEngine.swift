@@ -501,28 +501,46 @@ public actor BackupEngine {
     staleCleanupTask = nil
   }
 
+  private static let snapshotMountSuffix = "/Library/Application Support/FUTO Backups/Snapshot/Volume"
+
   private func mapSnapshotPaths(_ snapshots: [Snapshot]) -> [Snapshot] {
-    guard let snapshotDirectory = environment.snapshotDirectory else {
-      return snapshots
+    var mounts: [String] = []
+    if let snapshotDirectory = environment.snapshotDirectory {
+      let mount = snapshotDirectory.appendingPathComponent("Volume").path
+      mounts = [mount, DataVolume.resolvedPath(mount)]
     }
-    let mount = snapshotDirectory.appendingPathComponent("Volume").path
-    let mounts = [mount, DataVolume.resolvedPath(mount)]
     return snapshots.map { snapshot in
       guard snapshot.tags.contains("disk-snapshot") else { return snapshot }
       var copy = snapshot
-      copy.paths = snapshot.paths.map { path in
-        for mount in mounts {
-          if path == mount {
-            return "/"
-          }
-          if path.hasPrefix(mount + "/") {
-            return "/" + path.dropFirst(mount.count + 1)
-          }
-        }
-        return path
-      }
+      copy.paths = snapshot.paths.map { Self.livePath(of: $0, mounts: mounts) }
       return copy
     }
+  }
+
+  private static func livePath(of path: String, mounts: [String]) -> String {
+    for mount in mounts {
+      if let live = livePath(of: path, mountedAt: mount) {
+        return live
+      }
+    }
+    var searchStart = path.startIndex
+    while let match = path.range(of: snapshotMountSuffix, range: searchStart..<path.endIndex) {
+      if let live = livePath(of: path, mountedAt: String(path[..<match.upperBound])) {
+        return live
+      }
+      searchStart = match.upperBound
+    }
+    return path
+  }
+
+  private static func livePath(of path: String, mountedAt mount: String) -> String? {
+    if path == mount {
+      return "/"
+    }
+    if path.hasPrefix(mount + "/") {
+      return "/" + path.dropFirst(mount.count + 1)
+    }
+    return nil
   }
 
   public func snapshots(config: AppConfig) async throws -> [Snapshot] {
