@@ -72,6 +72,12 @@ struct BackupWarningsSheet: View {
             .font(.system(size: 12, weight: .semibold))
             .foregroundStyle(.secondary)
           Spacer()
+          if !remainingPaths.isEmpty {
+            Button("Exclude All") { model.addExcludedPaths(remainingPaths) }
+              .buttonStyle(.link)
+              .font(.system(size: 12))
+              .help("Leave all of these out of future backups")
+          }
           Button {
             Clipboard.copy(warnings.listText(displayPath: Format.abbreviatedPath))
             copied = true
@@ -91,7 +97,9 @@ struct BackupWarningsSheet: View {
               if index > 0 {
                 Divider()
               }
-              WarningRow(warning: warning)
+              WarningRow(warning: warning, excluded: model.isExcludedPath(warning.path)) {
+                model.addExcludedPaths([warning.path])
+              }
             }
           }
         }
@@ -132,6 +140,10 @@ struct BackupWarningsSheet: View {
     }
   }
 
+  private var remainingPaths: [String] {
+    warnings.items.map(\.path).filter { !model.isExcludedPath($0) }
+  }
+
   private var listTitle: String {
     warnings.isTruncated
       ? "Showing the first \(warnings.items.count) of \(warnings.total)" : "All \(warnings.total)"
@@ -145,8 +157,28 @@ struct BackupWarningsSheet: View {
 
   private struct WarningRow: View {
     let warning: BackupWarning
+    let excluded: Bool
+    let exclude: () -> Void
 
     var body: some View {
+      HStack(spacing: 10) {
+        details
+        if excluded {
+          Text("Excluded")
+            .font(.system(size: 11, weight: .medium))
+            .foregroundStyle(.secondary)
+        } else {
+          Button("Exclude", action: exclude)
+            .buttonStyle(.link)
+            .font(.system(size: 12))
+            .help("Leave this out of future backups")
+        }
+      }
+      .padding(.horizontal, 12)
+      .padding(.vertical, 7)
+    }
+
+    private var details: some View {
       VStack(alignment: .leading, spacing: 2) {
         Text(Format.abbreviatedPath(warning.path))
           .font(.system(size: 12, design: .monospaced))
@@ -161,8 +193,6 @@ struct BackupWarningsSheet: View {
           .textSelection(.enabled)
       }
       .frame(maxWidth: .infinity, alignment: .leading)
-      .padding(.horizontal, 12)
-      .padding(.vertical, 7)
     }
   }
 

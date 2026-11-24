@@ -83,6 +83,16 @@ public struct AppConfig: Codable, Equatable, Sendable {
       "~/.lima/*/diffdisk",
       "~/.local/share/containers/podman/machine",
     ],
+    [
+      "~/Library/Application Support/FileProvider",
+      "~/Library/Application Support/com.apple.TCC",
+      "~/Library/Group Containers/group.com.apple.secure-control-center-preferences",
+      "~/Library/Biome",
+      "~/Library/Metadata/CoreSpotlight",
+      "~/Library/Daemon Containers",
+      "~/Library/Trial",
+      "~/Library/DuetExpertCenter",
+    ],
   ]
 
   public static let defaultExcludes: [String] = defaultExcludesByVersion.flatMap { $0 }

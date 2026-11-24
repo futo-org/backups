@@ -582,7 +582,15 @@ final class AppModel {
   }
 
   func addExclusions(_ urls: [URL]) {
-    try? updateExclusions(Exclusions.adding(urls.map { Exclusions.pattern(forPath: $0.path) }, to: config.excludes))
+    addExcludedPaths(urls.map(\.path))
+  }
+
+  func addExcludedPaths(_ paths: [String]) {
+    try? updateExclusions(Exclusions.adding(paths.map(Exclusions.pattern(forPath:)), to: config.excludes))
+  }
+
+  func isExcludedPath(_ path: String) -> Bool {
+    config.excludes.contains(Exclusions.pattern(forPath: path))
   }
 
   func addExclusionPattern(_ input: String) -> String? {

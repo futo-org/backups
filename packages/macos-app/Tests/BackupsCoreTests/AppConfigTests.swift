@@ -26,6 +26,14 @@ func defaults() {
       "/Users/test/.lima/*/basedisk",
       "/Users/test/.lima/*/diffdisk",
       "/Users/test/.local/share/containers/podman/machine",
+      "/Users/test/Library/Application Support/FileProvider",
+      "/Users/test/Library/Application Support/com.apple.TCC",
+      "/Users/test/Library/Group Containers/group.com.apple.secure-control-center-preferences",
+      "/Users/test/Library/Biome",
+      "/Users/test/Library/Metadata/CoreSpotlight",
+      "/Users/test/Library/Daemon Containers",
+      "/Users/test/Library/Trial",
+      "/Users/test/Library/DuetExpertCenter",
     ])
   #expect(config.schedule == .daily(hour: 12, minute: 0))
   #expect(config.throttle == .unthrottled)
@@ -367,4 +375,15 @@ func forgetRepositoryWithoutRepository() {
   #expect(pinned)
   #expect(config.serverURL == AppConfig.productionServerURL)
   #expect(config.repositoryId == nil)
+}
+
+@Test func configsOnTheSecondDefaultsGainTheProtectedSystemFolders() throws {
+  var config = AppConfig.defaults(host: "mac", home: "/Users/t")
+  config.excludeDefaultsVersion = 2
+  config.excludes = config.excludes.filter { !$0.contains("FileProvider") && !$0.contains("Biome") }
+  let changed = config.addNewDefaultExcludes(home: "/Users/t")
+  #expect(changed)
+  #expect(config.excludes.contains("/Users/t/Library/Application Support/FileProvider"))
+  #expect(config.excludes.contains("/Users/t/Library/Biome"))
+  #expect(config.excludeDefaultsVersion == AppConfig.currentExcludeDefaultsVersion)
 }
