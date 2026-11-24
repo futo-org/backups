@@ -2050,7 +2050,8 @@ private let skippedFiles = CloudOnlySkip(
   let record = try await engine.backup(config: testConfig()) { _ in }
   #expect(record.status == .failed)
   #expect(record.cloudOnlySkipped == nil)
-  for _ in 0..<200 where !scanner.cancelled {
+  let deadline = ContinuousClock.now + .seconds(10)
+  while !scanner.cancelled, ContinuousClock.now < deadline {
     try await Task.sleep(for: .milliseconds(5))
   }
   #expect(scanner.cancelled)
