@@ -179,11 +179,15 @@ public actor BackupEngine {
             do {
               try writeJournal(
                 readJournal(snapshotJournal).filter { $0 != createdSnapshot }, to: snapshotJournal)
-            } catch let error as DiskSnapshotError {
+            } catch {
               await report(
                 madeAPI, config: config, "Failed to remove disk snapshot",
-                ["repositoryId": .string(repositoryId), "error": .string(error.telemetryCode)])
-            } catch {}
+                [
+                  "repositoryId": .string(repositoryId),
+                  "error": .string(
+                    (error as? DiskSnapshotError)?.telemetryCode ?? String(describing: type(of: error))),
+                ])
+            }
           }
           if let error = removal.error {
             await report(

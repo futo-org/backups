@@ -1485,6 +1485,34 @@ func unreadableJournalFailsSetupBeforeCreateAndKeepsTheFile(contents: Data?) asy
   #expect(finished.data["error"] == .string("disk snapshot: journal-unreadable"))
 }
 
+@Test func journalCorruptedDuringTheRunIsKeptAndReported() async throws {
+  let snapshots = FakeDiskSnapshots()
+  let snapshot = makeSnapshotFixture(diskSnapshots: snapshots)
+  defer { try? FileManager.default.removeItem(at: snapshot.directory) }
+  snapshot.fixture.restic.gateNextBackup()
+  let engine = BackupEngine(environment: snapshot.fixture.environment)
+  let task = Task {
+    try await engine.backup(config: snapshot.config) { _ in }
+  }
+  var waited = 0
+  while !snapshot.fixture.restic.commands().contains("backup") {
+    waited += 1
+    if waited > 500 {
+      Issue.record("backup never reached restic fake")
+      break
+    }
+    try await Task.sleep(for: .milliseconds(2))
+  }
+  try Data("not json".utf8).write(to: snapshot.journal)
+  snapshot.fixture.restic.releaseBackups()
+  let record = try await task.value
+  #expect(record.status == .complete)
+  #expect(try Data(contentsOf: snapshot.journal) == Data("not json".utf8))
+  let logs = await snapshot.fixture.deliveredLogs(engine)
+  let event = try #require(logs.first { $0.summary == "Failed to remove disk snapshot" })
+  #expect(event.data["error"] == .string("journal-unreadable"))
+}
+
 @Test func unreadableJournalSkipsStaleCleanupAndKeepsTheFile() async throws {
   let snapshots = FakeDiskSnapshots()
   let snapshot = makeSnapshotFixture(diskSnapshots: snapshots)
