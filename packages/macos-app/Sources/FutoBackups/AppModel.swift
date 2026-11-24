@@ -675,6 +675,7 @@ final class AppModel {
     saveConfig()
     recomputeNextRun()
     reportRepositoryChange()
+    requestNotificationPermissionIfNeeded()
     if startBackup {
       backupNow()
     }
@@ -743,6 +744,31 @@ final class AppModel {
     saveConfig()
     recomputeNextRun()
     report("Updated schedule", ["schedule": .string(scheduleDescription(schedule))])
+    requestNotificationPermissionIfNeeded()
+  }
+
+  private func requestNotificationPermissionIfNeeded() {
+    guard config.shouldRequestNotificationPermission else { return }
+    config.notificationPermissionRequestedAt = Date()
+    saveConfig()
+    Task { await FailureNotifications.shared.requestPermission() }
+  }
+
+  private func notifyFailure(_ outcome: BackupRunOutcome) {
+    guard case .failed(let reason) = outcome else { return }
+    let notice = FailureNotice(
+      reason: reason, server: config.serverName, retryAt: nextRun, now: Date(), calendar: .current, locale: .current)
+    let asksPermission = config.shouldRequestNotificationPermission
+    if asksPermission {
+      config.notificationPermissionRequestedAt = Date()
+      saveConfig()
+    }
+    Task {
+      if asksPermission {
+        await FailureNotifications.shared.requestPermission()
+      }
+      await FailureNotifications.shared.post(notice)
+    }
   }
 
   func setUploadConnections(_ connections: Int?) {
@@ -843,12 +869,21 @@ final class AppModel {
           return
         }
         self.config.lastRun = record
+        let outcome = BackupRunOutcome(record: record)
+        let streakWasNotified = self.config.failureNotifiedAt != nil
+        let notifies = self.config.noteBackupOutcome(outcome, scheduled: scheduled, at: Date())
         self.saveConfig()
         self.finishOperation()
         if record.status == .failed || record.status == .warn {
           self.lastError = record.message
         }
         self.recomputeNextRun()
+        if streakWasNotified, self.config.failureNotifiedAt == nil {
+          FailureNotifications.shared.withdraw()
+        }
+        if notifies {
+          self.notifyFailure(outcome)
+        }
         await self.refreshSnapshots()
       } catch {
         guard generation == self.sessionGeneration else {
@@ -856,7 +891,12 @@ final class AppModel {
           return
         }
         self.finishOperation()
+        let outcome = BackupRunOutcome(error: error)
         self.lastError = self.message(for: error)
+        if self.config.noteBackupOutcome(outcome, scheduled: scheduled, at: Date()) {
+          self.saveConfig()
+          self.notifyFailure(outcome)
+        }
       }
     }
     if scheduled, let repositoryId = config.repositoryId {

@@ -48,6 +48,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
   private var windowCloseObserver: (any NSObjectProtocol)?
 
   func applicationWillFinishLaunching(_ notification: Notification) {
+    FailureNotifications.shared.install()
     launchedAsLoginItem = MenuBarResidency.launchedAsLoginItem()
     if launchedAsLoginItem {
       NSApplication.shared.setActivationPolicy(.accessory)

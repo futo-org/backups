@@ -59,6 +59,8 @@ public struct AppConfig: Codable, Equatable, Sendable {
   public var uploadConnections: Int?
   public var readConcurrency: Int?
   public var retention: SnapshotRetention?
+  public var failureNotifiedAt: Date?
+  public var notificationPermissionRequestedAt: Date?
 
   public static let parallelismChoices = [1, 2, 3, 4, 6, 8, 12, 16, 24, 32, 48, 64, 128]
 
@@ -142,6 +144,7 @@ public struct AppConfig: Codable, Equatable, Sendable {
     repositoryId = restored?.id
     lastRun = restored?.lastRun
     scheduleAnchor = restored?.scheduleAnchor
+    failureNotifiedAt = nil
     repositoriesByServer = remembered.isEmpty ? nil : remembered
   }
 
