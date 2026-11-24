@@ -1930,7 +1930,8 @@ private func waitUntil(_ condition: () -> Bool, timeout: Duration = .seconds(5))
   let task = Task {
     try await engine.backup(config: testConfig()) { _ in }
   }
-  await waitUntil { fixture.restic.commands().contains("backup") }
+  await waitUntil { fixture.restic.waitingAtGate == 1 }
+  try #require(fixture.restic.waitingAtGate == 1)
   #expect(fixture.proxy.networkChangeCount == 0)
   task.cancel()
   await waitUntil { fixture.proxy.networkChangeCount == 1 }

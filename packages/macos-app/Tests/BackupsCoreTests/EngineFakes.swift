@@ -171,6 +171,10 @@ final class FakeRestic: ResticExecuting, @unchecked Sendable {
     }
   }
 
+  var waitingAtGate: Int {
+    lock.withLock { gateWaits.count }
+  }
+
   func releaseBackups() {
     let waits = lock.withLock { () -> [CheckedContinuation<Void, Never>] in
       gateActive = false
@@ -196,7 +200,14 @@ final class FakeRestic: ResticExecuting, @unchecked Sendable {
     }
     if gated {
       await withCheckedContinuation { (wait: CheckedContinuation<Void, Never>) in
-        lock.withLock { gateWaits.append(wait) }
+        let stillGated = lock.withLock { () -> Bool in
+          guard gateActive else { return false }
+          gateWaits.append(wait)
+          return true
+        }
+        if !stillGated {
+          wait.resume()
+        }
       }
       if checksCancellation {
         try Task.checkCancellation()

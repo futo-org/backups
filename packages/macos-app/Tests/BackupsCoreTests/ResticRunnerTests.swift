@@ -222,11 +222,18 @@ private let bigPipeScript = #"head -c 4194304 /dev/zero | tr "\0" a >&2; head -c
 }
 
 @Test func cancellationLetsAChildThatHonoursSigtermExitBeforeTheGrace() async throws {
+  let sink = LineCollector()
   let runner = ResticRunner(executable: sh, terminationGrace: .seconds(30))
   let task = Task {
-    try await runner.run(shInvocation("exec sleep 60"), onLine: { _ in })
+    try await runner.run(shInvocation("echo ready; exec sleep 60")) { line in
+      sink.append(line)
+    }
   }
-  try await Task.sleep(for: .milliseconds(300))
+  let deadline = ContinuousClock.now.advanced(by: .seconds(5))
+  while sink.snapshot().isEmpty, ContinuousClock.now < deadline {
+    try await Task.sleep(for: .milliseconds(10))
+  }
+  try #require(sink.snapshot() == ["ready"])
   let start = ContinuousClock.now
   task.cancel()
   await #expect(throws: CancellationError.self) {
