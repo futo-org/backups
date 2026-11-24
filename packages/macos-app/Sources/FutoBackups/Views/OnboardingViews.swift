@@ -283,7 +283,7 @@ extension FolderBundle {
     switch self {
     case .essentials: "Documents and Desktop."
     case .essentialsAndMedia: "Adds Pictures, including your Photos library, Movies and Music."
-    case .everything: "Your whole home folder. Caches and the Trash are skipped."
+    case .everything: "Your whole home folder, except anything excluded."
     }
   }
 }

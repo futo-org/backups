@@ -74,10 +74,11 @@ struct FoldersView: View {
         .font(.system(size: 13, weight: .semibold))
       HStack(alignment: .top, spacing: 12) {
         ForEach(FolderBundle.allCases) { bundle in
+          let paths = FolderSelection(home: NSHomeDirectory(), bundle: bundle).paths
           FolderPresetButton(bundle: bundle) {
-            let paths = FolderSelection(home: NSHomeDirectory(), bundle: bundle).paths
             model.addFolders(paths.map { URL(fileURLWithPath: $0) })
           }
+          .disabled(paths.isEmpty)
         }
       }
     }
@@ -296,6 +297,7 @@ private struct ExclusionChip: View {
 private struct FolderPresetButton: View {
   let bundle: FolderBundle
   let action: () -> Void
+  @Environment(\.isEnabled) private var isEnabled
 
   var body: some View {
     Button(action: action) {
@@ -313,6 +315,7 @@ private struct FolderPresetButton: View {
       .frame(maxWidth: .infinity, minHeight: 120, alignment: .topLeading)
       .background(CardBackground())
       .contentShape(Rectangle())
+      .opacity(isEnabled ? 1 : 0.45)
     }
     .buttonStyle(.plain)
   }
