@@ -467,7 +467,10 @@ func (relay *freezableRelay) close() {
 	}
 }
 
+const pingedBackendRead = 4
+
 type pingedUpload struct {
+	handler  *Handler
 	relay    *freezableRelay
 	proxy    *httptest.Server
 	arrived  chan struct{}
@@ -479,7 +482,7 @@ func uploadOverAPingedHTTP2Backend(t *testing.T, backendConfig *http.HTTP2Config
 	arrived := make(chan struct{}, 1)
 	release := make(chan struct{})
 	backend := httptest.NewUnstartedServer(http.HandlerFunc(func(_ http.ResponseWriter, request *http.Request) {
-		_, _ = io.Copy(io.Discard, io.LimitReader(request.Body, 4))
+		_, _ = io.Copy(io.Discard, io.LimitReader(request.Body, pingedBackendRead))
 		arrived <- struct{}{}
 		select {
 		case <-request.Context().Done():
@@ -500,7 +503,9 @@ func uploadOverAPingedHTTP2Backend(t *testing.T, backendConfig *http.HTTP2Config
 		PingTimeout:     100 * time.Millisecond,
 	}
 
-	upload := pingedUpload{relay: relay, proxy: proxy, arrived: arrived, statuses: uploadInBackground(proxy, body)}
+	upload := pingedUpload{
+		handler: handler, relay: relay, proxy: proxy, arrived: arrived, statuses: uploadInBackground(proxy, body),
+	}
 	select {
 	case <-arrived:
 	case <-time.After(5 * time.Second):
@@ -531,23 +536,28 @@ func TestHTTP2PingFailure_FailsAStalledUploadWithoutANetworkChange(t *testing.T)
 	uploadOverAPingedHTTP2Backend(t, nil, body).expectBadGatewayAfterFreezing(t)
 }
 
+func (upload pingedUpload) awaitUploadedBeyond(t *testing.T, bytes int64) {
+	t.Helper()
+	deadline := time.Now().Add(5 * time.Second)
+	for upload.handler.Uploaded() <= bytes {
+		if time.Now().After(deadline) {
+			t.Fatalf("the proxy read only %d bytes of the upload, needed more than %d", upload.handler.Uploaded(), bytes)
+		}
+		time.Sleep(time.Millisecond)
+	}
+}
+
 func TestHTTP2PingFailure_FailsAnUploadWaitingForFlowControlWhileResticIsStalled(t *testing.T) {
 	const window = 64 << 10
 	body, writer := io.Pipe()
 	t.Cleanup(func() { _ = writer.Close() })
-	sent := make(chan struct{})
-	go func() {
-		_, _ = writer.Write(make([]byte, 2*window))
-		close(sent)
-	}()
+	go func() { _, _ = writer.Write(make([]byte, 2*window)) }()
 
 	upload := uploadOverAPingedHTTP2Backend(t,
 		&http.HTTP2Config{MaxReceiveBufferPerStream: window, MaxReceiveBufferPerConnection: window}, body)
-	select {
-	case <-sent:
-	case <-time.After(5 * time.Second):
-		t.Fatal("the proxy never took the whole partial pack")
-	}
+	// The backend grants the window plus what it reads, and the transport sends all of one body read before starting
+	// the next, so a read past that credit leaves it waiting for flow control rather than reading.
+	upload.awaitUploadedBeyond(t, window+pingedBackendRead)
 
 	upload.expectBadGatewayAfterFreezing(t)
 }
