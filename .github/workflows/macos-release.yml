@@ -288,12 +288,15 @@ jobs:
       cancel-in-progress: false
     permissions:
       contents: write
+    outputs:
+      advanced: ${{ steps.point.outputs.advanced }}
     env:
       VERSION: ${{ needs.gate.outputs.version }}
       GH_TOKEN: ${{ github.token }}
       GH_REPO: ${{ github.repository }}
     steps:
       - name: Point the feed at the appcast of this version
+        id: point
         run: |
           set -euo pipefail
           version_cmp() {
@@ -368,6 +371,7 @@ jobs:
           # so a failed upload leaves the feed empty until one succeeds.
           for attempt in 1 2 3; do
             if gh release upload macos-appcast "$RUNNER_TEMP/next/appcast.xml" --clobber; then
+              echo "advanced=true" >> "$GITHUB_OUTPUT"
               exit 0
             fi
             if [ "$attempt" -lt 3 ]; then
@@ -376,3 +380,114 @@ jobs:
           done
           echo "::error::could not upload appcast.xml to macos-appcast; the feed may be empty until a rerun republishes it from macos-v$VERSION"
           exit 1
+
+  tap:
+    name: Update the Homebrew cask
+    needs: [gate, feed]
+    if: ${{ !cancelled() && needs.feed.result == 'success' && needs.feed.outputs.advanced == 'true' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    # HOMEBREW_TAP_DEPLOY_KEY, a write deploy key of futo-org/homebrew-tap,
+    # lives in this environment only.
+    environment: macos-release
+    concurrency:
+      group: homebrew-tap
+      cancel-in-progress: false
+    permissions:
+      contents: read
+    env:
+      VERSION: ${{ needs.gate.outputs.version }}
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+      TAP_REMOTE: git@github.com:futo-org/homebrew-tap.git
+    steps:
+      - name: Check the tap deploy key
+        id: key
+        env:
+          HOMEBREW_TAP_DEPLOY_KEY: ${{ secrets.HOMEBREW_TAP_DEPLOY_KEY }}
+        run: |
+          set -euo pipefail
+          case "$HOMEBREW_TAP_DEPLOY_KEY" in
+            '' | REPLACE_ME)
+              echo "::notice::HOMEBREW_TAP_DEPLOY_KEY is not set; leaving the Homebrew cask unchanged"
+              exit 0
+              ;;
+          esac
+          umask 077
+          printf '%s\n' "$HOMEBREW_TAP_DEPLOY_KEY" > "$RUNNER_TEMP/homebrew-tap.key"
+          echo "present=true" >> "$GITHUB_OUTPUT"
+
+      - name: Checkout the cask template
+        if: steps.key.outputs.present == 'true'
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+          sparse-checkout: packages/macos-app
+
+      - name: Push the cask for this version
+        if: steps.key.outputs.present == 'true'
+        run: |
+          set -euo pipefail
+          version_cmp() {
+            local IFS=.
+            local -a a b
+            read -ra a <<< "$1"
+            read -ra b <<< "$2"
+            [ "${#a[@]}" -eq 3 ] && [ "${#b[@]}" -eq 3 ] || return 2
+            local i
+            for i in 0 1 2; do
+              case "${a[$i]}" in '' | *[!0-9]*) return 2 ;; esac
+              case "${b[$i]}" in '' | *[!0-9]*) return 2 ;; esac
+            done
+            for i in 0 1 2; do
+              if [ "${a[$i]}" -lt "${b[$i]}" ]; then printf '%s\n' -1; return; fi
+              if [ "${a[$i]}" -gt "${b[$i]}" ]; then printf '%s\n' 1; return; fi
+            done
+            printf '%s\n' 0
+          }
+          zip="FUTO-Backups-$VERSION.zip"
+          gh release download "macos-v$VERSION" -p "$zip" -D "$RUNNER_TEMP/zip"
+          sha256=$(sha256sum "$RUNNER_TEMP/zip/$zip" | cut -d ' ' -f 1)
+          # GitHub's published ed25519 host key, pinned rather than fetched with
+          # ssh-keyscan so a spoofed host cannot be trusted on first use.
+          printf 'github.com ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOMqqnkVzrm0SdG6UOoqKLsabgH5C9okWi0dh2l9GKJl\n' \
+            > "$RUNNER_TEMP/known_hosts"
+          export GIT_SSH_COMMAND="ssh -i $RUNNER_TEMP/homebrew-tap.key -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes -o UserKnownHostsFile=$RUNNER_TEMP/known_hosts"
+          git init -q -b main "$RUNNER_TEMP/homebrew-tap"
+          cd "$RUNNER_TEMP/homebrew-tap"
+          git remote add origin "$TAP_REMOTE"
+          rc=0
+          git ls-remote --exit-code --heads origin main > /dev/null || rc=$?
+          case $rc in
+            0)
+              git fetch -q --depth 1 origin main
+              git checkout -q -B main FETCH_HEAD
+              ;;
+            2) ;;
+            *)
+              echo "::error::could not reach $TAP_REMOTE"
+              exit 1
+              ;;
+          esac
+          cask=Casks/futo-backups.rb
+          if [ -f "$cask" ]; then
+            published=$(sed -n 's/^  version "\([^"]*\)"$/\1/p' "$cask" | head -n 1)
+            if ! cmp=$(version_cmp "$published" "$VERSION"); then
+              echo "::error::the tap's cask declares no readable version ('$published')"
+              exit 1
+            fi
+            if [ "$cmp" -ge 0 ]; then
+              echo "::notice::the tap already ships v$published; leaving the cask unchanged"
+              exit 0
+            fi
+          fi
+          mkdir -p Casks
+          "$GITHUB_WORKSPACE/packages/macos-app/scripts/homebrew-cask.sh" "$VERSION" "$sha256" > "$cask"
+          git add "$cask"
+          git -c user.name='github-actions[bot]' -c user.email='41898282+github-actions[bot]@users.noreply.github.com' \
+            commit -q -m "futo-backups $VERSION"
+          git push -q origin HEAD:main
+
+      - name: Remove the tap deploy key
+        if: always()
+        run: rm -f "$RUNNER_TEMP/homebrew-tap.key"

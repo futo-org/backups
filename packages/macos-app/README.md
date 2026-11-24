@@ -48,6 +48,20 @@ pinned as `SUPublicEDKey` in `Resources/Info.plist`; the release fails if the tw
 secret is missing; the gate job skips prereleases, and releases whose Mac inputs are unchanged since the version in the
 current appcast, with a notice.
 
+### Homebrew
+
+```bash
+brew trust --cask futo-org/tap/futo-backups   # Homebrew refuses to load casks from taps it doesn't trust
+brew install --cask futo-org/tap/futo-backups
+```
+
+The cask lives in [`futo-org/homebrew-tap`](https://github.com/futo-org/homebrew-tap) as `Casks/futo-backups.rb`,
+rendered from `packaging/homebrew/futo-backups.rb.template` by `scripts/homebrew-cask.sh <version> <sha256>`. Once the
+feed advances to a new version, the workflow's `tap` job downloads that release's zip, hashes it and pushes the cask
+to the tap's `main` with the `HOMEBREW_TAP_DEPLOY_KEY` deploy key from the `macos-release` environment, never moving
+it to an older version. Without the secret it skips with a notice. The cask declares `auto_updates`, so Sparkle,
+not `brew upgrade`, keeps installs current.
+
 ### Building a release locally
 
 ```bash
