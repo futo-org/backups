@@ -12,6 +12,7 @@ final class Updater {
   }
 
   private var controller: SPUStandardUpdaterController?
+  private let relaunchDelegate = RelaunchDelegate()
   private var observation: NSKeyValueObservation?
 
   init() {
@@ -22,7 +23,7 @@ final class Updater {
     automaticallyChecksForUpdates = false
     if isAvailable {
       let controller = SPUStandardUpdaterController(
-        startingUpdater: isAvailable, updaterDelegate: nil, userDriverDelegate: nil)
+        startingUpdater: isAvailable, updaterDelegate: relaunchDelegate, userDriverDelegate: nil)
       self.controller = controller
       automaticallyChecksForUpdates = controller.updater.automaticallyChecksForUpdates
       observation = controller.updater.observe(
@@ -36,5 +37,11 @@ final class Updater {
 
   func checkForUpdates() {
     controller?.checkForUpdates(nil)
+  }
+}
+
+private final class RelaunchDelegate: NSObject, SPUUpdaterDelegate {
+  func updaterWillRelaunchApplication(_ updater: SPUUpdater) {
+    MainActor.assumeIsolated { MenuBarResidency.shared.allowQuit() }
   }
 }
