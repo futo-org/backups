@@ -46,9 +46,11 @@ public enum Exclusions {
   }
 
   public static func isExcluded(_ path: String, by excludes: [String]) -> Bool {
-    guard let index = excludes.lastIndex(of: pattern(forPath: path)) else { return false }
-    return !excludes[(index + 1)...].contains { exclude in
-      exclude.hasPrefix("!") && ExcludePattern(String(exclude.dropFirst()))?.matches(path) == true
+    excludes.reduce(false) { excluded, exclude in
+      if exclude.hasPrefix("!") {
+        return excluded && ExcludePattern(String(exclude.dropFirst()))?.matches(path) != true
+      }
+      return excluded || ExcludePattern(exclude)?.matches(path) == true
     }
   }
 
@@ -63,8 +65,15 @@ public enum Exclusions {
   }
 
   public static func wouldExcludeAnyFolder(_ path: String, folders: [String]) -> Bool {
-    guard let exclusion = ExcludePattern(pattern(forPath: path)) else { return false }
-    return folders.contains(where: exclusion.matches)
+    [{ $0 }, dataVolumeSpelling].contains { spelling in
+      guard let exclusion = ExcludePattern(pattern(forPath: spelling(path))) else { return false }
+      return folders.map(spelling).contains(where: exclusion.matches)
+    }
+  }
+
+  private static func dataVolumeSpelling(_ path: String) -> String {
+    guard let relative = DataVolume.snapshotRelativePath(path) else { return path }
+    return relative == "." ? "/" : "/" + relative
   }
 
   public static func restoringDefaults(in excludes: [String], home: String) -> [String] {

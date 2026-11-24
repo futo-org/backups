@@ -385,6 +385,52 @@ struct ResticIntegrationTests {
         == BackupWarnings(items: [BackupWarning(path: missing.path, reason: "Does not exist")], total: 1))
   }
 
+  @Test func resticExcludesExactlyThePathsExclusionsReportAsExcluded() async throws {
+    let executable = try #require(resticExecutable)
+    let fileManager = FileManager.default
+    let tempRoot = fileManager.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+    try fileManager.createDirectory(at: tempRoot, withIntermediateDirectories: true)
+    let resolvedRoot = URL(fileURLWithPath: realPath(of: tempRoot.path))
+    defer { try? fileManager.removeItem(at: resolvedRoot) }
+    let docs = resolvedRoot.appendingPathComponent("Docs")
+    let movies = docs.appendingPathComponent("Movies")
+    try fileManager.createDirectory(at: movies, withIntermediateDirectories: true)
+    try Data("kept".utf8).write(to: docs.appendingPathComponent("a.txt"))
+    try Data("movie".utf8).write(to: movies.appendingPathComponent("m.mov"))
+    let context = ResticContext(
+      repository: resolvedRoot.appendingPathComponent("repository").path,
+      password: "pw-\(UUID().uuidString)",
+      cacheDirectory: resolvedRoot.appendingPathComponent("cache"),
+      home: resolvedRoot.path,
+      connections: 2)
+    let runner = ResticRunner(executable: executable)
+    #expect(try await runner.run(ResticCommand.initialize(context), onLine: { _ in }).exitCode == 0)
+
+    let glob = docs.path + "/Mov*"
+    let cases: [[String]] = [
+      [movies.path],
+      [movies.path, "!" + movies.path],
+      [movies.path, "!" + movies.path, glob],
+      [glob],
+      [glob, "!" + movies.path],
+      ["!" + movies.path, movies.path],
+      ["Movies"],
+    ]
+    for excludes in cases {
+      let summaries = SummaryCollector()
+      let backup = try await runner.run(
+        ResticCommand.backup(context, paths: [docs.path], excludes: excludes, host: "h")
+      ) { line in
+        if case .summary(let summary) = ResticOutput.parseLine(line) {
+          summaries.set(summary)
+        }
+      }
+      #expect(backup.exitCode == ResticExitCode.success)
+      let processed = try #require(summaries.get()?.totalFilesProcessed)
+      #expect((processed == 1) == Exclusions.isExcluded(movies.path, by: excludes), "\(excludes)")
+    }
+  }
+
   @Test func catConfigVerifiesRepositoryPassword() async throws {
     let executable = try #require(resticExecutable)
     let fileManager = FileManager.default
