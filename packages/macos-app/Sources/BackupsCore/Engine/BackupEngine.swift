@@ -83,6 +83,17 @@ public actor BackupEngine {
     try environment.secrets.set(key, for: .masterKey)
   }
 
+  public func setUpRepository(config: AppConfig, offeringExisting: Bool) async throws -> RepositorySetup {
+    if offeringExisting, config.repositoryId == nil {
+      let existing = try await macRepositories(config: config)
+      if !existing.isEmpty, let masterKey = try storedMasterKey() {
+        return .chooseExisting(existing, masterKey: masterKey)
+      }
+      try Task.checkCancellation()
+    }
+    return .ready(repositoryId: try await ensureRepository(config: config))
+  }
+
   public func ensureRepository(config: AppConfig) async throws -> String {
     if running {
       throw EngineError.busy

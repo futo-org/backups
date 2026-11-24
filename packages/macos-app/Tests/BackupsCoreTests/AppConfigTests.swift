@@ -334,38 +334,92 @@ func forgetRepositoryWithoutRepository() {
   #expect(!config.excludes.contains { $0.contains("orbstack") })
 }
 
-@Test func pinningToProductionForgetsAnotherServersRepository() {
+@Test func pinningToProductionRestoresTheRememberedProductionRepository() {
   var config = AppConfig.defaults(host: "mac", home: "/Users/t")
-  config.repositoryId = "repo-1"
+  config.repositoryId = "prod-repo"
   let unchanged = config.pinToProductionServer()
   #expect(!unchanged)
-  #expect(config.repositoryId == "repo-1")
-  config.serverURL = AppConfig.devServerURL
+  #expect(config.repositoryId == "prod-repo")
+  config.switchServer(to: AppConfig.devServerURL)
+  config.repositoryId = "dev-repo"
   let pinned = config.pinToProductionServer()
   #expect(pinned)
   #expect(config.serverURL == AppConfig.productionServerURL)
-  #expect(config.repositoryId == nil)
+  #expect(config.repositoryId == "prod-repo")
 }
 
-@Test func switchingServersRemembersEachServersRepository() {
-  let other = URL(string: "http://localhost:8081/.well-known/yucca.json")!
+@Test func pinningToProductionWithoutARememberedRepositoryForgetsAnotherServersRepository() {
+  var config = AppConfig.defaults(host: "mac", home: "/Users/t")
+  config.serverURL = AppConfig.devServerURL
+  config.repositoryId = "dev-repo"
+  let pinned = config.pinToProductionServer()
+  #expect(pinned)
+  #expect(config.repositoryId == nil)
+  #expect(config.repositoriesByServer?[AppConfig.devServerURL.absoluteString]?.id == "dev-repo")
+}
+
+@Test func switchingServersRemembersEachServersRepositoryAcrossReloads() throws {
+  let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+  defer { try? FileManager.default.removeItem(at: root) }
+  let store = ConfigStore(fileURL: root.appendingPathComponent("config.json"))
   var config = AppConfig.defaults(host: "mac", home: "/Users/t")
   config.repositoryId = "prod-repo"
-  config.switchServer(to: other)
-  #expect(config.serverURL == other)
+  config.switchServer(to: AppConfig.devServerURL)
+  #expect(config.serverURL == AppConfig.devServerURL)
   #expect(config.repositoryId == nil)
   config.repositoryId = "dev-repo"
-  config.switchServer(to: AppConfig.productionServerURL)
-  #expect(config.repositoryId == "prod-repo")
-  config.switchServer(to: other)
-  #expect(config.repositoryId == "dev-repo")
-  config.switchServer(to: other)
-  #expect(config.repositoryId == "dev-repo")
+  try store.save(config)
+  var reloaded = try store.load(defaultHost: "ignored", home: "/ignored")
+  reloaded.switchServer(to: AppConfig.productionServerURL)
+  #expect(reloaded.repositoryId == "prod-repo")
+  reloaded.switchServer(to: AppConfig.devServerURL)
+  #expect(reloaded.repositoryId == "dev-repo")
+  reloaded.switchServer(to: AppConfig.devServerURL)
+  #expect(reloaded.repositoryId == "dev-repo")
 }
 
-@Test func switchingServersWithoutRepositoriesStoresNothing() throws {
+@Test func switchingServersKeepsEachRepositorysRunHistory() {
+  let prodRun = RunRecord(
+    startedAt: Date(timeIntervalSince1970: 1_700_000_000), finishedAt: Date(timeIntervalSince1970: 1_700_000_600),
+    status: .failed)
+  let devRun = RunRecord(
+    startedAt: Date(timeIntervalSince1970: 1_800_000_000), finishedAt: Date(timeIntervalSince1970: 1_800_000_600),
+    status: .complete)
   var config = AppConfig.defaults(host: "mac", home: "/Users/t")
-  config.switchServer(to: try #require(URL(string: "http://localhost:8081/.well-known/yucca.json")))
-  #expect(config.repositoryIdsByServer == nil)
+  config.repositoryId = "prod-repo"
+  config.lastRun = prodRun
+  config.scheduleAnchor = Date(timeIntervalSince1970: 1_600_000_000)
+  config.switchServer(to: AppConfig.devServerURL)
+  #expect(config.lastRun == nil)
+  #expect(config.scheduleAnchor == nil)
+  config.repositoryId = "dev-repo"
+  config.lastRun = devRun
+  config.scheduleAnchor = Date(timeIntervalSince1970: 1_650_000_000)
+  config.switchServer(to: AppConfig.productionServerURL)
+  #expect(config.lastRun == prodRun)
+  #expect(config.scheduleAnchor == Date(timeIntervalSince1970: 1_600_000_000))
+  config.switchServer(to: AppConfig.devServerURL)
+  #expect(config.lastRun == devRun)
+  #expect(config.scheduleAnchor == Date(timeIntervalSince1970: 1_650_000_000))
+}
+
+@Test func switchingServersForgetsARepositoryRejectedAtSignIn() {
+  var config = AppConfig.defaults(host: "mac", home: "/Users/t")
+  config.repositoryId = "prod-repo"
+  config.switchServer(to: AppConfig.devServerURL)
+  config.switchServer(to: AppConfig.productionServerURL)
+  #expect(config.repositoryId == "prod-repo")
+  let forgotten = config.forgetRepository(unlessListedIn: [])
+  #expect(forgotten)
+  config.switchServer(to: AppConfig.devServerURL)
+  config.switchServer(to: AppConfig.productionServerURL)
+  #expect(config.repositoryId == nil)
+  #expect(config.repositoriesByServer == nil)
+}
+
+@Test func switchingServersWithoutRepositoriesStoresNothing() {
+  var config = AppConfig.defaults(host: "mac", home: "/Users/t")
+  config.switchServer(to: AppConfig.devServerURL)
+  #expect(config.repositoriesByServer == nil)
   #expect(config.repositoryId == nil)
 }

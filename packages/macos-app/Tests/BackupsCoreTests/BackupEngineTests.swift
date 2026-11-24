@@ -606,6 +606,59 @@ func missingMasterKeyThrowsAndIsNeverGenerated(
   #expect(fixture.proxy.stopCount == 1)
 }
 
+@Test func setUpRepositoryOffersExistingMacBackupsWithoutCreating() async throws {
+  let existing = RemoteRepository(id: "old-mac", name: "test-host", worm: false, connectionType: "macos")
+  let fixture = makeFixture()
+  await fixture.api.setRepositories([existing])
+  let engine = BackupEngine(environment: fixture.environment)
+  let setup = try await engine.setUpRepository(config: testConfig(repositoryId: nil), offeringExisting: true)
+  #expect(setup == .chooseExisting([existing], masterKey: testMasterKey))
+  #expect(await fixture.deliveredCalls(engine) == [.list])
+  #expect(fixture.restic.commands().isEmpty)
+}
+
+@Test func setUpRepositoryStartingNewCreatesOnceWithoutListing() async throws {
+  let existing = RemoteRepository(id: "old-mac", name: "test-host", worm: false, connectionType: "macos")
+  let fixture = makeFixture()
+  await fixture.api.setRepositories([existing])
+  let engine = BackupEngine(environment: fixture.environment)
+  let setup = try await engine.setUpRepository(config: testConfig(repositoryId: nil), offeringExisting: false)
+  #expect(setup == .ready(repositoryId: "new-repo"))
+  #expect(await fixture.deliveredCalls(engine) == [.create(name: "test-host")])
+}
+
+@Test func setUpRepositoryCreatesWhenNoMacBackupExists() async throws {
+  let fixture = makeFixture()
+  await fixture.api.setRepositories([RemoteRepository(id: "web", name: "web", worm: false)])
+  let engine = BackupEngine(environment: fixture.environment)
+  let setup = try await engine.setUpRepository(config: testConfig(repositoryId: nil), offeringExisting: true)
+  #expect(setup == .ready(repositoryId: "new-repo"))
+  #expect(await fixture.deliveredCalls(engine) == [.list, .create(name: "test-host")])
+}
+
+@Test func setUpRepositoryKeepsTheRepositoryOnRecord() async throws {
+  let fixture = makeFixture()
+  await fixture.api.setRepositories([
+    RemoteRepository(id: "old-mac", name: "test-host", worm: false, connectionType: "macos")
+  ])
+  let engine = BackupEngine(environment: fixture.environment)
+  let setup = try await engine.setUpRepository(config: testConfig(), offeringExisting: true)
+  #expect(setup == .ready(repositoryId: "repo-1"))
+  #expect(await fixture.deliveredCalls(engine).isEmpty)
+}
+
+@Test func setUpRepositoryWithoutStoredKeyNeverCreates() async throws {
+  let fixture = makeFixture(masterKey: nil)
+  await fixture.api.setRepositories([
+    RemoteRepository(id: "old-mac", name: "test-host", worm: false, connectionType: "macos")
+  ])
+  let engine = BackupEngine(environment: fixture.environment)
+  await #expect(throws: EngineError.missingMasterKey) {
+    _ = try await engine.setUpRepository(config: testConfig(repositoryId: nil), offeringExisting: true)
+  }
+  #expect(await fixture.deliveredCalls(engine) == [.list])
+}
+
 @Test func macRepositoriesFiltersAndSortsThisMacFirstThenByLastBackupThenName() async throws {
   let tieZulu = RemoteRepository(
     id: "tie-zulu", name: "zulu", worm: false, lastBackup: "2026-11-21T00:00:00Z", connectionType: "macos")

@@ -67,7 +67,6 @@ final class AppModel {
   private var loginGeneration = 0
   private var operationTask: Task<Void, Never>?
   private var pendingRecoveryKey: String?
-  private var skipsExistingRepositoryCheck = false
   private var sessionToken: String?
   private var sessionGeneration = 0
   private var onboardingGeneration = 0
@@ -378,7 +377,7 @@ final class AppModel {
         try await engine.importMasterKey(normalized)
         guard generation == onboardingGeneration, hasSession else { return nil }
         hasMasterKey = true
-        markRecoveryKeyConfirmed()
+        markRecoveryKeyConfirmed(offeringExistingRepositories: false)
         return nil
       }
       pendingRecoveryKey = normalized
@@ -447,18 +446,17 @@ final class AppModel {
     }
     hasMasterKey = true
     pendingRecoveryKey = nil
-    markRecoveryKeyConfirmed()
+    markRecoveryKeyConfirmed(offeringExistingRepositories: false)
     return nil
   }
 
-  private func markRecoveryKeyConfirmed() {
+  private func markRecoveryKeyConfirmed(offeringExistingRepositories: Bool = true) {
     config.recoveryKeyConfirmedAt = Date()
     saveConfig()
-    skipsExistingRepositoryCheck = true
-    continueSetup()
+    continueSetup(offeringExistingRepositories: offeringExistingRepositories)
   }
 
-  private func continueSetup() {
+  private func continueSetup(offeringExistingRepositories: Bool = true) {
     if isRecoveringLostKey {
       recoveryKeyStep = .importKey
       return
@@ -480,31 +478,24 @@ final class AppModel {
     }
     login = .finishing
     let generation = loginGeneration
-    let checksExistingRepositories = config.repositoryId == nil && !skipsExistingRepositoryCheck
-    skipsExistingRepositoryCheck = false
     loginTask = Task {
       do {
-        if checksExistingRepositories {
-          let existing = try await engine.macRepositories(config: self.config)
-          guard generation == self.loginGeneration else { return }
-          if !existing.isEmpty, let key = try await engine.storedMasterKey() {
-            guard generation == self.loginGeneration else { return }
-            self.loginTask = nil
-            self.login = .idle
-            self.pendingRecoveryKey = key
-            self.recoveryKeyStep = .chooseRepository(existing)
-            return
-          }
-        }
-        let repositoryId = try await engine.ensureRepository(config: self.config)
+        let setup = try await engine.setUpRepository(
+          config: self.config, offeringExisting: offeringExistingRepositories)
         guard generation == self.loginGeneration else { return }
-        self.config.repositoryId = repositoryId
-        self.saveConfig()
         self.loginTask = nil
         self.login = .idle
-        self.signedIn = true
-        self.recomputeNextRun()
-        await self.refreshSnapshots()
+        switch setup {
+        case .chooseExisting(let existing, let key):
+          self.pendingRecoveryKey = key
+          self.recoveryKeyStep = .chooseRepository(existing)
+        case .ready(let repositoryId):
+          self.config.repositoryId = repositoryId
+          self.saveConfig()
+          self.signedIn = true
+          self.recomputeNextRun()
+          await self.refreshSnapshots()
+        }
       } catch {
         guard generation == self.loginGeneration else { return }
         self.loginTask = nil
