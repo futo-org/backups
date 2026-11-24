@@ -179,11 +179,14 @@ private struct ChooseFoldersStep: View {
         }
         .buttonStyle(SecondaryButtonStyle())
         Spacer()
-        Text("Caches, the Trash and cloud-synced folders are always skipped.")
+        Text("Caches and the Trash are always skipped.")
           .font(.system(size: 11))
           .foregroundStyle(.secondary)
           .multilineTextAlignment(.trailing)
       }
+      CloudOnlyPolicy(compact: true)
+        .padding(12)
+        .background(CardBackground())
       Button("Continue", action: next)
         .buttonStyle(PrimaryButtonStyle(large: true))
         .disabled(!selection.canContinue)

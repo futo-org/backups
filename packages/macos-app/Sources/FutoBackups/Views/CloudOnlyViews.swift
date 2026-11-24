@@ -1,6 +1,32 @@
 import BackupsCore
 import SwiftUI
 
+struct CloudOnlyPolicy: View {
+  var compact = false
+
+  var body: some View {
+    HStack(alignment: .top, spacing: 10) {
+      Image(systemName: "icloud.slash")
+        .font(.system(size: compact ? 13 : 15, weight: .semibold))
+        .foregroundStyle(.secondary)
+        .frame(width: 20)
+      VStack(alignment: .leading, spacing: 2) {
+        Text("Files kept only in the cloud are not backed up")
+          .font(.system(size: compact ? 12 : 13, weight: .semibold))
+        Text(
+          "iCloud Drive, Dropbox, OneDrive and Google Drive files that aren't downloaded to this Mac are skipped. "
+            + "Choose Keep Downloaded in Finder to include them."
+        )
+        .font(.system(size: compact ? 11 : 12))
+        .foregroundStyle(.secondary)
+        .fixedSize(horizontal: false, vertical: true)
+      }
+    }
+    .frame(maxWidth: .infinity, alignment: .leading)
+    .accessibilityElement(children: .combine)
+  }
+}
+
 struct CloudOnlyNotice: View {
   let skipped: CloudOnlySkip
   @State private var showingFiles = false

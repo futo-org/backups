@@ -79,6 +79,9 @@ struct FoldersView: View {
               .foregroundStyle(.secondary)
           }
         }
+        CloudOnlyPolicy(compact: true)
+          .padding(10)
+          .background(RoundedRectangle(cornerRadius: 10, style: .continuous).fill(Color.primary.opacity(0.04)))
         FlowLayout(spacing: 6) {
           ForEach(model.config.excludes, id: \.self) { exclude in
             ExclusionChip(label: excludeLabel(exclude), pattern: exclude, isDefault: model.isDefaultExclusion(exclude))
