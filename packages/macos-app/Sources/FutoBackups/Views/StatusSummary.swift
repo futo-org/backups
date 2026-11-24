@@ -21,6 +21,12 @@ struct StatusSummary {
 
   @MainActor
   init(model: AppModel) {
+    if model.isCancelling, model.activity != nil {
+      self.init(
+        title: "Cancelling…", subtitle: "Stopping safely…", symbol: "xmark", tint: Brand.blue, busy: true,
+        action: .none, menuBarSymbol: "arrow.clockwise.icloud")
+      return
+    }
     switch model.activity {
     case .backingUp(let progress, _) where progress.percentDone >= 0.999:
       self.init(

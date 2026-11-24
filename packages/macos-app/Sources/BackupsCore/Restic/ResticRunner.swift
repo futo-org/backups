@@ -13,9 +13,11 @@ public protocol ResticExecuting: Sendable {
 
 public struct ResticRunner: ResticExecuting {
   private let executable: URL
+  private let terminationGrace: Duration
 
-  public init(executable: URL) {
+  public init(executable: URL, terminationGrace: Duration = .seconds(5)) {
     self.executable = executable
+    self.terminationGrace = terminationGrace
   }
 
   public func run(_ invocation: ResticInvocation, onLine: @escaping @Sendable (String) -> Void) async throws
@@ -41,6 +43,7 @@ public struct ResticRunner: ResticExecuting {
     let retainsStdout = invocation.retainsStdout
     let state = LaunchState()
     let join = RunnerJoin()
+    let grace = terminationGrace
 
     return try await withTaskCancellationHandler {
       let result = try await withCheckedThrowingContinuation {
@@ -66,7 +69,7 @@ public struct ResticRunner: ResticExecuting {
           return
         }
         if state.markRunning() {
-          process.value.terminate()
+          process.stop(killingAfter: grace)
         }
         let outputThread = Thread {
           join.deliver(
@@ -83,7 +86,7 @@ public struct ResticRunner: ResticExecuting {
       return result
     } onCancel: {
       if state.requestCancel() {
-        process.value.terminate()
+        process.stop(killingAfter: grace)
       }
     }
   }
@@ -97,6 +100,17 @@ private func closeHandles(_ handles: FileHandle...) {
 
 private final class ProcessBox: @unchecked Sendable {
   let value = Process()
+
+  func stop(killingAfter grace: Duration) {
+    value.terminate()
+    let identifier = value.processIdentifier
+    Task.detached {
+      try? await Task.sleep(for: grace)
+      if self.value.isRunning {
+        _ = kill(identifier, SIGKILL)
+      }
+    }
+  }
 }
 
 private final class LaunchState: @unchecked Sendable {

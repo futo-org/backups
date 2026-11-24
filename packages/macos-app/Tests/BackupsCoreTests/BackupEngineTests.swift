@@ -1890,3 +1890,76 @@ private let skippedFiles = CloudOnlySkip(
   _ = try await engine.backup(config: testConfig()) { log.record($0) }
   #expect(!log.all.contains(.finishing(.removingDiskSnapshot)))
 }
+
+private func waitUntil(_ condition: () -> Bool, timeout: Duration = .seconds(5)) async {
+  let deadline = ContinuousClock.now + timeout
+  while !condition(), ContinuousClock.now < deadline {
+    try? await Task.sleep(for: .milliseconds(5))
+  }
+}
+
+@Test func networkChangesDuringABackupResetTheProxyUntilTheSessionEnds() async throws {
+  let changes = FakeNetworkChanges()
+  let fixture = makeFixture(networkChanges: { changes.stream() })
+  let proxy = fixture.proxy
+  fixture.restic.set(
+    ResticScript(
+      lines: [summaryLine],
+      afterLines: {
+        changes.change()
+        await waitUntil { proxy.networkChangeCount == 1 }
+      }),
+    for: "backup")
+  fixture.restic.set(ResticScript(stdout: statsStdout), for: "stats")
+  let engine = BackupEngine(environment: fixture.environment)
+  let record = try await engine.backup(config: testConfig()) { _ in }
+  #expect(record.status == .complete)
+  #expect(proxy.networkChangeCount == 1)
+  await waitUntil { changes.terminatedCount == 1 }
+  #expect(changes.terminatedCount == 1)
+  changes.change()
+  try await Task.sleep(for: .milliseconds(50))
+  #expect(proxy.networkChangeCount == 1)
+}
+
+@Test func cancellingABackupResetsTheProxyWhileResticIsStillRunning() async throws {
+  let fixture = makeFixture()
+  fixture.restic.set(ResticScript(lines: [summaryLine]), for: "backup")
+  fixture.restic.gateNextBackup(checkingCancellation: true)
+  let engine = BackupEngine(environment: fixture.environment)
+  let task = Task {
+    try await engine.backup(config: testConfig()) { _ in }
+  }
+  await waitUntil { fixture.restic.commands().contains("backup") }
+  #expect(fixture.proxy.networkChangeCount == 0)
+  task.cancel()
+  await waitUntil { fixture.proxy.networkChangeCount == 1 }
+  #expect(fixture.proxy.networkChangeCount == 1)
+  #expect(fixture.proxy.stopCount == 0)
+  fixture.restic.releaseBackups()
+  let record = try await task.value
+  #expect(record.status == .cancelled)
+  #expect(fixture.proxy.stopCount == 1)
+}
+
+@Test func cancellingARestoreResetsTheProxyWhileResticIsStillRunning() async throws {
+  let fixture = makeFixture()
+  let proxy = fixture.proxy
+  fixture.restic.set(
+    ResticScript(
+      afterLines: {
+        await waitUntil { proxy.networkChangeCount > 0 }
+      }, error: CancellationError()),
+    for: "restore")
+  let engine = BackupEngine(environment: fixture.environment)
+  let task = Task {
+    try await engine.restore(config: testConfig(), snapshotId: "snap-1", items: restoreItems) { _ in }
+  }
+  await waitUntil { fixture.restic.commands().contains("restore") }
+  task.cancel()
+  await #expect(throws: CancellationError.self) {
+    try await task.value
+  }
+  #expect(proxy.networkChangeCount == 1)
+  #expect(proxy.stopCount == 1)
+}
