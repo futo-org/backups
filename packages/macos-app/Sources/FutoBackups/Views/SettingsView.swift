@@ -331,9 +331,9 @@ struct SettingLabel: View {
 
 struct CenteredLabeledContentStyle: LabeledContentStyle {
   func makeBody(configuration: Configuration) -> some View {
-    HStack(alignment: .center, spacing: 12) {
+    HStack(alignment: .center, spacing: 0) {
       configuration.label
-      Spacer(minLength: 0)
+      Spacer(minLength: 12)
       configuration.content
     }
   }
