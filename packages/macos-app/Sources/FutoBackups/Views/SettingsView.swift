@@ -164,6 +164,7 @@ struct SettingsView: View {
         ServerEditor()
           .padding(.vertical, 4)
       }
+      ThisMacSection()
     }
     .formStyle(.grouped)
     .scrollContentBackground(.hidden)
