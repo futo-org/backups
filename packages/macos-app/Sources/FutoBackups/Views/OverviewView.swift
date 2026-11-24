@@ -38,6 +38,11 @@ struct OverviewView: View {
       .frame(maxWidth: 820)
       .frame(maxWidth: .infinity)
     }
+    .toolbar {
+      ToolbarItem(placement: .primaryAction) {
+        BackUpNowToolbarButton()
+      }
+    }
   }
 
   private var scheduleCard: some View {
@@ -185,6 +190,30 @@ struct OverviewView: View {
           model.setSchedule(.daily(hour: hour, minute: minute))
         }
       })
+  }
+}
+
+private struct BackUpNowToolbarButton: View {
+  @Environment(AppModel.self) private var model
+
+  var body: some View {
+    let action = StatusSummary(model: model, progress: nil).action
+    if action == .cancel {
+      Button {
+        model.cancelBackup()
+      } label: {
+        Label("Cancel", systemImage: "xmark")
+          .labelStyle(.titleAndIcon)
+      }
+    } else {
+      Button {
+        model.backupNow()
+      } label: {
+        Label("Back Up Now", systemImage: "arrow.up.circle")
+          .labelStyle(.titleAndIcon)
+      }
+      .disabled(action != .backUp)
+    }
   }
 }
 

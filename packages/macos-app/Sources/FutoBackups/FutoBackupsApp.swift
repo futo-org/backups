@@ -10,6 +10,7 @@ struct FutoBackupsApp: App {
   init() {
     let model = AppModel()
     _model = State(initialValue: model)
+    AppDelegate.model = model
     _updater = State(initialValue: Updater(startingUpdater: !model.needsOnboarding))
   }
 
@@ -44,6 +45,7 @@ struct FutoBackupsApp: App {
 
 @MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate {
+  static var model: AppModel?
   private var launchedAsLoginItem = false
   private var windowCloseObserver: (any NSObjectProtocol)?
 
@@ -78,5 +80,28 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
       MenuBarResidency.shared.showMainWindow()
     }
     return true
+  }
+
+  func applicationDockMenu(_ sender: NSApplication) -> NSMenu? {
+    guard let model = Self.model, model.signedIn else { return nil }
+    let action = StatusSummary(model: model, progress: nil).action
+    let item =
+      action == .cancel
+      ? NSMenuItem(title: "Cancel Backup", action: #selector(cancelBackup), keyEquivalent: "")
+      : NSMenuItem(title: "Back Up Now", action: #selector(backUpNow), keyEquivalent: "")
+    item.target = self
+    item.isEnabled = action == .cancel || action == .backUp
+    let menu = NSMenu()
+    menu.autoenablesItems = false
+    menu.addItem(item)
+    return menu
+  }
+
+  @objc private func backUpNow() {
+    Self.model?.backupNow()
+  }
+
+  @objc private func cancelBackup() {
+    Self.model?.cancelBackup()
   }
 }
