@@ -171,7 +171,6 @@ struct FoldersView: View {
         .font(.headline)
       TextField("Pattern", text: $patternDraft, prompt: Text("*.iso"))
         .textFieldStyle(.roundedBorder)
-        .onSubmit(addPattern)
         .onChange(of: patternDraft) { _, _ in patternError = nil }
       if let patternError {
         Text(patternError)
@@ -186,8 +185,10 @@ struct FoldersView: View {
       HStack {
         Spacer()
         Button("Cancel") { showPatternEditor = false }
+          .keyboardShortcut(.cancelAction)
         Button("Add", action: addPattern)
           .buttonStyle(PrimaryButtonStyle())
+          .keyboardShortcut(.defaultAction)
       }
     }
     .padding(18)
@@ -329,6 +330,7 @@ struct FolderCard: View {
   let path: String
   let remove: () -> Void
   @State private var hovering = false
+  @FocusState private var removeFocused: Bool
 
   var body: some View {
     HStack(spacing: 12) {
@@ -357,8 +359,9 @@ struct FolderCard: View {
           .foregroundStyle(.secondary)
       }
       .buttonStyle(.plain)
+      .focused($removeFocused)
       .padding(8)
-      .opacity(hovering ? 1 : 0)
+      .opacity(hovering || removeFocused ? 1 : 0)
       .help("Stop backing up this folder")
     }
     .onHover { hovering = $0 }

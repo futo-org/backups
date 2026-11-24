@@ -133,6 +133,7 @@ struct ChangeRecoveryKeySheet: View {
       Button("Done") { dismiss() }
         .buttonStyle(PrimaryButtonStyle(large: true))
         .keyboardShortcut(.defaultAction)
+        .onEscape { dismiss() }
     }
   }
 

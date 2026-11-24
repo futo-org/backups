@@ -139,6 +139,7 @@ struct BackupWarningsSheet: View {
     }
     .padding(24)
     .frame(width: 580)
+    .onEscape { dismiss() }
     .task {
       model.refreshFullDiskAccess()
     }
