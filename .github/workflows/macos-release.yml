@@ -73,6 +73,17 @@ jobs:
           restic_image() {
             git show "$1:packages/standalone-app/Dockerfile" | sed -n 's/^ARG RESTIC_IMAGE=//p'
           }
+          release_exists() {
+            local err
+            if err=$(gh release view "$1" --json tagName 2>&1 > /dev/null); then
+              return 0
+            fi
+            if [[ $err == *"release not found"* ]]; then
+              return 1
+            fi
+            echo "::error::could not look up the $1 release: $err"
+            exit 1
+          }
           skip() {
             echo "mode=skip" >> "$GITHUB_OUTPUT"
             echo "::notice::$1"
@@ -93,13 +104,22 @@ jobs:
           sha=$(git rev-parse "refs/tags/$TAG^{commit}")
           previous=
           cmp=
-          # A download failure just means no macos-appcast release exists yet,
-          # i.e. this would be the first macOS release.
-          if gh release download macos-appcast -p appcast.xml -D "$RUNNER_TEMP/feed"; then
-            previous=$(sed -n 's|.*<sparkle:shortVersionString>\([^<]*\)</sparkle:shortVersionString>.*|\1|p' "$RUNNER_TEMP/feed/appcast.xml" | head -n 1)
-            cmp=$(version_cmp "$previous" "$version") || cmp=
+          feed_assets=
+          if release_exists macos-appcast; then
+            feed_assets=$(gh release view macos-appcast --json assets --jq '.assets[].name')
           fi
-          if gh release view "macos-v$version" > /dev/null 2>&1; then
+          if grep -qxF appcast.xml <<< "$feed_assets"; then
+            if ! gh release download macos-appcast -p appcast.xml -D "$RUNNER_TEMP/feed"; then
+              echo "::error::could not download the live appcast"
+              exit 1
+            fi
+            previous=$(sed -n 's|.*<sparkle:shortVersionString>\([^<]*\)</sparkle:shortVersionString>.*|\1|p' "$RUNNER_TEMP/feed/appcast.xml" | head -n 1)
+            if ! cmp=$(version_cmp "$previous" "$version"); then
+              echo "::error::the live appcast advertises no readable version ('$previous')"
+              exit 1
+            fi
+          fi
+          if release_exists "macos-v$version"; then
             if [ -n "$cmp" ] && [ "$cmp" -ge 0 ]; then
               skip "macos-v$version is already published"
             fi
@@ -295,6 +315,17 @@ jobs:
           appcast_version() {
             sed -n 's|.*<sparkle:shortVersionString>\([^<]*\)</sparkle:shortVersionString>.*|\1|p' "$1" | head -n 1
           }
+          release_exists() {
+            local err
+            if err=$(gh release view "$1" --json tagName 2>&1 > /dev/null); then
+              return 0
+            fi
+            if [[ $err == *"release not found"* ]]; then
+              return 1
+            fi
+            echo "::error::could not look up the $1 release: $err"
+            exit 1
+          }
           if [ "$(gh release view "macos-v$VERSION" --json isDraft --jq .isDraft)" != false ]; then
             echo "::error::macos-v$VERSION is still a draft; delete it and rerun the workflow"
             exit 1
@@ -311,13 +342,23 @@ jobs:
             echo "::error::the appcast attached to macos-v$VERSION does not advertise v$VERSION"
             exit 1
           fi
-          gh release view macos-appcast >/dev/null 2>&1 ||
+          if ! release_exists macos-appcast; then
             gh release create macos-appcast --prerelease --latest=false --title "macOS update feed" --notes "Sparkle appcast for the FUTO Backups macOS app. Do not delete."
+          fi
           # A published zip is never replaced, so a feed that already advertises
           # this version or a newer one must not move backwards.
-          if gh release download macos-appcast -p appcast.xml -D "$RUNNER_TEMP/current"; then
+          feed_assets=$(gh release view macos-appcast --json assets --jq '.assets[].name')
+          if grep -qxF appcast.xml <<< "$feed_assets"; then
+            if ! gh release download macos-appcast -p appcast.xml -D "$RUNNER_TEMP/current"; then
+              echo "::error::could not download the live appcast"
+              exit 1
+            fi
             published=$(appcast_version "$RUNNER_TEMP/current/appcast.xml")
-            if [ -n "$published" ] && cmp=$(version_cmp "$published" "$VERSION") && [ "$cmp" -ge 0 ]; then
+            if ! cmp=$(version_cmp "$published" "$VERSION"); then
+              echo "::error::the live appcast advertises no readable version ('$published')"
+              exit 1
+            fi
+            if [ "$cmp" -ge 0 ]; then
               echo "::notice::the feed already advertises v$published; leaving it unchanged"
               exit 0
             fi
