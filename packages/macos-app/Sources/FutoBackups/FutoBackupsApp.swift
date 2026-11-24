@@ -87,7 +87,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     let action = StatusSummary(model: model, progress: nil).action
     let item =
       action == .cancel
-      ? NSMenuItem(title: "Cancel Backup", action: #selector(cancelBackup), keyEquivalent: "")
+      ? NSMenuItem(
+        title: model.activity == .restoring ? "Cancel Restore" : "Cancel Backup", action: #selector(cancelBackup),
+        keyEquivalent: "")
       : NSMenuItem(title: "Back Up Now", action: #selector(backUpNow), keyEquivalent: "")
     item.target = self
     item.isEnabled = action == .cancel || action == .backUp
