@@ -557,6 +557,45 @@ final class AppModel {
     reportRepositoryChange()
   }
 
+  var hasAllDefaultExclusions: Bool {
+    Exclusions.defaults(home: NSHomeDirectory()).allSatisfy(config.excludes.contains)
+  }
+
+  func isDefaultExclusion(_ pattern: String) -> Bool {
+    Exclusions.isDefault(pattern, home: NSHomeDirectory())
+  }
+
+  func addExclusions(_ urls: [URL]) {
+    try? updateExclusions(Exclusions.adding(urls.map { Exclusions.pattern(forPath: $0.path) }, to: config.excludes))
+  }
+
+  func addExclusionPattern(_ input: String) -> String? {
+    guard let pattern = Exclusions.normalizedPattern(input, home: NSHomeDirectory()) else {
+      return "Enter a folder, file or pattern."
+    }
+    do {
+      try updateExclusions(Exclusions.adding([pattern], to: config.excludes))
+      return nil
+    } catch {
+      return "That's already excluded."
+    }
+  }
+
+  func removeExclusion(_ pattern: String) {
+    updateExclusions(config.excludes.filter { $0 != pattern })
+  }
+
+  func restoreDefaultExclusions() {
+    updateExclusions(Exclusions.restoringDefaults(in: config.excludes, home: NSHomeDirectory()))
+  }
+
+  private func updateExclusions(_ excludes: [String]) {
+    guard excludes != config.excludes else { return }
+    config.excludes = excludes
+    saveConfig()
+    report("Updated exclusions", ["count": .int(Int64(excludes.count))])
+  }
+
   func setSchedule(_ schedule: Schedule) {
     config.schedule = schedule
     config.scheduleAnchor = Date()

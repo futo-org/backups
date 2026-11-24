@@ -1,9 +1,13 @@
 import AppKit
+import BackupsCore
 import SwiftUI
 
 struct FoldersView: View {
   @Environment(AppModel.self) private var model
   @State private var dropTargeted = false
+  @State private var showPatternEditor = false
+  @State private var patternDraft = ""
+  @State private var patternError: String?
 
   var body: some View {
     ScrollView {
@@ -68,26 +72,75 @@ struct FoldersView: View {
         HStack(spacing: 12) {
           IconTile(systemName: "eye.slash.fill", tint: .gray)
           VStack(alignment: .leading, spacing: 2) {
-            Text("Skipped automatically")
+            Text("Excluded")
               .font(.headline)
-            Text("Caches, the Trash and cloud-synced folders are left out.")
+            Text("Caches, the Trash and cloud-synced folders are left out. Add your own folders, files or patterns.")
               .font(.system(size: 12))
               .foregroundStyle(.secondary)
           }
         }
         FlowLayout(spacing: 6) {
           ForEach(model.config.excludes, id: \.self) { exclude in
-            Text(excludeLabel(exclude))
-              .font(.system(size: 11, weight: .medium, design: .monospaced))
-              .foregroundStyle(.secondary)
-              .padding(.horizontal, 8)
-              .padding(.vertical, 4)
-              .background(Capsule().fill(Color.primary.opacity(0.06)))
-              .help(exclude)
+            ExclusionChip(label: excludeLabel(exclude), pattern: exclude, isDefault: model.isDefaultExclusion(exclude))
+            {
+              model.removeExclusion(exclude)
+            }
+          }
+        }
+        HStack(spacing: 8) {
+          Button {
+            addExclusions()
+          } label: {
+            Label("Add Folder or File…", systemImage: "plus")
+          }
+          .buttonStyle(SecondaryButtonStyle())
+          Button {
+            patternError = nil
+            showPatternEditor = true
+          } label: {
+            Label("Add Pattern…", systemImage: "asterisk")
+          }
+          .buttonStyle(SecondaryButtonStyle())
+          .popover(isPresented: $showPatternEditor, arrowEdge: .bottom) {
+            patternEditor
+          }
+          Spacer(minLength: 0)
+          if !model.hasAllDefaultExclusions {
+            Button("Restore Defaults") { model.restoreDefaultExclusions() }
+              .buttonStyle(.link)
           }
         }
       }
     }
+  }
+
+  private var patternEditor: some View {
+    VStack(alignment: .leading, spacing: 10) {
+      Text("Exclude a pattern")
+        .font(.headline)
+      TextField("Pattern", text: $patternDraft, prompt: Text("*.iso"))
+        .textFieldStyle(.roundedBorder)
+        .onSubmit(addPattern)
+        .onChange(of: patternDraft) { _, _ in patternError = nil }
+      if let patternError {
+        Text(patternError)
+          .font(.caption)
+          .foregroundStyle(.red)
+      } else {
+        Text("For example *.iso, **/build or ~/Downloads/Old. A name without a slash matches everywhere.")
+          .font(.caption)
+          .foregroundStyle(.secondary)
+          .fixedSize(horizontal: false, vertical: true)
+      }
+      HStack {
+        Spacer()
+        Button("Cancel") { showPatternEditor = false }
+        Button("Add", action: addPattern)
+          .buttonStyle(PrimaryButtonStyle())
+      }
+    }
+    .padding(18)
+    .frame(width: 340)
   }
 
   private var fullDiskAccess: some View {
@@ -126,7 +179,30 @@ struct FoldersView: View {
   }
 
   private func excludeLabel(_ pattern: String) -> String {
-    pattern.hasPrefix("**/") ? String(pattern.dropFirst(3)) : Format.abbreviatedPath(pattern)
+    let literal = pattern.replacingOccurrences(of: #"\\(.)"#, with: "$1", options: .regularExpression)
+    return literal.hasPrefix("**/") ? String(literal.dropFirst(3)) : Format.abbreviatedPath(literal)
+  }
+
+  private func addPattern() {
+    if let error = model.addExclusionPattern(patternDraft) {
+      patternError = error
+      return
+    }
+    patternDraft = ""
+    showPatternEditor = false
+  }
+
+  private func addExclusions() {
+    let panel = NSOpenPanel()
+    panel.canChooseDirectories = true
+    panel.canChooseFiles = true
+    panel.allowsMultipleSelection = true
+    panel.directoryURL = model.config.folders.first.map { URL(fileURLWithPath: $0) }
+    panel.prompt = "Exclude"
+    panel.message = "Choose folders or files to leave out of backups."
+    if panel.runModal() == .OK {
+      model.addExclusions(panel.urls)
+    }
   }
 
   private func addFolders() {
@@ -138,6 +214,36 @@ struct FoldersView: View {
     if panel.runModal() == .OK {
       model.addFolders(panel.urls)
     }
+  }
+}
+
+private struct ExclusionChip: View {
+  let label: String
+  let pattern: String
+  let isDefault: Bool
+  let remove: () -> Void
+  @State private var hovering = false
+
+  var body: some View {
+    HStack(spacing: 4) {
+      Text(label)
+        .font(.system(size: 11, weight: .medium, design: .monospaced))
+        .foregroundStyle(isDefault ? .secondary : .primary)
+      Button(action: remove) {
+        Image(systemName: "xmark")
+          .font(.system(size: 8, weight: .bold))
+          .foregroundStyle(.secondary)
+      }
+      .buttonStyle(.plain)
+      .opacity(hovering ? 1 : 0.45)
+      .help("Stop excluding")
+    }
+    .padding(.leading, 8)
+    .padding(.trailing, 6)
+    .padding(.vertical, 4)
+    .background(Capsule().fill(Color.primary.opacity(isDefault ? 0.06 : 0.1)))
+    .help(pattern)
+    .onHover { hovering = $0 }
   }
 }
 
