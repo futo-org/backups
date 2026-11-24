@@ -142,6 +142,8 @@ public actor BackupEngine {
     var snapshotMounted = false
     var snapshotFailure: DiskSnapshotError?
     var api: (any YuccaRepositoryAPI)?
+    var cloudOnlyScan: Task<CloudOnlySkip?, Never>?
+    var everyFolderCloudOnly = false
     do {
       let server = try await serverInfo(for: config.serverURL)
       let madeAPI = environment.makeAPI(server.apiRoot, token)
@@ -156,7 +158,16 @@ public actor BackupEngine {
       do {
         _ = try await environment.restic.run(ResticCommand.unlock(session.context), onLine: { _ in })
         try Task.checkCancellation()
-        let relatives = config.folders.map { environment.dataVolumePath($0) }
+        let scanner = environment.cloudOnlyScanner
+        let folders = config.folders.filter { !scanner.isCloudOnly($0) }
+        cloudOnlyScan = Task.detached(priority: .background) {
+          await scanner.scan(folders: config.folders, excludes: config.excludes)
+        }
+        guard !folders.isEmpty else {
+          everyFolderCloudOnly = true
+          throw CloudOnlyError.everyFolderIsCloudOnly
+        }
+        let relatives = folders.map { environment.dataVolumePath($0) }
         let snapshotMode = config.usesDiskSnapshots && relatives.contains { $0 != nil }
         var createdSnapshot: DiskSnapshot?
         var snapshotMountPoint: URL?
@@ -164,7 +175,7 @@ public actor BackupEngine {
         var snapshotLock: SnapshotLock?
         var mounted = false
         var snapshotCleanedUp = false
-        var backupPaths = config.folders
+        var backupPaths = folders
         var backupExcludes = config.excludes
         var backupCurrentDirectory: String?
         var backupTags: [String] = []
@@ -254,8 +265,8 @@ public actor BackupEngine {
             backupTags = ["disk-snapshot"]
             try Task.checkCancellation()
             var snapshotPaths: [String] = []
-            for index in config.folders.indices {
-              snapshotPaths.append(relatives[index] ?? config.folders[index])
+            for index in folders.indices {
+              snapshotPaths.append(relatives[index] ?? folders[index])
             }
             backupPaths = snapshotPaths
             let resolvedMount = DataVolume.resolvedPath(mountPoint.path)
@@ -405,6 +416,18 @@ public actor BackupEngine {
         message = String(describing: error)
       }
     }
+    var cloudOnlySkipped: CloudOnlySkip?
+    if let cloudOnlyScan {
+      if status == .complete || status == .warn || everyFolderCloudOnly {
+        cloudOnlySkipped = await withTaskCancellationHandler {
+          await cloudOnlyScan.value
+        } onCancel: {
+          cloudOnlyScan.cancel()
+        }
+      } else {
+        cloudOnlyScan.cancel()
+      }
+    }
     let finishedAt = environment.now()
     let durationMs = Int(startedElapsed.duration(to: environment.elapsedNow()) / .milliseconds(1))
     let endStatus = status
@@ -420,6 +443,10 @@ public actor BackupEngine {
         "durationMs": .int(Int64(durationMs)),
         "diskSnapshot": .bool(snapshotMounted),
       ]
+      if let cloudOnlySkipped {
+        data["cloudOnlyFiles"] = .int(Int64(cloudOnlySkipped.count))
+        data["cloudOnlySize"] = .string(cloudOnlySkipped.telemetrySizeBucket)
+      }
       if let snapshotFailure {
         data["error"] = .string("disk snapshot: \(snapshotFailure.telemetryCode)")
       } else if let endMessage {
@@ -429,7 +456,8 @@ public actor BackupEngine {
     }
     return RunRecord(
       startedAt: startedAt, finishedAt: finishedAt, status: status, snapshotId: summary?.snapshotId,
-      filesNew: summary?.filesNew, dataAdded: summary?.dataAdded, message: message)
+      filesNew: summary?.filesNew, dataAdded: summary?.dataAdded, message: message,
+      cloudOnlySkipped: cloudOnlySkipped.flatMap { $0.count > 0 ? $0 : nil })
   }
 
   private func readJournal(_ url: URL) throws -> [DiskSnapshot] {

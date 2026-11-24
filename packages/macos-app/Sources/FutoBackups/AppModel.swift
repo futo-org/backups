@@ -118,7 +118,8 @@ final class AppModel {
           appVersion: appVersion,
           diskSnapshots: TimeMachineSnapshots.live(),
           snapshotDirectory: snapshotDirectory,
-          dataVolumePath: { DataVolume.relativePath(of: $0) }))
+          dataVolumePath: { DataVolume.relativePath(of: $0) },
+          cloudOnlyScanner: CloudOnlyScanner()))
       missingHelperText = nil
     } else {
       engine = nil

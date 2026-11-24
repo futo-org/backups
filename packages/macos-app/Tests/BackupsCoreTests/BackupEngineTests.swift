@@ -1050,13 +1050,15 @@ private func makeSnapshotFixture(
   diskSnapshots: FakeDiskSnapshots = FakeDiskSnapshots(), usesSnapshotDirectory: Bool = true,
   dataVolumePath: @escaping @Sendable (String) -> String? = { path in
     path == documentsFolder ? "Users/test/Documents" : nil
-  }
+  },
+  cloudOnlyScanner: any CloudOnlyScanning = NoCloudOnlyScan()
 ) -> SnapshotFixture {
   let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
   let fixture = makeFixture(
     diskSnapshots: diskSnapshots,
     snapshotDirectory: usesSnapshotDirectory ? directory : nil,
-    dataVolumePath: dataVolumePath)
+    dataVolumePath: dataVolumePath,
+    cloudOnlyScanner: cloudOnlyScanner)
   fixture.restic.set(ResticScript(lines: [summaryLine]), for: "backup")
   fixture.restic.set(ResticScript(stdout: statsStdout), for: "stats")
   var config = testConfig(folders: [documentsFolder, externalFolder])
@@ -1664,4 +1666,133 @@ func unreadableJournalFailsSetupBeforeCreateAndKeepsTheFile(contents: Data?) asy
   #expect(tagged.paths == ["/Users/test/Documents", "/Users/test/Docs", "/", "/"])
   let untagged = try #require(listed.first { $0.id == "untagged" })
   #expect(untagged.paths == ["\(snapshot.mountPoint.path)/Users/other/Secret"])
+}
+
+private let skippedFiles = CloudOnlySkip(
+  count: 12, bytes: 340_000_000, sample: ["/Users/test/Documents/ws.pptx", "/Users/test/Documents/talk.key"])
+
+@Test func backupRecordsCloudOnlySkipsAndReportsOnlyTheirCountAndSize() async throws {
+  let scanner = FakeCloudOnlyScanner(result: skippedFiles)
+  let fixture = makeFixture(cloudOnlyScanner: scanner)
+  fixture.restic.set(ResticScript(lines: [summaryLine]), for: "backup")
+  var config = testConfig(folders: ["/Users/test/Documents"])
+  config.excludes = ["**/node_modules"]
+  let engine = BackupEngine(environment: fixture.environment)
+  let record = try await engine.backup(config: config) { _ in }
+  #expect(record.status == .complete)
+  #expect(record.message == nil)
+  #expect(record.cloudOnlySkipped == skippedFiles)
+  #expect(scanner.calls == [CloudOnlyScanCall(folders: ["/Users/test/Documents"], excludes: ["**/node_modules"])])
+  let backupArgs = try #require(fixture.restic.invocations().first { $0.arguments.first == "backup" }).arguments
+  #expect(backupArgs.contains("--exclude-cloud-files"))
+  let finished = try #require(await fixture.deliveredLogs(engine).last { $0.summary == "Backup finished" })
+  #expect(finished.data["lastBackupStatus"] == .string("complete"))
+  #expect(finished.data["cloudOnlyFiles"] == .int(12))
+  #expect(finished.data["cloudOnlySize"] == .string("<1GB"))
+  let encoded = String(decoding: try JSONEncoder().encode(finished), as: UTF8.self)
+  #expect(!encoded.contains("ws.pptx"))
+  #expect(!encoded.contains("talk.key"))
+}
+
+@Test func backupWithoutCloudOnlyFilesStoresNoSkipButReportsZero() async throws {
+  let fixture = makeFixture(cloudOnlyScanner: FakeCloudOnlyScanner(result: CloudOnlySkip()))
+  fixture.restic.set(ResticScript(lines: [summaryLine]), for: "backup")
+  let engine = BackupEngine(environment: fixture.environment)
+  let record = try await engine.backup(config: testConfig()) { _ in }
+  #expect(record.status == .complete)
+  #expect(record.cloudOnlySkipped == nil)
+  let finished = try #require(await fixture.deliveredLogs(engine).last { $0.summary == "Backup finished" })
+  #expect(finished.data["cloudOnlyFiles"] == .int(0))
+  #expect(finished.data["cloudOnlySize"] == .string("0"))
+}
+
+@Test func failedCloudOnlyScanLeavesTheBackupResultAlone() async throws {
+  let fixture = makeFixture(cloudOnlyScanner: FakeCloudOnlyScanner(result: nil))
+  fixture.restic.set(ResticScript(lines: [summaryLine]), for: "backup")
+  let engine = BackupEngine(environment: fixture.environment)
+  let record = try await engine.backup(config: testConfig()) { _ in }
+  #expect(record.status == .complete)
+  #expect(record.cloudOnlySkipped == nil)
+  let finished = try #require(await fixture.deliveredLogs(engine).last { $0.summary == "Backup finished" })
+  #expect(finished.data["cloudOnlyFiles"] == nil)
+  #expect(finished.data["cloudOnlySize"] == nil)
+}
+
+@Test func failedBackupCancelsTheCloudOnlyScan() async throws {
+  let scanner = FakeCloudOnlyScanner(hangs: true)
+  let fixture = makeFixture(cloudOnlyScanner: scanner)
+  fixture.restic.set(
+    ResticScript(exitCode: 1, stderr: #"{"message_type":"exit_error","code":1,"message":"no space"}"#),
+    for: "backup")
+  let engine = BackupEngine(environment: fixture.environment)
+  let record = try await engine.backup(config: testConfig()) { _ in }
+  #expect(record.status == .failed)
+  #expect(record.cloudOnlySkipped == nil)
+  for _ in 0..<200 where !scanner.cancelled {
+    try await Task.sleep(for: .milliseconds(5))
+  }
+  #expect(scanner.cancelled)
+}
+
+@Test func cancellingTheBackupWhileTheScanRunsCancelsTheScan() async throws {
+  let scanner = FakeCloudOnlyScanner(hangs: true)
+  let fixture = makeFixture(cloudOnlyScanner: scanner)
+  fixture.restic.set(ResticScript(lines: [summaryLine]), for: "backup")
+  let engine = BackupEngine(environment: fixture.environment)
+  let task = Task { try await engine.backup(config: testConfig()) { _ in } }
+  for _ in 0..<400 where !fixture.restic.commands().contains("stats") {
+    try await Task.sleep(for: .milliseconds(5))
+  }
+  task.cancel()
+  let record = try await task.value
+  #expect(record.status == .complete)
+  #expect(record.cloudOnlySkipped == nil)
+  #expect(scanner.cancelled)
+}
+
+@Test func cloudOnlyFolderIsLeftOutOfTheBackupTargets() async throws {
+  let scanner = FakeCloudOnlyScanner(
+    cloudOnly: ["/Users/test/Desktop"],
+    result: CloudOnlySkip(count: 1, sample: ["/Users/test/Desktop/"]))
+  let fixture = makeFixture(cloudOnlyScanner: scanner)
+  fixture.restic.set(ResticScript(lines: [summaryLine]), for: "backup")
+  let config = testConfig(folders: ["/Users/test/Desktop", "/Users/test/Documents"])
+  let engine = BackupEngine(environment: fixture.environment)
+  let record = try await engine.backup(config: config) { _ in }
+  #expect(record.status == .complete)
+  #expect(record.cloudOnlySkipped?.sample == ["/Users/test/Desktop/"])
+  let backupArgs = try #require(fixture.restic.invocations().first { $0.arguments.first == "backup" }).arguments
+  #expect(Array(backupArgs.suffix(2)) == ["--", "/Users/test/Documents"])
+  #expect(scanner.calls.map(\.folders) == [["/Users/test/Desktop", "/Users/test/Documents"]])
+}
+
+@Test func cloudOnlyFolderIsLeftOutOfDiskSnapshotTargetsAndScanUsesLiveFolders() async throws {
+  let scanner = FakeCloudOnlyScanner(cloudOnly: [externalFolder], result: skippedFiles)
+  let snapshot = makeSnapshotFixture(cloudOnlyScanner: scanner)
+  defer { try? FileManager.default.removeItem(at: snapshot.directory) }
+  let engine = BackupEngine(environment: snapshot.fixture.environment)
+  let record = try await engine.backup(config: snapshot.config) { _ in }
+  #expect(record.status == .complete)
+  #expect(record.cloudOnlySkipped == skippedFiles)
+  let backupInvocation = try #require(
+    snapshot.fixture.restic.invocations().first { $0.arguments.first == "backup" })
+  #expect(argumentAfter(backupInvocation.arguments, "--tag") == "disk-snapshot")
+  #expect(backupInvocation.arguments.contains("--exclude-cloud-files"))
+  #expect(Array(backupInvocation.arguments.suffix(2)) == ["--", "Users/test/Documents"])
+  #expect(
+    scanner.calls
+      == [CloudOnlyScanCall(folders: [documentsFolder, externalFolder], excludes: snapshot.config.excludes)])
+}
+
+@Test func everyFolderCloudOnlyFailsWithoutRunningResticBackupAndReportsTheSkip() async throws {
+  let skip = CloudOnlySkip(count: 1, sample: ["/Users/test/Desktop/"])
+  let scanner = FakeCloudOnlyScanner(cloudOnly: ["/Users/test/Desktop"], result: skip)
+  let fixture = makeFixture(cloudOnlyScanner: scanner)
+  let engine = BackupEngine(environment: fixture.environment)
+  let record = try await engine.backup(config: testConfig(folders: ["/Users/test/Desktop"])) { _ in }
+  #expect(record.status == .failed)
+  #expect(record.message == CloudOnlyError.everyFolderIsCloudOnly.description)
+  #expect(record.cloudOnlySkipped == skip)
+  #expect(fixture.restic.commands() == ["version", "unlock"])
+  #expect(fixture.proxy.stopCount == 1)
 }

@@ -29,6 +29,7 @@ Sources/BackupsCore/        library, all logic, fully unit-tested
   Restic/                   restic + restic-proxy
   State/                    config, secrets, keys, schedule
   DiskSnapshot/             APFS disk snapshots, data volume paths, Full Disk Access
+  CloudOnly/                finding cloud-only (dataless) files the backup skips
   Engine/                   backup orchestration
 Sources/FutoBackups/        SwiftUI app (thin; logic stays in BackupsCore)
 Tests/BackupsCoreTests/     one test file per source file, named <Source>Tests.swift

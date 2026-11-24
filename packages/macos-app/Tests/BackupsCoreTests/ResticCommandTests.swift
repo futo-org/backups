@@ -75,7 +75,10 @@ private let commandCases: [CommandCase] = [
     name: "backup minimal",
     invocation: ResticCommand.backup(plainContext, paths: ["/p/one", "/p/two"], excludes: [], host: "host-a"),
     arguments: ["backup", "--json"] + common
-      + ["--host", "host-a", "--group-by", "host", "--exclude-caches", "--", "/p/one", "/p/two"],
+      + [
+        "--host", "host-a", "--group-by", "host", "--exclude-caches", "--exclude-cloud-files", "--", "/p/one",
+        "/p/two",
+      ],
     environment: backupEnvironment, retainsStdout: false),
   CommandCase(
     name: "backup full",
@@ -86,8 +89,8 @@ private let commandCases: [CommandCase] = [
       host: "host-a"),
     arguments: ["backup", "--json"] + common
       + [
-        "--host", "host-a", "--group-by", "host", "--exclude-caches", "--exclude", "/p/skip-a",
-        "--exclude", "/p/skip-b", "--pack-size", "4", "--walk-concurrency", "2", "--", "/p/one",
+        "--host", "host-a", "--group-by", "host", "--exclude-caches", "--exclude-cloud-files", "--exclude",
+        "/p/skip-a", "--exclude", "/p/skip-b", "--pack-size", "4", "--walk-concurrency", "2", "--", "/p/one",
       ],
     environment: backupEnvironment, retainsStdout: false),
   CommandCase(
@@ -152,7 +155,7 @@ func onlyCommandsWhoseOutputIsReadRetainStdout(_ testCase: CommandCase) {
   #expect(mounted.arguments == minimal.arguments)
 }
 
-@Test func backupTagsFollowExcludeCachesAndDefaultToNone() {
+@Test func backupTagsFollowTheExcludeFlagsAndDefaultToNone() {
   let plain = ResticCommand.backup(plainContext, paths: ["/p"], excludes: [], host: "host-a")
   #expect(!plain.arguments.contains("--tag"))
   let tagged = ResticCommand.backup(
@@ -163,8 +166,10 @@ func onlyCommandsWhoseOutputIsReadRetainStdout(_ testCase: CommandCase) {
     return
   }
   #expect(
-    Array(tagged.arguments[cachesIndex...].prefix(7))
-      == ["--exclude-caches", "--tag", "disk-snapshot", "--tag", "beta", "--exclude", "/skip"])
+    Array(tagged.arguments[cachesIndex...].prefix(8))
+      == [
+        "--exclude-caches", "--exclude-cloud-files", "--tag", "disk-snapshot", "--tag", "beta", "--exclude", "/skip",
+      ])
 }
 
 @Test func positionalsThatLookLikeFlagsFollowEndOfOptions() {
@@ -192,4 +197,15 @@ func onlyCommandsWhoseOutputIsReadRetainStdout(_ testCase: CommandCase) {
     #expect(!invocation.arguments.contains { $0.contains("secret") })
     #expect(invocation.environment["RESTIC_PASSWORD"] == "secret")
   }
+}
+
+@Test func everyBackupSkipsCloudOnlyFiles() {
+  let live = ResticCommand.backup(plainContext, paths: ["/p"], excludes: [], host: "host-a")
+  let mounted = ResticCommand.backup(
+    packedContext, paths: ["p"], excludes: ["/skip"], host: "host-a", currentDirectory: "/mnt",
+    tags: ["disk-snapshot"])
+  #expect(live.arguments.filter { $0 == "--exclude-cloud-files" }.count == 1)
+  #expect(mounted.arguments.filter { $0 == "--exclude-cloud-files" }.count == 1)
+  #expect(
+    !ResticCommand.forget(plainContext, host: "host-a", keepWithin: "1h").arguments.contains("--exclude-cloud-files"))
 }

@@ -75,6 +75,29 @@ func roundTripBareRunRecord() throws {
   #expect(decoded.message == nil)
 }
 
+@Test("RunRecord saved before cloud-only skips existed decodes without them")
+func decodeRunRecordWithoutCloudOnlySkips() throws {
+  let json = #"{"startedAt":0,"finishedAt":5,"status":"complete","snapshotId":"abc","filesNew":3}"#
+  let decoded = try JSONDecoder().decode(RunRecord.self, from: Data(json.utf8))
+  #expect(decoded.status == .complete)
+  #expect(decoded.snapshotId == "abc")
+  #expect(decoded.cloudOnlySkipped == nil)
+}
+
+@Test("RunRecord round trips cloud-only skips")
+func roundTripCloudOnlySkips() throws {
+  let record = RunRecord(
+    startedAt: Date(timeIntervalSince1970: 1_781_092_800),
+    finishedAt: Date(timeIntervalSince1970: 1_781_092_805),
+    status: .complete,
+    cloudOnlySkipped: CloudOnlySkip(count: 12, bytes: 340_000_000, sample: ["/Users/test/Documents/ws.pptx"]))
+  let decoded = try JSONDecoder().decode(RunRecord.self, from: JSONEncoder().encode(record))
+  #expect(decoded == record)
+  #expect(decoded.cloudOnlySkipped?.count == 12)
+  #expect(decoded.cloudOnlySkipped?.bytes == 340_000_000)
+  #expect(decoded.cloudOnlySkipped?.sample == ["/Users/test/Documents/ws.pptx"])
+}
+
 @Test("scheduleReference prefers lastRun then anchor then nil")
 func scheduleReferencePrecedence() {
   var config = AppConfig.defaults(host: "book-pro", home: "/Users/test")

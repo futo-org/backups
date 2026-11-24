@@ -18,6 +18,9 @@ struct OverviewView: View {
     ScrollView {
       VStack(alignment: .leading, spacing: 18) {
         hero(status)
+        if model.activity == nil, let skipped = model.config.lastRun?.cloudOnlySkipped {
+          CloudOnlyNotice(skipped: skipped)
+        }
         HStack(spacing: 14) {
           StatTile(systemName: "calendar", tint: Brand.blue, label: "Next backup", value: nextBackup)
           StatTile(

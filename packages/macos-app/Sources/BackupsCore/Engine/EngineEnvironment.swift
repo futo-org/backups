@@ -18,6 +18,7 @@ public struct EngineEnvironment: Sendable {
   public var dataVolumePath: @Sendable (String) -> String?
   public var createRestoreDirectory: @Sendable (URL) throws -> Bool
   public var temporaryDirectory: URL
+  public var cloudOnlyScanner: any CloudOnlyScanning
 
   public init(
     secrets: any SecretStore,
@@ -36,7 +37,8 @@ public struct EngineEnvironment: Sendable {
     snapshotDirectory: URL? = nil,
     dataVolumePath: @escaping @Sendable (String) -> String? = { _ in nil },
     createRestoreDirectory: @escaping @Sendable (URL) throws -> Bool = RestorePlan.createDirectoryExclusively,
-    temporaryDirectory: URL = FileManager.default.temporaryDirectory
+    temporaryDirectory: URL = FileManager.default.temporaryDirectory,
+    cloudOnlyScanner: any CloudOnlyScanning = NoCloudOnlyScan()
   ) {
     self.secrets = secrets
     self.discover = discover
@@ -55,6 +57,7 @@ public struct EngineEnvironment: Sendable {
     self.dataVolumePath = dataVolumePath
     self.createRestoreDirectory = createRestoreDirectory
     self.temporaryDirectory = temporaryDirectory
+    self.cloudOnlyScanner = cloudOnlyScanner
   }
 }
 

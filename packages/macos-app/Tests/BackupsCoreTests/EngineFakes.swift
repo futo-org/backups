@@ -480,6 +480,48 @@ final class FakeRestoreDirectories: @unchecked Sendable {
   }
 }
 
+struct CloudOnlyScanCall: Equatable {
+  var folders: [String]
+  var excludes: [String]
+}
+
+final class FakeCloudOnlyScanner: CloudOnlyScanning, @unchecked Sendable {
+  private let lock = NSLock()
+  private let cloudOnly: Set<String>
+  private let result: CloudOnlySkip?
+  private let hangs: Bool
+  private var recorded: [CloudOnlyScanCall] = []
+  private var wasCancelled = false
+
+  init(cloudOnly: Set<String> = [], result: CloudOnlySkip? = CloudOnlySkip(), hangs: Bool = false) {
+    self.cloudOnly = cloudOnly
+    self.result = result
+    self.hangs = hangs
+  }
+
+  var calls: [CloudOnlyScanCall] {
+    lock.withLock { recorded }
+  }
+
+  var cancelled: Bool {
+    lock.withLock { wasCancelled }
+  }
+
+  func isCloudOnly(_ path: String) -> Bool {
+    cloudOnly.contains(path)
+  }
+
+  func scan(folders: [String], excludes: [String]) async -> CloudOnlySkip? {
+    lock.withLock { recorded.append(CloudOnlyScanCall(folders: folders, excludes: excludes)) }
+    if hangs {
+      try? await Task.sleep(for: .seconds(3600))
+      lock.withLock { wasCancelled = Task.isCancelled }
+      return nil
+    }
+    return result
+  }
+}
+
 final class Counter: @unchecked Sendable {
   private let lock = NSLock()
   private var stored = 0
@@ -566,7 +608,8 @@ func makeFixture(
   appVersion: String = "dev", telemetryTimeout: Duration = .seconds(10),
   diskSnapshots: FakeDiskSnapshots = FakeDiskSnapshots(), snapshotDirectory: URL? = nil,
   clock: FixedClock = FixedClock(),
-  dataVolumePath: @escaping @Sendable (String) -> String? = { _ in nil }
+  dataVolumePath: @escaping @Sendable (String) -> String? = { _ in nil },
+  cloudOnlyScanner: any CloudOnlyScanning = NoCloudOnlyScan()
 ) -> EngineFixture {
   let api = FakeAPI()
   let restic = FakeRestic()
@@ -601,7 +644,8 @@ func makeFixture(
     diskSnapshots: diskSnapshots,
     snapshotDirectory: snapshotDirectory,
     dataVolumePath: dataVolumePath,
-    createRestoreDirectory: { restoreDirectories.create($0) })
+    createRestoreDirectory: { restoreDirectories.create($0) },
+    cloudOnlyScanner: cloudOnlyScanner)
   return EngineFixture(
     environment: environment, api: api, restic: restic, proxy: proxy, secrets: secrets,
     discoverCount: discoverCount, diskSnapshots: diskSnapshots, restoreDirectories: restoreDirectories)

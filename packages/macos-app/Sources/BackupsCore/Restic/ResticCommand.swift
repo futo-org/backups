@@ -49,7 +49,7 @@ public enum ResticCommand {
     _ context: ResticContext, paths: [String], excludes: [String], host: String,
     currentDirectory: String? = nil, tags: [String] = []
   ) -> ResticInvocation {
-    var flags = ["--host", host, "--group-by", "host", "--exclude-caches"]
+    var flags = ["--host", host, "--group-by", "host", "--exclude-caches", "--exclude-cloud-files"]
     for tag in tags {
       flags += ["--tag", tag]
     }
