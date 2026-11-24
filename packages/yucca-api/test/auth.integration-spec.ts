@@ -599,14 +599,14 @@ describe('AuthController (e2e)', () => {
     it('fails as unsupported for a connection type this server does not know', async () => {
       const { deviceCode, userCode } = await authorize();
       await approve(userCode, 'device-unsupported-type-user');
+      const sessionIds = await testUtils.getSessionIds();
 
       await expect(poll('token', deviceCode, { connectionType: 'winamp' })).resolves.toEqual({
         status: 'FAILURE',
         reason: 'UNSUPPORTED_CONNECTION_TYPE',
       });
 
-      const deviceUser = await testUtils.getUserBySub('device-unsupported-type-user');
-      await expect(testUtils.getSessionsByUserId(deviceUser!.id)).resolves.toEqual([]);
+      await expect(testUtils.getSessionIds()).resolves.toEqual(sessionIds);
     });
 
     it('fails as expired for a device code the provider does not know', async () => {
