@@ -322,12 +322,21 @@ enum Format {
     return date.formatted(.dateTime.weekday(.wide).month(.wide).day())
   }
 
+  @MainActor
   static func duration(_ seconds: Int) -> String {
     if seconds < 60 { return "under a minute left" }
-    let formatter = DateComponentsFormatter()
-    formatter.allowedUnits = seconds >= 3600 ? [.hour, .minute] : [.minute]
-    formatter.unitsStyle = .short
+    let formatter = seconds >= 3600 ? hoursAndMinutes : minutes
     return "\(formatter.string(from: TimeInterval(seconds)) ?? "") left"
+  }
+
+  @MainActor private static let hoursAndMinutes = durationFormatter([.hour, .minute])
+  @MainActor private static let minutes = durationFormatter([.minute])
+
+  private static func durationFormatter(_ units: NSCalendar.Unit) -> DateComponentsFormatter {
+    let formatter = DateComponentsFormatter()
+    formatter.allowedUnits = units
+    formatter.unitsStyle = .short
+    return formatter
   }
 
   static func abbreviatedPath(_ path: String) -> String {
