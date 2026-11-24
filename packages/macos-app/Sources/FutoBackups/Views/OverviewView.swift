@@ -18,6 +18,9 @@ struct OverviewView: View {
     ScrollView {
       VStack(alignment: .leading, spacing: 18) {
         hero(status)
+        if case .backingUp(_, let speed) = model.activity {
+          UploadSpeedCard(speed: speed)
+        }
         if model.activity == nil, let skipped = model.config.lastRun?.cloudOnlySkipped {
           CloudOnlyNotice(skipped: skipped)
         }

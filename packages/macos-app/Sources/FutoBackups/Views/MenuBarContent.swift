@@ -20,6 +20,10 @@ struct MenuBarContent: View {
             .font(.system(size: 11))
             .foregroundStyle(.secondary)
             .lineLimit(2)
+          if model.signedIn, case .backingUp(_, let speed) = model.activity {
+            UploadSpeedBadge(speed: speed)
+              .padding(.top, 2)
+          }
         }
         Spacer(minLength: 0)
         AlphaBadge()
