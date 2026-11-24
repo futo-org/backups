@@ -37,7 +37,8 @@ number, never an asset of the server release — with notes filtered to Mac comm
 `https://github.com/futo-org/backups/releases/download/macos-appcast/appcast.xml`.
 
 Release versions must be plain `MAJOR.MINOR.PATCH`: `CFBundleVersion` is `MAJOR*1000000+MINOR*1000+PATCH`, and a
-published zip is never replaced.
+published zip is never replaced. Each `macos-v<version>` release also carries its `appcast.xml`: rerunning the workflow
+for a version whose zip is published but whose feed is behind republishes that appcast without rebuilding.
 
 The build job runs in the `macos-release` environment, which only `main` and the `v*` tags can deploy to. Infisical
 syncs its secrets there: `apple-signing/global/ci` holds FUTO's Developer ID Application certificate

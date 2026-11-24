@@ -4,7 +4,8 @@ name: macOS Release
 # inputs changed since the feed's version. The archive rides its own
 # `macos-v<version>` release; the Sparkle appcast rides a rolling prerelease
 # `macos-appcast` that is never latest, so the feed URL is stable and the
-# release list keeps showing real versions.
+# release list keeps showing real versions. Each `macos-v<version>` also keeps
+# its appcast, so a rerun can repair a feed that fell behind without rebuilding.
 on:
   release:
     types: [published]
@@ -30,7 +31,7 @@ jobs:
     permissions:
       contents: read
     outputs:
-      run: ${{ steps.decision.outputs.run }}
+      mode: ${{ steps.decision.outputs.mode }}
       version: ${{ steps.decision.outputs.version }}
       previous: ${{ steps.decision.outputs.previous }}
       sha: ${{ steps.decision.outputs.sha }}
@@ -72,11 +73,14 @@ jobs:
           restic_image() {
             git show "$1:packages/standalone-app/Dockerfile" | sed -n 's/^ARG RESTIC_IMAGE=//p'
           }
+          skip() {
+            echo "mode=skip" >> "$GITHUB_OUTPUT"
+            echo "::notice::$1"
+            exit 0
+          }
           version=${TAG#v}
           if ! [[ $version =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-            echo "run=false" >> "$GITHUB_OUTPUT"
-            echo "::notice::$TAG is not a plain MAJOR.MINOR.PATCH release tag"
-            exit 0
+            skip "$TAG is not a plain MAJOR.MINOR.PATCH release tag"
           fi
           if [ "$GITHUB_EVENT_NAME" = release ]; then
             prerelease=$EVENT_PRERELEASE
@@ -84,47 +88,44 @@ jobs:
             prerelease=$(gh release view "$TAG" --json isPrerelease --jq .isPrerelease)
           fi
           if [ "$prerelease" = true ]; then
-            echo "run=false" >> "$GITHUB_OUTPUT"
-            echo "::notice::$TAG is a prerelease"
-            exit 0
+            skip "$TAG is a prerelease"
           fi
           sha=$(git rev-parse "refs/tags/$TAG^{commit}")
-          if gh release view "macos-v$version" > /dev/null 2>&1; then
-            echo "run=false" >> "$GITHUB_OUTPUT"
-            echo "::notice::macos-v$version is already published"
-            exit 0
-          fi
           previous=
+          cmp=
           # A download failure just means no macos-appcast release exists yet,
           # i.e. this would be the first macOS release.
           if gh release download macos-appcast -p appcast.xml -D "$RUNNER_TEMP/feed"; then
             previous=$(sed -n 's|.*<sparkle:shortVersionString>\([^<]*\)</sparkle:shortVersionString>.*|\1|p' "$RUNNER_TEMP/feed/appcast.xml" | head -n 1)
-            if [ -n "$previous" ] && cmp=$(version_cmp "$previous" "$version"); then
-              if [ "$cmp" -eq 0 ]; then
-                echo "run=false" >> "$GITHUB_OUTPUT"
-                echo "::notice::v$version is already published"
-                exit 0
-              fi
-              if [ "$cmp" -eq 1 ]; then
-                echo "run=false" >> "$GITHUB_OUTPUT"
-                echo "::notice::a newer version (v$previous) is already published"
-                exit 0
-              fi
-              if git rev-parse -q --verify "refs/tags/v$previous" > /dev/null &&
-                git diff --quiet "v$previous" "$sha" -- packages/macos-app packages/restic-proxy .mise/config.toml &&
-                [ "$(restic_image "v$previous")" = "$(restic_image "$sha")" ]; then
-                echo "run=false" >> "$GITHUB_OUTPUT"
-                echo "::notice::macOS app inputs unchanged since v$previous"
-                exit 0
-              fi
+            cmp=$(version_cmp "$previous" "$version") || cmp=
+          fi
+          if gh release view "macos-v$version" > /dev/null 2>&1; then
+            if [ -n "$cmp" ] && [ "$cmp" -ge 0 ]; then
+              skip "macos-v$version is already published"
+            fi
+            echo "::notice::macos-v$version is published but the feed is behind it; republishing its appcast"
+            printf 'mode=repair\nversion=%s\n' "$version" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          if [ -n "$cmp" ]; then
+            if [ "$cmp" -eq 0 ]; then
+              skip "v$version is already published"
+            fi
+            if [ "$cmp" -eq 1 ]; then
+              skip "a newer version (v$previous) is already published"
+            fi
+            if git rev-parse -q --verify "refs/tags/v$previous" > /dev/null &&
+              git diff --quiet "v$previous" "$sha" -- packages/macos-app packages/restic-proxy .mise/config.toml &&
+              [ "$(restic_image "v$previous")" = "$(restic_image "$sha")" ]; then
+              skip "macOS app inputs unchanged since v$previous"
             fi
           fi
-          printf 'run=true\nversion=%s\nprevious=%s\nsha=%s\n' "$version" "$previous" "$sha" >> "$GITHUB_OUTPUT"
+          printf 'mode=build\nversion=%s\nprevious=%s\nsha=%s\n' "$version" "$previous" "$sha" >> "$GITHUB_OUTPUT"
 
   release:
     name: Build, notarize and publish the macOS app
     needs: gate
-    if: needs.gate.outputs.run == 'true'
+    if: needs.gate.outputs.mode == 'build'
     runs-on: macos-15
     timeout-minutes: 90
     # Infisical syncs the apple-signing/global/ci and yucca/global/ci secrets
@@ -234,10 +235,44 @@ jobs:
           set -euo pipefail
           mise run //packages/macos-app:mac:release "$VERSION"
 
-      - name: Publish the archive and the appcast
+      - name: Publish the archive and its appcast
         env:
           VERSION: ${{ needs.gate.outputs.version }}
           OUT_DIR: ${{ runner.temp }}/macos-release
+        run: |
+          set -euo pipefail
+          if gh release view "macos-v$VERSION" > /dev/null 2>&1; then
+            echo "::error::macos-v$VERSION was published while this run was building; a published zip is never replaced"
+            exit 1
+          fi
+          gh release create "macos-v$VERSION" "$OUT_DIR/FUTO-Backups-$VERSION.zip" "$OUT_DIR/appcast.xml" \
+            --target "$SHA" \
+            --title "FUTO Backups for macOS $VERSION" \
+            --notes-file "$RUNNER_TEMP/macos-notes.md" \
+            --latest=false
+
+      - name: Remove the signing keychain and material
+        if: always()
+        run: |
+          set -euo pipefail
+          security delete-keychain "$RUNNER_TEMP/signing.keychain-db" || true
+          rm -f "$RUNNER_TEMP/notary.p8" "$RUNNER_TEMP/cert.p12"
+
+  feed:
+    name: Publish the appcast
+    needs: [gate, release]
+    if: ${{ !cancelled() && (needs.gate.outputs.mode == 'repair' || (needs.gate.outputs.mode == 'build' && needs.release.result == 'success')) }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment: macos-release
+    permissions:
+      contents: write
+    env:
+      VERSION: ${{ needs.gate.outputs.version }}
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+    steps:
+      - name: Point the feed at the appcast of this version
         run: |
           set -euo pipefail
           version_cmp() {
@@ -257,31 +292,45 @@ jobs:
             done
             printf '%s\n' 0
           }
-          if gh release view "macos-v$VERSION" > /dev/null 2>&1; then
-            echo "::error::macos-v$VERSION already exists; delete it to re-publish"
+          appcast_version() {
+            sed -n 's|.*<sparkle:shortVersionString>\([^<]*\)</sparkle:shortVersionString>.*|\1|p' "$1" | head -n 1
+          }
+          if [ "$(gh release view "macos-v$VERSION" --json isDraft --jq .isDraft)" != false ]; then
+            echo "::error::macos-v$VERSION is still a draft; delete it and rerun the workflow"
             exit 1
           fi
-          gh release create "macos-v$VERSION" "$OUT_DIR/FUTO-Backups-$VERSION.zip" \
-            --target "$SHA" \
-            --title "FUTO Backups for macOS $VERSION" \
-            --notes-file "$RUNNER_TEMP/macos-notes.md" \
-            --latest=false
+          assets=$(gh release view "macos-v$VERSION" --json assets --jq '.assets[].name')
+          for asset in "FUTO-Backups-$VERSION.zip" appcast.xml; do
+            if ! grep -qxF "$asset" <<< "$assets"; then
+              echo "::error::macos-v$VERSION has no $asset asset to publish the feed from"
+              exit 1
+            fi
+          done
+          gh release download "macos-v$VERSION" -p appcast.xml -D "$RUNNER_TEMP/next"
+          if [ "$(appcast_version "$RUNNER_TEMP/next/appcast.xml")" != "$VERSION" ]; then
+            echo "::error::the appcast attached to macos-v$VERSION does not advertise v$VERSION"
+            exit 1
+          fi
           gh release view macos-appcast >/dev/null 2>&1 ||
             gh release create macos-appcast --prerelease --latest=false --title "macOS update feed" --notes "Sparkle appcast for the FUTO Backups macOS app. Do not delete."
           # A published zip is never replaced, so a feed that already advertises
           # this version or a newer one must not move backwards.
           if gh release download macos-appcast -p appcast.xml -D "$RUNNER_TEMP/current"; then
-            published=$(sed -n 's|.*<sparkle:shortVersionString>\([^<]*\)</sparkle:shortVersionString>.*|\1|p' "$RUNNER_TEMP/current/appcast.xml" | head -n 1)
+            published=$(appcast_version "$RUNNER_TEMP/current/appcast.xml")
             if [ -n "$published" ] && cmp=$(version_cmp "$published" "$VERSION") && [ "$cmp" -ge 0 ]; then
               echo "::notice::the feed already advertises v$published; leaving it unchanged"
               exit 0
             fi
           fi
-          gh release upload macos-appcast "$OUT_DIR/appcast.xml" --clobber
-
-      - name: Remove the signing keychain and material
-        if: always()
-        run: |
-          set -euo pipefail
-          security delete-keychain "$RUNNER_TEMP/signing.keychain-db" || true
-          rm -f "$RUNNER_TEMP/notary.p8" "$RUNNER_TEMP/cert.p12"
+          # --clobber deletes the live appcast before uploading its replacement,
+          # so a failed upload leaves the feed empty until one succeeds.
+          for attempt in 1 2 3; do
+            if gh release upload macos-appcast "$RUNNER_TEMP/next/appcast.xml" --clobber; then
+              exit 0
+            fi
+            if [ "$attempt" -lt 3 ]; then
+              sleep $((attempt * 15))
+            fi
+          done
+          echo "::error::could not upload appcast.xml to macos-appcast; the feed may be empty until a rerun republishes it from macos-v$VERSION"
+          exit 1
