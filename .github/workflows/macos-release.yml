@@ -47,6 +47,8 @@ jobs:
 
       - name: Check the release against the macOS inputs
         id: decision
+        env:
+          EVENT_PRERELEASE: ${{ github.event.release.prerelease }}
         run: |
           set -euo pipefail
           version_cmp() {
@@ -73,6 +75,16 @@ jobs:
           if ! [[ $version =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
             echo "run=false" >> "$GITHUB_OUTPUT"
             echo "::notice::$TAG is not a plain MAJOR.MINOR.PATCH release tag"
+            exit 0
+          fi
+          if [ "$GITHUB_EVENT_NAME" = release ]; then
+            prerelease=$EVENT_PRERELEASE
+          else
+            prerelease=$(gh release view "$TAG" --json isPrerelease --jq .isPrerelease)
+          fi
+          if [ "$prerelease" = true ]; then
+            echo "run=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::$TAG is a prerelease"
             exit 0
           fi
           if gh release view "macos-v$version" > /dev/null 2>&1; then

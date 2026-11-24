@@ -44,8 +44,8 @@ syncs its secrets there: `apple-signing/global/ci` holds FUTO's Developer ID App
 (`APPLE_DEVELOPER_ID_APPLICATION__*`, `APPLE_TEAM_ID`) and the App Store Connect notary key (`APPLE_NOTARY_API_KEY__*`);
 `yucca/global/ci` holds `MACOS_SPARKLE_PRIVATE_KEY`, the base64 Ed25519 seed that signs updates. Its public half is
 pinned as `SUPublicEDKey` in `Resources/Info.plist`; the release fails if the two don't match. The job fails if a
-secret is missing; the gate job skips with a notice when the Mac inputs are unchanged since the version in the current
-appcast.
+secret is missing; the gate job skips prereleases, and releases whose Mac inputs are unchanged since the version in the
+current appcast, with a notice.
 
 ### Building a release locally
 
