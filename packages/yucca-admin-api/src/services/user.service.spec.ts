@@ -1,4 +1,5 @@
 import { NotFoundException } from '@nestjs/common';
+import { NoResultError } from 'kysely';
 import { UserService } from 'src/services/user.service.js';
 import { Mocks, newMocks } from '../../test/mocks.js';
 
@@ -37,6 +38,21 @@ describe(UserService.name, () => {
 
       await expect(sut.get('user-1')).resolves.toEqual({ user, discordLink: null });
     });
+
+    it('rejects an unknown user', async () => {
+      mocks.user.get.mockRejectedValue(new NoResultError({} as never));
+      mocks.discordLink.getByUserId.mockResolvedValue(void 0);
+
+      await expect(sut.get('user-1')).rejects.toBeInstanceOf(NotFoundException);
+    });
+
+    it('rethrows other errors', async () => {
+      const error = new Error('connection refused');
+      mocks.user.get.mockRejectedValue(error);
+      mocks.discordLink.getByUserId.mockResolvedValue(void 0);
+
+      await expect(sut.get('user-1')).rejects.toBe(error);
+    });
   });
 
   describe('linkDiscord', () => {
@@ -51,6 +67,14 @@ describe(UserService.name, () => {
       });
 
       expect(mocks.discordLink.link).toHaveBeenCalledWith('user-1', '123456789', '');
+    });
+
+    it('rejects an unknown user without linking', async () => {
+      mocks.user.get.mockRejectedValue(new NoResultError({} as never));
+
+      await expect(sut.linkDiscord('user-1', { discordUserId: '123456789' })).rejects.toBeInstanceOf(NotFoundException);
+
+      expect(mocks.discordLink.link).not.toHaveBeenCalled();
     });
   });
 

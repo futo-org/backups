@@ -1,4 +1,16 @@
-import { Body, Controller, Delete, Get, HttpCode, HttpStatus, Param, Patch, Put, Query } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  HttpCode,
+  HttpStatus,
+  Param,
+  ParseUUIDPipe,
+  Patch,
+  Put,
+  Query,
+} from '@nestjs/common';
 import { ApiOkResponse } from '@nestjs/swagger';
 import { AuthDto } from 'src/dto/auth.dto.js';
 import { ConnectionListResponseDto } from 'src/dto/connection.dto.js';
@@ -41,56 +53,62 @@ export class UserController {
   @Get('/:id')
   @AuthRoute()
   @ApiOkResponse({ type: UserGetResponseDto })
-  getUser(@Param('id') id: string): Promise<UserGetResponseDto> {
+  getUser(@Param('id', ParseUUIDPipe) id: string): Promise<UserGetResponseDto> {
     return this.user.get(id);
   }
 
   @Patch('/:id')
   @AuthRoute()
   @ApiOkResponse({ type: UserUpdateResponseDto })
-  updateUser(@Param('id') id: string, @Body() dto: UserUpdateRequestDto): Promise<UserUpdateResponseDto> {
+  updateUser(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: UserUpdateRequestDto,
+  ): Promise<UserUpdateResponseDto> {
     return this.user.update(id, dto);
   }
 
   @Delete('/:id')
   @AuthRoute()
   @HttpCode(HttpStatus.NO_CONTENT)
-  deleteUser(@Param('id') id: string): Promise<void> {
+  deleteUser(@Param('id', ParseUUIDPipe) id: string): Promise<void> {
     return this.user.delete(id);
   }
 
   @Put('/:id/discord')
   @AuthRoute()
   @ApiOkResponse({ type: UserDiscordLinkDto })
-  linkUserDiscord(@Param('id') id: string, @Body() dto: UserDiscordLinkRequestDto): Promise<UserDiscordLinkDto> {
+  linkUserDiscord(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: UserDiscordLinkRequestDto,
+  ): Promise<UserDiscordLinkDto> {
     return this.user.linkDiscord(id, dto);
   }
 
   @Delete('/:id/discord')
   @AuthRoute()
   @HttpCode(HttpStatus.NO_CONTENT)
-  unlinkUserDiscord(@Param('id') id: string): Promise<void> {
+  unlinkUserDiscord(@Param('id', ParseUUIDPipe) id: string): Promise<void> {
     return this.user.unlinkDiscord(id);
   }
 
   @Get('/:userId/session')
   @AuthRoute()
   @ApiOkResponse({ type: SessionListResponseDto })
-  listUserSessions(@Param('userId') userId: string): Promise<SessionListResponseDto> {
+  listUserSessions(@Param('userId', ParseUUIDPipe) userId: string): Promise<SessionListResponseDto> {
     return this.session.listForUser(userId);
   }
 
   @Delete('/:userId/session')
   @AuthRoute()
   @HttpCode(HttpStatus.NO_CONTENT)
-  deleteUserSessions(@Param('userId') userId: string): Promise<void> {
+  deleteUserSessions(@Param('userId', ParseUUIDPipe) userId: string): Promise<void> {
     return this.session.deleteForUser(userId);
   }
 
   @Get('/:id/features')
   @AuthRoute()
   @ApiOkResponse({ type: UserFeaturesResponseDto })
-  getUserFeatures(@Param('id') id: string): Promise<UserFeaturesResponseDto> {
+  getUserFeatures(@Param('id', ParseUUIDPipe) id: string): Promise<UserFeaturesResponseDto> {
     return this.features.getForUser(id);
   }
 
@@ -99,7 +117,7 @@ export class UserController {
   @ApiOkResponse({ type: FeatureOverrideDto })
   setUserFeature(
     @Auth() auth: AuthDto,
-    @Param('id') id: string,
+    @Param('id', ParseUUIDPipe) id: string,
     @Param('flag') flag: string,
     @Body() dto: FeatureOverrideSetRequestDto,
   ): Promise<FeatureOverrideDto> {
@@ -109,21 +127,25 @@ export class UserController {
   @Delete('/:id/features/:flag')
   @AuthRoute()
   @HttpCode(HttpStatus.NO_CONTENT)
-  clearUserFeature(@Auth() auth: AuthDto, @Param('id') id: string, @Param('flag') flag: string): Promise<void> {
+  clearUserFeature(
+    @Auth() auth: AuthDto,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Param('flag') flag: string,
+  ): Promise<void> {
     return this.features.clear(auth, id, flag);
   }
 
   @Get('/:id/connections')
   @AuthRoute()
   @ApiOkResponse({ type: ConnectionListResponseDto })
-  async listUserConnections(@Param('id') id: string): Promise<ConnectionListResponseDto> {
+  async listUserConnections(@Param('id', ParseUUIDPipe) id: string): Promise<ConnectionListResponseDto> {
     return { connections: await this.connections.getByUser(id) };
   }
 
   @Get('/:id/support-log-sessions')
   @AuthRoute()
   @ApiOkResponse({ type: SupportLogSessionListResponseDto })
-  async listUserSupportLogSessions(@Param('id') id: string): Promise<SupportLogSessionListResponseDto> {
+  async listUserSupportLogSessions(@Param('id', ParseUUIDPipe) id: string): Promise<SupportLogSessionListResponseDto> {
     return { sessions: await this.supportLogSessions.getByUser(id) };
   }
 }
