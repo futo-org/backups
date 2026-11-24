@@ -40,6 +40,7 @@ public struct AppConfig: Codable, Equatable, Sendable {
   public var diskSnapshots: Bool?
   public var onboardingCompletedAt: Date?
   public var excludeDefaultsVersion: Int?
+  public var repositoryIdsByServer: [String: String]?
   public var uploadConnections: Int?
   public var readConcurrency: Int?
 
@@ -100,6 +101,17 @@ public struct AppConfig: Codable, Equatable, Sendable {
     )
     config.excludeDefaultsVersion = currentExcludeDefaultsVersion
     return config
+  }
+
+  public mutating func switchServer(to url: URL) {
+    guard url != serverURL else { return }
+    var remembered = repositoryIdsByServer ?? [:]
+    if let repositoryId {
+      remembered[serverURL.absoluteString] = repositoryId
+    }
+    serverURL = url
+    repositoryId = remembered[url.absoluteString]
+    repositoryIdsByServer = remembered.isEmpty ? nil : remembered
   }
 
   public mutating func pinToProductionServer() -> Bool {

@@ -67,6 +67,7 @@ final class AppModel {
   private var loginGeneration = 0
   private var operationTask: Task<Void, Never>?
   private var pendingRecoveryKey: String?
+  private var skipsExistingRepositoryCheck = false
   private var sessionToken: String?
   private var sessionGeneration = 0
   private var onboardingGeneration = 0
@@ -453,6 +454,7 @@ final class AppModel {
   private func markRecoveryKeyConfirmed() {
     config.recoveryKeyConfirmedAt = Date()
     saveConfig()
+    skipsExistingRepositoryCheck = true
     continueSetup()
   }
 
@@ -478,8 +480,22 @@ final class AppModel {
     }
     login = .finishing
     let generation = loginGeneration
+    let checksExistingRepositories = config.repositoryId == nil && !skipsExistingRepositoryCheck
+    skipsExistingRepositoryCheck = false
     loginTask = Task {
       do {
+        if checksExistingRepositories {
+          let existing = try await engine.macRepositories(config: self.config)
+          guard generation == self.loginGeneration else { return }
+          if !existing.isEmpty, let key = try await engine.storedMasterKey() {
+            guard generation == self.loginGeneration else { return }
+            self.loginTask = nil
+            self.login = .idle
+            self.pendingRecoveryKey = key
+            self.recoveryKeyStep = .chooseRepository(existing)
+            return
+          }
+        }
         let repositoryId = try await engine.ensureRepository(config: self.config)
         guard generation == self.loginGeneration else { return }
         self.config.repositoryId = repositoryId
@@ -659,8 +675,7 @@ final class AppModel {
   func setServerURL(_ url: URL) {
     guard url != config.serverURL else { return }
     logout()
-    config.serverURL = url
-    config.repositoryId = nil
+    config.switchServer(to: url)
     saveConfig()
   }
 

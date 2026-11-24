@@ -346,3 +346,26 @@ func forgetRepositoryWithoutRepository() {
   #expect(config.serverURL == AppConfig.productionServerURL)
   #expect(config.repositoryId == nil)
 }
+
+@Test func switchingServersRemembersEachServersRepository() {
+  let other = URL(string: "http://localhost:8081/.well-known/yucca.json")!
+  var config = AppConfig.defaults(host: "mac", home: "/Users/t")
+  config.repositoryId = "prod-repo"
+  config.switchServer(to: other)
+  #expect(config.serverURL == other)
+  #expect(config.repositoryId == nil)
+  config.repositoryId = "dev-repo"
+  config.switchServer(to: AppConfig.productionServerURL)
+  #expect(config.repositoryId == "prod-repo")
+  config.switchServer(to: other)
+  #expect(config.repositoryId == "dev-repo")
+  config.switchServer(to: other)
+  #expect(config.repositoryId == "dev-repo")
+}
+
+@Test func switchingServersWithoutRepositoriesStoresNothing() throws {
+  var config = AppConfig.defaults(host: "mac", home: "/Users/t")
+  config.switchServer(to: try #require(URL(string: "http://localhost:8081/.well-known/yucca.json")))
+  #expect(config.repositoryIdsByServer == nil)
+  #expect(config.repositoryId == nil)
+}
