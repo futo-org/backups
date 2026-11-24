@@ -8,6 +8,8 @@ struct FutoBackupsApp: App {
   @State private var updater: Updater
 
   init() {
+    // GitHub serves the update feed without cache headers, so a cached copy of the previous feed hides new releases.
+    URLCache.shared = URLCache(memoryCapacity: 0, diskCapacity: 0)
     let model = AppModel()
     _model = State(initialValue: model)
     _updater = State(initialValue: Updater(startingUpdater: !model.needsOnboarding))
