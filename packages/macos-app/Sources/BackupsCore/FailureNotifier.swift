@@ -37,7 +37,13 @@ public final class FailureNotifier {
   public var isPostingNotice: Bool { pendingNotice != nil }
 
   public var toggle: FailureNotificationToggle {
-    FailureNotificationToggle(enabled: host?.config.notifiesOnFailure == true, authorization: authorization)
+    FailureNotificationToggle(
+      enabled: host?.config.notifiesOnFailure == true, authorization: authorization,
+      isRequesting: isRequestingAuthorization)
+  }
+
+  public var showsHint: Bool {
+    host?.config.showsFailureNotificationHint(toggle) == true
   }
 
   public func refreshAuthorization() async {
@@ -63,10 +69,7 @@ public final class FailureNotifier {
       pendingNotice = nil
       return
     }
-    let generation = generation
-    let answer = await requestAuthorization()
-    guard generation == self.generation, answer == nil else { return }
-    host?.updateConfig { $0.failureNotificationsEnabled = false }
+    _ = await requestAuthorization()
   }
 
   public func dismissHint() {
@@ -131,12 +134,7 @@ public final class FailureNotifier {
 
   private func record(_ answer: NotificationAuthorization) {
     authorization = answer
-    host?.updateConfig {
-      $0.notificationPermissionRequestedAt = now()
-      if answer == .denied {
-        $0.failureNotificationsEnabled = false
-      }
-    }
+    host?.updateConfig { $0.notificationPermissionRequestedAt = now() }
   }
 
   private func post(_ reason: BackupFailureReason) -> Task<Void, Never> {

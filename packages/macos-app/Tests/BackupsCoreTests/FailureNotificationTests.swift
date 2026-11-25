@@ -68,7 +68,9 @@ func failureNoticeStep(
   let config = try store.load(defaultHost: "mac", home: "/Users/t")
   #expect(config.notifiesOnFailure)
   #expect(config.shouldRequestNotificationPermission)
-  #expect(!config.showsFailureNotificationHint)
+  #expect(
+    !config.showsFailureNotificationHint(
+      FailureNotificationToggle(enabled: true, authorization: .notDetermined, isRequesting: true)))
 }
 
 @Test func aConfigSavedBeforeFailureNotificationsHasNoStreakAndHasNotAskedForPermission() throws {
@@ -88,7 +90,7 @@ func failureNoticeStep(
   #expect(decoded.notificationPermissionRequestedAt == nil)
   #expect(!decoded.notifiesOnFailure)
   #expect(!decoded.shouldRequestNotificationPermission)
-  #expect(decoded.showsFailureNotificationHint)
+  #expect(decoded.showsFailureNotificationHint(FailureNotificationToggle(enabled: false, authorization: nil)))
 }
 
 @Test func switchingServersStartsANewFailureStreak() {
@@ -137,34 +139,46 @@ func failureNoticeStep(
 }
 
 @Test(arguments: [
-  (Schedule.hourly, Bool?.none, false, false, true),
+  (Schedule.hourly, false, false, false, true),
   (.daily(hour: 9, minute: 0), false, false, false, true),
-  (.manual, nil, false, false, false),
+  (.manual, false, false, false, false),
   (.hourly, true, false, false, false),
-  (.hourly, nil, true, false, false),
-  (.hourly, nil, false, true, false),
+  (.hourly, false, true, false, false),
+  (.hourly, false, false, true, false),
 ])
 func theNotificationHint(
-  schedule: Schedule, enabled: Bool?, permissionRequested: Bool, dismissed: Bool, shows: Bool
+  schedule: Schedule, toggleIsOn: Bool, permissionRequested: Bool, dismissed: Bool, shows: Bool
 ) {
   var config = AppConfig.defaults(host: "mac", home: "/Users/t")
   config.schedule = schedule
-  config.failureNotificationsEnabled = enabled
   config.notificationPermissionRequestedAt = permissionRequested ? now : nil
   config.failureNotificationHintDismissedAt = dismissed ? now : nil
-  #expect(config.showsFailureNotificationHint == shows)
+  let toggle = FailureNotificationToggle(enabled: toggleIsOn, authorization: .authorized)
+  #expect(config.showsFailureNotificationHint(toggle) == shows)
+}
+
+@Test(arguments: [Bool?.none, true])
+func theHintTreatsAnUnansweredRequestAsUndecided(enabled: Bool?) {
+  var config = AppConfig.defaults(host: "mac", home: "/Users/t")
+  config.failureNotificationsEnabled = enabled
+  let toggle = FailureNotificationToggle(enabled: config.notifiesOnFailure, authorization: .notDetermined)
+  #expect(config.showsFailureNotificationHint(toggle))
 }
 
 @Test(arguments: [
-  (true, NotificationAuthorization?.none, true, false),
-  (true, .authorized, true, false),
-  (true, .notDetermined, true, false),
-  (true, .denied, false, true),
-  (false, .authorized, false, false),
-  (false, .denied, false, true),
+  (true, NotificationAuthorization?.none, false, false, false),
+  (true, .authorized, false, true, false),
+  (true, .notDetermined, false, false, false),
+  (true, .notDetermined, true, true, false),
+  (true, .denied, false, false, true),
+  (false, .authorized, false, false, false),
+  (false, .notDetermined, true, false, false),
+  (false, .denied, false, false, true),
 ])
-func theNotificationToggle(enabled: Bool, authorization: NotificationAuthorization?, isOn: Bool, note: Bool) {
-  let toggle = FailureNotificationToggle(enabled: enabled, authorization: authorization)
+func theNotificationToggle(
+  enabled: Bool, authorization: NotificationAuthorization?, isRequesting: Bool, isOn: Bool, note: Bool
+) {
+  let toggle = FailureNotificationToggle(enabled: enabled, authorization: authorization, isRequesting: isRequesting)
   #expect(toggle.isOn == isOn)
   #expect(toggle.showsDeniedNote == note)
 }

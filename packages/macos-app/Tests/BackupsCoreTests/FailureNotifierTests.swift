@@ -231,7 +231,7 @@ func aFailureWithNotificationsOffPostsNothingAndNeverAsks(enabled: Bool?) {
   await asking.value
   await posting?.value
   #expect(center.posted.isEmpty)
-  #expect(host.config.failureNotificationsEnabled == false)
+  #expect(host.config.failureNotificationsEnabled == true)
   #expect(!notifier.isPostingNotice)
 }
 
@@ -305,8 +305,8 @@ func aFailureWithNotificationsOffPostsNothingAndNeverAsks(enabled: Bool?) {
   (.denied, false, true),
   (nil, false, false),
 ])
-func turningNotificationsOnAsksMacOSAndKeepsTheAnswer(
-  answer: NotificationAuthorization?, enabled: Bool, recorded: Bool
+func turningNotificationsOnKeepsThePreferenceWhateverMacOSAnswers(
+  answer: NotificationAuthorization?, isOn: Bool, recorded: Bool
 ) async {
   let host = FakeHost(enabled: nil, permissionRequested: false)
   let center = FakeNotificationCenter()
@@ -315,11 +315,64 @@ func turningNotificationsOnAsksMacOSAndKeepsTheAnswer(
 
   await notifier.setEnabled(true)
   #expect(center.requests == 1)
-  #expect(host.config.failureNotificationsEnabled == enabled)
+  #expect(host.config.failureNotificationsEnabled == true)
   #expect((host.config.notificationPermissionRequestedAt == now) == recorded)
-  #expect(notifier.toggle.isOn == enabled)
+  #expect(notifier.toggle.isOn == isOn)
   #expect(notifier.toggle.showsDeniedNote == (answer == .denied))
-  #expect(!host.config.showsFailureNotificationHint)
+  #expect(!notifier.showsHint)
+}
+
+@MainActor
+@Test func aDenialKeepsThePreferenceSoAGrantInSystemSettingsRestoresNotices() async {
+  let host = FakeHost(enabled: nil, permissionRequested: false)
+  let center = FakeNotificationCenter()
+  center.answer = .denied
+  center.current = .denied
+  let notifier = makeNotifier(host, center)
+
+  await notifier.setEnabled(true)
+  #expect(host.config.failureNotificationsEnabled == true)
+  #expect(!notifier.toggle.isOn)
+  #expect(notifier.toggle.showsDeniedNote)
+  await notifier.backupFinished(.failed(.other), scheduled: true)?.value
+  #expect(center.posted.isEmpty)
+
+  center.current = .authorized
+  await notifier.refreshAuthorization()
+  #expect(notifier.toggle.isOn)
+  #expect(!notifier.toggle.showsDeniedNote)
+  await notifier.backupFinished(.failed(.other), scheduled: true)?.value
+  #expect(center.posted.count == 1)
+  #expect(host.config.failureNotifiedAt == now)
+  #expect(center.requests == 1)
+}
+
+@MainActor
+@Test func aFailedRequestLeavesTheToggleOffAndTurningItOnAsksAgain() async {
+  let host = FakeHost(permissionRequested: false)
+  let center = FakeNotificationCenter()
+  center.answer = nil
+  center.current = .notDetermined
+  let notifier = makeNotifier(host, center)
+
+  await notifier.requestPermissionIfNeeded()
+  await notifier.refreshAuthorization()
+  #expect(host.config.failureNotificationsEnabled == true)
+  #expect(!notifier.toggle.isOn)
+  #expect(!notifier.toggle.showsDeniedNote)
+  #expect(notifier.showsHint)
+  await notifier.backupFinished(.failed(.other), scheduled: true)?.value
+  #expect(center.posted.isEmpty)
+  #expect(center.requests == 1)
+
+  center.answer = .authorized
+  center.current = .authorized
+  await notifier.setEnabled(true)
+  #expect(center.requests == 2)
+  #expect(notifier.toggle.isOn)
+  #expect(!notifier.showsHint)
+  await notifier.backupFinished(.failed(.other), scheduled: true)?.value
+  #expect(center.posted.count == 1)
 }
 
 @MainActor
@@ -396,12 +449,12 @@ func turningNotificationsOnAsksMacOSAndKeepsTheAnswer(
   let center = FakeNotificationCenter()
   center.answer = nil
   let notifier = makeNotifier(host, center)
-  #expect(host.config.showsFailureNotificationHint)
+  #expect(notifier.showsHint)
 
   await notifier.setEnabled(true)
-  #expect(host.config.failureNotificationsEnabled == false)
+  #expect(host.config.failureNotificationsEnabled == true)
   #expect(host.config.failureNotificationHintDismissedAt == now)
-  #expect(!host.config.showsFailureNotificationHint)
+  #expect(!notifier.showsHint)
 }
 
 @MainActor
@@ -410,8 +463,9 @@ func turningNotificationsOnAsksMacOSAndKeepsTheAnswer(
   let center = FakeNotificationCenter()
   let notifier = makeNotifier(host, center)
 
+  #expect(notifier.showsHint)
   notifier.dismissHint()
-  #expect(!host.config.showsFailureNotificationHint)
+  #expect(!notifier.showsHint)
   #expect(host.config.failureNotificationsEnabled == nil)
   #expect(center.requests == 0)
 }

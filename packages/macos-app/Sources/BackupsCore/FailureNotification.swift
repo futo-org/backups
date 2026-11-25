@@ -108,8 +108,8 @@ public struct FailureNotificationToggle: Equatable, Sendable {
   public var isOn: Bool
   public var showsDeniedNote: Bool
 
-  public init(enabled: Bool, authorization: NotificationAuthorization?) {
-    isOn = enabled && authorization != .denied
+  public init(enabled: Bool, authorization: NotificationAuthorization?, isRequesting: Bool = false) {
+    isOn = enabled && (authorization == .authorized || isRequesting)
     showsDeniedNote = authorization == .denied
   }
 }
@@ -169,8 +169,8 @@ extension AppConfig {
     notifiesOnFailure && notificationPermissionRequestedAt == nil && schedule != .manual
   }
 
-  public var showsFailureNotificationHint: Bool {
-    schedule != .manual && !notifiesOnFailure && notificationPermissionRequestedAt == nil
+  public func showsFailureNotificationHint(_ toggle: FailureNotificationToggle) -> Bool {
+    schedule != .manual && !toggle.isOn && notificationPermissionRequestedAt == nil
       && failureNotificationHintDismissedAt == nil
   }
 }

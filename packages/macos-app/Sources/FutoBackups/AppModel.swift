@@ -234,7 +234,7 @@ final class AppModel {
 
   var isRequestingNotificationPermission: Bool { failureNotifier.isRequestingAuthorization }
 
-  var showsFailureNotificationHint: Bool { config.showsFailureNotificationHint }
+  var showsFailureNotificationHint: Bool { failureNotifier.showsHint }
 
   var isMissingRecoveryKey: Bool { signedIn && isRecoveringLostKey }
 
