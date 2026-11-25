@@ -138,6 +138,9 @@ func TestNewMetricsWithNoopMeter(t *testing.T) {
 	if m.RequestErrors == nil {
 		t.Fatal("expected non-nil RequestErrors")
 	}
+	if m.ClientRequests == nil {
+		t.Fatal("expected non-nil ClientRequests")
+	}
 }
 
 func TestCountingReaderEmpty(t *testing.T) {
@@ -327,14 +330,8 @@ func TestBlobMetricOptionDifferentKeys(t *testing.T) {
 }
 
 func TestHttpUserMetricOption(t *testing.T) {
-	// Empty user delegates to the route-scoped option.
-	anon := HttpUserMetricOption("GET", "/foo", 200, "", "", "immich")
-	if anon != HttpMetricOption("GET", "/foo", 200) {
-		t.Fatal("expected empty user to reuse the route-scoped option")
-	}
-
 	a := HttpUserMetricOption("GET", "/foo", 200, "u1", "r1", "immich")
-	if a == anon {
+	if a == HttpMetricOption("GET", "/foo", 200) {
 		t.Fatal("expected per-user option to differ from the route-scoped one")
 	}
 	if a != HttpUserMetricOption("GET", "/foo", 200, "u1", "r1", "immich") {

@@ -129,7 +129,7 @@ Rules:
 
 Per-user metrics catalog (names contain dots — select with {__name__="..."}; all carry repositoryId, and env/cluster/region):
 - api_request_count — yucca-api (control plane) requests. Labels: handler (Controller.method), method, status.
-- http.server.request.count — michael (restic backend) requests. Labels: route, method, status, connection.
+- client.request.count — michael (restic backend) requests. Labels: route, method, status, connection.
 - blobs.requested_bytes / blobs.downloaded_bytes / blobs.uploaded_bytes / blobs.stored_bytes — michael data-plane byte counters. Labels: type (restic blob type: data/index/keys/locks/snapshots/config), connection. uploaded_bytes rising = backups actually writing; stored_bytes = net new data.
 - client.request.seconds / client.request.ttfb_seconds — michael request-duration histograms per connection.
 - client.requests.peak — peak concurrent restic requests per client.

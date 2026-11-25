@@ -49,6 +49,7 @@ type Metrics struct {
 	RequestTTFB     otelmetric.Float64Histogram
 	RequestCount    otelmetric.Int64Counter
 	RequestErrors   otelmetric.Int64Counter
+	ClientRequests  otelmetric.Int64Counter
 	StorageErrors   otelmetric.Int64Counter
 	AuthCacheHits   otelmetric.Int64Counter
 	AuthCacheMisses otelmetric.Int64Counter
@@ -127,6 +128,16 @@ func NewMetrics(meter otelmetric.Meter) (*Metrics, error) {
 		return nil, fmt.Errorf("creating request_errors counter: %w", err)
 	}
 
+	// Per-user label sets grow with the user base until they hit the SDK's
+	// per-instrument cardinality limit, past which new sets collapse into one
+	// unlabelled overflow series. Kept off http.server.request.count so that
+	// can only ever happen here, never to the route/status series alerts read.
+	clientRequests, err := meter.Int64Counter("client.request.count",
+		otelmetric.WithDescription("Authenticated HTTP requests per client, by route and status"))
+	if err != nil {
+		return nil, fmt.Errorf("creating client.request.count counter: %w", err)
+	}
+
 	// Backend (RGW) storage-operation failures, split out from the generic HTTP
 	// error counter so a gateway write-error spike is directly visible and
 	// alertable — the signal that a client-facing 500 wave is the storage
@@ -195,6 +206,7 @@ func NewMetrics(meter otelmetric.Meter) (*Metrics, error) {
 		RequestTTFB:     requestTTFB,
 		RequestCount:    requestCount,
 		RequestErrors:   requestErrors,
+		ClientRequests:  clientRequests,
 		StorageErrors:   storageErrors,
 		AuthCacheHits:   authCacheHits,
 		AuthCacheMisses: authCacheMisses,
@@ -371,13 +383,7 @@ type httpUserAttrKey struct {
 
 var httpUserAttrCache sync.Map
 
-// HttpUserMetricOption is HttpMetricOption plus the request's verified
-// identity. Used for the request count/error counters only — the duration and
-// TTFB histograms stay route-scoped to keep bucket-series cardinality down.
 func HttpUserMetricOption(method, route string, status int, user, repository, connection string) otelmetric.MeasurementOption {
-	if user == "" {
-		return HttpMetricOption(method, route, status)
-	}
 	key := httpUserAttrKey{method, route, status, user, repository, connection}
 	if v, ok := httpUserAttrCache.Load(key); ok {
 		return v.(otelmetric.MeasurementOption)
@@ -640,13 +646,15 @@ func Middleware(m *Metrics) func(http.Handler) http.Handler {
 			}
 
 			attrs := HttpMetricOption(r.Method, route, status)
-			countAttrs := HttpUserMetricOption(r.Method, route, status, capture.user, capture.repository, capture.connection)
 
 			m.RequestDuration.Record(r.Context(), duration, attrs)
 			if !ww.FirstByte.IsZero() {
 				m.RequestTTFB.Record(r.Context(), ww.FirstByte.Sub(start).Seconds(), attrs)
 			}
-			m.RequestCount.Add(r.Context(), 1, countAttrs)
+			m.RequestCount.Add(r.Context(), 1, attrs)
+			if capture.user != "" {
+				m.ClientRequests.Add(r.Context(), 1, HttpUserMetricOption(r.Method, route, status, capture.user, capture.repository, capture.connection))
+			}
 
 			if capture.state != nil {
 				m.client.seconds.Add(r.Context(), duration, capture.state.attrs)
@@ -656,7 +664,7 @@ func Middleware(m *Metrics) func(http.Handler) http.Handler {
 			}
 
 			if status >= 400 {
-				m.RequestErrors.Add(r.Context(), 1, countAttrs)
+				m.RequestErrors.Add(r.Context(), 1, attrs)
 			}
 		})
 	}

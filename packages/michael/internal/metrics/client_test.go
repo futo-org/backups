@@ -10,9 +10,12 @@ import (
 
 	"michael/internal/auth"
 
+	"go.opentelemetry.io/otel/attribute"
 	otelmetric "go.opentelemetry.io/otel/metric"
 	"go.opentelemetry.io/otel/metric/embedded"
 	"go.opentelemetry.io/otel/metric/noop"
+	sdkmetric "go.opentelemetry.io/otel/sdk/metric"
+	"go.opentelemetry.io/otel/sdk/metric/metricdata"
 )
 
 // observation is one ObserveInt64 call captured from a collection cycle. The
@@ -449,5 +452,57 @@ func TestMiddlewareSkipsUnauthenticated(t *testing.T) {
 	m.client.tracker.states.Range(func(any, any) bool { count++; return true })
 	if count != 0 {
 		t.Fatalf("expected no tracked clients, got %d", count)
+	}
+}
+
+func TestMiddlewareKeepsIdentityOffServerCounters(t *testing.T) {
+	reader := sdkmetric.NewManualReader()
+	m, err := NewMetrics(sdkmetric.NewMeterProvider(sdkmetric.WithReader(reader)).Meter("test"))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	inner := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusNotFound)
+	})
+	authed := httptest.NewRequest("GET", "/r1/config", nil)
+	authed = authed.WithContext(auth.NewContext(authed.Context(),
+		auth.Auth{User: "u1", Repository: "r1", Connection: "restic"}))
+	Middleware(m)(CaptureAuth(inner)).ServeHTTP(httptest.NewRecorder(), authed)
+	Middleware(m)(inner).ServeHTTP(httptest.NewRecorder(), httptest.NewRequest("GET", "/r1/config", nil))
+
+	var rm metricdata.ResourceMetrics
+	if err := reader.Collect(t.Context(), &rm); err != nil {
+		t.Fatal(err)
+	}
+	points := map[string][]metricdata.DataPoint[int64]{}
+	for _, sm := range rm.ScopeMetrics {
+		for _, md := range sm.Metrics {
+			if sum, ok := md.Data.(metricdata.Sum[int64]); ok {
+				points[md.Name] = append(points[md.Name], sum.DataPoints...)
+			}
+		}
+	}
+
+	for _, name := range []string{"http.server.request.count", "http.server.request.errors"} {
+		if len(points[name]) != 1 || points[name][0].Value != 2 {
+			t.Fatalf("%s: expected one series counting both requests, got %+v", name, points[name])
+		}
+		if _, ok := points[name][0].Attributes.Value("customerId"); ok {
+			t.Fatalf("%s must not carry customerId", name)
+		}
+	}
+
+	client := points["client.request.count"]
+	if len(client) != 1 || client[0].Value != 1 {
+		t.Fatalf("client.request.count: expected only the authenticated request, got %+v", client)
+	}
+	for k, want := range map[attribute.Key]string{"customerId": "u1", "repositoryId": "r1", "connection": "restic", "route": "unknown"} {
+		if v, _ := client[0].Attributes.Value(k); v.AsString() != want {
+			t.Fatalf("client.request.count %s = %q, want %q", k, v.AsString(), want)
+		}
+	}
+	if v, _ := client[0].Attributes.Value("status"); v.AsInt64() != http.StatusNotFound {
+		t.Fatalf("client.request.count status = %d, want 404", v.AsInt64())
 	}
 }
