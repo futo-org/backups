@@ -201,10 +201,7 @@ final class AppModel {
       }
       hasMasterKey = ((try? await engine?.storedMasterKey()) ?? nil) != nil
       signedIn = hasSession && config.repositoryId != nil && config.recoveryKeyConfirmedAt != nil
-      if hasSession && isRecoveringLostKey {
-        signedIn = false
-        recoveryKeyStep = .importKey
-      } else if hasSession && !signedIn {
+      if hasSession && !signedIn {
         continueSetup()
       }
       sessionLoaded = true
@@ -238,6 +235,8 @@ final class AppModel {
   var isRequestingNotificationPermission: Bool { failureNotifier.isRequestingAuthorization }
 
   var showsFailureNotificationHint: Bool { config.showsFailureNotificationHint }
+
+  var isMissingRecoveryKey: Bool { signedIn && isRecoveringLostKey }
 
   func refreshNotificationAuthorization() {
     Task { await failureNotifier.refreshAuthorization() }
@@ -285,8 +284,8 @@ final class AppModel {
 
   func tick() {
     recomputeNextRun()
-    guard engine != nil, hasSession, signedIn, config.repositoryId != nil, !config.folders.isEmpty,
-      operationTask == nil
+    guard engine != nil, hasSession, signedIn, !isMissingRecoveryKey, config.repositoryId != nil,
+      !config.folders.isEmpty, operationTask == nil
     else { return }
     if config.scheduleReference == nil {
       config.scheduleAnchor = Date()
@@ -429,7 +428,12 @@ final class AppModel {
     case .failed(let message): return message
     case .finished(.unlocked):
       hasMasterKey = true
-      markRecoveryKeyConfirmed()
+      if signedIn {
+        lastError = nil
+        Task { await refreshSnapshots() }
+      } else {
+        markRecoveryKeyConfirmed()
+      }
       return nil
     case .finished: return "That key doesn't open this Mac's backup."
     }
@@ -843,6 +847,10 @@ final class AppModel {
       lastError = "Finish setting up FUTO Backups first"
       return
     }
+    guard !isMissingRecoveryKey else {
+      lastError = message(for: EngineError.missingMasterKey)
+      return
+    }
     guard config.repositoryId != nil else {
       lastError = "No repository yet"
       return
@@ -893,8 +901,6 @@ final class AppModel {
         self.finishOperation()
         if (error as? EngineError) == .missingMasterKey {
           self.hasMasterKey = false
-          self.signedIn = false
-          self.recoveryKeyStep = .importKey
         }
         self.lastError = self.message(for: error)
         self.failureNotifier.backupFinished(BackupRunOutcome(error: error), scheduled: scheduled)
@@ -1077,6 +1083,10 @@ final class AppModel {
     }
     guard signedIn else {
       lastError = "Finish setting up FUTO Backups first"
+      return
+    }
+    guard !isMissingRecoveryKey else {
+      lastError = message(for: EngineError.missingMasterKey)
       return
     }
     guard config.repositoryId != nil else {
