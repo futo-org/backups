@@ -19,10 +19,15 @@ private let desk = MachineState(
   onPower: true, onEthernet: true, hasExternalDisplay: true, usbDevices: [keyboard, dock])
 private let couch = MachineState(onPower: false, onEthernet: false, hasExternalDisplay: false, usbDevices: [])
 
-private func config(_ conditions: BackupConditions?, lastRun: Date = date(20, hour: 12)) -> AppConfig {
+private func config(
+  _ conditions: BackupConditions?, schedule: Schedule = .daily(hour: 12, minute: 0),
+  lastRun: Date = date(20, hour: 12), waitingSince: Date? = nil
+) -> AppConfig {
   var config = AppConfig.defaults(host: "book-pro", home: "/Users/test")
   config.conditions = conditions
+  config.schedule = schedule
   config.scheduleAnchor = lastRun
+  config.waitingForConditionsSince = waitingSince
   return config
 }
 
@@ -99,19 +104,32 @@ func waitingText(conditions: [BackupCondition], expected: String) {
   #expect(decision == .wait(unmet: [.power]))
 }
 
-@Test func runsAnywayOnceTheDeadlinePasses() {
+@Test func runsAnywayOnceItHasWaitedLongEnough() {
   let conditions = BackupConditions(power: true, ethernet: true, runAnywayAfterDays: 3)
-  let stillWaiting = config(conditions).scheduledRunDecision(
-    now: date(23, hour: 11), calendar: calendar, machine: { couch })
+  let waiting = config(conditions, waitingSince: date(21, hour: 12))
+  let stillWaiting = waiting.scheduledRunDecision(now: date(24, hour: 11), calendar: calendar, machine: { couch })
   #expect(stillWaiting == .wait(unmet: [.power, .ethernet]))
-  let overdue = config(conditions).scheduledRunDecision(
-    now: date(23, hour: 12), calendar: calendar, machine: { couch })
+  let overdue = waiting.scheduledRunDecision(now: date(24, hour: 12), calendar: calendar, machine: { couch })
   #expect(overdue == .runAnyway(unmet: [.power, .ethernet]))
+}
+
+@Test(
+  "the first due check waits even when the last backup is older than the deadline",
+  arguments: [
+    (Schedule.weekly(weekday: 7, hour: 12, minute: 0), date(14, hour: 12), date(21, hour: 12), 3),
+    (Schedule.daily(hour: 12, minute: 0), date(20, hour: 12), date(21, hour: 12), 1),
+    (Schedule.hourly, date(10, hour: 12), date(21, hour: 12), 1),
+  ])
+func firstDueCheckWaits(schedule: Schedule, lastRun: Date, now: Date, days: Int) {
+  let conditions = BackupConditions(ethernet: true, runAnywayAfterDays: days)
+  let decision = config(conditions, schedule: schedule, lastRun: lastRun).scheduledRunDecision(
+    now: now, calendar: calendar, machine: { couch })
+  #expect(decision == .wait(unmet: [.ethernet]))
 }
 
 @Test func neverRunsAnywayWithoutADeadline() {
   let conditions = BackupConditions(ethernet: true, runAnywayAfterDays: nil)
-  let decision = config(conditions).scheduledRunDecision(
+  let decision = config(conditions, waitingSince: date(21, hour: 12)).scheduledRunDecision(
     now: date(30, hour: 12), calendar: calendar, machine: { couch })
   #expect(decision == .wait(unmet: [.ethernet]))
 }
@@ -131,7 +149,9 @@ func waitingText(conditions: [BackupCondition], expected: String) {
 @Test func conditionsRoundTrip() throws {
   var original = config(BackupConditions(power: true, usbDevice: dock, runAnywayAfterDays: nil))
   original.keepAwake = false
+  original.waitingForConditionsSince = date(21, hour: 12)
   let decoded = try JSONDecoder().decode(AppConfig.self, from: JSONEncoder().encode(original))
   #expect(decoded.conditions == original.conditions)
   #expect(decoded.keepsAwake == false)
+  #expect(decoded.waitingForConditionsSince == original.waitingForConditionsSince)
 }

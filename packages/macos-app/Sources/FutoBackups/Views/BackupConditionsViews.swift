@@ -63,9 +63,11 @@ struct BackupConditionsSection: View {
         .font(.system(size: 11))
         .foregroundStyle(.secondary)
     }
-    .onAppear(perform: refreshDevices)
-    .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
-      refreshDevices()
+    .task {
+      while !Task.isCancelled {
+        refreshDevices()
+        try? await Task.sleep(for: .seconds(2))
+      }
     }
   }
 
@@ -84,7 +86,8 @@ struct BackupConditionsSection: View {
   }
 
   private func refreshDevices() {
-    attachedDevices = model.currentMachineState().usbDevices
+    let devices = MachineProbe.usbDevices()
+    if attachedDevices != devices { attachedDevices = devices }
   }
 
   private func conditionBinding(_ keyPath: WritableKeyPath<BackupConditions, Bool>) -> Binding<Bool> {

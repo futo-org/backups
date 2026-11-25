@@ -124,8 +124,9 @@ extension AppConfig {
     guard !conditions.required.isEmpty else { return .run }
     let unmet = conditions.unmet(in: machine())
     guard !unmet.isEmpty else { return .run }
-    if let days = conditions.runAnywayAfterDays, let reference = scheduleReference,
-      let deadline = calendar.date(byAdding: .day, value: days, to: reference), deadline <= now
+    if let days = conditions.runAnywayAfterDays,
+      let deadline = calendar.date(byAdding: .day, value: days, to: waitingForConditionsSince ?? now),
+      deadline <= now
     {
       return .runAnyway(unmet: unmet)
     }

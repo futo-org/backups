@@ -67,6 +67,7 @@ public struct AppConfig: Codable, Equatable, Sendable {
   public var failureNotificationHintDismissedAt: Date?
   public var conditions: BackupConditions?
   public var keepAwake: Bool?
+  public var waitingForConditionsSince: Date?
 
   public static let parallelismChoices = [1, 2, 3, 4, 6, 8, 12, 16, 24, 32, 48, 64, 128]
 

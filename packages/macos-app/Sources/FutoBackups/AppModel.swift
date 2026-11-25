@@ -300,25 +300,35 @@ final class AppModel {
       recomputeNextRun()
       return showWaiting(for: [])
     }
-    switch config.scheduledRunDecision(now: .now, calendar: .current, machine: machineProbe.current) {
-    case .notDue:
-      showWaiting(for: [])
+    let decision = config.scheduledRunDecision(now: .now, calendar: .current, machine: machineProbe.current)
+    if case .wait(let unmet) = decision {
+      recordWaitingForConditions(true)
+      return showWaiting(for: unmet)
+    }
+    recordWaitingForConditions(false)
+    showWaiting(for: [])
+    switch decision {
+    case .notDue, .wait:
+      break
     case .run:
-      showWaiting(for: [])
       backupNow(scheduled: true)
     case .runAnyway(let unmet):
-      showWaiting(for: [])
       report(
         "Running scheduled backup without its conditions",
         ["unmet": .array(unmet.map { .string($0.telemetryName) })])
       backupNow(scheduled: true)
-    case .wait(let unmet):
-      showWaiting(for: unmet)
     }
   }
 
   private func showWaiting(for conditions: [BackupCondition]) {
     if waitingFor != conditions { waitingFor = conditions }
+  }
+
+  private func recordWaitingForConditions(_ waiting: Bool) {
+    let since = waiting ? config.waitingForConditionsSince ?? Date() : nil
+    guard config.waitingForConditionsSince != since else { return }
+    config.waitingForConditionsSince = since
+    saveConfig()
   }
 
   func setBackupConditions(_ conditions: BackupConditions) {
@@ -337,10 +347,6 @@ final class AppModel {
     config.keepAwake = enabled
     saveConfig()
     report("Updated keep awake", ["enabled": .bool(enabled)])
-  }
-
-  func currentMachineState() -> MachineState {
-    machineProbe.current()
   }
 
   func startLogin() {
