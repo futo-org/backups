@@ -298,25 +298,33 @@ private struct ExclusionListSheet: View {
       }
       TextField("Search", text: $query, prompt: Text("Search"))
         .textFieldStyle(.roundedBorder)
-        .onChange(of: query) { selection.removeAll() }
+        .onChange(of: query) { selection.formIntersection(matching(model.customExclusions)) }
       List(shown, id: \.self, selection: $selection) { pattern in
-        Text(exclusionLabel(pattern))
-          .font(.system(size: 11, design: .monospaced))
-          .lineLimit(1)
-          .truncationMode(.middle)
-          .help(pattern)
+        HStack(spacing: 8) {
+          Text(exclusionLabel(pattern))
+            .font(.system(size: 11, design: .monospaced))
+            .lineLimit(1)
+            .truncationMode(.middle)
+          if pattern.hasPrefix("!") {
+            Spacer(minLength: 0)
+            Text("Exception")
+              .font(.system(size: 10, weight: .medium))
+              .foregroundStyle(.secondary)
+          }
+        }
+        .help(pattern)
       }
       .listStyle(.bordered(alternatesRowBackgrounds: true))
       .onDeleteCommand { removeSelection(from: shown) }
       HStack {
         Text(
           selection.isEmpty
-            ? "Select items to stop excluding them." : "\(selection.count.formatted()) selected"
+            ? "Select rules to remove them." : "\(selection.count.formatted()) selected"
         )
         .font(.system(size: 12))
         .foregroundStyle(.secondary)
         Spacer()
-        Button("Stop Excluding") { removeSelection(from: shown) }
+        Button("Remove") { removeSelection(from: shown) }
           .buttonStyle(.bordered)
           .disabled(selection.isEmpty)
         Button("Done") { dismiss() }
@@ -332,7 +340,9 @@ private struct ExclusionListSheet: View {
   private func matching(_ patterns: [String]) -> [String] {
     let needle = query.trimmingCharacters(in: .whitespaces)
     guard !needle.isEmpty else { return patterns }
-    return patterns.filter { $0.localizedCaseInsensitiveContains(needle) }
+    return patterns.filter {
+      $0.localizedCaseInsensitiveContains(needle) || exclusionLabel($0).localizedCaseInsensitiveContains(needle)
+    }
   }
 
   private func removeSelection(from shown: [String]) {
