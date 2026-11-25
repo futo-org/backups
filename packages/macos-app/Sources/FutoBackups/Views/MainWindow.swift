@@ -6,6 +6,8 @@ enum SidebarItem: String, CaseIterable, Identifiable {
   case history
   case settings
 
+  static let storageKey = "sidebarPage"
+
   var id: String { rawValue }
 
   var title: String {
@@ -24,7 +26,7 @@ enum SidebarItem: String, CaseIterable, Identifiable {
 
 struct MainWindow: View {
   @Environment(AppModel.self) private var model
-  @State private var selection: SidebarItem? = .overview
+  @AppStorage(SidebarItem.storageKey) private var selection: SidebarItem = .overview
 
   var body: some View {
     Group {
@@ -66,7 +68,7 @@ struct MainWindow: View {
   }
 
   private var sidebar: some View {
-    List(selection: $selection) {
+    List(selection: sidebarSelection) {
       ForEach(SidebarItem.allCases) { item in
         Label(item.title, systemImage: item.systemImage)
           .badge(badge(for: item))
@@ -102,13 +104,17 @@ struct MainWindow: View {
         .padding(.horizontal, 28)
         .padding(.top, 16)
       }
-      switch selection ?? .overview {
+      switch selection {
       case .overview: OverviewView(showFolders: { selection = .folders }).navigationTitle("Overview")
       case .folders: FoldersView()
       case .history: HistoryView()
       case .settings: SettingsView().navigationTitle("Settings")
       }
     }
+  }
+
+  private var sidebarSelection: Binding<SidebarItem?> {
+    Binding(get: { selection }, set: { if let page = $0 { selection = page } })
   }
 
   private func badge(for item: SidebarItem) -> Text? {

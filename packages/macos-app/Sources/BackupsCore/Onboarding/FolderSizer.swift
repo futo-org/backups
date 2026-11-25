@@ -21,7 +21,7 @@ public struct SizeTotal: Equatable, Sendable {
   }
 
   public func summary(formatBytes: (Int64) -> String) -> String {
-    if isCalculating { return "Calculating…" }
+    if isCalculating { return "Calculating" }
     guard let bytes else { return "Size unavailable" }
     return isPartial ? "At least \(formatBytes(bytes))" : "About \(formatBytes(bytes))"
   }

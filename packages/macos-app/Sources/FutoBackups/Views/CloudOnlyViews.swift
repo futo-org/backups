@@ -131,6 +131,7 @@ struct CloudOnlyFilesSheet: View {
     }
     .padding(24)
     .frame(width: 540)
+    .onEscape { dismiss() }
   }
 
   private var displayedPaths: [String] {
