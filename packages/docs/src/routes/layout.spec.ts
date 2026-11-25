@@ -30,7 +30,7 @@ describe('docs hash navigation', () => {
       complete: Promise.resolve(),
     } as AfterNavigate;
 
-    const pending = vi.mocked(afterNavigate).mock.calls.map(([callback]) => callback(navigation));
+    const pending = vi.mocked(afterNavigate).mock.calls.map(([callback]) => Promise.resolve(callback(navigation)));
     scrollTop = 0;
     return Promise.all(pending);
   };
