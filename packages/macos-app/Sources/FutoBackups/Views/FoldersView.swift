@@ -50,7 +50,7 @@ struct FoldersView: View {
     VStack(spacing: 12) {
       Image(systemName: "folder.badge.plus")
         .font(.system(size: 40, weight: .regular))
-        .foregroundStyle(Brand.gradient)
+        .foregroundStyle(Brand.symbolGradient)
       Text("Drop folders here")
         .font(.system(size: 17, weight: .semibold, design: .rounded))
       Text("or click Add Folder to choose them")
