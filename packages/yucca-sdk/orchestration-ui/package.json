@@ -42,7 +42,7 @@
     }
   },
   "peerDependencies": {
-    "@immich/ui": "^0.90.0",
+    "@immich/ui": "^0.90.0 || ^0.95.0",
     "svelte": "^5.0.0"
   },
   "devDependencies": {
