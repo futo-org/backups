@@ -284,7 +284,7 @@ private struct ExclusionChip: View {
       .buttonStyle(.plain)
       .opacity(hovering ? 1 : 0.45)
       .help("Stop excluding")
-      .accessibilityLabel("Stop excluding \(label)")
+      .accessibilityLabel("Stop excluding \(Format.abbreviatedPath(pattern))")
     }
     .padding(.leading, 8)
     .padding(.trailing, 6)
@@ -359,7 +359,7 @@ struct FolderCard: View {
       .padding(8)
       .opacity(hovering || removeFocused ? 1 : 0)
       .help("Stop backing up this folder")
-      .accessibilityLabel("Stop backing up \(URL(fileURLWithPath: path).lastPathComponent)")
+      .accessibilityLabel("Stop backing up \(Format.abbreviatedPath(path))")
     }
     .onHover { hovering = $0 }
     .contextMenu {

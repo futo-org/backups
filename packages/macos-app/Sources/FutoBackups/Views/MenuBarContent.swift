@@ -95,8 +95,7 @@ private struct MenuBarStatus: View {
     let status = StatusSummary(model: model, progress: progress.progress, restore: progress.restore)
     HStack(spacing: 12) {
       StatusRing(
-        title: model.signedIn ? status.title : "Not signed in", progress: status.progress, busy: status.busy,
-        symbol: status.symbol, tint: status.tint, size: 42)
+        progress: status.progress, busy: status.busy, symbol: status.symbol, tint: status.tint, size: 42)
       VStack(alignment: .leading, spacing: 2) {
         Text(model.signedIn ? status.title : "Not signed in")
           .font(.system(size: 14, weight: .semibold, design: .rounded))

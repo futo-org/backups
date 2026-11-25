@@ -97,6 +97,7 @@ struct HistoryView: View {
   private var loading: some View {
     ProgressView()
       .controlSize(.small)
+      .accessibilityLabel("Loading snapshots")
       .frame(maxWidth: .infinity)
       .padding(.vertical, 60)
   }

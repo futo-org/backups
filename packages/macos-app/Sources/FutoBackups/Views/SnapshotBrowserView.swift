@@ -44,6 +44,7 @@ struct SnapshotBrowserView: View {
     case .loading:
       ProgressView()
         .controlSize(.small)
+        .accessibilityLabel("Loading folder contents")
     case .failed(let message):
       VStack(spacing: 10) {
         Image(systemName: "exclamationmark.triangle.fill")

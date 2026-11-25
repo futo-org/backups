@@ -149,7 +149,6 @@ struct SecondaryButtonStyle: ButtonStyle {
 }
 
 struct StatusRing: View {
-  let title: String
   let progress: Double?
   let busy: Bool
   let symbol: String
@@ -197,13 +196,13 @@ struct StatusRing: View {
     }
     .frame(width: size, height: size)
     .accessibilityElement(children: .ignore)
-    .accessibilityLabel("Backup status")
-    .accessibilityValue(accessibilityValue)
+    .accessibilityLabel("Progress")
+    .accessibilityValue(percentText)
+    .accessibilityHidden(progress == nil)
   }
 
-  private var accessibilityValue: String {
-    guard let progress else { return title }
-    return "\(title), \(progress.wholePercentFraction.formatted(.percent.precision(.fractionLength(0))))"
+  private var percentText: String {
+    progress?.wholePercentFraction.formatted(.percent.precision(.fractionLength(0))) ?? ""
   }
 
   private var busyArc: some View {
@@ -284,7 +283,8 @@ struct Banner: View {
         }
         .buttonStyle(.plain)
         .help("Copy error")
-        .accessibilityLabel(copied ? "Copied" : "Copy error")
+        .accessibilityLabel("Copy error")
+        .accessibilityValue(copied ? "Copied" : "")
       }
       Button(action: dismiss) {
         Image(systemName: "xmark")
