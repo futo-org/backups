@@ -49,7 +49,7 @@ struct ThisMacSection: View {
   var body: some View {
     Section("Remove This Mac") {
       LabeledContent {
-        Button("Unlink This Mac…") { sheet = .reset }
+        Button("Unlink This Mac") { sheet = .reset }
           .buttonStyle(.bordered)
           .tint(.orange)
       } label: {
@@ -227,7 +227,7 @@ private struct DeleteBackupSheet: View {
           .buttonStyle(.bordered)
           .keyboardShortcut(.cancelAction)
         Spacer()
-        Button("Delete Backup…", role: .destructive) { model.startBackupDeletion() }
+        Button("Delete Backup", role: .destructive) { model.startBackupDeletion() }
           .buttonStyle(.bordered)
           .tint(.red)
           .disabled(!understood)
