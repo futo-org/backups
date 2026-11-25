@@ -116,6 +116,7 @@ struct MainWindow: View {
         ToolbarItem(placement: .primaryAction) {
           BackUpNowToolbarButton()
             .buttonStyle(.borderedProminent)
+            .tint(Brand.fill)
         }
       }
     }
