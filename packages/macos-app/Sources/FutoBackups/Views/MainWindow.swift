@@ -113,6 +113,7 @@ struct MainWindow: View {
       if (selection ?? .overview) != .overview {
         ToolbarItem(placement: .primaryAction) {
           BackUpNowToolbarButton()
+            .buttonStyle(.borderedProminent)
         }
       }
     }
