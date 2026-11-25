@@ -10,20 +10,20 @@ enum BackupDeletionState: Equatable {
   case macStillLinked(otherRepositories: [RemoteRepository], detail: String?)
   case failed(String)
 
-  init(error: any Error) {
+  init(error: any Error, server: String) {
     switch error {
-    case is CancellationError:
-      self = .idle
     case BackupDeletionError.timedOut:
       self = .failed("The deletion wasn't confirmed in the browser within 15 minutes. Nothing was deleted.")
     case BackupDeletionError.noConnection:
       self = .failed("This Mac isn't linked to its own connection on FUTO Cloud, so its backup can't be deleted here.")
     case BackupDeletionError.connectionNotDeleted(let detail):
       self = .macStillLinked(otherRepositories: [], detail: detail)
+    case BackupDeletionError.connectionUnreachable(let failure):
+      self = .macStillLinked(otherRepositories: [], detail: failure.message(server: server))
     case YuccaError.unauthorized:
       self = .failed("Your session expired. Sign in again, then retry. Nothing was deleted.")
     default:
-      self = .failed("Something went wrong: \(error)")
+      self = ErrorMessage.text(for: error, server: server).map(Self.failed) ?? .idle
     }
   }
 

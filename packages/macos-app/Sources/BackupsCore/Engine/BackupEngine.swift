@@ -147,6 +147,8 @@ public actor BackupEngine {
     onActivity(.preparing)
     var status: BackupStatus = .failed
     var message: String?
+    var failureDetail: String?
+    var caughtFailure: (any Error)?
     var summary: BackupSummary?
     var snapshotMounted = false
     var snapshotFailure: DiskSnapshotError?
@@ -345,7 +347,9 @@ public actor BackupEngine {
               snapshotMounts: snapshotMounts)
         } else {
           status = .failed
-          message = ResticOutput.errorMessage(stderr: result.stderr, exitCode: result.exitCode)
+          let detail = ResticOutput.errorMessage(stderr: result.stderr, exitCode: result.exitCode)
+          message = ErrorMessage.resticText(detail, server: config.serverDisplayName)
+          failureDetail = detail
         }
         var pruneInterrupted = false
         let retention = config.snapshotRetention
@@ -378,9 +382,8 @@ public actor BackupEngine {
             pruneError = "cancelled"
             message = "Prune interrupted"
           } catch {
-            let detail = String(describing: error)
-            pruneError = detail
-            message = "Prune failed: \(detail)"
+            pruneError = String(describing: error)
+            message = "Prune failed: \(error.localizedDescription)"
           }
           if let pruneError {
             await report(
@@ -431,11 +434,15 @@ public actor BackupEngine {
       }
       await session.proxy.stop()
     } catch {
-      if error is CancellationError || (Task.isCancelled && (error as? URLError)?.code == .cancelled) {
+      if error is CancellationError || (Task.isCancelled && ErrorMessage.isCancellation(error)) {
         status = .cancelled
       } else {
         status = .failed
-        message = String(describing: error)
+        message =
+          ErrorMessage.text(for: error, server: config.serverDisplayName)
+          ?? ConnectionFailure.unreachable.message(server: config.serverDisplayName)
+        failureDetail = String(describing: error)
+        caughtFailure = error
       }
     }
     var cloudOnlySkipped: CloudOnlySkip?
@@ -479,9 +486,11 @@ public actor BackupEngine {
       if let snapshotFailure {
         data["error"] = .string("disk snapshot: \(snapshotFailure.telemetryCode)")
       } else if let endMessage {
-        data["error"] = .string(endMessage)
+        data["error"] = .string(failureDetail ?? endMessage)
       }
       await report(endAPI, config: config, "Backup finished", data)
+    } else if let caughtFailure {
+      environment.logUnreportedFailure(caughtFailure)
     }
     return RunRecord(
       startedAt: startedAt, finishedAt: finishedAt, status: status, snapshotId: summary?.snapshotId,

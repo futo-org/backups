@@ -13,10 +13,24 @@ public struct ServerInfo: Codable, Equatable, Sendable {
 }
 
 public struct Discovery: Sendable {
-  private let transport: any HTTPTransport
+  public static let retryDelays: [Duration] = [.seconds(1), .seconds(3)]
 
-  public init(transport: any HTTPTransport) {
+  private let transport: any HTTPTransport
+  private let retryDelays: [Duration]
+  private let sleep: @Sendable (Duration) async throws -> Void
+
+  public init(
+    transport: any HTTPTransport,
+    retryDelays: [Duration] = Discovery.retryDelays,
+    sleep: @escaping @Sendable (Duration) async throws -> Void = { try await Task.sleep(for: $0) }
+  ) {
     self.transport = transport
+    self.retryDelays = retryDelays
+    self.sleep = sleep
+  }
+
+  public var withoutRetries: Discovery {
+    Discovery(transport: transport, retryDelays: [], sleep: sleep)
   }
 
   public func resolve(_ url: URL) async throws -> ServerInfo {
@@ -37,9 +51,23 @@ public struct Discovery: Sendable {
   }
 
   private func fetchDocument(at url: URL) async throws -> [String: JSONValue] {
-    let response = try await transport.send(HTTPRequest(method: "GET", url: url))
+    let response = try await sendRetryingTransientFailures(HTTPRequest(method: "GET", url: url))
+    guard response.status != 404 else {
+      throw YuccaError.invalidDiscovery("no discovery document at \(url.absoluteString)")
+    }
     let checked = try checkedHTTPResponse(response)
     return try decodeJSON([String: JSONValue].self, from: checked.body)
+  }
+
+  private func sendRetryingTransientFailures(_ request: HTTPRequest) async throws -> HTTPResponse {
+    for delay in retryDelays {
+      do {
+        return try await transport.send(request)
+      } catch let error where ConnectionFailure.isTransient(error) {
+        try await sleep(delay)
+      }
+    }
+    return try await transport.send(request)
   }
 }
 
@@ -80,7 +108,7 @@ private func requireSecureTransport(_ url: URL, _ name: String) throws {
   case "http" where loopbackHosts.contains(url.host(percentEncoded: false)?.lowercased() ?? ""):
     return
   case "http":
-    throw YuccaError.invalidDiscovery("\(name) \(url.absoluteString) must use https")
+    throw YuccaError.insecureDiscovery("\(name) \(url.absoluteString) must use https")
   default:
     throw YuccaError.invalidDiscovery("\(name) \(url.absoluteString) is not a valid http(s) URL")
   }

@@ -39,8 +39,14 @@ public enum BackupFailureReason: Equatable, Sendable {
       self = .other
       return
     }
-    if message == String(describing: YuccaError.unauthorized) || message.contains(Self.rejectedCredentialsPhrase) {
+    if message == ErrorMessage.sessionExpired || message == String(describing: YuccaError.unauthorized)
+      || message.contains(Self.rejectedCredentialsPhrase)
+    {
       self = .signedOut
+      return
+    }
+    if ConnectionFailure(message: message) != nil {
+      self = .unreachable
       return
     }
     if let code = Self.urlErrorCode(in: message), Self.unreachableURLErrorCodes.contains(code) {
