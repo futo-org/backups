@@ -221,12 +221,39 @@ final class AppModel {
       object: nil,
       queue: .main
     ) { [weak self] _ in
-      MainActor.assumeIsolated { self?.refreshFullDiskAccess() }
+      MainActor.assumeIsolated {
+        self?.refreshFullDiskAccess()
+        self?.refreshNotificationAuthorization()
+      }
     }
+    refreshNotificationAuthorization()
   }
 
   func refreshFullDiskAccess() {
     hasFullDiskAccess = FullDiskAccess.isGranted()
+  }
+
+  var failureNotificationToggle: FailureNotificationToggle { failureNotifier.toggle }
+
+  var isRequestingNotificationPermission: Bool { failureNotifier.isRequestingAuthorization }
+
+  var showsFailureNotificationHint: Bool { config.showsFailureNotificationHint }
+
+  func refreshNotificationAuthorization() {
+    Task { await failureNotifier.refreshAuthorization() }
+  }
+
+  func setFailureNotifications(_ enabled: Bool) {
+    Task { await failureNotifier.setEnabled(enabled) }
+  }
+
+  func dismissFailureNotificationHint() {
+    failureNotifier.dismissHint()
+  }
+
+  func openNotificationSettings() {
+    guard let url = FailureNotifications.systemSettingsURL else { return }
+    NSWorkspace.shared.open(url)
   }
 
   var hasSnapshotFolders: Bool {
@@ -963,6 +990,7 @@ final class AppModel {
   }
 
   private func resetLocally(signingOut: Bool) async {
+    failureNotifier.invalidate()
     isResetting = true
     await stopRunningWork()
     let token = signingOut ? sessionToken : nil

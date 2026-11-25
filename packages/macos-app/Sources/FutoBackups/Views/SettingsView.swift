@@ -89,6 +89,7 @@ struct SettingsView: View {
             systemName: "power", tint: .gray, title: "Open at login",
             detail: "Keeps scheduled backups running from the menu bar.")
         }
+        FailureNotificationSetting()
       }
       Section("Security") {
         VStack(alignment: .leading, spacing: 12) {

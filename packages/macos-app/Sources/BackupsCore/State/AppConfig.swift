@@ -63,6 +63,8 @@ public struct AppConfig: Codable, Equatable, Sendable {
   public var retention: SnapshotRetention?
   public var failureNotifiedAt: Date?
   public var notificationPermissionRequestedAt: Date?
+  public var failureNotificationsEnabled: Bool?
+  public var failureNotificationHintDismissedAt: Date?
 
   public static let parallelismChoices = [1, 2, 3, 4, 6, 8, 12, 16, 24, 32, 48, 64, 128]
 
@@ -132,6 +134,7 @@ public struct AppConfig: Codable, Equatable, Sendable {
       scheduleAnchor: nil
     )
     config.excludeDefaultsVersion = currentExcludeDefaultsVersion
+    config.failureNotificationsEnabled = true
     return config
   }
 

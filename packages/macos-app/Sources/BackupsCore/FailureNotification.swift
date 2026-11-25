@@ -85,16 +85,32 @@ public enum FailureNoticeStep: Equatable, Sendable {
   case endStreak
 
   public static func after(
-    _ outcome: BackupRunOutcome, scheduled: Bool, streakNotified: Bool, noticePending: Bool
+    _ outcome: BackupRunOutcome, scheduled: Bool, notifies: Bool, streakNotified: Bool, noticePending: Bool
   ) -> Self {
     switch outcome {
     case .succeeded where streakNotified || noticePending:
       return .endStreak
-    case .failed(let reason) where scheduled && !streakNotified && !noticePending:
+    case .failed(let reason) where scheduled && notifies && !streakNotified && !noticePending:
       return .post(reason)
     case .succeeded, .failed, .stopped:
       return .nothing
     }
+  }
+}
+
+public enum NotificationAuthorization: Equatable, Sendable {
+  case notDetermined
+  case denied
+  case authorized
+}
+
+public struct FailureNotificationToggle: Equatable, Sendable {
+  public var isOn: Bool
+  public var showsDeniedNote: Bool
+
+  public init(enabled: Bool, authorization: NotificationAuthorization?) {
+    isOn = enabled && authorization != .denied
+    showsDeniedNote = authorization == .denied
   }
 }
 
@@ -147,7 +163,14 @@ extension AppConfig {
     serverURL == Self.productionServerURL ? "FUTO Cloud" : serverDisplayName
   }
 
+  public var notifiesOnFailure: Bool { failureNotificationsEnabled == true }
+
   public var shouldRequestNotificationPermission: Bool {
-    notificationPermissionRequestedAt == nil && schedule != .manual
+    notifiesOnFailure && notificationPermissionRequestedAt == nil && schedule != .manual
+  }
+
+  public var showsFailureNotificationHint: Bool {
+    schedule != .manual && !notifiesOnFailure && notificationPermissionRequestedAt == nil
+      && failureNotificationHintDismissedAt == nil
   }
 }

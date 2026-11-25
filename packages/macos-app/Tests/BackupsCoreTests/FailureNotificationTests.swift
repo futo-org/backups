@@ -22,22 +22,26 @@ private func record(_ status: BackupStatus, message: String? = nil) -> RunRecord
 }
 
 @Test(arguments: [
-  (BackupRunOutcome.failed(.unreachable), true, false, false, FailureNoticeStep.post(.unreachable)),
-  (.failed(.other), true, true, false, .nothing),
-  (.failed(.other), true, false, true, .nothing),
-  (.failed(.signedOut), false, false, false, .nothing),
-  (.succeeded, true, true, false, .endStreak),
-  (.succeeded, false, false, true, .endStreak),
-  (.succeeded, true, false, false, .nothing),
-  (.stopped, true, true, false, .nothing),
-  (.stopped, true, false, false, .nothing),
+  (BackupRunOutcome.failed(.unreachable), true, true, false, false, FailureNoticeStep.post(.unreachable)),
+  (.failed(.unreachable), true, false, false, false, .nothing),
+  (.failed(.other), true, true, true, false, .nothing),
+  (.failed(.other), true, true, false, true, .nothing),
+  (.failed(.signedOut), false, true, false, false, .nothing),
+  (.succeeded, true, true, true, false, .endStreak),
+  (.succeeded, true, false, true, false, .endStreak),
+  (.succeeded, false, true, false, true, .endStreak),
+  (.succeeded, true, true, false, false, .nothing),
+  (.stopped, true, true, true, false, .nothing),
+  (.stopped, true, true, false, false, .nothing),
 ])
 func failureNoticeStep(
-  outcome: BackupRunOutcome, scheduled: Bool, streakNotified: Bool, noticePending: Bool, step: FailureNoticeStep
+  outcome: BackupRunOutcome, scheduled: Bool, notifies: Bool, streakNotified: Bool, noticePending: Bool,
+  step: FailureNoticeStep
 ) {
   #expect(
     FailureNoticeStep.after(
-      outcome, scheduled: scheduled, streakNotified: streakNotified, noticePending: noticePending) == step)
+      outcome, scheduled: scheduled, notifies: notifies, streakNotified: streakNotified,
+      noticePending: noticePending) == step)
 }
 
 @Test func theNotifiedStreakSurvivesARelaunch() throws {
@@ -47,23 +51,44 @@ func failureNoticeStep(
   var config = AppConfig.defaults(host: "mac", home: "/Users/t")
   config.failureNotifiedAt = now
   config.notificationPermissionRequestedAt = now
+  config.failureNotificationsEnabled = false
+  config.failureNotificationHintDismissedAt = now
   try store.save(config)
 
   let reloaded = try store.load(defaultHost: "ignored", home: "/ignored")
   #expect(reloaded.failureNotifiedAt == now)
   #expect(reloaded.notificationPermissionRequestedAt == now)
+  #expect(reloaded.failureNotificationsEnabled == false)
+  #expect(reloaded.failureNotificationHintDismissedAt == now)
+}
+
+@Test func aNewInstallNotifiesOnFailure() throws {
+  let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+  let store = ConfigStore(fileURL: root.appendingPathComponent("config.json"))
+  let config = try store.load(defaultHost: "mac", home: "/Users/t")
+  #expect(config.notifiesOnFailure)
+  #expect(config.shouldRequestNotificationPermission)
+  #expect(!config.showsFailureNotificationHint)
 }
 
 @Test func aConfigSavedBeforeFailureNotificationsHasNoStreakAndHasNotAskedForPermission() throws {
   var config = AppConfig.defaults(host: "mac", home: "/Users/t")
   config.failureNotifiedAt = now
   config.notificationPermissionRequestedAt = now
+  config.failureNotificationHintDismissedAt = now
   var json = try #require(JSONSerialization.jsonObject(with: JSONEncoder().encode(config)) as? [String: Any])
-  json.removeValue(forKey: "failureNotifiedAt")
-  json.removeValue(forKey: "notificationPermissionRequestedAt")
+  for key in [
+    "failureNotifiedAt", "notificationPermissionRequestedAt", "failureNotificationsEnabled",
+    "failureNotificationHintDismissedAt",
+  ] {
+    json.removeValue(forKey: key)
+  }
   let decoded = try JSONDecoder().decode(AppConfig.self, from: JSONSerialization.data(withJSONObject: json))
   #expect(decoded.failureNotifiedAt == nil)
   #expect(decoded.notificationPermissionRequestedAt == nil)
+  #expect(!decoded.notifiesOnFailure)
+  #expect(!decoded.shouldRequestNotificationPermission)
+  #expect(decoded.showsFailureNotificationHint)
 }
 
 @Test func switchingServersStartsANewFailureStreak() {
@@ -98,14 +123,50 @@ func failureNoticeStep(
   #expect(config.failureNotifiedAt == nil)
 }
 
-@Test func permissionIsAskedOnceAndOnlyForAScheduledBackup() {
+@Test func permissionIsAskedOnceAndOnlyForAScheduledBackupWithNotificationsOn() {
   var config = AppConfig.defaults(host: "mac", home: "/Users/t")
   #expect(config.shouldRequestNotificationPermission)
   config.schedule = .manual
   #expect(!config.shouldRequestNotificationPermission)
   config.schedule = .hourly
+  config.failureNotificationsEnabled = nil
+  #expect(!config.shouldRequestNotificationPermission)
+  config.failureNotificationsEnabled = true
   config.notificationPermissionRequestedAt = now
   #expect(!config.shouldRequestNotificationPermission)
+}
+
+@Test(arguments: [
+  (Schedule.hourly, Bool?.none, false, false, true),
+  (.daily(hour: 9, minute: 0), false, false, false, true),
+  (.manual, nil, false, false, false),
+  (.hourly, true, false, false, false),
+  (.hourly, nil, true, false, false),
+  (.hourly, nil, false, true, false),
+])
+func theNotificationHint(
+  schedule: Schedule, enabled: Bool?, permissionRequested: Bool, dismissed: Bool, shows: Bool
+) {
+  var config = AppConfig.defaults(host: "mac", home: "/Users/t")
+  config.schedule = schedule
+  config.failureNotificationsEnabled = enabled
+  config.notificationPermissionRequestedAt = permissionRequested ? now : nil
+  config.failureNotificationHintDismissedAt = dismissed ? now : nil
+  #expect(config.showsFailureNotificationHint == shows)
+}
+
+@Test(arguments: [
+  (true, NotificationAuthorization?.none, true, false),
+  (true, .authorized, true, false),
+  (true, .notDetermined, true, false),
+  (true, .denied, false, true),
+  (false, .authorized, false, false),
+  (false, .denied, false, true),
+])
+func theNotificationToggle(enabled: Bool, authorization: NotificationAuthorization?, isOn: Bool, note: Bool) {
+  let toggle = FailureNotificationToggle(enabled: enabled, authorization: authorization)
+  #expect(toggle.isOn == isOn)
+  #expect(toggle.showsDeniedNote == note)
 }
 
 @Test func theProductionServerIsNamedFUTOCloud() {

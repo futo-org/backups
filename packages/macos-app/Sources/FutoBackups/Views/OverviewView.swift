@@ -33,6 +33,9 @@ struct OverviewView: View {
             value: model.snapshots.isEmpty ? "—" : "\(model.snapshots.count)")
         }
         scheduleCard
+        if model.showsFailureNotificationHint {
+          FailureNotificationHint()
+        }
       }
       .padding(28)
       .frame(maxWidth: 820)
