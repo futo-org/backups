@@ -25,6 +25,7 @@ public enum BackupDeletionError: Error, Equatable, Sendable {
   case noConnection
   case timedOut
   case connectionNotDeleted(String)
+  case connectionUnreachable(ConnectionFailure)
 }
 
 public struct BackupDeletion: Sendable {
@@ -115,6 +116,9 @@ public struct BackupDeletion: Sendable {
       }
       throw BackupDeletionError.connectionNotDeleted(body)
     } catch {
+      if let failure = ConnectionFailure(error: error) {
+        throw BackupDeletionError.connectionUnreachable(failure)
+      }
       throw BackupDeletionError.connectionNotDeleted(error.localizedDescription)
     }
   }

@@ -23,7 +23,7 @@ actor FakeAccountAPI: AccountAPI {
   var repositories: [RemoteRepository] = []
   var ticketURL = URL(string: "https://idp.example/authorize?state=s1")!
   var ticketError: AccountFakeError?
-  var deleteConnectionErrors: [YuccaError] = []
+  var deleteConnectionErrors: [any Error] = []
   var logoutHangs = false
   var secretsAtLogout: [SecretKey: String]?
   private var secretsProbe: (@Sendable () -> [SecretKey: String])?
@@ -36,7 +36,7 @@ actor FakeAccountAPI: AccountAPI {
     lists: [Result<[RemoteRepository], AccountFakeError>] = [],
     then repositories: [RemoteRepository]? = nil,
     ticketError: AccountFakeError? = nil,
-    deleteConnectionErrors: [YuccaError] = [],
+    deleteConnectionErrors: [any Error] = [],
     logoutHangs: Bool = false
   ) {
     listResults = lists

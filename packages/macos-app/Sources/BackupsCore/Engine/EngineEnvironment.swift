@@ -26,6 +26,7 @@ public struct EngineEnvironment: Sendable {
   public var cloudOnlyScanPriority: TaskPriority
   public var uploadTicks: @Sendable () -> AsyncStream<ContinuousClock.Instant>
   public var networkChanges: @Sendable () -> AsyncStream<Void>
+  public var logUnreportedFailure: @Sendable (any Error) -> Void
 
   public init(
     secrets: any SecretStore,
@@ -53,7 +54,8 @@ public struct EngineEnvironment: Sendable {
     uploadTicks: @escaping @Sendable () -> AsyncStream<ContinuousClock.Instant> = {
       UploadSpeedMeter.ticks(every: .seconds(1))
     },
-    networkChanges: @escaping @Sendable () -> AsyncStream<Void> = { NetworkChanges.live() }
+    networkChanges: @escaping @Sendable () -> AsyncStream<Void> = { NetworkChanges.live() },
+    logUnreportedFailure: @escaping @Sendable (any Error) -> Void = EngineDiagnostics.logUnreportedFailure
   ) {
     self.secrets = secrets
     self.discover = discover
@@ -79,6 +81,7 @@ public struct EngineEnvironment: Sendable {
     self.cloudOnlyScanPriority = cloudOnlyScanPriority
     self.uploadTicks = uploadTicks
     self.networkChanges = networkChanges
+    self.logUnreportedFailure = logUnreportedFailure
   }
 }
 

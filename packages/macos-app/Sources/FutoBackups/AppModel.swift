@@ -950,7 +950,7 @@ final class AppModel {
     isResetting = true
     await stopRunningWork()
     let token = signingOut ? sessionToken : nil
-    let server = token == nil ? nil : try? await discovery.resolve(config.serverURL)
+    let server = token == nil ? nil : try? await discovery.withoutRetries.resolve(config.serverURL)
     let api = server.flatMap { server in
       token.map { YuccaClient(apiRoot: server.apiRoot, transport: transport, accessToken: $0) }
     }

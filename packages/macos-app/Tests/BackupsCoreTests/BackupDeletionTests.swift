@@ -124,7 +124,9 @@ private func runDeletion(
 
 @Test func otherBadRequestIsAnUndeletedConnection() async throws {
   let api = FakeAccountAPI(repositories: [otherMac])
-  await api.script(deleteConnectionErrors: [.http(status: 400, body: "Refusing to delete the default connection")])
+  await api.script(deleteConnectionErrors: [
+    YuccaError.http(status: 400, body: "Refusing to delete the default connection")
+  ])
   await #expect(throws: BackupDeletionError.connectionNotDeleted("Refusing to delete the default connection")) {
     _ = try await runDeletion(api)
   }
@@ -162,7 +164,7 @@ private func runDeletion(
 @Test func networkFailureDeletingTheConnectionReportsTheBackupAsGone() async throws {
   let api = FakeAccountAPI()
   await api.script(
-    lists: [.success([thisMac])], then: [], deleteConnectionErrors: [.http(status: 503, body: "unavailable")])
+    lists: [.success([thisMac])], then: [], deleteConnectionErrors: [YuccaError.http(status: 503, body: "unavailable")])
   await #expect(
     throws: BackupDeletionError.connectionNotDeleted(
       "The server returned an error (HTTP 503). Try again later.")
@@ -171,6 +173,19 @@ private func runDeletion(
   }
   let summaries = await api.logs.map(\.summary)
   #expect(summaries == ["Running repository deletion", "Finished repository deletion"])
+}
+
+@Test(arguments: [
+  (URLError(.timedOut), ConnectionFailure.unreachable), (URLError(.notConnectedToInternet), .offline),
+])
+func unreachableServerWhileRemovingTheMacKeepsTheConnectionFailure(
+  _ error: URLError, _ failure: ConnectionFailure
+) async throws {
+  let api = FakeAccountAPI()
+  await api.script(lists: [.success([thisMac])], then: [], deleteConnectionErrors: [error])
+  await #expect(throws: BackupDeletionError.connectionUnreachable(failure)) {
+    _ = try await runDeletion(api)
+  }
 }
 
 @Test func missingConnectionStopsBeforeAnything() async throws {

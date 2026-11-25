@@ -67,6 +67,15 @@ struct FlaggedError: Sendable, CustomTestStringConvertible {
   ErrorCase(EngineError.restic(code: 1, message: "repository is locked"), "repository is locked"),
   ErrorCase(YuccaError.unauthorized, "Session expired, sign in again"),
   ErrorCase(YuccaError.http(status: 503, body: "<html>"), "The server returned an error (HTTP 503). Try again later."),
+  ErrorCase(YuccaError.http(status: 429, body: ""), "The server returned an error (HTTP 429). Try again later."),
+  ErrorCase(YuccaError.http(status: 403, body: ""), "The server returned an error (HTTP 403)."),
+  ErrorCase(
+    YuccaError.invalidDiscovery("no discovery document"),
+    "The server address doesn't point to a FUTO Backups server. Check the address."),
+  ErrorCase(YuccaError.insecureDiscovery("server URL must use https"), "The server address must use HTTPS."),
+  ErrorCase(
+    EngineError.restic(code: 1, message: "Fatal: unable to open config file: unexpected HTTP response (503)"),
+    unreachable),
   ErrorCase(YuccaError.decoding("keyNotFound"), "The server sent a response FUTO Backups couldn't read."),
   ErrorCase(DeviceLoginError.expired, "The sign-in code expired. Try again."),
   ErrorCase(
@@ -115,6 +124,19 @@ func transientFailures(_ testCase: FlaggedError) {
   #expect(ConnectionFailure.isTransient(testCase.error) == testCase.flag)
 }
 
+@Test(arguments: [
+  ("unexpected HTTP response (502): 502 Bad Gateway", ConnectionFailure.unreachable),
+  ("Fatal: unable to open config file: unexpected HTTP response (503): 503 Service Unavailable", .unreachable),
+  ("unexpected HTTP response (504): 504 Gateway Timeout", .unreachable),
+  ("unexpected HTTP response (500): 500 Internal Server Error", nil),
+  ("unexpected HTTP response (404): 404 Not Found", nil),
+  ("repository is locked", nil),
+  ("wrong password or no key found", nil),
+])
+func resticConnectivityFailures(_ message: String, _ expected: ConnectionFailure?) {
+  #expect(ConnectionFailure(resticError: message) == expected)
+}
+
 @Test(arguments: ConnectionFailure.allCases, ["FUTO Cloud", "futo.cloud", "localhost:8081"])
 func recordedConnectionMessagesAreRecognised(_ failure: ConnectionFailure, server: String) {
   #expect(ConnectionFailure(message: failure.message(server: server)) == failure)
@@ -136,7 +158,8 @@ func otherMessagesAreNotConnectionFailures(_ message: String) {
   let texts =
     ConnectionFailure.allCases.map { $0.message(server: server) }
     + [
-      YuccaError.invalidDiscovery("x"), .unauthorized, .http(status: 500, body: ""), .decoding("x"),
+      YuccaError.invalidDiscovery("x"), .insecureDiscovery("x"), .unauthorized, .http(status: 500, body: ""),
+      .decoding("x"),
     ].compactMap(\.errorDescription)
   for text in texts {
     #expect(!text.contains("…") && !text.contains("..."))

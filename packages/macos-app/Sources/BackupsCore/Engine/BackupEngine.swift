@@ -148,6 +148,7 @@ public actor BackupEngine {
     var status: BackupStatus = .failed
     var message: String?
     var failureDetail: String?
+    var caughtFailure: (any Error)?
     var summary: BackupSummary?
     var snapshotMounted = false
     var snapshotFailure: DiskSnapshotError?
@@ -346,7 +347,9 @@ public actor BackupEngine {
               snapshotMounts: snapshotMounts)
         } else {
           status = .failed
-          message = ResticOutput.errorMessage(stderr: result.stderr, exitCode: result.exitCode)
+          let detail = ResticOutput.errorMessage(stderr: result.stderr, exitCode: result.exitCode)
+          message = ErrorMessage.resticText(detail, server: config.serverDisplayName)
+          failureDetail = detail
         }
         var pruneInterrupted = false
         let retention = config.snapshotRetention
@@ -439,6 +442,7 @@ public actor BackupEngine {
           ErrorMessage.text(for: error, server: config.serverDisplayName)
           ?? ConnectionFailure.unreachable.message(server: config.serverDisplayName)
         failureDetail = String(describing: error)
+        caughtFailure = error
       }
     }
     var cloudOnlySkipped: CloudOnlySkip?
@@ -485,6 +489,8 @@ public actor BackupEngine {
         data["error"] = .string(failureDetail ?? endMessage)
       }
       await report(endAPI, config: config, "Backup finished", data)
+    } else if let caughtFailure {
+      environment.logUnreportedFailure(caughtFailure)
     }
     return RunRecord(
       startedAt: startedAt, finishedAt: finishedAt, status: status, snapshotId: summary?.snapshotId,

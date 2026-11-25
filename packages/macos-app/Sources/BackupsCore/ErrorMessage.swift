@@ -25,6 +25,11 @@ public enum ConnectionFailure: CaseIterable, Equatable, Sendable {
     self = failure
   }
 
+  public init?(resticError: String) {
+    guard resticProxyUnreachableStatuses.contains(where: resticError.contains) else { return nil }
+    self = .unreachable
+  }
+
   public static func isTransient(_ error: any Error) -> Bool {
     switch urlErrorCode(in: error) {
     case .timedOut, .networkConnectionLost, .cannotConnectToHost, .cannotFindHost, .dnsLookupFailed: true
@@ -71,7 +76,7 @@ public enum ErrorMessage {
     guard !isCancellation(error) else { return nil }
     switch error {
     case let engineError as EngineError:
-      return engineErrorText(engineError)
+      return engineErrorText(engineError, server: server)
     case let loginError as DeviceLoginError:
       return loginError.message(server: server)
     case let incomplete as RestoreIncomplete:
@@ -81,14 +86,18 @@ public enum ErrorMessage {
     }
   }
 
-  private static func engineErrorText(_ error: EngineError) -> String {
+  public static func resticText(_ message: String, server: String) -> String {
+    ConnectionFailure(resticError: message)?.message(server: server) ?? message
+  }
+
+  private static func engineErrorText(_ error: EngineError, server: String) -> String {
     switch error {
     case .notLoggedIn: "Not signed in"
     case .noRepository: "No repository yet"
     case .noFolders: "No folders selected"
     case .busy: "Another operation is running"
     case .missingMasterKey: "This Mac's recovery key is missing"
-    case .restic(_, let message): message
+    case .restic(_, let message): resticText(message, server: server)
     }
   }
 
@@ -109,9 +118,12 @@ public enum ErrorMessage {
 extension YuccaError: LocalizedError {
   public var errorDescription: String? {
     switch self {
-    case .invalidDiscovery: "The server address doesn't point to a FUTO Backups server."
+    case .invalidDiscovery: "The server address doesn't point to a FUTO Backups server. Check the address."
+    case .insecureDiscovery: "The server address must use HTTPS."
     case .unauthorized: ErrorMessage.sessionExpired
-    case .http(let status, _): "The server returned an error (HTTP \(status)). Try again later."
+    case .http(let status, _) where status >= 500 || [408, 429].contains(status):
+      "The server returned an error (HTTP \(status)). Try again later."
+    case .http(let status, _): "The server returned an error (HTTP \(status))."
     case .decoding: "The server sent a response FUTO Backups couldn't read."
     }
   }
@@ -148,6 +160,10 @@ extension ResticProxyError: LocalizedError {
     }
   }
 }
+
+private let resticProxyUnreachableStatuses = [
+  "unexpected HTTP response (502)", "unexpected HTTP response (503)", "unexpected HTTP response (504)",
+]
 
 func urlErrorCode(in error: any Error) -> URLError.Code? {
   var current: NSError? = error as NSError

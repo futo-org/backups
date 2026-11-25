@@ -18,6 +18,8 @@ enum BackupDeletionState: Equatable {
       self = .failed("This Mac isn't linked to its own connection on FUTO Cloud, so its backup can't be deleted here.")
     case BackupDeletionError.connectionNotDeleted(let detail):
       self = .macStillLinked(otherRepositories: [], detail: detail)
+    case BackupDeletionError.connectionUnreachable(let failure):
+      self = .macStillLinked(otherRepositories: [], detail: failure.message(server: server))
     case YuccaError.unauthorized:
       self = .failed("Your session expired. Sign in again, then retry. Nothing was deleted.")
     default:

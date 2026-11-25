@@ -53,6 +53,7 @@ public struct URLSessionTransport: HTTPTransport {
 
 public enum YuccaError: Error, Equatable, Sendable {
   case invalidDiscovery(String)
+  case insecureDiscovery(String)
   case unauthorized
   case http(status: Int, body: String)
   case decoding(String)
