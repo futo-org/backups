@@ -464,13 +464,48 @@ func packSizeIsClampedToResticLimits(serverPackSize: Int, expected: String) asyn
   #expect(record.snapshotId == "snapshot-abc")
 }
 
+@Test func backupThatCannotReachTheServerRecordsAFriendlyMessageAndReportsTheDetail() async throws {
+  let fixture = makeFixture()
+  fixture.proxy.setStartFailure(URLError(.timedOut))
+  let engine = BackupEngine(environment: fixture.environment)
+  let record = try await engine.backup(config: testConfig()) { _ in }
+  #expect(record.status == .failed)
+  #expect(record.message == "Couldn't reach server.test. Check your internet connection and try again.")
+  let finished = try #require(await fixture.deliveredLogs(engine).last { $0.summary == "Backup finished" })
+  guard case .string(let detail)? = finished.data["error"] else {
+    Issue.record("expected an error detail")
+    return
+  }
+  #expect(detail.contains("NSURLErrorDomain Code=-1001"))
+}
+
+@Test func aBackupCancelledWhileItsRequestIsInFlightIsRecordedAsCancelled() async throws {
+  let fixture = makeFixture()
+  fixture.proxy.setStartFailure(URLError(.cancelled))
+  let engine = BackupEngine(environment: fixture.environment)
+  let backup = Task { try await engine.backup(config: testConfig()) { _ in } }
+  backup.cancel()
+  let record = try await backup.value
+  #expect(record.status == .cancelled)
+  #expect(record.message == nil)
+}
+
+@Test func aRequestCancelledWithoutCancellingTheBackupReadsAsUnreachable() async throws {
+  let fixture = makeFixture()
+  fixture.proxy.setStartFailure(URLError(.cancelled))
+  let engine = BackupEngine(environment: fixture.environment)
+  let record = try await engine.backup(config: testConfig()) { _ in }
+  #expect(record.status == .failed)
+  #expect(record.message == "Couldn't reach server.test. Check your internet connection and try again.")
+}
+
 @Test func backupProxyStartFailureProducesFailedRecord() async throws {
   let fixture = makeFixture()
   fixture.proxy.setStartFailure(ResticProxyError.notReady("proxy down"))
   let engine = BackupEngine(environment: fixture.environment)
   let record = try await engine.backup(config: testConfig()) { _ in }
   #expect(record.status == .failed)
-  #expect(record.message == String(describing: ResticProxyError.notReady("proxy down")))
+  #expect(record.message == "The backup helper couldn't start. Try again, or reinstall FUTO Backups.")
   #expect(
     await fixture.deliveredCalls(engine)
       == [

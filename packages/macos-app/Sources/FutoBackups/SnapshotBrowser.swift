@@ -81,7 +81,7 @@ final class SnapshotBrowser {
       do {
         let entries = try await cache.entries(in: directory)
         show(.loaded(entries), for: directory)
-      } catch is CancellationError {
+      } catch let error where ErrorMessage.isCancellation(error) {
         return
       } catch {
         show(.failed(describe(error)), for: directory)

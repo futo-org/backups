@@ -147,6 +147,7 @@ public actor BackupEngine {
     onActivity(.preparing)
     var status: BackupStatus = .failed
     var message: String?
+    var failureDetail: String?
     var summary: BackupSummary?
     var snapshotMounted = false
     var snapshotFailure: DiskSnapshotError?
@@ -378,9 +379,8 @@ public actor BackupEngine {
             pruneError = "cancelled"
             message = "Prune interrupted"
           } catch {
-            let detail = String(describing: error)
-            pruneError = detail
-            message = "Prune failed: \(detail)"
+            pruneError = String(describing: error)
+            message = "Prune failed: \(error.localizedDescription)"
           }
           if let pruneError {
             await report(
@@ -431,11 +431,14 @@ public actor BackupEngine {
       }
       await session.proxy.stop()
     } catch {
-      if error is CancellationError {
+      if error is CancellationError || (Task.isCancelled && ErrorMessage.isCancellation(error)) {
         status = .cancelled
       } else {
         status = .failed
-        message = String(describing: error)
+        message =
+          ErrorMessage.text(for: error, server: config.serverDisplayName)
+          ?? ConnectionFailure.unreachable.message(server: config.serverDisplayName)
+        failureDetail = String(describing: error)
       }
     }
     var cloudOnlySkipped: CloudOnlySkip?
@@ -479,7 +482,7 @@ public actor BackupEngine {
       if let snapshotFailure {
         data["error"] = .string("disk snapshot: \(snapshotFailure.telemetryCode)")
       } else if let endMessage {
-        data["error"] = .string(endMessage)
+        data["error"] = .string(failureDetail ?? endMessage)
       }
       await report(endAPI, config: config, "Backup finished", data)
     }

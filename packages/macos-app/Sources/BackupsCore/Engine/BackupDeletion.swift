@@ -115,7 +115,7 @@ public struct BackupDeletion: Sendable {
       }
       throw BackupDeletionError.connectionNotDeleted(body)
     } catch {
-      throw BackupDeletionError.connectionNotDeleted(String(describing: error))
+      throw BackupDeletionError.connectionNotDeleted(error.localizedDescription)
     }
   }
 

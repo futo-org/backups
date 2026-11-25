@@ -165,7 +165,7 @@ private func runDeletion(
     lists: [.success([thisMac])], then: [], deleteConnectionErrors: [.http(status: 503, body: "unavailable")])
   await #expect(
     throws: BackupDeletionError.connectionNotDeleted(
-      String(describing: YuccaError.http(status: 503, body: "unavailable")))
+      "The server returned an error (HTTP 503). Try again later.")
   ) {
     _ = try await runDeletion(api)
   }

@@ -10,10 +10,8 @@ enum BackupDeletionState: Equatable {
   case macStillLinked(otherRepositories: [RemoteRepository], detail: String?)
   case failed(String)
 
-  init(error: any Error) {
+  init(error: any Error, server: String) {
     switch error {
-    case is CancellationError:
-      self = .idle
     case BackupDeletionError.timedOut:
       self = .failed("The deletion wasn't confirmed in the browser within 15 minutes. Nothing was deleted.")
     case BackupDeletionError.noConnection:
@@ -23,7 +21,7 @@ enum BackupDeletionState: Equatable {
     case YuccaError.unauthorized:
       self = .failed("Your session expired. Sign in again, then retry. Nothing was deleted.")
     default:
-      self = .failed("Something went wrong: \(error)")
+      self = ErrorMessage.text(for: error, server: server).map(Self.failed) ?? .idle
     }
   }
 

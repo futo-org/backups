@@ -18,10 +18,10 @@ enum SnapshotsLoad: Equatable {
   case failed(String)
 }
 
-struct SnapshotBrowserUnavailable: Error, CustomStringConvertible {
+struct SnapshotBrowserUnavailable: LocalizedError {
   let message: String
 
-  var description: String { message }
+  var errorDescription: String? { message }
 }
 
 struct RecoveryKeyChangeFailure: Error {
@@ -105,6 +105,7 @@ final class AppModel {
     let host = Host.current().localizedName ?? "Mac"
     var loaded = AppConfig.defaults(host: host, home: home)
     var loadFailure: String?
+    var loadFailureDetail: String?
     var pinnedToProduction = false
     do {
       loaded = try ConfigStore.standard().load(defaultHost: host, home: home)
@@ -116,7 +117,8 @@ final class AppModel {
         pinnedToProduction = true
       }
     } catch {
-      loadFailure = "Could not load config: \(error)"
+      loadFailure = "Could not load config: \(error.localizedDescription)"
+      loadFailureDetail = "Could not load config: \(error)"
     }
     let appVersion = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "dev"
     let cacheDirectory = URL(fileURLWithPath: home)
@@ -172,9 +174,9 @@ final class AppModel {
     self.configLoadFailure = loadFailure
     self.configLoadFailed = loadFailure != nil
     self.configNeedsMovingAside = loadFailure != nil
-    if let loadFailure {
+    if let loadFailureDetail {
       self.pendingBootstrapError =
-        missingHelperText.map { "\(loadFailure); \($0)" } ?? loadFailure
+        missingHelperText.map { "\(loadFailureDetail); \($0)" } ?? loadFailureDetail
     }
     config = loaded
     lastError = loadFailure
@@ -245,7 +247,7 @@ final class AppModel {
       case .unregister: try service.unregister()
       }
     } catch {
-      lastError = String(describing: error)
+      lastError = error.localizedDescription
       return
     }
     if wanted, service.loginItemStatus == .requiresApproval {
@@ -322,11 +324,7 @@ final class AppModel {
       } catch {
         guard generation == self.loginGeneration else { return }
         self.loginTask = nil
-        if error is CancellationError {
-          self.login = .idle
-        } else {
-          self.login = .failed(self.message(for: error))
-        }
+        self.login = self.message(for: error).map(LoginState.failed) ?? .idle
       }
     }
   }
@@ -504,8 +502,8 @@ final class AppModel {
       guard generation == onboardingGeneration, hasSession else { return .superseded }
       report(
         "Finished repository import",
-        ["repositoryId": .string(repositoryId), "error": .string(message(for: error))])
-      return .failed(message(for: error))
+        ["repositoryId": .string(repositoryId), "error": .string(String(describing: error))])
+      return message(for: error).map(RepositoryUnlockAttempt.failed) ?? .superseded
     }
   }
 
@@ -612,7 +610,7 @@ final class AppModel {
           self.login = .idle
           return
         }
-        self.login = .failed(self.message(for: error))
+        self.login = self.message(for: error).map(LoginState.failed) ?? .idle
       }
     }
   }
@@ -912,7 +910,7 @@ final class AppModel {
         }
       } catch {
         backupDeletionTask = nil
-        backupDeletion = BackupDeletionState(error: error)
+        backupDeletion = BackupDeletionState(error: error, server: config.serverDisplayName)
       }
     }
   }
@@ -1087,7 +1085,7 @@ final class AppModel {
     return SnapshotBrowser(
       snapshot: snapshot,
       describe: { [weak self] error in
-        self?.message(for: error) ?? String(describing: error)
+        self?.message(for: error) ?? error.localizedDescription
       }
     ) { path in
       guard let engine else { throw SnapshotBrowserUnavailable(message: missingHelperText ?? "Setup incomplete") }
@@ -1109,12 +1107,12 @@ final class AppModel {
       guard generation == sessionGeneration else { return }
       snapshots = result
       snapshotsLoad = .loaded
-    } catch is CancellationError {
-      guard generation == sessionGeneration else { return }
-      snapshotsLoad = previousLoad
     } catch {
       guard generation == sessionGeneration else { return }
-      let text = message(for: error)
+      guard let text = message(for: error) else {
+        snapshotsLoad = previousLoad
+        return
+      }
       snapshotsLoad = .failed(text)
       lastError = text
     }
@@ -1175,7 +1173,7 @@ final class AppModel {
     case .newKeyRejected: return "The backup didn't accept the new key."
     case .passwordFileFailed: return "Couldn't prepare the new key on this Mac."
     case .pendingRotationUnreadable: return "An earlier key change couldn't be finished."
-    case nil: return message(for: error)
+    case nil: return message(for: error) ?? "The key change was cancelled."
     }
   }
 
@@ -1191,11 +1189,9 @@ final class AppModel {
       let info = try await client.me()
       guard generation == sessionGeneration else { return }
       account = info
-    } catch is CancellationError {
-      return
     } catch {
-      guard generation == sessionGeneration else { return }
-      lastError = message(for: error)
+      guard generation == sessionGeneration, let text = message(for: error) else { return }
+      lastError = text
     }
   }
 
@@ -1275,7 +1271,7 @@ final class AppModel {
       }
       try store.save(config)
     } catch {
-      lastError = String(describing: error)
+      lastError = error.localizedDescription
     }
   }
 
@@ -1283,41 +1279,11 @@ final class AppModel {
     nextRun = config.schedule.nextRun(after: config.scheduleReference, now: .now, calendar: .current)
   }
 
-  private func message(for error: Error) -> String {
-    if let engineError = error as? EngineError {
-      switch engineError {
-      case .notLoggedIn: return "Not signed in"
-      case .noRepository: return "No repository yet"
-      case .noFolders: return "No folders selected"
-      case .busy: return "Another operation is running"
-      case .missingMasterKey: return "This Mac's recovery key is missing"
-      case .restic(_, let message): return message
-      }
-    }
-    if let yuccaError = error as? YuccaError, yuccaError == .unauthorized {
+  private func message(for error: Error) -> String? {
+    if ErrorMessage.signsOut(error) {
       logout()
-      return "Session expired, sign in again"
     }
-    if let loginError = error as? DeviceLoginError {
-      return loginError.message(server: config.serverDisplayName)
-    }
-    if let incomplete = error as? RestoreIncomplete {
-      return restoreIncompleteMessage(incomplete)
-    }
-    return String(describing: error)
-  }
-
-  private func restoreIncompleteMessage(_ incomplete: RestoreIncomplete) -> String {
-    var parts = [incomplete.cause is CancellationError ? "Restore cancelled" : message(for: incomplete.cause)]
-    let count = incomplete.restored.count
-    if count > 0 {
-      parts.append(
-        count == 1 ? "1 item was restored before it stopped" : "\(count) items were restored before it stopped")
-    }
-    if let leftover = incomplete.leftoverStaging {
-      parts.append("The temporary folder \(leftover.path) couldn't be removed")
-    }
-    return parts.joined(separator: ". ")
+    return ErrorMessage.text(for: error, server: config.serverDisplayName)
   }
 }
 

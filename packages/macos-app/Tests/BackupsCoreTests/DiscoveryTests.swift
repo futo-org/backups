@@ -153,3 +153,88 @@ func plainHttpToAnotherHostIsRejectedBeforeAnyRequest(url: String) async throws 
     _ = try await Discovery(transport: transport).resolve(wellKnownURL)
   }
 }
+
+private actor ScriptedTransport: HTTPTransport {
+  private var outcomes: [Result<HTTPResponse, URLError>]
+  private(set) var attempts = 0
+
+  init(_ outcomes: [Result<HTTPResponse, URLError>]) {
+    self.outcomes = outcomes
+  }
+
+  func send(_ request: HTTPRequest) throws -> HTTPResponse {
+    attempts += 1
+    return try outcomes.removeFirst().get()
+  }
+}
+
+private actor Sleeps {
+  private(set) var durations: [Duration] = []
+
+  func record(_ duration: Duration) {
+    durations.append(duration)
+  }
+}
+
+private func discovery(_ transport: ScriptedTransport, _ sleeps: Sleeps) -> Discovery {
+  Discovery(transport: transport) { await sleeps.record($0) }
+}
+
+private let directMeta = jsonResponse(#"{"api_root":"\#(apiRoot.absoluteString)"}"#)
+
+@Test func discoverySucceedsAfterOneTimeout() async throws {
+  let transport = ScriptedTransport([.failure(URLError(.timedOut)), .success(directMeta)])
+  let sleeps = Sleeps()
+  let info = try await discovery(transport, sleeps).resolve(metaURL)
+  #expect(info.apiRoot == apiRoot)
+  #expect(await transport.attempts == 2)
+  #expect(await sleeps.durations == [.seconds(1)])
+}
+
+@Test(arguments: [
+  URLError.Code.timedOut, .networkConnectionLost, .cannotConnectToHost, .cannotFindHost, .dnsLookupFailed,
+])
+func discoveryGivesUpAfterThreeAttempts(_ code: URLError.Code) async throws {
+  let transport = ScriptedTransport(Array(repeating: .failure(URLError(code)), count: 4))
+  let sleeps = Sleeps()
+  await #expect(throws: URLError(code)) {
+    _ = try await discovery(transport, sleeps).resolve(metaURL)
+  }
+  #expect(await transport.attempts == 3)
+  #expect(await sleeps.durations == [.seconds(1), .seconds(3)])
+}
+
+@Test(arguments: [
+  URLError.Code.cancelled, .notConnectedToInternet, .secureConnectionFailed, .serverCertificateUntrusted,
+])
+func discoveryDoesNotRetry(_ code: URLError.Code) async throws {
+  let transport = ScriptedTransport([.failure(URLError(code)), .success(directMeta)])
+  let sleeps = Sleeps()
+  await #expect(throws: URLError(code)) {
+    _ = try await discovery(transport, sleeps).resolve(metaURL)
+  }
+  #expect(await transport.attempts == 1)
+  #expect(await sleeps.durations.isEmpty)
+}
+
+@Test func discoveryDoesNotRetryAnHTTPError() async throws {
+  let transport = ScriptedTransport([.success(jsonResponse(status: 503, "{}")), .success(directMeta)])
+  let sleeps = Sleeps()
+  await #expect(throws: YuccaError.http(status: 503, body: "{}")) {
+    _ = try await discovery(transport, sleeps).resolve(metaURL)
+  }
+  #expect(await transport.attempts == 1)
+}
+
+@Test func discoveryRetriesTheMetaDocumentOnItsOwn() async throws {
+  let transport = ScriptedTransport([
+    .success(jsonResponse(#"{"meta_url":"\#(metaURL.absoluteString)"}"#)),
+    .failure(URLError(.networkConnectionLost)),
+    .success(directMeta),
+  ])
+  let sleeps = Sleeps()
+  let info = try await discovery(transport, sleeps).resolve(wellKnownURL)
+  #expect(info.apiRoot == apiRoot)
+  #expect(await transport.attempts == 3)
+  #expect(await sleeps.durations == [.seconds(1)])
+}
