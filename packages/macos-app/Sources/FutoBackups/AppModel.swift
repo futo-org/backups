@@ -1234,7 +1234,12 @@ final class AppModel {
 
   private func finishPendingKeyRotation() async {
     guard let engine, operationTask == nil else { return }
+    let generation = sessionGeneration
     _ = try? await engine.finishPendingKeyRotation(config: config)
+    guard generation == sessionGeneration, !hasMasterKey else { return }
+    if ((try? await engine.storedMasterKey()) ?? nil) != nil {
+      hasMasterKey = true
+    }
   }
 
   private func refreshAccount() async {
