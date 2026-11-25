@@ -42,6 +42,7 @@ struct SettingsView: View {
         }
         .padding(.vertical, 4)
       }
+      BackupConditionsSection()
       Section("Bandwidth") {
         TextField(text: $limitDraft, prompt: Text("Unlimited")) {
           SettingLabel(
