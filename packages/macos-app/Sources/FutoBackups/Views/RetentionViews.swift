@@ -69,7 +69,7 @@ struct RetentionSection: View {
       Text("Snapshots")
     } footer: {
       Text(
-        "Applies after the next backup. Deleted snapshots can't be recovered, and keeping more snapshots uses more storage."
+        "Applies after the next backup. You cannot recover deleted snapshots. Keeping more snapshots uses more storage."
       )
       .font(.caption)
       .foregroundStyle(.secondary)
@@ -79,7 +79,7 @@ struct RetentionSection: View {
       Button("Cancel", role: .cancel) {}
     } message: { retention in
       Text(
-        "“\(retention.summary)” can delete snapshots your current setting would keep. It applies to backups started after this change, and deleted snapshots can't be recovered."
+        "“\(retention.summary)” can delete snapshots that your current setting keeps. It applies to backups that start after this change. You cannot recover deleted snapshots."
       )
     }
     .onAppear(perform: syncDraft)

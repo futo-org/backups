@@ -118,7 +118,7 @@ final class AppModel {
         pinnedToProduction = true
       }
     } catch {
-      loadFailure = "Could not load config: \(error.localizedDescription)"
+      loadFailure = "FUTO Backups could not load its settings: \(error.localizedDescription)"
       loadFailureDetail = "Could not load config: \(error)"
     }
     let appVersion = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "dev"
@@ -419,7 +419,7 @@ final class AppModel {
       return "This Mac already has a recovery key."
     }
     guard let normalized = RepositoryKeys.normalizedMasterKey(input) else {
-      return "That isn't a valid recovery key."
+      return "That is not a valid recovery key."
     }
     switch await unlockRepository(repositoryId, with: .entered(normalized)) {
     case .superseded: return nil
@@ -433,7 +433,7 @@ final class AppModel {
         markRecoveryKeyConfirmed()
       }
       return nil
-    case .finished: return "That key doesn't open this Mac's backup."
+    case .finished: return "That key does not open this Mac's backup."
     }
   }
 
@@ -457,14 +457,14 @@ final class AppModel {
   }
 
   func enterRepositoryKey(_ input: String, for repository: RemoteRepository) async -> String? {
-    guard RepositoryKeys.normalizedMasterKey(input) != nil else { return "That isn't a valid recovery key." }
+    guard RepositoryKeys.normalizedMasterKey(input) != nil else { return "That is not a valid recovery key." }
     switch await unlockRepository(repository.id, with: .entered(input)) {
     case .superseded: return nil
     case .failed(let message): return message
     case .finished(.unlocked):
       await continueRepository(repository)
       return nil
-    case .finished: return "That key doesn't open \(repository.name)."
+    case .finished: return "That key does not open \(repository.name)."
     }
   }
 
@@ -751,7 +751,7 @@ final class AppModel {
       try updateExclusions(Exclusions.adding([pattern], to: config.excludes))
       return nil
     } catch {
-      return "That's already excluded."
+      return "That is already excluded."
     }
   }
 
@@ -1017,7 +1017,7 @@ final class AppModel {
     returnToFirstScreen()
     if !failed.isEmpty {
       configLoadFailure =
-        "FUTO Backups couldn't remove everything from this Mac: "
+        "FUTO Backups could not remove everything from this Mac: "
         + failed.map(\.title).joined(separator: ", ") + "."
     }
     isResetting = false
@@ -1222,11 +1222,11 @@ final class AppModel {
 
   private func keyChangeMessage(for error: Error) -> String {
     switch error as? KeyRotationError {
-    case .currentKeyNotFound: return "Couldn't find this Mac's current key in the backup."
-    case .newKeyRejected: return "The backup didn't accept the new key."
-    case .passwordFileFailed: return "Couldn't prepare the new key on this Mac."
-    case .pendingRotationUnreadable: return "An earlier key change couldn't be finished."
-    case nil: return message(for: error) ?? "The key change was cancelled."
+    case .currentKeyNotFound: return "FUTO Backups could not find this Mac's current key in the backup."
+    case .newKeyRejected: return "The backup did not accept the new key."
+    case .passwordFileFailed: return "FUTO Backups could not prepare the new key on this Mac."
+    case .pendingRotationUnreadable: return "FUTO Backups could not finish an earlier key change."
+    case nil: return message(for: error) ?? "The key change was canceled."
     }
   }
 
@@ -1322,8 +1322,10 @@ final class AppModel {
     do {
       if configNeedsMovingAside {
         if let moved = try store.moveAside(at: Date()) {
-          configLoadFailure = [configLoadFailure, "The unreadable file was kept as \(moved.lastPathComponent)."]
-            .compactMap { $0 }.joined(separator: ". ")
+          configLoadFailure = [
+            configLoadFailure, "FUTO Backups kept the unreadable file as \(moved.lastPathComponent).",
+          ]
+          .compactMap { $0 }.joined(separator: ". ")
         }
         configNeedsMovingAside = false
       }

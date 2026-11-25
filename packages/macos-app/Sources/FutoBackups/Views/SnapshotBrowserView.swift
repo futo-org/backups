@@ -50,7 +50,7 @@ struct SnapshotBrowserView: View {
         Image(systemName: "exclamationmark.triangle.fill")
           .font(.system(size: 30))
           .foregroundStyle(.orange)
-        Text("Couldn't open this folder")
+        Text("Could not open this folder")
           .font(.system(size: 15, weight: .semibold, design: .rounded))
         Text(message)
           .font(.system(size: 12))
@@ -86,7 +86,7 @@ struct SnapshotBrowserView: View {
   private var footer: some View {
     HStack(spacing: 12) {
       if browser.selection.isEmpty {
-        Text("Check the files and folders to restore.")
+        Text("Select the files and folders to restore.")
           .font(.system(size: 12))
           .foregroundStyle(.secondary)
       } else {

@@ -8,7 +8,7 @@ enum OwnerAuthenticationResult {
 
 @MainActor
 enum OwnerAuthentication {
-  static let unavailableMessage = "This Mac can't confirm it's you right now, so the recovery key stays protected."
+  static let unavailableMessage = "This Mac cannot confirm your identity now, so the recovery key stays protected."
 
   static func confirm(reason: String) async -> OwnerAuthenticationResult {
     let context = LAContext()

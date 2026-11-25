@@ -129,7 +129,7 @@ public struct FailureNotice: Equatable, Sendable {
     self.body = body
   }
 
-  public static let title = "Backup didn't finish"
+  public static let title = "Backup did not finish"
 
   public init(
     reason: BackupFailureReason, server: String, retryAt: Date?, now: Date, calendar: Calendar, locale: Locale
@@ -138,19 +138,19 @@ public struct FailureNotice: Equatable, Sendable {
     let body: String
     switch reason {
     case .unreachable:
-      body = ["FUTO Backups couldn't reach \(server).", retry].compactMap { $0 }.joined(separator: " ")
+      body = ["FUTO Backups could not connect to \(server).", retry].compactMap { $0 }.joined(separator: " ")
     case .signedOut:
-      body = "You were signed out of FUTO Backups. Sign in again to keep backing up this Mac."
+      body = "FUTO Backups signed you out. To keep backing up this Mac, sign in again."
     case .missingRecoveryKey:
-      body = "This Mac's recovery key is missing. Enter it again to keep backing up this Mac."
+      body = "This Mac's recovery key is missing. To keep backing up this Mac, enter the key again."
     case .other:
-      body = ["The backup ran into a problem.", retry].compactMap { $0 }.joined(separator: " ")
+      body = ["The backup stopped because of an error.", retry].compactMap { $0 }.joined(separator: " ")
     }
     self.init(title: Self.title, body: body)
   }
 
   private static func retrySentence(at date: Date, now: Date, calendar: Calendar, locale: Locale) -> String? {
-    guard date > now else { return "It will try again shortly." }
+    guard date > now else { return "It will try again soon." }
     let style = Date.FormatStyle(locale: locale, calendar: calendar, timeZone: calendar.timeZone)
     let time = date.formatted(style.hour().minute())
     if calendar.isDate(date, inSameDayAs: now) {

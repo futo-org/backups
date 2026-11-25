@@ -355,7 +355,7 @@ public actor BackupEngine {
         let retention = config.snapshotRetention
         let forgetInvocation = ResticCommand.forget(session.context, host: config.host, retention: retention)
         if status == .complete, case .policy = retention, forgetInvocation == nil {
-          message = "Old snapshots were kept: the snapshot retention setting is invalid"
+          message = "FUTO Backups kept the old snapshots because the snapshot retention setting is not valid"
           await report(
             madeAPI, config: config, "Skipped repository prune",
             ["repositoryId": .string(repositoryId), "error": .string("invalid retention policy")])
@@ -375,15 +375,15 @@ public actor BackupEngine {
               let detail = ResticOutput.errorMessage(
                 stderr: forget.stderr, exitCode: forget.exitCode)
               pruneError = detail
-              message = "Prune failed: " + detail
+              message = "Could not delete old snapshots: " + detail
             }
           } catch is CancellationError {
             pruneInterrupted = true
             pruneError = "cancelled"
-            message = "Prune interrupted"
+            message = "Deleting old snapshots stopped early"
           } catch {
             pruneError = String(describing: error)
-            message = "Prune failed: \(error.localizedDescription)"
+            message = "Could not delete old snapshots: \(error.localizedDescription)"
           }
           if let pruneError {
             await report(

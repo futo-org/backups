@@ -20,7 +20,7 @@ struct TelemetryConsentView: View {
             HStack(alignment: .center, spacing: 12) {
               IconTile(systemName: "chart.bar.xaxis", tint: Brand.blue)
               Text(
-                "FUTO Backups collects usage and diagnostic data to understand how it's used and to find problems."
+                "FUTO Backups collects usage and diagnostic data to learn how people use it and to find problems."
               )
               .font(.system(size: 13))
               .fixedSize(horizontal: false, vertical: true)
@@ -28,7 +28,7 @@ struct TelemetryConsentView: View {
             HStack(alignment: .center, spacing: 12) {
               IconTile(systemName: "eye.slash", tint: .green)
               Text(
-                "Your photos, files, and recovery key are never collected and never leave your device unencrypted."
+                "FUTO Backups never collects your photos, files or recovery key, and they never leave your device unencrypted."
               )
               .font(.system(size: 13))
               .fixedSize(horizontal: false, vertical: true)

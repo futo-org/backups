@@ -107,7 +107,7 @@ struct HistoryView: View {
       Image(systemName: "exclamationmark.triangle.fill")
         .font(.system(size: 38))
         .foregroundStyle(.orange)
-      Text("Couldn't load snapshots")
+      Text("Could not load snapshots")
         .font(.system(size: 17, weight: .semibold, design: .rounded))
       Text(message)
         .foregroundStyle(.secondary)

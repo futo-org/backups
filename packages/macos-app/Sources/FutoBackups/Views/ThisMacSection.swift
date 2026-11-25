@@ -13,15 +13,16 @@ enum BackupDeletionState: Equatable {
   init(error: any Error, server: String) {
     switch error {
     case BackupDeletionError.timedOut:
-      self = .failed("The deletion wasn't confirmed in the browser within 15 minutes. Nothing was deleted.")
+      self = .failed("You did not approve the deletion in your browser within 15 minutes. FUTO Cloud deleted nothing.")
     case BackupDeletionError.noConnection:
-      self = .failed("This Mac isn't linked to its own connection on FUTO Cloud, so its backup can't be deleted here.")
+      self = .failed(
+        "This Mac is not linked to its own connection on FUTO Cloud, so you cannot delete its backup here.")
     case BackupDeletionError.connectionNotDeleted(let detail):
       self = .macStillLinked(otherRepositories: [], detail: detail)
     case BackupDeletionError.connectionUnreachable(let failure):
       self = .macStillLinked(otherRepositories: [], detail: failure.message(server: server))
     case YuccaError.unauthorized:
-      self = .failed("Your session expired. Sign in again, then retry. Nothing was deleted.")
+      self = .failed("Your session expired. FUTO Cloud deleted nothing. Sign in, then try again.")
     default:
       self = ErrorMessage.text(for: error, server: server).map(Self.failed) ?? .idle
     }
@@ -128,7 +129,7 @@ private struct ResetThisMacSheet: View {
     VStack(spacing: 18) {
       SheetHeader(systemName: "arrow.counterclockwise", tint: .orange, title: "Unlink this Mac?")
       SheetText(
-        "This removes FUTO Backups' settings, sign-in, recovery key and cache from this Mac. Your backup stays on FUTO Cloud and this Mac stays listed in your account. To pick it up again later, sign in and enter your recovery key."
+        "This removes FUTO Backups' settings, sign-in, recovery key and cache from this Mac. Your backup stays on FUTO Cloud and this Mac stays listed in your account. To continue it later, sign in and enter your recovery key."
       )
       if let recoveryKey {
         RecoveryKeyCard(key: recoveryKey)
@@ -145,7 +146,7 @@ private struct ResetThisMacSheet: View {
         .disabled(revealing)
       }
       Toggle(isOn: $hasRecoveryKey) {
-        Text("I have my recovery key. Without it, this Mac's backup can't be restored.")
+        Text("I have my recovery key. Without it, I cannot restore this Mac's backup.")
           .font(.system(size: 13, weight: .medium))
           .fixedSize(horizontal: false, vertical: true)
       }
@@ -212,11 +213,11 @@ private struct DeleteBackupSheet: View {
     Group {
       SheetHeader(systemName: "trash.fill", tint: .red, title: "Delete this Mac's backup?")
       SheetText(
-        "The backup \(model.config.host) uses, and all its history, will be permanently deleted from FUTO Cloud. This can't be undone. Your other Macs' backups aren't affected. This Mac is then removed from your account, and FUTO Backups' settings, sign-in, recovery key and cache are cleared from it."
+        "FUTO Cloud will permanently delete the backup that \(model.config.host) uses, and all its history. You cannot undo this. The backups of your other Macs do not change. Then FUTO Backups removes this Mac from your account and clears its settings, sign-in, recovery key and cache."
       )
-      SheetText("Your browser opens to confirm: sign in again, then click Permanently Delete.")
+      SheetText("Your browser opens. Sign in again, then click Permanently Delete.")
       Toggle(isOn: $understood) {
-        Text("I understand this Mac's backup history will be permanently deleted.")
+        Text("I understand that FUTO Cloud will permanently delete this Mac's backup history.")
           .font(.system(size: 13, weight: .medium))
           .fixedSize(horizontal: false, vertical: true)
       }
@@ -248,7 +249,7 @@ private struct DeleteBackupSheet: View {
     Group {
       SheetHeader(systemName: "safari", tint: Brand.blue, title: "Confirm the deletion in your browser")
       SheetText(
-        "Sign in again, then click Permanently Delete. This window updates once the backup is deleted.")
+        "Sign in again, then click Permanently Delete. This window updates after FUTO Cloud deletes the backup.")
       ProgressView()
         .controlSize(.small)
       HStack(spacing: 12) {
@@ -270,11 +271,11 @@ private struct DeleteBackupSheet: View {
       SheetHeader(systemName: "exclamationmark.triangle.fill", tint: .orange, title: "Backup deleted")
       if repositories.isEmpty {
         SheetText(
-          "This Mac's backup was deleted from FUTO Cloud, but this Mac couldn't be removed from your account. Try again, or clear this Mac's local data anyway; it stays listed in your account."
+          "FUTO Cloud deleted this Mac's backup, but FUTO Backups could not remove this Mac from your account. Try again, or clear this Mac's local data anyway. This Mac then stays listed in your account."
         )
       } else {
         SheetText(
-          "This Mac's backup was deleted from FUTO Cloud, but this Mac is still linked to other backups, so it wasn't removed from your account:"
+          "FUTO Cloud deleted this Mac's backup. This Mac is still linked to other backups, so FUTO Backups did not remove it from your account:"
         )
         VStack(alignment: .leading, spacing: 6) {
           ForEach(repositories) { repository in
@@ -316,7 +317,7 @@ private struct DeleteBackupSheet: View {
 
   private func failed(_ message: String) -> some View {
     Group {
-      SheetHeader(systemName: "exclamationmark.triangle.fill", tint: .orange, title: "Couldn't delete the backup")
+      SheetHeader(systemName: "exclamationmark.triangle.fill", tint: .orange, title: "Could not delete the backup")
       SheetText(message)
       HStack(spacing: 12) {
         Button("Close", action: dismiss)

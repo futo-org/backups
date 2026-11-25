@@ -231,8 +231,8 @@ func livePathOfItem(item: String, mounts: [String], expected: String) {
   #expect(BackupWarnings().summary == nil)
   #expect(
     BackupWarnings(items: [BackupWarning(path: "/a", reason: "Permission denied")], total: 1).summary
-      == "1 file couldn't be backed up.")
-  #expect(BackupWarnings(items: [], total: 742).summary == "742 files couldn't be backed up.")
+      == "FUTO Backups could not back up 1 file.")
+  #expect(BackupWarnings(items: [], total: 742).summary == "FUTO Backups could not back up 742 files.")
 }
 
 @Test func livePathsStripTheSnapshotMountFromMessages() {

@@ -15,7 +15,7 @@ public enum RetentionInputError: Error, Equatable, Sendable {
     case .durationTooLong: return "Enter a shorter duration."
     case .notAPositiveNumber: return "Enter a whole number of 1 or more."
     case .numberTooLarge: return "Enter at most \(RetentionPolicy.maxKeepLast.formatted())."
-    case .noRules: return "Fill in at least one rule, or choose Never to keep all snapshots."
+    case .noRules: return "Fill in at least one rule. To keep all snapshots, choose Never."
     }
   }
 }
@@ -358,7 +358,7 @@ public enum SnapshotRetention: Codable, Equatable, Hashable, Sendable {
     switch self {
     case .keepAll: return "Keep all snapshots"
     case .policy(let policy):
-      return (try? policy.validated())?.summary ?? "Keep all snapshots until the retention setting is fixed"
+      return (try? policy.validated())?.summary ?? "Keep all snapshots until you correct the retention setting"
     }
   }
 

@@ -74,15 +74,15 @@ private struct FullDiskAccessStep: View {
         VStack(alignment: .leading, spacing: 16) {
           Reason(
             systemName: "camera.aperture", tint: Brand.blue,
-            text: "Each backup reads from a frozen snapshot of your disk, so files that change while it runs "
-              + "are still saved consistently. Reading that snapshot needs Full Disk Access.")
+            text: "Each backup reads from a frozen snapshot of your disk, so files that change during the backup "
+              + "stay consistent. FUTO Backups needs Full Disk Access to read that snapshot.")
           Reason(
             systemName: "hand.raised.fill", tint: .orange,
             text: "Without it, macOS asks separately before FUTO Backups can read Documents, Desktop and "
-              + "Downloads, and some folders can't be backed up at all.")
+              + "Downloads. FUTO Backups cannot back up some folders at all.")
           Reason(
             systemName: "eye.slash", tint: .green,
-            text: "Your files are encrypted on this Mac before they're uploaded. FUTO can't read them.")
+            text: "This Mac encrypts your files before it uploads them. FUTO cannot read them.")
         }
         .padding(.vertical, 4)
       }
@@ -199,7 +199,7 @@ private struct ChooseFoldersStep: View {
         }
         .buttonStyle(.bordered)
         Spacer()
-        Text("Caches and the Trash are always skipped.")
+        Text("FUTO Backups always skips caches and the Trash.")
           .font(.system(size: 11))
           .foregroundStyle(.secondary)
           .multilineTextAlignment(.trailing)
@@ -390,11 +390,11 @@ private struct SizeLabel: View {
         .font(.system(size: 12, weight: .medium))
         .monospacedDigit()
         .foregroundStyle(.secondary)
-        .help("Some folders inside couldn't be read.")
+        .help("FUTO Backups could not read some folders inside.")
     case .unavailable:
       Text("—")
         .foregroundStyle(.secondary)
-        .help("This folder couldn't be read.")
+        .help("FUTO Backups could not read this folder.")
     case nil:
       EmptyView()
     }
@@ -415,7 +415,7 @@ private struct ReadyStep: View {
     VStack(spacing: 22) {
       StepTitle(
         systemName: "checkmark.seal.fill", tint: .green, title: "Ready to back up",
-        subtitle: "Your files are encrypted on this Mac before they're uploaded.")
+        subtitle: "This Mac encrypts your files before it uploads them.")
       Card {
         VStack(alignment: .leading, spacing: 14) {
           SummaryRow(systemName: "folder.fill", tint: Brand.blue, title: "Folders", value: foldersSummary) {
@@ -480,7 +480,7 @@ private struct ReadyStep: View {
       Button("Cancel", role: .cancel) {}
     } message: { _ in
       Text(
-        "This backup \(existingHostnames == nil ? "may already have" : "already has") snapshots from this Mac. “\(retention.retention.summary)” can delete the ones it doesn't keep, starting with the first backup, and deleted snapshots can't be recovered."
+        "This backup \(existingHostnames == nil ? "possibly has" : "has") snapshots from this Mac. “\(retention.retention.summary)” can delete the ones it does not keep, starting with the first backup. You cannot recover deleted snapshots."
       )
     }
   }
@@ -516,9 +516,9 @@ private struct ReadyStep: View {
   private var retentionDetail: String {
     let effect =
       retention == .never
-      ? "Every snapshot is kept, which uses more storage over time."
-      : "Older snapshots are deleted after each backup."
-    return effect + " Custom rules are in Settings."
+      ? "FUTO Backups keeps every snapshot, which uses more storage over time."
+      : "FUTO Backups deletes older snapshots after each backup."
+    return effect + " You can set custom rules in Settings."
   }
 
   private var foldersSummary: String {

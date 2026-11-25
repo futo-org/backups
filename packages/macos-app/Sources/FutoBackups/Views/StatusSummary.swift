@@ -23,7 +23,7 @@ struct StatusSummary {
   init(model: AppModel, progress: BackupProgress?, restore: RestoreStep? = nil) {
     if model.isCancelling, model.activity != nil {
       self.init(
-        title: "Cancelling", subtitle: "Stopping safely", symbol: "xmark", tint: Brand.blue, busy: true,
+        title: "Canceling", subtitle: "Stopping safely", symbol: "xmark", tint: Brand.blue, busy: true,
         action: .none, menuBarSymbol: "arrow.clockwise.icloud")
       return
     }
@@ -47,7 +47,7 @@ struct StatusSummary {
       self.init(
         title: "Finishing backup",
         subtitle: step == .removingDiskSnapshot
-          ? "Removing the disk snapshot" : "Checking for files kept only in the cloud",
+          ? "Removing the disk snapshot" : "Looking for files kept only in the cloud",
         symbol: "checkmark", tint: Brand.blue, busy: true, action: .none, menuBarSymbol: "arrow.clockwise.icloud")
       return
     case .pruning:
@@ -97,15 +97,16 @@ struct StatusSummary {
       compactSubtitle = protected ?? "All folders backed up"
     case .warn:
       self.init(
-        title: "Backed up with warnings", subtitle: lastRun.message ?? "Some files could not be read.",
+        title: "Backed up with warnings", subtitle: lastRun.message ?? "FUTO Backups could not read some files.",
         symbol: "exclamationmark", tint: .orange, action: .backUp, menuBarSymbol: "exclamationmark.icloud")
     case .failed, .incomplete:
       self.init(
-        title: "Last backup failed", subtitle: lastRun.message ?? "Try again, or check your connection.",
+        title: "Last backup failed",
+        subtitle: lastRun.message ?? "Make sure that this Mac is connected to the internet.",
         symbol: "xmark", tint: .red, action: .backUp, menuBarSymbol: "exclamationmark.icloud")
     case .cancelled, .skipped:
       self.init(
-        title: "Backup cancelled", subtitle: "Stopped \(when).", symbol: "pause",
+        title: "Backup canceled", subtitle: "Stopped \(when).", symbol: "pause",
         tint: .secondary, action: .backUp, menuBarSymbol: "icloud")
     }
   }

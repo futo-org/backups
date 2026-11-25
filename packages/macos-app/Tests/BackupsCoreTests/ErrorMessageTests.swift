@@ -4,10 +4,10 @@ import Testing
 @testable import BackupsCore
 
 private let server = "FUTO Cloud"
-private let unreachable = "Couldn't reach FUTO Cloud. Check your internet connection and try again."
-private let offline = "You're offline. Connect to the internet and try again."
+private let unreachable = "Could not connect to FUTO Cloud. Make sure that this Mac is connected to the internet."
+private let offline = "This Mac is offline. Connect it to the internet, then try again."
 private let insecure =
-  "Couldn't connect securely to FUTO Cloud. Check your network and your Mac's date and time, then try again."
+  "Could not connect securely to FUTO Cloud. Make sure that the network and the date and time on this Mac are correct."
 
 private let reportedTimeout = NSError(
   domain: NSURLErrorDomain, code: NSURLErrorTimedOut,
@@ -66,27 +66,28 @@ struct FlaggedError: Sendable, CustomTestStringConvertible {
   ErrorCase(EngineError.busy, "Another operation is running"),
   ErrorCase(EngineError.missingMasterKey, "This Mac's recovery key is missing"),
   ErrorCase(EngineError.restic(code: 1, message: "repository is locked"), "repository is locked"),
-  ErrorCase(YuccaError.unauthorized, "Session expired, sign in again"),
+  ErrorCase(YuccaError.unauthorized, "Your session expired. Sign in again."),
   ErrorCase(YuccaError.http(status: 503, body: "<html>"), "The server returned an error (HTTP 503). Try again later."),
   ErrorCase(YuccaError.http(status: 429, body: ""), "The server returned an error (HTTP 429). Try again later."),
   ErrorCase(YuccaError.http(status: 403, body: ""), "The server returned an error (HTTP 403)."),
   ErrorCase(
     YuccaError.invalidDiscovery("no discovery document"),
-    "The server address doesn't point to a FUTO Backups server. Check the address."),
+    "The server address is not a FUTO Backups server. Make sure that the address is correct."),
   ErrorCase(YuccaError.insecureDiscovery("server URL must use https"), "The server address must use HTTPS."),
   ErrorCase(
     EngineError.restic(code: 1, message: "Fatal: unable to open config file: unexpected HTTP response (503)"),
     ConnectionFailure.unavailable.message(server: server)),
-  ErrorCase(YuccaError.decoding("keyNotFound"), "The server sent a response FUTO Backups couldn't read."),
+  ErrorCase(YuccaError.decoding("keyNotFound"), "FUTO Backups could not read the response from the server."),
   ErrorCase(DeviceLoginError.expired, "The sign-in code expired. Try again."),
   ErrorCase(
-    DeviceLoginError.failed(reason: "UNSUPPORTED_CONNECTION_TYPE"), "FUTO Cloud doesn't support the Mac app yet."),
+    DeviceLoginError.failed(reason: "UNSUPPORTED_CONNECTION_TYPE"), "FUTO Cloud does not support the Mac app yet."),
   ErrorCase(DiskSnapshotError.unavailable, "Disk snapshots are unavailable."),
   ErrorCase(CloudOnlyError.everyFolderIsCloudOnly, CloudOnlyError.everyFolderIsCloudOnly.description),
-  ErrorCase(RepositoryKeysError.invalidMasterKey, "That recovery key isn't valid. Check it and try again."),
-  ErrorCase(SecretStoreError.keychain(-25300), "Couldn't use the keychain (error -25300)."),
   ErrorCase(
-    ResticProxyError.notReady("exited"), "The backup helper couldn't start. Try again, or reinstall FUTO Backups."),
+    RepositoryKeysError.invalidMasterKey, "That recovery key is not valid. Make sure that you entered it correctly."),
+  ErrorCase(SecretStoreError.keychain(-25300), "FUTO Backups could not use the keychain (error -25300)."),
+  ErrorCase(
+    ResticProxyError.notReady("exited"), "The backup helper could not start. Try again, or reinstall FUTO Backups."),
   ErrorCase(
     NSError(domain: NSCocoaErrorDomain, code: 513, userInfo: [NSLocalizedDescriptionKey: "No permission."]),
     "No permission."),
@@ -95,11 +96,12 @@ struct FlaggedError: Sendable, CustomTestStringConvertible {
     RestoreIncomplete(
       restored: [URL(fileURLWithPath: "/r/a")], leftoverStaging: URL(fileURLWithPath: "/r/.staging"),
       cause: URLError(.cancelled)),
-    "Restore cancelled. 1 item was restored before it stopped. The temporary folder /r/.staging couldn't be removed"),
+    "Restore canceled. FUTO Backups restored 1 item before the restore stopped. "
+      + "FUTO Backups could not remove the temporary folder /r/.staging"),
   ErrorCase(
     RestoreIncomplete(
       restored: [URL(fileURLWithPath: "/r/a"), URL(fileURLWithPath: "/r/b")], cause: CancellationError()),
-    "Restore cancelled. 2 items were restored before it stopped"),
+    "Restore canceled. FUTO Backups restored 2 items before the restore stopped"),
 ])
 func userFacingText(_ testCase: ErrorCase) {
   #expect(ErrorMessage.text(for: testCase.error, server: server) == testCase.expected)
@@ -144,9 +146,9 @@ func recordedConnectionMessagesAreRecognised(_ failure: ConnectionFailure, serve
 }
 
 @Test(arguments: [
-  "Couldn't reach . Check your internet connection and try again.",
-  "Couldn't reach FUTO Cloud.",
-  "Prune failed: The request timed out.",
+  "Could not connect to . Make sure that this Mac is connected to the internet.",
+  "Could not connect to FUTO Cloud.",
+  "Could not delete old snapshots: The request timed out.",
   "repository is locked",
   String(describing: reportedTimeout),
   "",

@@ -60,11 +60,11 @@ struct ChangeRecoveryKeySheet: View {
             + "they use now.")
         ChangeKeyPoint(
           systemName: "key.horizontal.fill", tint: .orange,
-          text: "Your current key stops opening this Mac's backup once the change is done.")
+          text: "Your current key stops opening this Mac's backup after the change finishes.")
         ChangeKeyPoint(
           systemName: "exclamationmark.triangle.fill", tint: .red,
-          text: "Your backup isn't re-encrypted. Anyone who already opened it with the old key may still be able "
-            + "to read it.")
+          text: "FUTO Backups does not re-encrypt your backup. Anyone who already opened it with the old key can "
+            + "still read it.")
       }
       .padding(18)
       .frame(maxWidth: .infinity, alignment: .leading)
@@ -77,7 +77,7 @@ struct ChangeRecoveryKeySheet: View {
     Group {
       StepTitle(
         systemName: "key.fill", tint: .orange, title: "Save your new recovery key",
-        subtitle: "You need it to restore this Mac's backup. FUTO can't recover it if you lose it.")
+        subtitle: "You need it to restore this Mac's backup. If you lose it, FUTO cannot recover it.")
       VStack(spacing: 10) {
         RecoveryKeyCard(key: newKey)
         Text("This is one key. It is split across lines only to make it easier to read.")
@@ -95,13 +95,15 @@ struct ChangeRecoveryKeySheet: View {
     Group {
       StepTitle(
         systemName: "checkmark.shield.fill", tint: .green, title: "Confirm your new recovery key",
-        subtitle: "Enter the new key exactly as you saved it. Spaces and capital letters don't matter.")
+        subtitle: "Enter the new key exactly as you saved it. Spaces and capital letters do not matter.")
       KeyField(text: $input, invalid: mismatch) { confirm() }
         .onChange(of: input) { _, _ in mismatch = false }
       if mismatch {
-        Label("That key doesn't match. Check your copy and try again.", systemImage: "xmark.octagon.fill")
-          .font(.system(size: 12, weight: .medium))
-          .foregroundStyle(.red)
+        Label(
+          "That key does not match. Compare it with your saved copy, then try again.", systemImage: "xmark.octagon.fill"
+        )
+        .font(.system(size: 12, weight: .medium))
+        .foregroundStyle(.red)
       }
       buttons(primary: "Change Key", disabled: input.isEmpty || authenticating) { confirm() }
       Button("View New Key Again") { step = .save }
@@ -142,7 +144,7 @@ struct ChangeRecoveryKeySheet: View {
   private func failedStep(_ message: String) -> some View {
     Group {
       StepTitle(
-        systemName: "xmark.octagon.fill", tint: .red, title: "Couldn't change the recovery key",
+        systemName: "xmark.octagon.fill", tint: .red, title: "Could not change the recovery key",
         subtitle: message + " Your current recovery key still works.")
       buttons(primary: "Try Again", cancelTitle: "Close", disabled: authenticating) { apply() }
     }
