@@ -7,6 +7,7 @@ import { BackendRepository } from '../src/repositories/backend.repository.js';
 import { BootstrapRepository } from '../src/repositories/bootstrap.repository.js';
 import { ConfigRepository } from '../src/repositories/config.repository.js';
 import { JobRepository } from '../src/repositories/job.repository.js';
+import { LoggingRepository } from '../src/repositories/logging.repository.js';
 import { RepositoryRepository } from '../src/repositories/repository.repository.js';
 import { BootstrapService } from '../src/services/bootstrap.service.js';
 import { createTestingModule, TestContext, waitFor } from './testUtils.js';
@@ -38,6 +39,29 @@ beforeEach(async () => {
 });
 
 describe('Bootstrap', () => {
+  it('warns about an unresolved time zone and still becomes ready', async () => {
+    const options = Intl.DateTimeFormat().resolvedOptions();
+    const timeZone = jest.spyOn(Intl.DateTimeFormat.prototype, 'resolvedOptions').mockReturnValue({
+      ...options,
+      timeZone: undefined as unknown as string,
+    });
+    const warning = jest.spyOn(LoggingRepository.prototype, 'warn');
+    let fresh: TestContext | undefined;
+
+    try {
+      fresh = await createTestingModule();
+
+      expect(fresh.module.get(BootstrapRepository).getStatus()).toBe(BootstrapStatus.Ready);
+      expect(warning).toHaveBeenCalledWith(
+        expect.stringMatching(/time zone.*invalid or unrecognised.*TZ.*Europe\/Berlin/),
+      );
+    } finally {
+      timeZone.mockRestore();
+      warning.mockRestore();
+      await fresh?.app.close();
+    }
+  });
+
   it('marks interrupted jobs as incomplete and reports only the backup to the backend', async () => {
     const repositoryId = randomUUID();
     const remoteId = `remote-${repositoryId}`;

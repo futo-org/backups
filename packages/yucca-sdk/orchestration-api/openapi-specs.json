@@ -3204,8 +3204,7 @@
         },
         "required": [
           "schedules",
-          "defaults",
-          "tz"
+          "defaults"
         ]
       },
       "ScheduleUpdateRequestDto": {
