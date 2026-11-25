@@ -9,8 +9,10 @@ enum Brand {
   static let blueTileFill = Color(
     standard: standardBlue,
     increasedContrast: appearanceAware(light: (0.18, 0.24, 0.55), dark: (0.3, 0.39, 0.78)))
+  static let fill = Color(
+    standard: appearanceAware(light: (0.259, 0.349, 0.722), dark: (0.36, 0.40, 0.84)),
+    increasedContrast: appearanceAware(light: (0.18, 0.24, 0.55), dark: (0.3, 0.33, 0.76)))
   static let logo = Color(red: 0.259, green: 0.349, blue: 0.722)
-  static let deep = Color(red: 0.2, green: 0.27, blue: 0.6)
   static let gradient = LinearGradient(
     colors: [
       Color(
@@ -175,41 +177,6 @@ struct Wordmark: View {
   }
 }
 
-struct PrimaryButtonStyle: ButtonStyle {
-  var large = false
-  @Environment(\.isEnabled) private var isEnabled
-  @Environment(\.accessibilityReduceMotion) private var reduceMotion
-
-  func makeBody(configuration: Configuration) -> some View {
-    configuration.label
-      .font(.system(size: large ? 15 : 13, weight: .semibold))
-      .foregroundStyle(.white)
-      .padding(.horizontal, large ? 26 : 16)
-      .padding(.vertical, large ? 11 : 7)
-      .background(Capsule().fill(Brand.gradient))
-      .shadow(color: Brand.deep.opacity(configuration.isPressed ? 0.1 : 0.3), radius: 8, y: 3)
-      .opacity(isEnabled ? (configuration.isPressed ? 0.85 : 1) : 0.45)
-      .scaleEffect(configuration.isPressed && !reduceMotion ? 0.98 : 1)
-      .contentShape(Capsule())
-  }
-}
-
-struct SecondaryButtonStyle: ButtonStyle {
-  var tint: Color = .primary
-  @Environment(\.isEnabled) private var isEnabled
-
-  func makeBody(configuration: Configuration) -> some View {
-    configuration.label
-      .font(.system(size: 13, weight: .medium))
-      .foregroundStyle(tint)
-      .padding(.horizontal, 14)
-      .padding(.vertical, 7)
-      .background(Capsule().fill(Color.primary.opacity(configuration.isPressed ? 0.14 : 0.08)))
-      .opacity(isEnabled ? 1 : 0.45)
-      .contentShape(Capsule())
-  }
-}
-
 struct StatusRing: View {
   let progress: Double?
   let busy: Bool
@@ -326,7 +293,7 @@ struct Banner: View {
       Spacer(minLength: 8)
       if let actionTitle, let action {
         Button(actionTitle, action: action)
-          .buttonStyle(SecondaryButtonStyle())
+          .buttonStyle(.bordered)
       }
       if copyable {
         Button {

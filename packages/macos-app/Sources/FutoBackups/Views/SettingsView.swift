@@ -37,7 +37,8 @@ struct SettingsView: View {
           }
           Spacer()
           Button("Sign Out", role: .destructive) { model.logout() }
-            .buttonStyle(SecondaryButtonStyle(tint: .red))
+            .buttonStyle(.bordered)
+            .tint(.red)
         }
         .padding(.vertical, 4)
       }
@@ -105,11 +106,11 @@ struct SettingsView: View {
                 revealing = false
               }
             }
-            .buttonStyle(SecondaryButtonStyle())
+            .buttonStyle(.bordered)
             .disabled(revealing)
           }
           Button("Change Recovery Key") { changingRecoveryKey = true }
-            .buttonStyle(SecondaryButtonStyle())
+            .buttonStyle(.bordered)
             .disabled(!model.canChangeRecoveryKey)
         }
         .padding(.vertical, 4)
@@ -138,7 +139,7 @@ struct SettingsView: View {
                 NSWorkspace.shared.open(url)
               }
             }
-            .buttonStyle(SecondaryButtonStyle())
+            .buttonStyle(.bordered)
           }
         }
       }
@@ -157,7 +158,7 @@ struct SettingsView: View {
               detail: versionText)
           }
           Button("Check Now") { updater.checkForUpdates() }
-            .buttonStyle(SecondaryButtonStyle())
+            .buttonStyle(.bordered)
             .disabled(!updater.canCheckForUpdates)
         } else {
           SettingLabel(

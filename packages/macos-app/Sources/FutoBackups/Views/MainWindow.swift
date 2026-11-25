@@ -112,6 +112,14 @@ struct MainWindow: View {
       case .settings: SettingsView().navigationTitle("Settings")
       }
     }
+    .toolbar {
+      if selection != .overview {
+        ToolbarItem(placement: .primaryAction) {
+          BackUpNowToolbarButton()
+            .buttonStyle(.borderedProminent)
+        }
+      }
+    }
   }
 
   private var sidebarSelection: Binding<SidebarItem?> {

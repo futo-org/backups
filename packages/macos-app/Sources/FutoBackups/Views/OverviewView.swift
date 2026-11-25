@@ -188,6 +188,35 @@ struct OverviewView: View {
   }
 }
 
+enum QuickBackupAction: Equatable {
+  case backUp(enabled: Bool)
+  case cancel(ActivityPhase)
+
+  @MainActor
+  init(model: AppModel) {
+    if let activity = model.activity, activity.isCancellable, !model.isCancelling {
+      self = .cancel(activity)
+    } else {
+      let idle = StatusSummary(model: model, progress: nil).action == .backUp
+      self = .backUp(enabled: idle && !model.isResetting && !model.backupDeletion.isRunning)
+    }
+  }
+}
+
+struct BackUpNowToolbarButton: View {
+  @Environment(AppModel.self) private var model
+
+  var body: some View {
+    switch QuickBackupAction(model: model) {
+    case .cancel:
+      Button("Cancel") { model.cancelBackup() }
+    case .backUp(let enabled):
+      Button("Back Up Now") { model.backupNow() }
+        .disabled(!enabled)
+    }
+  }
+}
+
 struct StatusHero: View {
   @Environment(AppModel.self) private var model
   let progress: ActivityProgressStore
@@ -215,17 +244,19 @@ struct StatusHero: View {
             } label: {
               Label("Back Up Now", systemImage: "arrow.up.circle.fill")
             }
-            .buttonStyle(PrimaryButtonStyle(large: true))
+            .buttonStyle(.borderedProminent)
+            .tint(Brand.fill)
           case .addFolders:
             Button {
               showFolders()
             } label: {
               Label("Add Folders", systemImage: "plus")
             }
-            .buttonStyle(PrimaryButtonStyle(large: true))
+            .buttonStyle(.borderedProminent)
+            .tint(Brand.fill)
           case .cancel:
             Button("Cancel") { model.cancelBackup() }
-              .buttonStyle(SecondaryButtonStyle())
+              .buttonStyle(.bordered)
           case .none:
             EmptyView()
           }
@@ -233,6 +264,7 @@ struct StatusHero: View {
             BackupWarningsButton(warnings: warnings)
           }
         }
+        .controlSize(.extraLarge)
         .padding(.top, 10)
       }
       Spacer(minLength: 0)
