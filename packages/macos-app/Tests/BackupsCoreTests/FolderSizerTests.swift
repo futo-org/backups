@@ -34,13 +34,13 @@ private struct Tree {
   try tree.file("nested/b.bin", bytes: 2_000)
   try tree.file("nested/deeper/.hidden", bytes: 30)
   try tree.file("Photos Library.photoslibrary/originals/c.heic", bytes: 400)
-  #expect(FolderSizer(excludes: []).measure(tree.root.path) == 2_530)
+  #expect(FolderSizer(excludes: []).measure(tree.root.path) == .bytes(2_530))
 }
 
 @Test func emptyDirectoryMeasuresZero() throws {
   let tree = try Tree()
   defer { tree.remove() }
-  #expect(FolderSizer(excludes: []).measure(tree.root.path) == 0)
+  #expect(FolderSizer(excludes: []).measure(tree.root.path) == .bytes(0))
 }
 
 @Test func skipsExcludedDirectoriesAndGlobbedNames() throws {
@@ -61,7 +61,7 @@ private struct Tree {
     "**/node_modules",
     "**/.DS_Store",
   ]
-  #expect(FolderSizer(excludes: excludes).measure(tree.root.path) == 330)
+  #expect(FolderSizer(excludes: excludes).measure(tree.root.path) == .bytes(330))
 }
 
 @Test(
@@ -85,11 +85,11 @@ func excludePatterns(pattern: String, path: String, expected: Bool) {
   defer { tree.remove() }
   try tree.file("file", bytes: 3)
   let sizer = FolderSizer(excludes: [])
-  #expect(sizer.measure(tree.path("missing")) == nil)
-  #expect(sizer.measure(tree.path("file")) == nil)
+  #expect(sizer.measure(tree.path("missing")) == .unavailable)
+  #expect(sizer.measure(tree.path("file")) == .unavailable)
 }
 
-@Test func unreadableRootIsUnavailableAndUnreadableChildIsSkipped() throws {
+@Test func unreadableRootIsUnavailableAndUnreadableChildMakesTheSizeALowerBound() throws {
   let tree = try Tree()
   defer {
     chmod(tree.path("locked"), 0o700)
@@ -102,8 +102,9 @@ func excludePatterns(pattern: String, path: String, expected: Bool) {
   chmod(tree.path("locked"), 0)
   chmod(tree.path("open/private"), 0)
   let sizer = FolderSizer(excludes: [])
-  #expect(sizer.measure(tree.path("locked")) == nil)
-  #expect(sizer.measure(tree.path("open")) == 5)
+  #expect(sizer.measure(tree.path("locked")) == .unavailable)
+  #expect(sizer.measure(tree.path("open")) == .atLeast(5))
+  #expect(sizer.measure(tree.root.path) == .atLeast(5))
 }
 
 @Test func cancellationStopsTheWalk() throws {
@@ -111,14 +112,14 @@ func excludePatterns(pattern: String, path: String, expected: Bool) {
   defer { tree.remove() }
   try tree.file("a", bytes: 1)
   try tree.file("b", bytes: 1)
-  #expect(FolderSizer(excludes: []).measure(tree.root.path, isCancelled: { true }) == nil)
+  #expect(FolderSizer(excludes: []).measure(tree.root.path, isCancelled: { true }) == .unavailable)
 }
 
 @Test func sizeRunsAsynchronously() async throws {
   let tree = try Tree()
   defer { tree.remove() }
   try tree.file("a", bytes: 42)
-  #expect(try await FolderSizer(excludes: []).size(of: tree.root.path) == 42)
+  #expect(try await FolderSizer(excludes: []).size(of: tree.root.path) == .bytes(42))
 }
 
 @Test func cancelledTaskThrows() async throws {
@@ -131,4 +132,31 @@ func excludePatterns(pattern: String, path: String, expected: Bool) {
     return try await sizer.size(of: tree.root.path)
   }
   await #expect(throws: CancellationError.self) { try await task.value }
+}
+
+@Test func unreadableChildThatIsExcludedKeepsTheSizeExact() throws {
+  let tree = try Tree()
+  defer {
+    chmod(tree.path("open/private"), 0o700)
+    tree.remove()
+  }
+  try tree.file("open/visible", bytes: 5)
+  try tree.file("open/private/secret", bytes: 50)
+  chmod(tree.path("open/private"), 0)
+  #expect(FolderSizer(excludes: [tree.path("open/private")]).measure(tree.path("open")) == .bytes(5))
+}
+
+@Test(
+  "size total summary",
+  arguments: [
+    (SizeTotal(bytes: 10, isCalculating: true), "Calculating"),
+    (SizeTotal(isCalculating: true, isPartial: true), "Calculating"),
+    (SizeTotal(isPartial: true), "Size unavailable"),
+    (SizeTotal(), "Size unavailable"),
+    (SizeTotal(bytes: 0), "About 0 B"),
+    (SizeTotal(bytes: 12), "About 12 B"),
+    (SizeTotal(bytes: 12, isPartial: true), "At least 12 B"),
+  ])
+func sizeTotalSummary(total: SizeTotal, expected: String) {
+  #expect(total.summary { "\($0) B" } == expected)
 }

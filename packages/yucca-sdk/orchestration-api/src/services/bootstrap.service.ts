@@ -33,6 +33,12 @@ export class BootstrapService implements OnApplicationBootstrap {
 
   async onApplicationBootstrap() {
     try {
+      if (!Intl.DateTimeFormat().resolvedOptions().timeZone) {
+        this.logger.warn(
+          'The server time zone could not be resolved and may be invalid or unrecognised. Set TZ to a valid IANA time zone such as Europe/Berlin. Startup will continue, but schedule times cannot be labelled with a time zone and next-run previews will be unavailable.',
+        );
+      }
+
       if (this.moduleConfig.get().requireLock && !this.moduleConfig.hasLock()) {
         const release = await this.database.holdLock('futo_backups_module_config');
         if (release) {

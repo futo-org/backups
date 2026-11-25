@@ -144,8 +144,13 @@ public struct FolderSelection: Equatable, Sendable {
     paths.reduce(into: SizeTotal()) { total, path in
       switch size(path) {
       case .calculating: total.isCalculating = true
-      case .unavailable: total.isPartial = true
-      case .bytes(let bytes): total.bytes += bytes
+      case .unavailable:
+        total.isPartial = true
+      case .bytes(let bytes):
+        total.bytes = (total.bytes ?? 0) + bytes
+      case .atLeast(let bytes):
+        total.bytes = (total.bytes ?? 0) + bytes
+        total.isPartial = true
       }
     }
   }

@@ -6,17 +6,24 @@ public enum FolderSize: Equatable, Sendable {
   case calculating
   case unavailable
   case bytes(Int64)
+  case atLeast(Int64)
 }
 
 public struct SizeTotal: Equatable, Sendable {
-  public var bytes: Int64 = 0
+  public var bytes: Int64?
   public var isCalculating = false
   public var isPartial = false
 
-  public init(bytes: Int64 = 0, isCalculating: Bool = false, isPartial: Bool = false) {
+  public init(bytes: Int64? = nil, isCalculating: Bool = false, isPartial: Bool = false) {
     self.bytes = bytes
     self.isCalculating = isCalculating
     self.isPartial = isPartial
+  }
+
+  public func summary(formatBytes: (Int64) -> String) -> String {
+    if isCalculating { return "Calculating" }
+    guard let bytes else { return "Size unavailable" }
+    return isPartial ? "At least \(formatBytes(bytes))" : "About \(formatBytes(bytes))"
   }
 }
 
@@ -32,11 +39,11 @@ public struct FolderSizer: Sendable {
     self.queue = queue
   }
 
-  public func size(of path: String) async throws -> Int64? {
+  public func size(of path: String) async throws -> FolderSize {
     try Task.checkCancellation()
     let cancelled = CancellationFlag()
     let result = await withTaskCancellationHandler {
-      await withCheckedContinuation { (continuation: CheckedContinuation<Int64?, Never>) in
+      await withCheckedContinuation { (continuation: CheckedContinuation<FolderSize, Never>) in
         queue.async {
           continuation.resume(returning: measure(path, isCancelled: cancelled.isSet))
         }
@@ -48,9 +55,9 @@ public struct FolderSizer: Sendable {
     return result
   }
 
-  public func measure(_ path: String, isCancelled: () -> Bool = { false }) -> Int64? {
-    guard FolderSelection.isDirectory(path) else { return nil }
-    return DirectoryWalk.totalBytes(under: path, isExcluded: isExcluded, isCancelled: isCancelled)
+  public func measure(_ path: String, isCancelled: () -> Bool = { false }) -> FolderSize {
+    guard FolderSelection.isDirectory(path) else { return .unavailable }
+    return DirectoryWalk.size(under: path, isExcluded: isExcluded, isCancelled: isCancelled)
   }
 
   public func isExcluded(_ path: String) -> Bool {

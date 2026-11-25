@@ -104,11 +104,11 @@ private struct FullDiskAccessStep: View {
         HStack(spacing: 8) {
           ProgressView()
             .controlSize(.small)
-          Text("Waiting for Full Disk Access…")
+          Text("Waiting for Full Disk Access")
             .font(.system(size: 12))
             .foregroundStyle(.secondary)
         }
-        Button("Skip for now", action: next)
+        Button("Skip for Now", action: next)
           .buttonStyle(.link)
           .font(.system(size: 12))
       }
@@ -170,6 +170,19 @@ private struct ChooseFoldersStep: View {
             choice: choice, selection: $selection,
             size: size(of: choice))
         }
+        if selection.canContinue {
+          Divider()
+          HStack {
+            Text("Total")
+              .font(.system(size: 13, weight: .semibold))
+            Spacer()
+            Text(selectedTotal.summary { Format.bytes($0) })
+              .font(.system(size: 12, weight: .semibold))
+              .monospacedDigit()
+          }
+          .padding(.horizontal, 12)
+          .padding(.vertical, 10)
+        }
       }
       .padding(6)
       .frame(maxWidth: .infinity)
@@ -178,7 +191,7 @@ private struct ChooseFoldersStep: View {
         Button {
           chooseOtherFolders()
         } label: {
-          Label("Choose Other Folders…", systemImage: "plus")
+          Label("Choose Other Folders", systemImage: "plus")
         }
         .buttonStyle(SecondaryButtonStyle())
         Spacer()
@@ -207,6 +220,10 @@ private struct ChooseFoldersStep: View {
 
   private var pathsToMeasure: [String] {
     selection.pathsToMeasure(hasFullDiskAccess: model.hasFullDiskAccess)
+  }
+
+  private var selectedTotal: SizeTotal {
+    selection.total { estimates.sizes[$0] ?? .calculating }
   }
 
   private func size(of choice: FolderChoice) -> FolderSize? {
@@ -353,7 +370,7 @@ private struct SizeLabel: View {
       HStack(spacing: 6) {
         ProgressView()
           .controlSize(.mini)
-        Text("Calculating…")
+        Text("Calculating")
       }
       .font(.system(size: 11))
       .foregroundStyle(.secondary)
@@ -362,9 +379,15 @@ private struct SizeLabel: View {
         .font(.system(size: 12, weight: .medium))
         .monospacedDigit()
         .foregroundStyle(.secondary)
+    case .atLeast(let bytes):
+      Text("At least \(Format.bytes(bytes))")
+        .font(.system(size: 12, weight: .medium))
+        .monospacedDigit()
+        .foregroundStyle(.secondary)
+        .help("Some folders inside couldn't be read.")
     case .unavailable:
       Text("—")
-        .foregroundStyle(.tertiary)
+        .foregroundStyle(.secondary)
         .help("This folder couldn't be read.")
     case nil:
       EmptyView()
@@ -495,9 +518,7 @@ private struct ReadyStep: View {
   }
 
   private var sizeSummary: String {
-    let total = selection.total { estimates.sizes[$0] ?? .calculating }
-    if total.isCalculating { return "Calculating…" }
-    return total.isPartial ? "At least \(Format.bytes(total.bytes))" : "About \(Format.bytes(total.bytes))"
+    selection.total { estimates.sizes[$0] ?? .calculating }.summary { Format.bytes($0) }
   }
 
   private var scheduleSummary: String {

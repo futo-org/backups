@@ -26,7 +26,7 @@ struct UploadSpeedCard: View {
               .lineLimit(2)
               .fixedSize(horizontal: false, vertical: true)
           } else {
-            Text("Preparing upload…")
+            Text("Preparing upload")
               .font(.system(size: 15, weight: .medium))
               .foregroundStyle(.secondary)
           }
@@ -72,7 +72,7 @@ struct UploadSpeedBadge: View {
         UploadSparkline(speed: speed, interactive: false)
           .frame(maxWidth: .infinity, minHeight: 18, maxHeight: 18)
       } else {
-        Text("Preparing upload…")
+        Text("Preparing upload")
           .font(.system(size: 12))
           .foregroundStyle(.secondary)
       }

@@ -5,10 +5,10 @@ import Observation
 @Observable
 public final class FolderSizeEstimates {
   public private(set) var sizes: [String: FolderSize] = [:]
-  private let measure: @Sendable (String) async throws -> Int64?
+  private let measure: @Sendable (String) async throws -> FolderSize
   private var tasks: [String: Task<Void, Never>] = [:]
 
-  public init(measure: @escaping @Sendable (String) async throws -> Int64?) {
+  public init(measure: @escaping @Sendable (String) async throws -> FolderSize) {
     self.measure = measure
   }
 
@@ -22,8 +22,7 @@ public final class FolderSizeEstimates {
       let measure = measure
       tasks[path] = Task {
         do {
-          let bytes = try await measure(path)
-          sizes[path] = bytes.map(FolderSize.bytes) ?? .unavailable
+          sizes[path] = try await measure(path)
         } catch is CancellationError {
           sizes[path] = nil
         } catch {
