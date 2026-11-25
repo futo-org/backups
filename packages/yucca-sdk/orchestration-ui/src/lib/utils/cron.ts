@@ -49,10 +49,18 @@ export const resolveCron = (
   return (preset && defaults?.[preset]) ?? cron;
 };
 
-export const withTimeZone = (text: string, tz: string | undefined) =>
-  !tz || tz === DateTime.local().zoneName
+export const withTimeZone = (text: string, tz: string | undefined) => {
+  if (!tz) {
+    return gt({
+      message: '{text} (server time zone unavailable)',
+      values: { text },
+    });
+  }
+
+  return tz === DateTime.local().zoneName
     ? text
     : `${text} (${tz.replaceAll('_', ' ')})`;
+};
 
 export const describeCron = (expression: string, tz: string | undefined) => {
   const description = cronstrue.toString(expression, { verbose: true });
