@@ -75,7 +75,7 @@ catalog:
   '@vitest/browser-playwright': ^5.0.0
   aws4fetch: ^1.0.20
   better-sqlite3: ^12.11.1
-  cookie: ^1.1.1
+  cookie: ^2.0.0
   cron: ^4.4.0
   cronstrue: ^3.27.0
   discord.js: ^14.16.3
