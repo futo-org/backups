@@ -78,7 +78,11 @@ struct CardBackground: View {
   private var increasedContrast: Bool { contrast == .increased }
 
   private var fill: Color {
-    colorScheme == .dark ? Color.white.opacity(increasedContrast ? 0.1 : 0.045) : Color.white
+    colorScheme == .dark ? Color.white.opacity(Self.darkFillOpacity(contrast)) : Color.white
+  }
+
+  static func darkFillOpacity(_ contrast: ColorSchemeContrast) -> Double {
+    contrast == .increased ? 0.1 : 0.045
   }
 
   private var borderOpacity: Double {

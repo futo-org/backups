@@ -88,6 +88,7 @@ struct UploadSparkline: View {
   let interactive: Bool
   @State private var hoveredOffset: Double?
   @Environment(\.colorScheme) private var colorScheme
+  @Environment(\.colorSchemeContrast) private var contrast
 
   var body: some View {
     let points = speed.history
@@ -154,7 +155,8 @@ struct UploadSparkline: View {
 
   private var surface: Color {
     colorScheme == .dark
-      ? Color(nsColor: .windowBackgroundColor).mix(with: .white, by: 0.045) : .white
+      ? Color(nsColor: .windowBackgroundColor).mix(with: .white, by: CardBackground.darkFillOpacity(contrast))
+      : .white
   }
 }
 
