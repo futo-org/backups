@@ -229,6 +229,10 @@ func runRecordOutcome(status: BackupStatus, outcome: BackupRunOutcome) {
   ("Load(<data/1234>, 0, 0) returned error, retrying: unexpected HTTP response (403): 403 Forbidden", .other),
   ("unauthorized access to /data", .other),
   ("", .other),
+  (ErrorMessage.sessionExpired, .signedOut),
+  (ConnectionFailure.unreachable.message(server: "futo.cloud"), .unreachable),
+  (ConnectionFailure.offline.message(server: "futo.cloud"), .unreachable),
+  (ConnectionFailure.insecure.message(server: "example.org"), .unreachable),
 ])
 func failureReasonFromMessage(message: String, reason: BackupFailureReason) {
   #expect(BackupFailureReason(message: message) == reason)
