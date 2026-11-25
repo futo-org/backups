@@ -52,7 +52,7 @@ const ScheduleUpdateRequestSchema = z
 const ScheduleUpdateResponseSchema = z.object({ schedule: ScheduleSchema }).meta({ id: 'ScheduleUpdateResponseDto' });
 
 const ScheduleListResponseSchema = z
-  .object({ schedules: z.array(ScheduleSchema), defaults: ScheduleDefaultsSchema, tz: z.string() })
+  .object({ schedules: z.array(ScheduleSchema), defaults: ScheduleDefaultsSchema, tz: z.string().optional() })
   .meta({ id: 'ScheduleListResponseDto' });
 
 export class ScheduleDefaultsDto extends createZodDto(ScheduleDefaultsSchema) {}
