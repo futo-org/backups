@@ -46,17 +46,19 @@ describe('Bootstrap', () => {
       timeZone: undefined as unknown as string,
     });
     const warning = jest.spyOn(LoggingRepository.prototype, 'warn');
+    let fresh: TestContext | undefined;
 
     try {
-      await ctx.module.get(BootstrapService).onApplicationBootstrap();
+      fresh = await createTestingModule();
 
-      expect(ctx.module.get(BootstrapRepository).getStatus()).toBe(BootstrapStatus.Ready);
+      expect(fresh.module.get(BootstrapRepository).getStatus()).toBe(BootstrapStatus.Ready);
       expect(warning).toHaveBeenCalledWith(
         expect.stringMatching(/time zone.*invalid or unrecognised.*TZ.*Europe\/Berlin/),
       );
     } finally {
       timeZone.mockRestore();
       warning.mockRestore();
+      await fresh?.app.close();
     }
   });
 
