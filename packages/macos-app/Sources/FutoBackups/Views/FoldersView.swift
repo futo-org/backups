@@ -114,6 +114,7 @@ struct FoldersView: View {
             Spacer(minLength: 8)
             Button("Show List") { showingExclusions = true }
               .buttonStyle(.bordered)
+              .accessibilityLabel("Show the list of excluded items")
           }
         }
         HStack(spacing: 8) {
