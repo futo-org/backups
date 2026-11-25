@@ -59,6 +59,7 @@ final class AppModel {
   var snapshotsLoad: SnapshotsLoad = .notLoaded
   var lastError: String?
   var nextRun: Date?
+  var waitingFor: [BackupCondition] = []
   var setupError: String?
   var signedIn = false
   var restoredFolders: [URL] = []
@@ -97,6 +98,7 @@ final class AppModel {
   private var appActiveObserver: (any NSObjectProtocol)?
   private var backupDeletionTask: Task<Void, Never>?
   private let failureNotifier = FailureNotifier(center: FailureNotifications.shared)
+  private let machineProbe = MachineProbe()
 
   static let allowsServerSelection =
     Bundle.main.object(forInfoDictionaryKey: "FUTOServerSelection") as? Bool ?? true
@@ -188,6 +190,9 @@ final class AppModel {
     failureNotifier.host = self
     scheduler = Scheduler(model: self)
     scheduler?.start()
+    machineProbe.start { [weak self] in
+      Task { @MainActor in self?.tick() }
+    }
     let clearsSession = pinnedToProduction
     Task { @MainActor in
       if clearsSession {
@@ -288,16 +293,54 @@ final class AppModel {
     recomputeNextRun()
     guard engine != nil, hasSession, signedIn, !isMissingRecoveryKey, config.repositoryId != nil,
       !config.folders.isEmpty, operationTask == nil
-    else { return }
+    else { return showWaiting(for: []) }
     if config.scheduleReference == nil {
       config.scheduleAnchor = Date()
       saveConfig()
       recomputeNextRun()
-      return
+      return showWaiting(for: [])
     }
-    if config.schedule.isDue(lastRun: config.scheduleReference, now: .now, calendar: .current) {
+    switch config.scheduledRunDecision(now: .now, calendar: .current, machine: machineProbe.current) {
+    case .notDue:
+      showWaiting(for: [])
+    case .run:
+      showWaiting(for: [])
       backupNow(scheduled: true)
+    case .runAnyway(let unmet):
+      showWaiting(for: [])
+      report(
+        "Running scheduled backup without its conditions",
+        ["unmet": .array(unmet.map { .string($0.telemetryName) })])
+      backupNow(scheduled: true)
+    case .wait(let unmet):
+      showWaiting(for: unmet)
     }
+  }
+
+  private func showWaiting(for conditions: [BackupCondition]) {
+    if waitingFor != conditions { waitingFor = conditions }
+  }
+
+  func setBackupConditions(_ conditions: BackupConditions) {
+    config.conditions = conditions
+    saveConfig()
+    report(
+      "Updated backup conditions",
+      [
+        "conditions": .array(conditions.required.map { .string($0.telemetryName) }),
+        "runAnywayAfterDays": .int(Int64(conditions.runAnywayAfterDays ?? 0)),
+      ])
+    tick()
+  }
+
+  func setKeepAwake(_ enabled: Bool) {
+    config.keepAwake = enabled
+    saveConfig()
+    report("Updated keep awake", ["enabled": .bool(enabled)])
+  }
+
+  func currentMachineState() -> MachineState {
+    machineProbe.current()
   }
 
   func startLogin() {
@@ -862,7 +905,11 @@ final class AppModel {
     let generation = sessionGeneration
     activity = .preparing
     operationTask = Task {
+      let wakeLock =
+        configSnapshot.keepsAwake
+        ? ProcessInfo.processInfo.beginActivity(options: .idleSystemSleepDisabled, reason: "Backing up") : nil
       defer {
+        if let wakeLock { ProcessInfo.processInfo.endActivity(wakeLock) }
         if scheduled {
           report(
             "Finished running schedule for 1 repositories",

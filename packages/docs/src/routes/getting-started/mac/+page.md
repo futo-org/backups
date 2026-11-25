@@ -60,6 +60,8 @@ When you close the window, the app continues to run in the menu bar. The menu ba
 You can change these settings:
 
 - Schedule: on **Overview**, select **Manual**, **Hourly**, **Daily** or **Weekly**. The default is each day at 12:00. If your Mac was asleep at that time, the backup starts when the app can run it.
+- Keep awake: under **Settings** → **Scheduled backups**, **Keep this Mac awake** stops your Mac from going to sleep on its own during a backup. This setting is on by default. Closing the lid still puts your Mac to sleep.
+- Backup conditions: under **Settings** → **Scheduled backups**, a scheduled backup can wait until your Mac is on power, on Ethernet, connected to an external display or attached to a USB device such as your dock. If the conditions stay unmet, the backup runs anyway after 3 days. You can change this time or select **Never**. **Back Up Now** does not wait for the conditions.
 - Snapshots to keep: under **Settings** → **Snapshots**, select 15, 30, 60 or 90 days, the latest two backups, all backups, or your own rules. The default is 60 days.
 - Upload limit: under **Settings** → **Bandwidth**, set the maximum upload speed. To remove the limit at night, turn on **Full speed at night**.
 - Disk snapshots: under **Settings**, **Back up from a disk snapshot** reads the internal disk of your Mac from a copy that does not change during the backup. This setting needs Full Disk Access.

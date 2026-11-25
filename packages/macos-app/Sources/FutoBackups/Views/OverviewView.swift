@@ -110,6 +110,7 @@ struct OverviewView: View {
 
   private var nextBackup: String {
     if model.activity != nil { return "Running now" }
+    if !model.waitingFor.isEmpty { return BackupCondition.waitingText(model.waitingFor) }
     guard let nextRun = model.nextRun else { return "Manual" }
     return nextRun <= .now ? "Due now" : Format.relative(nextRun)
   }
