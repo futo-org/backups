@@ -14,7 +14,8 @@ struct AppCommands: Commands {
         MenuBarResidency.shared.showMainWindow()
       }
       .keyboardShortcut(",")
-      .disabled(!model.signedIn || model.needsOnboarding)
+      .disabled(
+        !model.sessionLoaded || model.config.telemetryConsentedAt == nil || !model.signedIn || model.needsOnboarding)
     }
     SidebarCommands()
     CommandMenu("Backup") {

@@ -1003,6 +1003,7 @@ final class AppModel {
     configNeedsMovingAside = false
     pendingBootstrapError = nil
     backupDeletion = .idle
+    UserDefaults.standard.removeObject(forKey: SidebarItem.storageKey)
     recomputeNextRun()
   }
 
