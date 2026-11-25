@@ -122,4 +122,16 @@ describe('schedule descriptions in the server time zone', () => {
       'at 04:17 AM, every day',
     );
   });
+
+  it('qualifies a preset when the server time zone is unknown', () => {
+    expect(describeSchedule('@weekly', defaults, undefined)).toBe(
+      'between 03:00 and 04:00, only on Tuesday (server time zone unavailable)',
+    );
+  });
+
+  it('qualifies a custom expression when the server time zone is unknown', () => {
+    expect(describeSchedule('17 4 * * *', defaults, undefined)).toBe(
+      'at 04:17 AM, every day (server time zone unavailable)',
+    );
+  });
 });

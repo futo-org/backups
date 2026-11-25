@@ -23,14 +23,14 @@ struct StatusSummary {
   init(model: AppModel, progress: BackupProgress?, restore: RestoreStep? = nil) {
     if model.isCancelling, model.activity != nil {
       self.init(
-        title: "Cancelling…", subtitle: "Stopping safely…", symbol: "xmark", tint: Brand.blue, busy: true,
+        title: "Cancelling", subtitle: "Stopping safely", symbol: "xmark", tint: Brand.blue, busy: true,
         action: .none, menuBarSymbol: "arrow.clockwise.icloud")
       return
     }
     switch model.activity {
     case .backingUp where (progress?.percentDone ?? 0) >= 0.999:
       self.init(
-        title: "Finishing backup", subtitle: "Uploading the last changes…", symbol: "arrow.up", tint: Brand.blue,
+        title: "Finishing backup", subtitle: "Uploading the last changes", symbol: "arrow.up", tint: Brand.blue,
         busy: true, action: .cancel, menuBarSymbol: "arrow.clockwise.icloud")
       return
     case .backingUp:
@@ -40,33 +40,33 @@ struct StatusSummary {
       return
     case .preparing:
       self.init(
-        title: "Preparing backup", subtitle: "Looking for changes in your folders…", symbol: "magnifyingglass",
+        title: "Preparing backup", subtitle: "Looking for changes in your folders", symbol: "magnifyingglass",
         tint: Brand.blue, busy: true, action: .cancel, menuBarSymbol: "arrow.clockwise.icloud")
       return
     case .finishing(let step):
       self.init(
         title: "Finishing backup",
         subtitle: step == .removingDiskSnapshot
-          ? "Removing the disk snapshot…" : "Checking for files kept only in the cloud…",
+          ? "Removing the disk snapshot" : "Checking for files kept only in the cloud",
         symbol: "checkmark", tint: Brand.blue, busy: true, action: .none, menuBarSymbol: "arrow.clockwise.icloud")
       return
     case .pruning:
       self.init(
-        title: "Tidying up", subtitle: "Removing old snapshots…", symbol: "sparkles",
+        title: "Tidying up", subtitle: "Removing old snapshots", symbol: "sparkles",
         tint: Brand.blue, busy: true, action: .none, menuBarSymbol: "arrow.clockwise.icloud")
       return
     case .restoring:
       let fraction = restore?.fraction
       self.init(
         title: restore?.title ?? "Restoring",
-        subtitle: restore?.subtitle { Format.bytes($0) } ?? "Bringing your files back…", symbol: "arrow.down",
+        subtitle: restore?.subtitle { Format.bytes($0) } ?? "Bringing your files back", symbol: "arrow.down",
         tint: Brand.blue, progress: fraction, busy: fraction == nil, action: .cancel,
         menuBarSymbol: "arrow.down.circle")
       compactSubtitle = restore?.subtitle(namingPart: false) { Format.bytes($0) }
       return
     case .changingRecoveryKey:
       self.init(
-        title: "Changing recovery key", subtitle: "Updating the key for this Mac's backup…", symbol: "key.fill",
+        title: "Changing recovery key", subtitle: "Updating the key for this Mac's backup", symbol: "key.fill",
         tint: Brand.blue, busy: true, action: .none, menuBarSymbol: "arrow.clockwise.icloud")
       return
     case nil:

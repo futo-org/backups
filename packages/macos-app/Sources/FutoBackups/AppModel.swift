@@ -809,7 +809,7 @@ final class AppModel {
       return
     }
     guard hasSession else {
-      lastError = "Not logged in"
+      lastError = "Not signed in"
       return
     }
     guard signedIn else {
@@ -881,6 +881,15 @@ final class AppModel {
           "repositories": .array([.string(repositoryId)]),
         ])
     }
+  }
+
+  var canBackUpNow: Bool {
+    signedIn && !config.folders.isEmpty && activity == nil && operationTask == nil && !isResetting
+      && backupDeletionTask == nil
+  }
+
+  var canCancelActivity: Bool {
+    operationTask != nil && !isCancelling && activity?.isCancellable == true
   }
 
   func cancelBackup() {
@@ -1008,6 +1017,7 @@ final class AppModel {
     configNeedsMovingAside = false
     pendingBootstrapError = nil
     backupDeletion = .idle
+    UserDefaults.standard.removeObject(forKey: SidebarItem.storageKey)
     recomputeNextRun()
     failureNotifier.endStreak()
   }
@@ -1291,7 +1301,7 @@ final class AppModel {
   private func message(for error: Error) -> String {
     if let engineError = error as? EngineError {
       switch engineError {
-      case .notLoggedIn: return "Not logged in"
+      case .notLoggedIn: return "Not signed in"
       case .noRepository: return "No repository yet"
       case .noFolders: return "No folders selected"
       case .busy: return "Another operation is running"
@@ -1301,7 +1311,7 @@ final class AppModel {
     }
     if let yuccaError = error as? YuccaError, yuccaError == .unauthorized {
       logout()
-      return "Session expired, log in again"
+      return "Session expired, sign in again"
     }
     if let loginError = error as? DeviceLoginError {
       return loginError.message(server: config.serverDisplayName)

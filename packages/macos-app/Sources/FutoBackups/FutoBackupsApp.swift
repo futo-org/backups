@@ -1,4 +1,5 @@
 import AppKit
+import BackupsCore
 import SwiftUI
 
 @main
@@ -10,6 +11,7 @@ struct FutoBackupsApp: App {
   init() {
     let model = AppModel()
     _model = State(initialValue: model)
+    AppDelegate.model = model
     _updater = State(initialValue: Updater(startingUpdater: !model.needsOnboarding))
   }
 
@@ -25,9 +27,10 @@ struct FutoBackupsApp: App {
     .defaultSize(width: 980, height: 680)
     .commands {
       CommandGroup(after: .appInfo) {
-        Button("Check for Updates…") { updater.checkForUpdates() }
+        Button("Check for Updates") { updater.checkForUpdates() }
           .disabled(!updater.canCheckForUpdates)
       }
+      AppCommands(model: model)
     }
     MenuBarExtra {
       MenuBarContent()
@@ -44,6 +47,7 @@ struct FutoBackupsApp: App {
 
 @MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate {
+  static var model: AppModel?
   private var launchedAsLoginItem = false
   private var windowCloseObserver: (any NSObjectProtocol)?
 
@@ -79,5 +83,37 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
       MenuBarResidency.shared.showMainWindow()
     }
     return true
+  }
+
+  func applicationDockMenu(_ sender: NSApplication) -> NSMenu? {
+    guard let model = Self.model, model.signedIn else { return nil }
+    let item: NSMenuItem
+    switch QuickBackupAction(model: model) {
+    case .cancel(let activity):
+      dockMenuActivity = activity
+      item = NSMenuItem(
+        title: activity == .restoring ? "Cancel Restore" : "Cancel Backup", action: #selector(cancelBackup),
+        keyEquivalent: "")
+    case .backUp(let enabled):
+      dockMenuActivity = nil
+      item = NSMenuItem(title: "Back Up Now", action: #selector(backUpNow), keyEquivalent: "")
+      item.isEnabled = enabled
+    }
+    item.target = self
+    let menu = NSMenu()
+    menu.autoenablesItems = false
+    menu.addItem(item)
+    return menu
+  }
+
+  private var dockMenuActivity: ActivityPhase?
+
+  @objc private func backUpNow() {
+    Self.model?.backupNow()
+  }
+
+  @objc private func cancelBackup() {
+    guard let model = Self.model, let shown = dockMenuActivity, model.activity == shown else { return }
+    model.cancelBackup()
   }
 }

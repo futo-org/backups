@@ -144,18 +144,19 @@ describe('Immich onboarding', () => {
 
   describe('first backup dialog', () => {
     const zone = 'Europe/London';
+    const localTimeZone = { tz: zone };
     const { defaultZone, defaultLocale } = Settings;
 
     const openFirstBackupAt = async (
       time: string,
       daily: string,
-      tz = zone,
+      timeZone: { tz?: string } = localTimeZone,
     ) => {
       vi.setSystemTime(DateTime.fromISO(time, { zone }).toJSDate());
       queryClient.setQueryData(scheduleKeys.all, {
         schedules: [],
         defaults: { daily, weekly: daily, monthly: daily },
-        tz,
+        ...timeZone,
       });
       await openBetaDisclaimer();
       await createBackup();
@@ -187,12 +188,24 @@ describe('Immich onboarding', () => {
         .toBeVisible();
     });
 
+    it('shows the schedule without a next-run preview when the server time zone is unavailable', async () => {
+      await openFirstBackupAt('2026-11-17T01:00', '0 3 * * *', {});
+      await expect
+        .element(
+          page.getByText(
+            'Between 03:00 and 04:00, every day (server time zone unavailable)',
+          ),
+        )
+        .toBeVisible();
+      await expect
+        .element(page.getByText('Next scheduled backup:', { exact: false }))
+        .not.toBeInTheDocument();
+    });
+
     it('counts days in the server time zone and names it', async () => {
-      await openFirstBackupAt(
-        '2026-11-18T01:00',
-        '0 3 * * *',
-        'America/New_York',
-      );
+      await openFirstBackupAt('2026-11-18T01:00', '0 3 * * *', {
+        tz: 'America/New_York',
+      });
       await expect
         .element(
           page.getByText(

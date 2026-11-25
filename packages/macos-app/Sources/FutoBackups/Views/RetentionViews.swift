@@ -21,7 +21,7 @@ struct RetentionSection: View {
           Text(preset.label).tag(Choice.preset(preset))
         }
         Divider()
-        Text("Custom…").tag(Choice.custom)
+        Text("Custom").tag(Choice.custom)
       } label: {
         SettingLabel(
           systemName: "clock.arrow.circlepath", tint: .teal, title: "Delete old snapshots",

@@ -188,6 +188,35 @@ struct OverviewView: View {
   }
 }
 
+enum QuickBackupAction: Equatable {
+  case backUp(enabled: Bool)
+  case cancel(ActivityPhase)
+
+  @MainActor
+  init(model: AppModel) {
+    if let activity = model.activity, activity.isCancellable, !model.isCancelling {
+      self = .cancel(activity)
+    } else {
+      let idle = StatusSummary(model: model, progress: nil).action == .backUp
+      self = .backUp(enabled: idle && !model.isResetting && !model.backupDeletion.isRunning)
+    }
+  }
+}
+
+struct BackUpNowToolbarButton: View {
+  @Environment(AppModel.self) private var model
+
+  var body: some View {
+    switch QuickBackupAction(model: model) {
+    case .cancel:
+      Button("Cancel") { model.cancelBackup() }
+    case .backUp(let enabled):
+      Button("Back Up Now") { model.backupNow() }
+        .disabled(!enabled)
+    }
+  }
+}
+
 struct StatusHero: View {
   @Environment(AppModel.self) private var model
   let progress: ActivityProgressStore
@@ -196,7 +225,8 @@ struct StatusHero: View {
   var body: some View {
     let status = StatusSummary(model: model, progress: progress.progress, restore: progress.restore)
     HStack(spacing: 30) {
-      StatusRing(progress: status.progress, busy: status.busy, symbol: status.symbol, tint: status.tint)
+      StatusRing(
+        progress: status.progress, busy: status.busy, symbol: status.symbol, tint: status.tint)
       VStack(alignment: .leading, spacing: 8) {
         Text(status.title)
           .font(.system(size: 28, weight: .bold, design: .rounded))

@@ -34,7 +34,7 @@
   }: Props = $props();
 
   const schedule = $derived.by(() => {
-    if (!defaults || !tz) {
+    if (!defaults) {
       return "";
     }
 

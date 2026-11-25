@@ -122,7 +122,7 @@ struct SettingsView: View {
             RecoveryKeyCard(key: recoveryKey)
             RecoveryKeyActions(key: recoveryKey)
           } else {
-            Button("Reveal Recovery Key") {
+            Button("Show Recovery Key") {
               revealing = true
               Task {
                 self.recoveryKey = await self.model.revealRecoveryKey()
@@ -132,7 +132,7 @@ struct SettingsView: View {
             .buttonStyle(SecondaryButtonStyle())
             .disabled(revealing)
           }
-          Button("Change Recovery Key…") { changingRecoveryKey = true }
+          Button("Change Recovery Key") { changingRecoveryKey = true }
             .buttonStyle(SecondaryButtonStyle())
             .disabled(!model.canChangeRecoveryKey)
         }

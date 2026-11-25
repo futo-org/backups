@@ -47,9 +47,9 @@ struct ThisMacSection: View {
   @State private var sheet: ThisMacSheet?
 
   var body: some View {
-    Section("Remove This Mac") {
+    Section("Remove this Mac") {
       LabeledContent {
-        Button("Unlink This Mac…") { sheet = .reset }
+        Button("Unlink This Mac") { sheet = .reset }
           .buttonStyle(SecondaryButtonStyle(tint: .orange))
       } label: {
         SettingLabel(
@@ -61,7 +61,7 @@ struct ThisMacSection: View {
       .labeledContentStyle(.centered)
       .padding(.vertical, 4)
       LabeledContent {
-        Button("Delete This Mac's Backup…") { sheet = .deleteBackup }
+        Button("Delete This Mac's Backup") { sheet = .deleteBackup }
           .buttonStyle(SecondaryButtonStyle(tint: .red))
       } label: {
         SettingLabel(
@@ -124,7 +124,7 @@ private struct ResetThisMacSheet: View {
 
   var body: some View {
     VStack(spacing: 18) {
-      SheetHeader(systemName: "arrow.counterclockwise", tint: .orange, title: "Unlink This Mac?")
+      SheetHeader(systemName: "arrow.counterclockwise", tint: .orange, title: "Unlink this Mac?")
       SheetText(
         "This removes FUTO Backups' settings, sign-in, recovery key and cache from this Mac. Your backup stays on FUTO Cloud and this Mac stays listed in your account. To pick it up again later, sign in and enter your recovery key."
       )
@@ -188,11 +188,11 @@ private struct DeleteBackupSheet: View {
       case .idle:
         confirmation
       case .starting:
-        progress("Opening your browser…")
+        progress("Opening your browser")
       case .confirmingInBrowser(let url):
         waiting(url)
       case .removingThisMac:
-        progress("Removing this Mac from your account…")
+        progress("Removing this Mac from your account")
       case .macStillLinked(let otherRepositories, let detail):
         stillLinked(otherRepositories, detail: detail)
       case .failed(let message):
@@ -207,7 +207,7 @@ private struct DeleteBackupSheet: View {
 
   private var confirmation: some View {
     Group {
-      SheetHeader(systemName: "trash.fill", tint: .red, title: "Delete This Mac's Backup?")
+      SheetHeader(systemName: "trash.fill", tint: .red, title: "Delete this Mac's backup?")
       SheetText(
         "The backup \(model.config.host) uses, and all its history, will be permanently deleted from FUTO Cloud. This can't be undone. Your other Macs' backups aren't affected. This Mac is then removed from your account, and FUTO Backups' settings, sign-in, recovery key and cache are cleared from it."
       )
@@ -224,7 +224,7 @@ private struct DeleteBackupSheet: View {
           .buttonStyle(SecondaryButtonStyle())
           .keyboardShortcut(.cancelAction)
         Spacer()
-        Button("Delete Backup…", role: .destructive) { model.startBackupDeletion() }
+        Button("Delete Backup", role: .destructive) { model.startBackupDeletion() }
           .buttonStyle(SecondaryButtonStyle(tint: .red))
           .disabled(!understood)
       }

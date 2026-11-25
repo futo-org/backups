@@ -149,8 +149,8 @@ func excludePatterns(pattern: String, path: String, expected: Bool) {
 @Test(
   "size total summary",
   arguments: [
-    (SizeTotal(bytes: 10, isCalculating: true), "Calculating…"),
-    (SizeTotal(isCalculating: true, isPartial: true), "Calculating…"),
+    (SizeTotal(bytes: 10, isCalculating: true), "Calculating"),
+    (SizeTotal(isCalculating: true, isPartial: true), "Calculating"),
     (SizeTotal(isPartial: true), "Size unavailable"),
     (SizeTotal(), "Size unavailable"),
     (SizeTotal(bytes: 0), "About 0 B"),
