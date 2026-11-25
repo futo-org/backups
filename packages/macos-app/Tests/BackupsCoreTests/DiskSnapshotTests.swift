@@ -298,7 +298,7 @@ func mountFailures(script: ResticResult, expected: DiskSnapshotError) async {
     (DiskSnapshotError.deleteFailed("boom"), "Could not delete the disk snapshot: boom"),
     (
       DiskSnapshotError.journalUnreadable,
-      "Could not read the record of pending disk snapshots. Turn off disk snapshots in Settings to back up without them."
+      "FUTO Backups could not read the record of pending disk snapshots. To back up without disk snapshots, turn them off in Settings."
     ),
   ])
 func errorDescriptions(error: DiskSnapshotError, expected: String) {

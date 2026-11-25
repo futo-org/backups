@@ -42,7 +42,7 @@ struct BackupWarningsBadge: View {
       .contentShape(Capsule())
     }
     .buttonStyle(.plain)
-    .help("Some files couldn't be backed up. Click to see which.")
+    .help("FUTO Backups could not back up some files. Click to see which.")
     .sheet(isPresented: $showing) {
       BackupWarningsSheet(warnings: warnings)
     }
@@ -63,8 +63,8 @@ struct BackupWarningsSheet: View {
           Text(warnings.headline)
             .font(.system(size: 20, weight: .bold, design: .rounded))
           Text(
-            "The rest of your backup completed. These couldn't be read in full this time, and the next backup tries "
-              + "them again."
+            "The rest of your backup completed. FUTO Backups could not read all of these this time. The next "
+              + "backup tries them again."
           )
           .font(.system(size: 13))
           .foregroundStyle(.secondary)
@@ -119,7 +119,7 @@ struct BackupWarningsSheet: View {
           .font(.headline)
         Cause(
           systemName: "lock.fill",
-          text: "The file was open or locked by another app. Quit that app before the next backup.")
+          text: "Another app had the file open or locked. Quit that app before the next backup.")
         Cause(
           systemName: "hand.raised.fill",
           text: "Permission denied or operation not permitted. Give FUTO Backups Full Disk Access in "
@@ -132,7 +132,7 @@ struct BackupWarningsSheet: View {
         }
         Cause(
           systemName: "arrow.triangle.2.circlepath",
-          text: "The file changed or was deleted while the backup was reading it.")
+          text: "The file changed or was deleted while the backup read it.")
       }
       HStack {
         Spacer()
@@ -187,7 +187,7 @@ struct BackupWarningsSheet: View {
           Text("In Folders")
             .font(.system(size: 11, weight: .medium))
             .foregroundStyle(.secondary)
-            .help("This is or contains a folder you chose to back up. Remove it in Folders to stop backing it up.")
+            .help("This is or contains a folder you chose to back up. To stop backing it up, remove it in Folders.")
         }
       }
       .padding(.horizontal, 12)
@@ -232,6 +232,6 @@ struct BackupWarningsSheet: View {
 
 extension BackupWarnings {
   fileprivate var headline: String {
-    total == 1 ? "1 file couldn't be backed up" : "\(total) files couldn't be backed up"
+    total == 1 ? "Could not back up 1 file" : "Could not back up \(total) files"
   }
 }

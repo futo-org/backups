@@ -41,7 +41,7 @@ struct FailureNotificationHint: View {
         VStack(alignment: .leading, spacing: 2) {
           Text("Get notified if a backup fails")
             .font(.system(size: 13, weight: .semibold))
-          Text("FUTO Backups can tell you when a scheduled backup doesn't finish.")
+          Text("FUTO Backups can tell you when a scheduled backup does not finish.")
             .font(.system(size: 12))
             .foregroundStyle(.secondary)
             .fixedSize(horizontal: false, vertical: true)

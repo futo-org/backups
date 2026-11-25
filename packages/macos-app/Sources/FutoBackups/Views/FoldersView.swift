@@ -31,7 +31,7 @@ struct FoldersView: View {
       .frame(maxWidth: .infinity)
     }
     .navigationTitle("Folders")
-    .navigationSubtitle("Everything inside these folders is encrypted and backed up.")
+    .navigationSubtitle("FUTO Backups encrypts and backs up everything inside these folders.")
     .toolbar {
       ToolbarItem(placement: .primaryAction) {
         Button("Add Folder") { addFolders() }
@@ -130,7 +130,7 @@ struct FoldersView: View {
         Divider()
         DisclosureGroup(isExpanded: $showBuiltInExclusions) {
           VStack(alignment: .leading, spacing: 10) {
-            Text("Caches, the Trash, cloud-synced folders and container disk images are skipped automatically.")
+            Text("FUTO Backups always skips caches, the Trash, cloud-synced folders and container disk images.")
               .font(.system(size: 12))
               .foregroundStyle(.secondary)
               .fixedSize(horizontal: false, vertical: true)

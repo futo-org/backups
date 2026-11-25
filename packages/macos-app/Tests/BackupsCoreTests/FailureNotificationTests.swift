@@ -267,21 +267,26 @@ func failureReasonFromError(error: any Error, reason: BackupFailureReason) {
 @Test(arguments: [
   (
     BackupFailureReason.unreachable, 7 * 3600.0,
-    "FUTO Backups couldn't reach FUTO Cloud. It will try again at 3:00\u{202F}PM."
+    "FUTO Backups could not connect to FUTO Cloud. It will try again at 3:00\u{202F}PM."
   ),
-  (.unreachable, 24 * 3600.0, "FUTO Backups couldn't reach FUTO Cloud. It will try again tomorrow at 8:00\u{202F}AM."),
-  (.other, 3 * 24 * 3600.0, "The backup ran into a problem. It will try again on Monday at 8:00\u{202F}AM."),
-  (.other, -60.0, "The backup ran into a problem. It will try again shortly."),
-  (.unreachable, 0, "FUTO Backups couldn't reach FUTO Cloud. It will try again shortly."),
-  (.signedOut, 3600.0, "You were signed out of FUTO Backups. Sign in again to keep backing up this Mac."),
-  (.missingRecoveryKey, 3600.0, "This Mac's recovery key is missing. Enter it again to keep backing up this Mac."),
+  (
+    .unreachable, 24 * 3600.0,
+    "FUTO Backups could not connect to FUTO Cloud. It will try again tomorrow at 8:00\u{202F}AM."
+  ),
+  (.other, 3 * 24 * 3600.0, "The backup stopped because of an error. It will try again on Monday at 8:00\u{202F}AM."),
+  (.other, -60.0, "The backup stopped because of an error. It will try again soon."),
+  (.unreachable, 0, "FUTO Backups could not connect to FUTO Cloud. It will try again soon."),
+  (.signedOut, 3600.0, "FUTO Backups signed you out. To keep backing up this Mac, sign in again."),
+  (
+    .missingRecoveryKey, 3600.0, "This Mac's recovery key is missing. To keep backing up this Mac, enter the key again."
+  ),
 ])
 func failureNoticeText(reason: BackupFailureReason, retryIn: TimeInterval, body: String) {
   let notice = notice(reason, retryAt: now.addingTimeInterval(retryIn))
-  #expect(notice.title == "Backup didn't finish")
+  #expect(notice.title == "Backup did not finish")
   #expect(notice.body == body)
 }
 
 @Test func aFailureWithNoNextRunOmitsTheRetry() {
-  #expect(notice(.unreachable, retryAt: nil).body == "FUTO Backups couldn't reach FUTO Cloud.")
+  #expect(notice(.unreachable, retryAt: nil).body == "FUTO Backups could not connect to FUTO Cloud.")
 }

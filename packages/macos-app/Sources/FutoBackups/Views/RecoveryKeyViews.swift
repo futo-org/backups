@@ -119,8 +119,8 @@ private struct SaveRecoveryKeyStep: View {
       StepTitle(
         systemName: "key.fill", tint: .orange, title: "Save your recovery key",
         subtitle:
-          "Your backups are encrypted on this Mac with this key. FUTO can't restore them without it, "
-          + "and can't recover the key if you lose it.")
+          "This Mac encrypts your backups with this key. Without it, FUTO cannot restore them. "
+          + "If you lose the key, FUTO cannot recover it.")
       if let key {
         VStack(spacing: 10) {
           RecoveryKeyCard(key: key)
@@ -182,14 +182,16 @@ private struct ConfirmRecoveryKeyStep: View {
     VStack(spacing: 22) {
       StepTitle(
         systemName: "checkmark.shield.fill", tint: .green, title: "Confirm your recovery key",
-        subtitle: "Enter the key exactly as you saved it, to make sure your copy is correct. "
-          + "Spaces and capital letters don't matter.")
+        subtitle: "To make sure that your copy is correct, enter the key exactly as you saved it. "
+          + "Spaces and capital letters do not matter.")
       KeyField(text: $input, invalid: mismatch) { confirm() }
         .onChange(of: input) { _, _ in mismatch = false }
       if mismatch {
-        Label("That key doesn't match. Check your copy and try again.", systemImage: "xmark.octagon.fill")
-          .font(.system(size: 12, weight: .medium))
-          .foregroundStyle(.red)
+        Label(
+          "That key does not match. Compare it with your saved copy, then try again.", systemImage: "xmark.octagon.fill"
+        )
+        .font(.system(size: 12, weight: .medium))
+        .foregroundStyle(.red)
       }
       Button("Confirm") { confirm() }
         .buttonStyle(.borderedProminent)
@@ -236,7 +238,7 @@ struct MissingRecoveryKeyNotice: View {
         VStack(alignment: .leading, spacing: 2) {
           Text("This Mac's recovery key is missing")
             .font(.system(size: 13, weight: .semibold))
-          Text("Backups and restores can't run until you enter it again.")
+          Text("Backups and restores cannot run until you enter it again.")
             .font(.system(size: 12))
             .foregroundStyle(.secondary)
             .fixedSize(horizontal: false, vertical: true)
@@ -321,7 +323,7 @@ private struct RepositoryKeyStep: View {
       StepTitle(
         systemName: "key.horizontal.fill", tint: Brand.blue, title: "Enter its recovery key",
         subtitle: storedKeyFailed
-          ? "The key on this Mac doesn't open \(repository.name). Enter the one you saved for it."
+          ? "The key on this Mac does not open \(repository.name). Enter the one you saved for it."
           : "Enter the recovery key you saved for \(repository.name).")
       RepositoryRow(repository: repository, storedKeyCheck: nil, trailing: nil)
         .padding(6)
@@ -397,7 +399,7 @@ private struct ChooseRepositoryStep: View {
     VStack(spacing: 22) {
       StepTitle(
         systemName: "externaldrive.fill.badge.checkmark", tint: Brand.blue, title: "Continue an existing backup",
-        subtitle: "Choose the backup this Mac should continue.")
+        subtitle: "Choose the backup for this Mac to continue.")
       VStack(spacing: 0) {
         ForEach(Array(repositories.enumerated()), id: \.element.id) { index, repository in
           if index > 0 {

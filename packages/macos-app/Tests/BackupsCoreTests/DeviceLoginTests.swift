@@ -102,13 +102,13 @@ private func login(responses: [HTTPResponse], expiresIn: Int, interval: Int?) ->
   arguments: [
     (DeviceLoginError.expired, "The sign-in code expired. Try again."),
     (.failed(reason: "EXPIRED"), "The sign-in code expired. Try again."),
-    (.failed(reason: "ACCESS_DENIED"), "Sign-in was declined in the browser."),
-    (.failed(reason: "EMAIL_NOT_ALLOWED"), "This account can't use FUTO Backups yet."),
-    (.failed(reason: "FEATURE_NOT_ENABLED"), "Mac backups aren't enabled for this account."),
-    (.failed(reason: "UNSUPPORTED_CONNECTION_TYPE"), "futo.cloud doesn't support the Mac app yet."),
+    (.failed(reason: "ACCESS_DENIED"), "You declined the sign-in in your browser."),
+    (.failed(reason: "EMAIL_NOT_ALLOWED"), "This account cannot use FUTO Backups yet."),
+    (.failed(reason: "FEATURE_NOT_ENABLED"), "Mac backups are not enabled for this account."),
+    (.failed(reason: "UNSUPPORTED_CONNECTION_TYPE"), "futo.cloud does not support the Mac app yet."),
     (
       .failed(reason: "UNKNOWN"),
-      "futo.cloud couldn't finish signing in this Mac. It may not support the Mac app yet."
+      "futo.cloud could not finish signing in this Mac. This happens if it does not support the Mac app yet."
     ),
     (.failed(reason: "SOMETHING_NEW"), "Sign-in failed (SOMETHING_NEW)."),
   ])

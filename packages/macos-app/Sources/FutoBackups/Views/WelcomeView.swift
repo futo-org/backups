@@ -22,7 +22,7 @@ struct WelcomeView: View {
           .padding(.top, 8)
         HStack(spacing: 8) {
           AlphaBadge()
-          Text("This Mac app is in alpha. Keep another copy of anything you can't lose.")
+          Text("This Mac app is in alpha. Keep another copy of anything you cannot lose.")
             .font(.system(size: 12))
             .foregroundStyle(.secondary)
         }
@@ -65,13 +65,13 @@ struct WelcomeView: View {
           .tint(Brand.fill)
           .controlSize(.extraLarge)
           .keyboardShortcut(.defaultAction)
-        Text("You'll approve this Mac in your browser.")
+        Text("You will approve this Mac in your browser.")
           .font(.system(size: 12))
           .foregroundStyle(.secondary)
       }
     case .waiting(let userCode, let url):
       VStack(spacing: 18) {
-        Text("Confirm this code in your browser")
+        Text("Make sure that your browser shows this code")
           .font(.system(size: 13, weight: .medium))
           .foregroundStyle(.secondary)
         DeviceCode(code: userCode)

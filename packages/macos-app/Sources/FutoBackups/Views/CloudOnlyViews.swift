@@ -14,8 +14,8 @@ struct CloudOnlyPolicy: View {
         Text("Files kept only in the cloud are not backed up")
           .font(.system(size: compact ? 12 : 13, weight: .semibold))
         Text(
-          "iCloud Drive, Dropbox, OneDrive and Google Drive files that aren't downloaded to this Mac are skipped. "
-            + "Choose Keep Downloaded in Finder to include them."
+          "FUTO Backups skips iCloud Drive, Dropbox, OneDrive and Google Drive files that are not on this Mac. "
+            + "To include them, choose Keep Downloaded in Finder."
         )
         .font(.system(size: compact ? 11 : 12))
         .foregroundStyle(.secondary)
@@ -67,7 +67,7 @@ struct CloudOnlyFilesSheet: View {
           Text("Stored only in the cloud")
             .font(.system(size: 20, weight: .bold, design: .rounded))
           Text(
-            "\(skipped.headline) They aren't on this Mac, so backing them up would mean downloading them first."
+            "\(skipped.headline) They are not on this Mac. To back them up, this Mac must download them first."
           )
           .font(.system(size: 13))
           .foregroundStyle(.secondary)
@@ -166,7 +166,7 @@ extension CloudOnlySkip {
     let noun = sample.contains { $0.hasSuffix("/") } ? "item" : "file"
     let subject = count == 1 ? "1 \(noun)" : "\(count) \(noun)s"
     let size = bytes > 0 ? " (\(Format.bytes(bytes)))" : ""
-    let verb = count == 1 ? "is stored only in the cloud and wasn't" : "are stored only in the cloud and weren't"
+    let verb = count == 1 ? "is stored only in the cloud and was not" : "are stored only in the cloud and were not"
     return "\(subject)\(size) \(verb) backed up."
   }
 }

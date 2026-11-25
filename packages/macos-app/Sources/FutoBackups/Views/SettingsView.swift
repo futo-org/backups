@@ -124,16 +124,18 @@ struct SettingsView: View {
           SettingLabel(
             systemName: "clock.arrow.circlepath", tint: Brand.blue, title: "Back up from a disk snapshot",
             detail:
-              "Folders on this Mac's internal disk are backed up from a frozen copy, so files that change during a backup stay consistent. Folders on external drives are read as they are. Needs Full Disk Access."
+              "FUTO Backups reads folders on this Mac's internal disk from a frozen copy, so files that change during a backup stay consistent. It reads folders on external drives as they are. This needs Full Disk Access."
           )
         }
         if model.config.usesDiskSnapshots && model.hasSnapshotFolders && !model.hasFullDiskAccess {
           HStack(spacing: 10) {
             Image(systemName: "exclamationmark.triangle.fill")
               .foregroundStyle(.orange)
-            Text("FUTO Backups doesn't seem to have Full Disk Access. Backups from a disk snapshot fail without it.")
-              .font(.system(size: 11))
-              .foregroundStyle(.secondary)
+            Text(
+              "FUTO Backups does not appear to have Full Disk Access. Without it, backups from a disk snapshot fail."
+            )
+            .font(.system(size: 11))
+            .foregroundStyle(.secondary)
             Spacer()
             Button("Open Settings") {
               if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_AllFiles") {
@@ -183,7 +185,7 @@ struct SettingsView: View {
           } label: {
             SettingLabel(
               systemName: "doc.on.doc", tint: .teal, title: "Files read at once",
-              detail: "More is faster on fast disks; fewer keeps your Mac more responsive.")
+              detail: "More is faster on fast disks. Fewer keeps your Mac more responsive.")
           }
           Text("Changes apply from the next backup.")
             .font(.caption)

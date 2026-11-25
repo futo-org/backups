@@ -53,7 +53,7 @@ public enum DiskSnapshotError: Error, Equatable, Sendable, CustomStringConvertib
     case .deleteFailed(let detail):
       "Could not delete the disk snapshot: \(detail)"
     case .journalUnreadable:
-      "Could not read the record of pending disk snapshots. Turn off disk snapshots in Settings to back up without them."
+      "FUTO Backups could not read the record of pending disk snapshots. To back up without disk snapshots, turn them off in Settings."
     }
   }
 

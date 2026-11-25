@@ -45,13 +45,13 @@ public enum ConnectionFailure: CaseIterable, Equatable, Sendable {
   public func message(server: String) -> String {
     switch self {
     case .unreachable:
-      "Couldn't reach \(server). Check your internet connection and try again."
+      "Could not connect to \(server). Make sure that this Mac is connected to the internet."
     case .unavailable:
-      "\(server) didn't respond. Check your internet connection, or try again later."
+      "\(server) did not respond. Make sure that this Mac is connected to the internet, or try again later."
     case .offline:
-      "You're offline. Connect to the internet and try again."
+      "This Mac is offline. Connect it to the internet, then try again."
     case .insecure:
-      "Couldn't connect securely to \(server). Check your network and your Mac's date and time, then try again."
+      "Could not connect securely to \(server). Make sure that the network and the date and time on this Mac are correct."
     }
   }
 
@@ -65,7 +65,7 @@ public enum ConnectionFailure: CaseIterable, Equatable, Sendable {
 }
 
 public enum ErrorMessage {
-  public static let sessionExpired = "Session expired, sign in again"
+  public static let sessionExpired = "Your session expired. Sign in again."
 
   public static func isCancellation(_ error: any Error) -> Bool {
     error is CancellationError || urlErrorCode(in: error) == .cancelled
@@ -109,14 +109,16 @@ public enum ErrorMessage {
   }
 
   private static func restoreIncompleteText(_ incomplete: RestoreIncomplete, server: String) -> String {
-    var parts = [text(for: incomplete.cause, server: server) ?? "Restore cancelled"]
+    var parts = [text(for: incomplete.cause, server: server) ?? "Restore canceled"]
     let count = incomplete.restored.count
     if count > 0 {
       parts.append(
-        count == 1 ? "1 item was restored before it stopped" : "\(count) items were restored before it stopped")
+        count == 1
+          ? "FUTO Backups restored 1 item before the restore stopped"
+          : "FUTO Backups restored \(count) items before the restore stopped")
     }
     if let leftover = incomplete.leftoverStaging {
-      parts.append("The temporary folder \(leftover.path) couldn't be removed")
+      parts.append("FUTO Backups could not remove the temporary folder \(leftover.path)")
     }
     return parts.joined(separator: ". ")
   }
@@ -125,13 +127,13 @@ public enum ErrorMessage {
 extension YuccaError: LocalizedError {
   public var errorDescription: String? {
     switch self {
-    case .invalidDiscovery: "The server address doesn't point to a FUTO Backups server. Check the address."
+    case .invalidDiscovery: "The server address is not a FUTO Backups server. Make sure that the address is correct."
     case .insecureDiscovery: "The server address must use HTTPS."
     case .unauthorized: ErrorMessage.sessionExpired
     case .http(let status, _) where status >= 500 || [408, 429].contains(status):
       "The server returned an error (HTTP \(status)). Try again later."
     case .http(let status, _): "The server returned an error (HTTP \(status))."
-    case .decoding: "The server sent a response FUTO Backups couldn't read."
+    case .decoding: "FUTO Backups could not read the response from the server."
     }
   }
 }
@@ -147,7 +149,7 @@ extension CloudOnlyError: LocalizedError {
 extension RepositoryKeysError: LocalizedError {
   public var errorDescription: String? {
     switch self {
-    case .invalidMasterKey: "That recovery key isn't valid. Check it and try again."
+    case .invalidMasterKey: "That recovery key is not valid. Make sure that you entered it correctly."
     }
   }
 }
@@ -155,7 +157,7 @@ extension RepositoryKeysError: LocalizedError {
 extension SecretStoreError: LocalizedError {
   public var errorDescription: String? {
     switch self {
-    case .keychain(let status): "Couldn't use the keychain (error \(status))."
+    case .keychain(let status): "FUTO Backups could not use the keychain (error \(status))."
     }
   }
 }
@@ -163,7 +165,7 @@ extension SecretStoreError: LocalizedError {
 extension ResticProxyError: LocalizedError {
   public var errorDescription: String? {
     switch self {
-    case .spawnFailed, .notReady: "The backup helper couldn't start. Try again, or reinstall FUTO Backups."
+    case .spawnFailed, .notReady: "The backup helper could not start. Try again, or reinstall FUTO Backups."
     }
   }
 }

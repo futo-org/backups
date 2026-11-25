@@ -129,7 +129,7 @@ func durationDescription(duration: RetentionDuration, text: String) {
       .policy(RetentionPolicy(keepLast: 3, keepWithin: "7d", keepWithinYearly: "10y")),
       "Latest 3 backups, all for 7 days, yearly for 10 years"
     ),
-    (.policy(RetentionPolicy()), "Keep all snapshots until the retention setting is fixed"),
+    (.policy(RetentionPolicy()), "Keep all snapshots until you correct the retention setting"),
   ])
 func retentionSummary(retention: SnapshotRetention, summary: String) {
   #expect(retention.summary == summary)

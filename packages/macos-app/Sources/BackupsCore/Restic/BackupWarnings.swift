@@ -25,7 +25,7 @@ public struct BackupWarnings: Codable, Equatable, Sendable {
 
   public var summary: String? {
     guard total > 0 else { return nil }
-    return total == 1 ? "1 file couldn't be backed up." : "\(total) files couldn't be backed up."
+    return total == 1 ? "FUTO Backups could not back up 1 file." : "FUTO Backups could not back up \(total) files."
   }
 
   public static func livePaths(in text: String, snapshotMounts: [String]) -> String {

@@ -252,7 +252,7 @@ func packSizeIsClampedToResticLimits(serverPackSize: Int, expected: String) asyn
   let log = ActivityLog()
   let record = try await engine.backup(config: testConfig()) { log.record($0) }
   #expect(record.status == .warn)
-  #expect(record.message == "2 files couldn't be backed up.")
+  #expect(record.message == "FUTO Backups could not back up 2 files.")
   #expect(fixture.restic.commands() == ["version", "unlock", "backup", "stats"])
   #expect(log.all == [.preparing])
   #expect(
@@ -292,7 +292,7 @@ func packSizeIsClampedToResticLimits(serverPackSize: Int, expected: String) asyn
   let engine = BackupEngine(environment: fixture.environment)
   let record = try await engine.backup(config: testConfig()) { _ in }
   #expect(record.status == .warn)
-  #expect(record.message == "2 files couldn't be backed up.")
+  #expect(record.message == "FUTO Backups could not back up 2 files.")
   #expect(
     record.warnings
       == BackupWarnings(
@@ -302,7 +302,7 @@ func packSizeIsClampedToResticLimits(serverPackSize: Int, expected: String) asyn
         total: 2))
   let finished = try #require(await fixture.deliveredLogs(engine).last { $0.summary == "Backup finished" })
   #expect(finished.data["warningCount"] == .int(2))
-  #expect(finished.data["error"] == .string("2 files couldn't be backed up."))
+  #expect(finished.data["error"] == .string("FUTO Backups could not back up 2 files."))
   let encoded = String(decoding: try JSONEncoder().encode(finished), as: UTF8.self)
   #expect(!encoded.contains("/a/c"))
   #expect(!encoded.contains("Busy"))
@@ -381,7 +381,7 @@ func packSizeIsClampedToResticLimits(serverPackSize: Int, expected: String) asyn
   let engine = BackupEngine(environment: fixture.environment)
   let record = try await engine.backup(config: testConfig()) { _ in }
   #expect(record.status == .complete)
-  #expect(record.message == "Prune failed: prune boom")
+  #expect(record.message == "Could not delete old snapshots: prune boom")
   #expect(fixture.restic.commands() == ["version", "unlock", "backup", "forget", "stats"])
   #expect(
     await fixture.deliveredCalls(engine).last == .end(repositoryId: "repo-1", status: .complete, durationMs: 1000))
@@ -396,7 +396,7 @@ func packSizeIsClampedToResticLimits(serverPackSize: Int, expected: String) asyn
   let record = try await engine.backup(config: testConfig()) { _ in }
   #expect(record.status == .complete)
   let message = try #require(record.message)
-  #expect(message.hasPrefix("Prune failed: "))
+  #expect(message.hasPrefix("Could not delete old snapshots: "))
   #expect(fixture.restic.commands() == ["version", "unlock", "backup", "forget", "stats"])
   #expect(
     await fixture.deliveredCalls(engine)
@@ -417,7 +417,7 @@ func packSizeIsClampedToResticLimits(serverPackSize: Int, expected: String) asyn
   let record = try await engine.backup(config: testConfig()) { log.record($0) }
   #expect(record.status == .complete)
   #expect(record.snapshotId == "snapshot-abc")
-  #expect(record.message == "Prune interrupted")
+  #expect(record.message == "Deleting old snapshots stopped early")
   #expect(log.all == [.preparing, .pruning])
   #expect(fixture.restic.commands() == ["version", "unlock", "backup", "forget"])
   #expect(
@@ -490,7 +490,7 @@ func packSizeIsClampedToResticLimits(serverPackSize: Int, expected: String) asyn
   let engine = BackupEngine(environment: fixture.environment)
   let record = try await engine.backup(config: testConfig()) { _ in }
   #expect(record.status == .failed)
-  #expect(record.message == "Couldn't reach server.test. Check your internet connection and try again.")
+  #expect(record.message == "Could not connect to server.test. Make sure that this Mac is connected to the internet.")
   let finished = try #require(await fixture.deliveredLogs(engine).last { $0.summary == "Backup finished" })
   guard case .string(let detail)? = finished.data["error"] else {
     Issue.record("expected an error detail")
@@ -538,7 +538,7 @@ private final class FailureLog: @unchecked Sendable {
   let engine = BackupEngine(environment: fixture.environment)
   let record = try await engine.backup(config: testConfig()) { _ in }
   #expect(record.status == .failed)
-  #expect(record.message == "Couldn't reach server.test. Check your internet connection and try again.")
+  #expect(record.message == "Could not connect to server.test. Make sure that this Mac is connected to the internet.")
   #expect(failures.entries.count == 1)
   #expect(failures.entries.first?.contains("NSURLErrorDomain Code=-1001") == true)
   #expect(await fixture.deliveredCalls(engine).isEmpty)
@@ -562,7 +562,7 @@ private final class FailureLog: @unchecked Sendable {
   let engine = BackupEngine(environment: fixture.environment)
   let record = try await engine.backup(config: testConfig()) { _ in }
   #expect(record.status == .failed)
-  #expect(record.message == "Couldn't reach server.test. Check your internet connection and try again.")
+  #expect(record.message == "Could not connect to server.test. Make sure that this Mac is connected to the internet.")
   let finished = try #require(await fixture.deliveredLogs(engine).last { $0.summary == "Backup finished" })
   #expect(finished.data["error"] == .string(detail))
 }
@@ -573,7 +573,7 @@ private final class FailureLog: @unchecked Sendable {
   let engine = BackupEngine(environment: fixture.environment)
   let record = try await engine.backup(config: testConfig()) { _ in }
   #expect(record.status == .failed)
-  #expect(record.message == "Couldn't reach server.test. Check your internet connection and try again.")
+  #expect(record.message == "Could not connect to server.test. Make sure that this Mac is connected to the internet.")
 }
 
 @Test func backupProxyStartFailureProducesFailedRecord() async throws {
@@ -582,7 +582,7 @@ private final class FailureLog: @unchecked Sendable {
   let engine = BackupEngine(environment: fixture.environment)
   let record = try await engine.backup(config: testConfig()) { _ in }
   #expect(record.status == .failed)
-  #expect(record.message == "The backup helper couldn't start. Try again, or reinstall FUTO Backups.")
+  #expect(record.message == "The backup helper could not start. Try again, or reinstall FUTO Backups.")
   #expect(
     await fixture.deliveredCalls(engine)
       == [
@@ -1577,7 +1577,7 @@ private func scriptKeyOpens(_ fixture: EngineFixture, masterKey: String, reposit
   let engine = BackupEngine(environment: fixture.environment)
   let record = try await engine.backup(config: testConfig()) { _ in }
   #expect(record.status == .complete)
-  #expect(record.message == "Prune failed: prune boom")
+  #expect(record.message == "Could not delete old snapshots: prune boom")
   let logs = await fixture.deliveredLogs(engine)
   let finishedPrune = try #require(logs.first { $0.summary == "Finished repository prune" })
   #expect(finishedPrune.data["repositoryId"] == .string("repo-1"))
@@ -2673,7 +2673,7 @@ func invalidRetentionSkipsForget(policy: RetentionPolicy) async throws {
   let log = ActivityLog()
   let record = try await engine.backup(config: config) { log.record($0) }
   #expect(record.status == .complete)
-  #expect(record.message == "Old snapshots were kept: the snapshot retention setting is invalid")
+  #expect(record.message == "FUTO Backups kept the old snapshots because the snapshot retention setting is not valid")
   #expect(fixture.restic.commands() == ["version", "unlock", "backup", "stats"])
   #expect(!log.all.contains(.pruning))
   let logs = await fixture.deliveredLogs(engine)
