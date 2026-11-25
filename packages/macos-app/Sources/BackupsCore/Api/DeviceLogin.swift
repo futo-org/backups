@@ -17,7 +17,7 @@ public enum DeviceLoginError: Error, Equatable, Sendable {
     case .failed(reason: "UNSUPPORTED_CONNECTION_TYPE"):
       return "\(server) does not support the Mac app yet."
     case .failed(reason: "UNKNOWN"):
-      return "\(server) could not finish signing in this Mac. It possibly does not support the Mac app yet."
+      return "\(server) could not finish signing in this Mac. This happens if it does not support the Mac app yet."
     case .failed(let reason):
       return "Sign-in failed (\(reason))."
     }

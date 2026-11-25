@@ -480,7 +480,7 @@ private struct ReadyStep: View {
       Button("Cancel", role: .cancel) {}
     } message: { _ in
       Text(
-        "This backup \(existingHostnames == nil ? "possibly has" : "has") snapshots from this Mac. “\(retention.retention.summary)” can delete the ones it does not keep, starting with the first backup. You cannot recover deleted snapshots."
+        "This backup \(existingHostnames == nil ? "can already have" : "already has") snapshots from this Mac. “\(retention.retention.summary)” can delete the ones it does not keep, starting with the first backup. You cannot recover deleted snapshots."
       )
     }
   }

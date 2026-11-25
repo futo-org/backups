@@ -108,7 +108,7 @@ private func login(responses: [HTTPResponse], expiresIn: Int, interval: Int?) ->
     (.failed(reason: "UNSUPPORTED_CONNECTION_TYPE"), "futo.cloud does not support the Mac app yet."),
     (
       .failed(reason: "UNKNOWN"),
-      "futo.cloud could not finish signing in this Mac. It possibly does not support the Mac app yet."
+      "futo.cloud could not finish signing in this Mac. This happens if it does not support the Mac app yet."
     ),
     (.failed(reason: "SOMETHING_NEW"), "Sign-in failed (SOMETHING_NEW)."),
   ])

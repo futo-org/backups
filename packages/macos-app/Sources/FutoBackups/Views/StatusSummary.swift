@@ -102,7 +102,7 @@ struct StatusSummary {
     case .failed, .incomplete:
       self.init(
         title: "Last backup failed",
-        subtitle: lastRun.message ?? "Make sure that this Mac is connected to the internet.",
+        subtitle: lastRun.message ?? "Make sure that this Mac is connected to the internet, then try again.",
         symbol: "xmark", tint: .red, action: .backUp, menuBarSymbol: "exclamationmark.icloud")
     case .cancelled, .skipped:
       self.init(
