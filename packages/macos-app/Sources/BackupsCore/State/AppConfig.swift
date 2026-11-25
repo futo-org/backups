@@ -32,11 +32,13 @@ public struct RememberedRepository: Codable, Equatable, Sendable {
   public var id: String
   public var lastRun: RunRecord?
   public var scheduleAnchor: Date?
+  public var failureNotifiedAt: Date?
 
-  public init(id: String, lastRun: RunRecord? = nil, scheduleAnchor: Date? = nil) {
+  public init(id: String, lastRun: RunRecord? = nil, scheduleAnchor: Date? = nil, failureNotifiedAt: Date? = nil) {
     self.id = id
     self.lastRun = lastRun
     self.scheduleAnchor = scheduleAnchor
+    self.failureNotifiedAt = failureNotifiedAt
   }
 }
 
@@ -59,6 +61,10 @@ public struct AppConfig: Codable, Equatable, Sendable {
   public var uploadConnections: Int?
   public var readConcurrency: Int?
   public var retention: SnapshotRetention?
+  public var failureNotifiedAt: Date?
+  public var notificationPermissionRequestedAt: Date?
+  public var failureNotificationsEnabled: Bool?
+  public var failureNotificationHintDismissedAt: Date?
 
   public static let parallelismChoices = [1, 2, 3, 4, 6, 8, 12, 16, 24, 32, 48, 64, 128]
 
@@ -128,6 +134,7 @@ public struct AppConfig: Codable, Equatable, Sendable {
       scheduleAnchor: nil
     )
     config.excludeDefaultsVersion = currentExcludeDefaultsVersion
+    config.failureNotificationsEnabled = true
     return config
   }
 
@@ -135,13 +142,15 @@ public struct AppConfig: Codable, Equatable, Sendable {
     guard url != serverURL else { return }
     var remembered = repositoriesByServer ?? [:]
     remembered[serverURL.absoluteString] = repositoryId.map {
-      RememberedRepository(id: $0, lastRun: lastRun, scheduleAnchor: scheduleAnchor)
+      RememberedRepository(
+        id: $0, lastRun: lastRun, scheduleAnchor: scheduleAnchor, failureNotifiedAt: failureNotifiedAt)
     }
     let restored = remembered[url.absoluteString]
     serverURL = url
     repositoryId = restored?.id
     lastRun = restored?.lastRun
     scheduleAnchor = restored?.scheduleAnchor
+    failureNotifiedAt = restored?.failureNotifiedAt
     repositoriesByServer = remembered.isEmpty ? nil : remembered
   }
 
@@ -174,6 +183,7 @@ public struct AppConfig: Codable, Equatable, Sendable {
     self.repositoryId = nil
     recoveryKeyConfirmedAt = nil
     lastRun = nil
+    failureNotifiedAt = nil
     return true
   }
 }

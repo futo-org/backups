@@ -434,6 +434,26 @@ func packSizeIsClampedToResticLimits(serverPackSize: Int, expected: String) asyn
   #expect(fixture.proxy.stopCount == 1)
 }
 
+@Test func cancellingDuringServerDiscoveryProducesCancelledRecord() async throws {
+  var fixture = makeFixture()
+  fixture.environment.discover = { _ in
+    withUnsafeCurrentTask { $0?.cancel() }
+    throw URLError(.cancelled)
+  }
+  let engine = BackupEngine(environment: fixture.environment)
+  let record = try await engine.backup(config: testConfig()) { _ in }
+  #expect(record.status == .cancelled)
+  #expect(record.message == nil)
+}
+
+@Test func aCancelledRequestWithoutCancellingTheBackupIsAFailure() async throws {
+  var fixture = makeFixture()
+  fixture.environment.discover = { _ in throw URLError(.cancelled) }
+  let engine = BackupEngine(environment: fixture.environment)
+  let record = try await engine.backup(config: testConfig()) { _ in }
+  #expect(record.status == .failed)
+}
+
 @Test func backupCancellationProducesCancelledRecord() async throws {
   let fixture = makeFixture()
   fixture.restic.set(ResticScript(error: CancellationError()), for: "backup")

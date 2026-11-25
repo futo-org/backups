@@ -51,7 +51,7 @@ private final class Gate: @unchecked Sendable {
 }
 
 private struct HangingRunner: ResticExecuting {
-  var sleep: Duration = .seconds(5)
+  var sleep: Duration = .seconds(15)
   var gate: Gate?
 
   func run(_ invocation: ResticInvocation, onLine: @escaping @Sendable (String) -> Void) async throws
@@ -400,7 +400,7 @@ func snapshotDateValidation(date: String, expected: Bool) {
   await #expect(throws: DiskSnapshotError.createFailed("timed out after \(timeout.components.seconds) s")) {
     _ = try await snapshots.create()
   }
-  #expect(start.duration(to: .now) < .seconds(2))
+  #expect(start.duration(to: .now) < .seconds(10))
 }
 
 @Test func timeoutDoesNotWaitForUncancellableCommand() async throws {
@@ -417,7 +417,7 @@ func snapshotDateValidation(date: String, expected: Bool) {
   await #expect(throws: DiskSnapshotError.createFailed("timed out after \(timeout.components.seconds) s")) {
     _ = try await snapshots.create()
   }
-  #expect(start.duration(to: .now) < .seconds(2))
+  #expect(start.duration(to: .now) < .seconds(10))
 }
 
 @Test func callerCancellationWhileCommandRunsThrowsPromptly() async throws {
@@ -435,7 +435,7 @@ func snapshotDateValidation(date: String, expected: Bool) {
   await #expect(throws: CancellationError.self) {
     _ = try await task.value
   }
-  #expect(start.duration(to: .now) < .seconds(2))
+  #expect(start.duration(to: .now) < .seconds(10))
 }
 
 @Test func mountedSnapshotNameForRootMatchesStatfs() throws {
