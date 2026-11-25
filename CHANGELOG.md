@@ -1,5 +1,48 @@
 # Changelog
 
+## [1.22.0](https://github.com/futo-org/backups/compare/v1.21.0...v1.22.0) (2026-11-25)
+
+
+### Features
+
+* **macos-app:** add Back Up Now to the toolbar outside Overview and to the Dock menu ([#347](https://github.com/futo-org/backups/issues/347)) ([34e70ad](https://github.com/futo-org/backups/commit/34e70adf80e2275fa889d775104ea113af3d5db8))
+* **macos-app:** apply HIG quick wins to menus, keyboard, text and accessibility ([#348](https://github.com/futo-org/backups/issues/348)) ([05a954a](https://github.com/futo-org/backups/commit/05a954a08ef907a8a9a88397cc510932d526b7b9))
+* **macos-app:** ask for Touch ID or the Mac password before revealing or changing the recovery key ([#341](https://github.com/futo-org/backups/issues/341)) ([fc936b4](https://github.com/futo-org/backups/commit/fc936b4d35e09bed2698cfc7859d67776d00ffa4))
+* **macos-app:** follow the system accent in the sidebar, tuck parallelism under Advanced and honor Increase Contrast ([#350](https://github.com/futo-org/backups/issues/350)) ([4e232dc](https://github.com/futo-org/backups/commit/4e232dc5c13ce67b30c6e54acfb52a1ef3e31b94))
+* **macos-app:** notify once when a scheduled backup fails ([#351](https://github.com/futo-org/backups/issues/351)) ([749e51b](https://github.com/futo-org/backups/commit/749e51bdb65a2c7f5f95474f45cfa88df1a39765))
+* **macos-app:** offer the onboarding folder presets when no folders are selected ([#343](https://github.com/futo-org/backups/issues/343)) ([42b5138](https://github.com/futo-org/backups/commit/42b5138fbd2883da1a4082b2bf1b4a076be220bb))
+* **macos-app:** pick a Mac backup first, then check its recovery key ([#339](https://github.com/futo-org/backups/issues/339)) ([62cacbd](https://github.com/futo-org/backups/commit/62cacbd40acff5feed32da728e069d098679df2c))
+* **macos-app:** show the total size of the selected folders while choosing them in onboarding ([#344](https://github.com/futo-org/backups/issues/344)) ([aa829d1](https://github.com/futo-org/backups/commit/aa829d1cce48f91005499a208780388a77cbe68c))
+* **macos-app:** use native window titles and toolbar actions for each page ([#345](https://github.com/futo-org/backups/issues/345)) ([08157dd](https://github.com/futo-org/backups/commit/08157dd4b245238aaeda83c86f9bd42c3929e606))
+
+
+### Bug Fixes
+
+* **docs:** jump to content after hydration ([#354](https://github.com/futo-org/backups/issues/354)) ([e609a25](https://github.com/futo-org/backups/commit/e609a25a7e91581cd62829331aba59c99e3fceab))
+* **macos-app:** drop the sent total from the upload speed card ([#342](https://github.com/futo-org/backups/issues/342)) ([9e2504c](https://github.com/futo-org/backups/commit/9e2504c5d6f943f6039fd75e696a0ce18d308538))
+* **macos-app:** show friendly network errors and retry transient discovery failures ([#358](https://github.com/futo-org/backups/issues/358)) ([498a594](https://github.com/futo-org/backups/commit/498a5946ce0f00621b1f1104b44dac69c45b4216))
+* **macos-app:** stack the menu bar panel's open, update and quit actions as full-width rows ([#346](https://github.com/futo-org/backups/issues/346)) ([8544508](https://github.com/futo-org/backups/commit/8544508142a986216e83fa0fc2c5235cf91d335e))
+* **macos-app:** use the contrast-safe fill for the toolbar Back Up Now ([#356](https://github.com/futo-org/backups/issues/356)) ([d647610](https://github.com/futo-org/backups/commit/d647610aa64b4c0e55516096d0417c5063ce0d23))
+* **michael:** move per-user request labels to client.request.count ([#359](https://github.com/futo-org/backups/issues/359)) ([fe4df7b](https://github.com/futo-org/backups/commit/fe4df7b60e4aee1d23bae3373459d4a1c27a121e))
+* **yucca sdk:** gracefully fallback w. invalid TZ ([#353](https://github.com/futo-org/backups/issues/353)) ([acbd088](https://github.com/futo-org/backups/commit/acbd0880ba31a32730b9171785adc34b26b8a96c))
+
+
+### Code Refactoring
+
+* **macos-app:** rewrite app text in plain English ([#361](https://github.com/futo-org/backups/issues/361)) ([9020c52](https://github.com/futo-org/backups/commit/9020c527f965ac6fb6524f85aa404550fbaa6728))
+* **macos-app:** use system button styles tinted with the brand indigo ([#349](https://github.com/futo-org/backups/issues/349)) ([51914c7](https://github.com/futo-org/backups/commit/51914c7b71f36e027a95cba5d049d79f3d30727a))
+
+
+### Documentation
+
+* add a Mac app setup page ([#360](https://github.com/futo-org/backups/issues/360)) ([4024bf2](https://github.com/futo-org/backups/commit/4024bf2ad9344607761d932f5c420702b9689cbe))
+
+
+### Tests
+
+* **macos-app:** give the disk snapshot timeout tests room on busy runners ([#357](https://github.com/futo-org/backups/issues/357)) ([b34f127](https://github.com/futo-org/backups/commit/b34f1275b2d6c34fb1869c2be97e40f1ee4d59e5))
+* **macos-app:** run the cloud-only scan at normal priority in engine tests ([#355](https://github.com/futo-org/backups/issues/355)) ([a1e766a](https://github.com/futo-org/backups/commit/a1e766a28e6668daeb80ed6293200ee4b5830efd))
+
 ## [1.21.0](https://github.com/futo-org/backups/compare/v1.20.1...v1.21.0) (2026-11-24)
 
 
