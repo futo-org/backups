@@ -41,15 +41,15 @@ catalog:
   '@nestjs/websockets': ^12.1.2
   '@oazapfts/runtime': ^1.2.0
   '@opentelemetry/api': ^1.9.0
-  '@opentelemetry/context-async-hooks': ^2.5.0
-  '@opentelemetry/core': ^2.5.0
+  '@opentelemetry/context-async-hooks': ^3.0.0
+  '@opentelemetry/core': ^3.0.0
   '@opentelemetry/exporter-logs-otlp-proto': ^0.211.0
   '@opentelemetry/exporter-metrics-otlp-proto': ^0.211.0
   '@opentelemetry/exporter-trace-otlp-proto': ^0.211.0
   '@opentelemetry/instrumentation-pino': ^0.57.0
-  '@opentelemetry/propagator-b3': ^2.5.0
+  '@opentelemetry/propagator-b3': ^3.0.0
   '@opentelemetry/propagator-jaeger': ^2.5.0
-  '@opentelemetry/resources': ^2.5.0
+  '@opentelemetry/resources': ^3.0.0
   '@opentelemetry/sdk-node': ^0.217.0
   '@playwright/test': 1.63.0
   '@sveltejs/adapter-auto': ^7.0.1
