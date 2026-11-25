@@ -39,11 +39,13 @@ struct TelemetryConsentView: View {
         .frame(maxWidth: 460)
         HStack(spacing: 12) {
           Button("Continue") { model.grantTelemetryConsent() }
-            .buttonStyle(PrimaryButtonStyle(large: true))
+            .buttonStyle(.borderedProminent)
+            .tint(Brand.fill)
             .keyboardShortcut(.defaultAction)
           Button("Quit") { NSApp.terminate(nil) }
-            .buttonStyle(SecondaryButtonStyle())
+            .buttonStyle(.bordered)
         }
+        .controlSize(.large)
         .padding(.top, 28)
         Spacer(minLength: 24)
       }

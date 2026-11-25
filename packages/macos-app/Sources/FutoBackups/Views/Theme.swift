@@ -9,8 +9,13 @@ enum Brand {
         ? NSColor(srgbRed: 0.49, green: 0.58, blue: 0.94, alpha: 1)
         : NSColor(srgbRed: 0.259, green: 0.349, blue: 0.722, alpha: 1)
     })
+  static let fill = Color(
+    nsColor: NSColor(name: nil) { appearance in
+      appearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua
+        ? NSColor(srgbRed: 0.36, green: 0.40, blue: 0.84, alpha: 1)
+        : NSColor(srgbRed: 0.259, green: 0.349, blue: 0.722, alpha: 1)
+    })
   static let logo = Color(red: 0.259, green: 0.349, blue: 0.722)
-  static let deep = Color(red: 0.2, green: 0.27, blue: 0.6)
   static let gradient = LinearGradient(
     colors: [Color(red: 0.34, green: 0.44, blue: 0.84), Color(red: 0.23, green: 0.31, blue: 0.65)],
     startPoint: .topLeading, endPoint: .bottomTrailing)
@@ -110,41 +115,6 @@ struct Wordmark: View {
       Text("FUTO Backups")
         .font(.system(size: height * 0.85, weight: .bold, design: .rounded))
     }
-  }
-}
-
-struct PrimaryButtonStyle: ButtonStyle {
-  var large = false
-  @Environment(\.isEnabled) private var isEnabled
-  @Environment(\.accessibilityReduceMotion) private var reduceMotion
-
-  func makeBody(configuration: Configuration) -> some View {
-    configuration.label
-      .font(.system(size: large ? 15 : 13, weight: .semibold))
-      .foregroundStyle(.white)
-      .padding(.horizontal, large ? 26 : 16)
-      .padding(.vertical, large ? 11 : 7)
-      .background(Capsule().fill(Brand.gradient))
-      .shadow(color: Brand.deep.opacity(configuration.isPressed ? 0.1 : 0.3), radius: 8, y: 3)
-      .opacity(isEnabled ? (configuration.isPressed ? 0.85 : 1) : 0.45)
-      .scaleEffect(configuration.isPressed && !reduceMotion ? 0.98 : 1)
-      .contentShape(Capsule())
-  }
-}
-
-struct SecondaryButtonStyle: ButtonStyle {
-  var tint: Color = .primary
-  @Environment(\.isEnabled) private var isEnabled
-
-  func makeBody(configuration: Configuration) -> some View {
-    configuration.label
-      .font(.system(size: 13, weight: .medium))
-      .foregroundStyle(tint)
-      .padding(.horizontal, 14)
-      .padding(.vertical, 7)
-      .background(Capsule().fill(Color.primary.opacity(configuration.isPressed ? 0.14 : 0.08)))
-      .opacity(isEnabled ? 1 : 0.45)
-      .contentShape(Capsule())
   }
 }
 
@@ -264,7 +234,7 @@ struct Banner: View {
       Spacer(minLength: 8)
       if let actionTitle, let action {
         Button(actionTitle, action: action)
-          .buttonStyle(SecondaryButtonStyle())
+          .buttonStyle(.bordered)
       }
       if copyable {
         Button {

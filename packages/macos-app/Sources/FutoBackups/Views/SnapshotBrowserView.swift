@@ -59,7 +59,7 @@ struct SnapshotBrowserView: View {
           .frame(maxWidth: 420)
           .copyable(message)
         Button("Try Again") { browser.retry() }
-          .buttonStyle(SecondaryButtonStyle())
+          .buttonStyle(.bordered)
           .padding(.top, 4)
       }
       .padding(20)
@@ -98,12 +98,13 @@ struct SnapshotBrowserView: View {
       }
       Spacer()
       Button("Cancel", action: close)
-        .buttonStyle(SecondaryButtonStyle())
+        .buttonStyle(.bordered)
         .keyboardShortcut(.cancelAction)
       Button(browser.selection.isEmpty ? "Restore" : "Restore \(itemCount(browser.selection.count))") {
         restore(browser.selection.entries)
       }
-      .buttonStyle(PrimaryButtonStyle())
+      .buttonStyle(.borderedProminent)
+      .tint(Brand.fill)
       .keyboardShortcut(.defaultAction)
       .disabled(browser.selection.isEmpty || !canRestore)
       .help(canRestore ? "" : "Wait for the current backup or restore to finish")
