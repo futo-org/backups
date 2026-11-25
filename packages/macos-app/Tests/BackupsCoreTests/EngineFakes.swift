@@ -822,6 +822,7 @@ func makeFixture(
     moveRestoredItem: { try restoreDirectories.move($0, $1) },
     removeRestoreStaging: { try restoreDirectories.remove($0) },
     cloudOnlyScanner: cloudOnlyScanner,
+    cloudOnlyScanPriority: .medium,
     uploadTicks: uploadTicks,
     networkChanges: networkChanges)
   return EngineFixture(

@@ -23,6 +23,7 @@ public struct EngineEnvironment: Sendable {
   public var removeRestoreStaging: @Sendable (URL) throws -> Void
   public var temporaryDirectory: URL
   public var cloudOnlyScanner: any CloudOnlyScanning
+  public var cloudOnlyScanPriority: TaskPriority
   public var uploadTicks: @Sendable () -> AsyncStream<ContinuousClock.Instant>
   public var networkChanges: @Sendable () -> AsyncStream<Void>
 
@@ -48,6 +49,7 @@ public struct EngineEnvironment: Sendable {
     removeRestoreStaging: @escaping @Sendable (URL) throws -> Void = RestorePlan.removeStaging,
     temporaryDirectory: URL = FileManager.default.temporaryDirectory,
     cloudOnlyScanner: any CloudOnlyScanning = NoCloudOnlyScan(),
+    cloudOnlyScanPriority: TaskPriority = .background,
     uploadTicks: @escaping @Sendable () -> AsyncStream<ContinuousClock.Instant> = {
       UploadSpeedMeter.ticks(every: .seconds(1))
     },
@@ -74,6 +76,7 @@ public struct EngineEnvironment: Sendable {
     self.removeRestoreStaging = removeRestoreStaging
     self.temporaryDirectory = temporaryDirectory
     self.cloudOnlyScanner = cloudOnlyScanner
+    self.cloudOnlyScanPriority = cloudOnlyScanPriority
     self.uploadTicks = uploadTicks
     self.networkChanges = networkChanges
   }
