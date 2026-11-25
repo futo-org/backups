@@ -51,7 +51,7 @@ private final class Gate: @unchecked Sendable {
 }
 
 private struct HangingRunner: ResticExecuting {
-  var sleep: Duration = .seconds(60)
+  var sleep: Duration = .seconds(15)
   var gate: Gate?
 
   func run(_ invocation: ResticInvocation, onLine: @escaping @Sendable (String) -> Void) async throws
