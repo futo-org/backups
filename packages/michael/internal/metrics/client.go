@@ -154,7 +154,7 @@ func (t *clientTracker) observe(o otelmetric.Observer, gauge otelmetric.Int64Obs
 // request-seconds over a window IS the mean number of requests in flight, so
 // `rate(client.request.seconds)` reads directly as average concurrency without
 // any per-client state. Dividing it by the matching request rate from
-// `http.server.request.count` gives mean duration.
+// `client.request.count` gives mean duration.
 //
 // `peak` covers what an average cannot — a client that saturates its
 // connection budget in bursts. Note it is per michael replica: a client whose
