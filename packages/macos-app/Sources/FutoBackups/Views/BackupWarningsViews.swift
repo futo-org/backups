@@ -12,7 +12,8 @@ struct BackupWarningsButton: View {
     } label: {
       Label("Show Warnings", systemImage: "exclamationmark.triangle")
     }
-    .buttonStyle(SecondaryButtonStyle(tint: .orange))
+    .buttonStyle(.bordered)
+    .tint(.orange)
     .sheet(isPresented: $showing) {
       BackupWarningsSheet(warnings: warnings)
     }
@@ -136,7 +137,8 @@ struct BackupWarningsSheet: View {
       HStack {
         Spacer()
         Button("Done") { dismiss() }
-          .buttonStyle(PrimaryButtonStyle())
+          .buttonStyle(.borderedProminent)
+          .tint(Brand.fill)
           .keyboardShortcut(.defaultAction)
       }
     }

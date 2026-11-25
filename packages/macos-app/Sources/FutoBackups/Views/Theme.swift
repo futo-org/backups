@@ -4,15 +4,34 @@ import SwiftUI
 
 enum Brand {
   static let blue = Color(
-    nsColor: NSColor(name: nil) { appearance in
-      appearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua
-        ? NSColor(srgbRed: 0.49, green: 0.58, blue: 0.94, alpha: 1)
-        : NSColor(srgbRed: 0.259, green: 0.349, blue: 0.722, alpha: 1)
-    })
+    standard: standardBlue,
+    increasedContrast: appearanceAware(light: (0.18, 0.24, 0.55), dark: (0.56, 0.65, 1.0)))
+  static let blueTileFill = Color(
+    standard: standardBlue,
+    increasedContrast: appearanceAware(light: (0.18, 0.24, 0.55), dark: (0.3, 0.39, 0.78)))
+  static let fill = Color(
+    standard: appearanceAware(light: (0.259, 0.349, 0.722), dark: (0.36, 0.40, 0.84)),
+    increasedContrast: appearanceAware(light: (0.18, 0.24, 0.55), dark: (0.3, 0.33, 0.76)))
   static let logo = Color(red: 0.259, green: 0.349, blue: 0.722)
-  static let deep = Color(red: 0.2, green: 0.27, blue: 0.6)
   static let gradient = LinearGradient(
-    colors: [Color(red: 0.34, green: 0.44, blue: 0.84), Color(red: 0.23, green: 0.31, blue: 0.65)],
+    colors: [
+      Color(
+        standard: gradientStart,
+        increasedContrast: appearanceAware(light: (0.22, 0.3, 0.66), dark: (0.34, 0.44, 0.84))),
+      Color(
+        standard: gradientEnd,
+        increasedContrast: appearanceAware(light: (0.15, 0.2, 0.48), dark: (0.23, 0.31, 0.65))),
+    ],
+    startPoint: .topLeading, endPoint: .bottomTrailing)
+  static let symbolGradient = LinearGradient(
+    colors: [
+      Color(
+        standard: gradientStart,
+        increasedContrast: appearanceAware(light: (0.22, 0.3, 0.66), dark: (0.62, 0.7, 1.0))),
+      Color(
+        standard: gradientEnd,
+        increasedContrast: appearanceAware(light: (0.15, 0.2, 0.48), dark: (0.5, 0.59, 0.98))),
+    ],
     startPoint: .topLeading, endPoint: .bottomTrailing)
   static let ringGradient = AngularGradient(
     colors: [
@@ -20,6 +39,33 @@ enum Brand {
       Color(red: 0.34, green: 0.44, blue: 0.84),
     ],
     center: .center)
+
+  private static let standardBlue = appearanceAware(light: (0.259, 0.349, 0.722), dark: (0.49, 0.58, 0.94))
+  private static let gradientStart = Color(red: 0.34, green: 0.44, blue: 0.84)
+  private static let gradientEnd = Color(red: 0.23, green: 0.31, blue: 0.65)
+
+  private static func appearanceAware(light: (Double, Double, Double), dark: (Double, Double, Double)) -> Color {
+    Color(
+      nsColor: NSColor(name: nil) { appearance in
+        let (red, green, blue) = appearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua ? dark : light
+        return NSColor(srgbRed: red, green: green, blue: blue, alpha: 1)
+      })
+  }
+}
+
+struct ContrastAwareColor: ShapeStyle, Hashable {
+  let standard: Color
+  let increasedContrast: Color
+
+  func resolve(in environment: EnvironmentValues) -> Color.Resolved {
+    (environment.colorSchemeContrast == .increased ? increasedContrast : standard).resolve(in: environment)
+  }
+}
+
+extension Color {
+  init(standard: Color, increasedContrast: Color) {
+    self.init(ContrastAwareColor(standard: standard, increasedContrast: increasedContrast))
+  }
 }
 
 struct Card<Content: View>: View {
@@ -36,15 +82,31 @@ struct Card<Content: View>: View {
 
 struct CardBackground: View {
   @Environment(\.colorScheme) private var colorScheme
+  @Environment(\.colorSchemeContrast) private var contrast
 
   var body: some View {
     RoundedRectangle(cornerRadius: 14, style: .continuous)
-      .fill(colorScheme == .dark ? Color.white.opacity(0.045) : Color.white)
+      .fill(fill)
       .overlay(
         RoundedRectangle(cornerRadius: 14, style: .continuous)
-          .strokeBorder(Color.primary.opacity(colorScheme == .dark ? 0.08 : 0.06), lineWidth: 1)
+          .strokeBorder(Color.primary.opacity(borderOpacity), lineWidth: 1)
       )
       .shadow(color: .black.opacity(colorScheme == .dark ? 0 : 0.05), radius: 6, y: 2)
+  }
+
+  private var increasedContrast: Bool { contrast == .increased }
+
+  private var fill: Color {
+    colorScheme == .dark ? Color.white.opacity(Self.darkFillOpacity(contrast)) : Color.white
+  }
+
+  static func darkFillOpacity(_ contrast: ColorSchemeContrast) -> Double {
+    contrast == .increased ? 0.1 : 0.045
+  }
+
+  private var borderOpacity: Double {
+    if increasedContrast { return colorScheme == .dark ? 0.5 : 0.4 }
+    return colorScheme == .dark ? 0.08 : 0.06
   }
 }
 
@@ -55,7 +117,7 @@ struct IconTile: View {
 
   var body: some View {
     RoundedRectangle(cornerRadius: size * 0.27, style: .continuous)
-      .fill(tint.gradient)
+      .fill(fill.gradient)
       .frame(width: size, height: size)
       .overlay(
         Image(systemName: systemName)
@@ -64,6 +126,8 @@ struct IconTile: View {
       )
       .accessibilityHidden(true)
   }
+
+  private var fill: Color { tint == Brand.blue ? Brand.blueTileFill : tint }
 }
 
 struct AppGlyph: View {
@@ -113,41 +177,6 @@ struct Wordmark: View {
   }
 }
 
-struct PrimaryButtonStyle: ButtonStyle {
-  var large = false
-  @Environment(\.isEnabled) private var isEnabled
-  @Environment(\.accessibilityReduceMotion) private var reduceMotion
-
-  func makeBody(configuration: Configuration) -> some View {
-    configuration.label
-      .font(.system(size: large ? 15 : 13, weight: .semibold))
-      .foregroundStyle(.white)
-      .padding(.horizontal, large ? 26 : 16)
-      .padding(.vertical, large ? 11 : 7)
-      .background(Capsule().fill(Brand.gradient))
-      .shadow(color: Brand.deep.opacity(configuration.isPressed ? 0.1 : 0.3), radius: 8, y: 3)
-      .opacity(isEnabled ? (configuration.isPressed ? 0.85 : 1) : 0.45)
-      .scaleEffect(configuration.isPressed && !reduceMotion ? 0.98 : 1)
-      .contentShape(Capsule())
-  }
-}
-
-struct SecondaryButtonStyle: ButtonStyle {
-  var tint: Color = .primary
-  @Environment(\.isEnabled) private var isEnabled
-
-  func makeBody(configuration: Configuration) -> some View {
-    configuration.label
-      .font(.system(size: 13, weight: .medium))
-      .foregroundStyle(tint)
-      .padding(.horizontal, 14)
-      .padding(.vertical, 7)
-      .background(Capsule().fill(Color.primary.opacity(configuration.isPressed ? 0.14 : 0.08)))
-      .opacity(isEnabled ? 1 : 0.45)
-      .contentShape(Capsule())
-  }
-}
-
 struct StatusRing: View {
   let progress: Double?
   let busy: Bool
@@ -182,7 +211,7 @@ struct StatusRing: View {
         }
         Image(systemName: symbol)
           .font(.system(size: size * 0.26, weight: .semibold))
-          .foregroundStyle(Brand.gradient)
+          .foregroundStyle(Brand.symbolGradient)
       } else {
         Circle()
           .stroke(tint.gradient, lineWidth: lineWidth)
@@ -264,7 +293,7 @@ struct Banner: View {
       Spacer(minLength: 8)
       if let actionTitle, let action {
         Button(actionTitle, action: action)
-          .buttonStyle(SecondaryButtonStyle())
+          .buttonStyle(.bordered)
       }
       if copyable {
         Button {

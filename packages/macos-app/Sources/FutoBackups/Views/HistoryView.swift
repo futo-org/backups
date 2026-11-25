@@ -84,7 +84,7 @@ struct HistoryView: View {
     VStack(spacing: 10) {
       Image(systemName: "clock.arrow.circlepath")
         .font(.system(size: 38))
-        .foregroundStyle(Brand.gradient)
+        .foregroundStyle(Brand.symbolGradient)
       Text("No snapshots yet")
         .font(.system(size: 17, weight: .semibold, design: .rounded))
       Text("Your first backup will show up here.")
@@ -117,7 +117,7 @@ struct HistoryView: View {
       Button("Try Again") {
         Task { await model.refreshSnapshots() }
       }
-      .buttonStyle(SecondaryButtonStyle())
+      .buttonStyle(.bordered)
       .padding(.top, 4)
     }
     .frame(maxWidth: .infinity)
@@ -215,9 +215,9 @@ struct SnapshotRow: View {
         .font(.system(size: 11, design: .monospaced))
         .foregroundStyle(.secondary)
       Button("Browse Files", action: browse)
-        .buttonStyle(SecondaryButtonStyle())
+        .buttonStyle(.bordered)
       Button("Restore All", action: restore)
-        .buttonStyle(SecondaryButtonStyle())
+        .buttonStyle(.bordered)
         .disabled(model.activity != nil)
     }
     .padding(.horizontal, 14)

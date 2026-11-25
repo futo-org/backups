@@ -50,7 +50,7 @@ struct FoldersView: View {
     VStack(spacing: 12) {
       Image(systemName: "folder.badge.plus")
         .font(.system(size: 40, weight: .regular))
-        .foregroundStyle(Brand.gradient)
+        .foregroundStyle(Brand.symbolGradient)
       Text("Drop folders here")
         .font(.system(size: 17, weight: .semibold, design: .rounded))
       Text("or click Add Folder to choose them")
@@ -114,14 +114,14 @@ struct FoldersView: View {
           } label: {
             Label("Add Folder or File", systemImage: "plus")
           }
-          .buttonStyle(SecondaryButtonStyle())
+          .buttonStyle(.bordered)
           Button {
             patternError = nil
             showPatternEditor = true
           } label: {
             Label("Add Pattern", systemImage: "asterisk")
           }
-          .buttonStyle(SecondaryButtonStyle())
+          .buttonStyle(.bordered)
           .popover(isPresented: $showPatternEditor, arrowEdge: .bottom) {
             patternEditor
           }
@@ -182,7 +182,8 @@ struct FoldersView: View {
         Button("Cancel") { showPatternEditor = false }
           .keyboardShortcut(.cancelAction)
         Button("Add", action: addPattern)
-          .buttonStyle(PrimaryButtonStyle())
+          .buttonStyle(.borderedProminent)
+          .tint(Brand.fill)
           .keyboardShortcut(.defaultAction)
       }
     }
@@ -219,7 +220,7 @@ struct FoldersView: View {
               NSWorkspace.shared.open(url)
             }
           }
-          .buttonStyle(SecondaryButtonStyle())
+          .buttonStyle(.bordered)
         }
       }
     }

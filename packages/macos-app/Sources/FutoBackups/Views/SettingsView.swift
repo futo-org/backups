@@ -37,7 +37,8 @@ struct SettingsView: View {
           }
           Spacer()
           Button("Sign Out", role: .destructive) { model.logout() }
-            .buttonStyle(SecondaryButtonStyle(tint: .red))
+            .buttonStyle(.bordered)
+            .tint(.red)
         }
         .padding(.vertical, 4)
       }
@@ -81,30 +82,6 @@ struct SettingsView: View {
           }
         }
       }
-      Section {
-        Picker(selection: uploadConnectionsBinding) {
-          Text("Automatic").tag(Int?.none)
-          ForEach(AppConfig.parallelismChoices, id: \.self) { Text("\($0)").tag(Int?.some($0)) }
-        } label: {
-          SettingLabel(
-            systemName: "arrow.up.arrow.down", tint: .blue, title: "Simultaneous uploads",
-            detail: "Connections to FUTO Cloud at once. Automatic follows the server's recommendation.")
-        }
-        Picker(selection: readConcurrencyBinding) {
-          Text("Automatic").tag(Int?.none)
-          ForEach(AppConfig.parallelismChoices, id: \.self) { Text("\($0)").tag(Int?.some($0)) }
-        } label: {
-          SettingLabel(
-            systemName: "doc.on.doc", tint: .teal, title: "Files read at once",
-            detail: "More is faster on fast disks; fewer keeps your Mac more responsive.")
-        }
-      } header: {
-        Text("Parallelism")
-      } footer: {
-        Text("Changes apply from the next backup.")
-          .font(.caption)
-          .foregroundStyle(.secondary)
-      }
       RetentionSection()
       Section("General") {
         Toggle(isOn: launchAtLoginBinding) {
@@ -129,11 +106,11 @@ struct SettingsView: View {
                 revealing = false
               }
             }
-            .buttonStyle(SecondaryButtonStyle())
+            .buttonStyle(.bordered)
             .disabled(revealing)
           }
           Button("Change Recovery Key") { changingRecoveryKey = true }
-            .buttonStyle(SecondaryButtonStyle())
+            .buttonStyle(.bordered)
             .disabled(!model.canChangeRecoveryKey)
         }
         .padding(.vertical, 4)
@@ -162,7 +139,7 @@ struct SettingsView: View {
                 NSWorkspace.shared.open(url)
               }
             }
-            .buttonStyle(SecondaryButtonStyle())
+            .buttonStyle(.bordered)
           }
         }
       }
@@ -181,7 +158,7 @@ struct SettingsView: View {
               detail: versionText)
           }
           Button("Check Now") { updater.checkForUpdates() }
-            .buttonStyle(SecondaryButtonStyle())
+            .buttonStyle(.bordered)
             .disabled(!updater.canCheckForUpdates)
         } else {
           SettingLabel(
@@ -189,8 +166,29 @@ struct SettingsView: View {
             detail: "Updates are off in development builds.")
         }
       }
-      if AppModel.allowsServerSelection {
-        Section("Advanced") {
+      Section("Advanced") {
+        DisclosureGroup("Performance") {
+          Picker(selection: uploadConnectionsBinding) {
+            Text("Automatic").tag(Int?.none)
+            ForEach(AppConfig.parallelismChoices, id: \.self) { Text("\($0)").tag(Int?.some($0)) }
+          } label: {
+            SettingLabel(
+              systemName: "arrow.up.arrow.down", tint: .blue, title: "Simultaneous uploads",
+              detail: "Connections to FUTO Cloud at once. Automatic follows the server's recommendation.")
+          }
+          Picker(selection: readConcurrencyBinding) {
+            Text("Automatic").tag(Int?.none)
+            ForEach(AppConfig.parallelismChoices, id: \.self) { Text("\($0)").tag(Int?.some($0)) }
+          } label: {
+            SettingLabel(
+              systemName: "doc.on.doc", tint: .teal, title: "Files read at once",
+              detail: "More is faster on fast disks; fewer keeps your Mac more responsive.")
+          }
+          Text("Changes apply from the next backup.")
+            .font(.caption)
+            .foregroundStyle(.secondary)
+        }
+        if AppModel.allowsServerSelection {
           ServerEditor()
             .padding(.vertical, 4)
         }

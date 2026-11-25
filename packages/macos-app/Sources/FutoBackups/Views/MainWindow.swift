@@ -75,6 +75,7 @@ struct MainWindow: View {
           .tag(item)
       }
     }
+    .tint(nil)
     .navigationSplitViewColumnWidth(min: 210, ideal: 230, max: 280)
     .safeAreaInset(edge: .top) {
       HStack(spacing: 8) {
@@ -116,6 +117,7 @@ struct MainWindow: View {
         ToolbarItem(placement: .primaryAction) {
           BackUpNowToolbarButton()
             .buttonStyle(.borderedProminent)
+            .tint(Brand.fill)
         }
       }
     }

@@ -172,7 +172,7 @@ public actor BackupEngine {
         let scanner = environment.cloudOnlyScanner
         let folders = config.folders.filter { !scanner.isCloudOnly($0) }
         let scanFinished = cloudOnlyScanFinished
-        cloudOnlyScan = Task.detached(priority: .background) {
+        cloudOnlyScan = Task.detached(priority: environment.cloudOnlyScanPriority) {
           let result = await scanner.scan(folders: config.folders, excludes: config.excludes)
           scanFinished.set()
           return result
