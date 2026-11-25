@@ -62,7 +62,7 @@ struct ThisMacSection: View {
       .labeledContentStyle(.centered)
       .padding(.vertical, 4)
       LabeledContent {
-        Button("Delete This Mac's Backup…", role: .destructive) { sheet = .deleteBackup }
+        Button("Delete This Mac's Backup", role: .destructive) { sheet = .deleteBackup }
           .buttonStyle(.bordered)
           .tint(.red)
       } label: {
