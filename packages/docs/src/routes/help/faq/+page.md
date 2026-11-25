@@ -36,6 +36,10 @@ If your installation has not picked up v3.4.0 yet, for example the Unraid all-in
 
 Yes. The [standalone container](/getting-started/standalone) runs the same backup software outside Immich and backs up any folders you mount into it, so you can use it for a whole home server or NAS. One account can have Immich and standalone machines connected at the same time.
 
+### Can I back up my Mac?
+
+Yes, with the [Mac app](/getting-started/mac). It needs macOS 26 or later and is in alpha, so keep another copy of anything you cannot afford to lose.
+
 ### Does it back up my external libraries?
 
 Yes. The recommended settings for your first backup in Immich include external libraries. Under **Backup Contents** you can choose to include all of them, none, or specific ones. See [choose what gets backed up](/getting-started/immich#4-choose-what-gets-backed-up).
