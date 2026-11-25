@@ -160,6 +160,10 @@ msgstr ""
 msgid "{successful} of {total} successful"
 msgstr ""
 
+#: src/lib/utils/cron.ts
+msgid "{text} (server time zone unavailable)"
+msgstr ""
+
 #: ../../web/src/routes/login/invite/+page.svelte
 msgid "@{0}, you're invited to the FUTO Backups beta. Sign in to join."
 msgstr ""

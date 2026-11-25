@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { beforeNavigate } from '$app/navigation';
+  import { afterNavigate, beforeNavigate } from '$app/navigation';
   import { page } from '$app/state';
   import '../app.css';
   import { getPagesForSection, Links, sections } from '$lib';
@@ -25,7 +25,7 @@
     TooltipProvider,
   } from '@immich/ui';
   import { mdiBookOpenPageVariantOutline, mdiGithub, mdiMenu, mdiOpenInNew } from '@mdi/js';
-  import type { Snippet } from 'svelte';
+  import { tick, type Snippet } from 'svelte';
   import { MediaQuery } from 'svelte/reactivity';
   import type { LayoutData } from './$types';
 
@@ -42,6 +42,25 @@
   beforeNavigate(() => {
     if (!desktop.current) {
       open = false;
+    }
+  });
+
+  afterNavigate(async ({ to }) => {
+    if (!to?.url.hash) {
+      return;
+    }
+
+    let id: string;
+    try {
+      id = decodeURIComponent(to.url.hash.slice(1));
+    } catch {
+      return;
+    }
+
+    await tick();
+
+    if (page.url.href === to.url.href) {
+      document.getElementById(id)?.scrollIntoView();
     }
   });
 

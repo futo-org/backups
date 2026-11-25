@@ -38,7 +38,7 @@ public struct RestoreStep: Equatable, Sendable {
       }
       parts.append("\(files) of \(total) \(progress.totalFiles == 1 ? "item" : "items")")
     } else {
-      parts.append("Bringing your files back…")
+      parts.append("Bringing your files back")
     }
     return parts.joined(separator: " · ")
   }

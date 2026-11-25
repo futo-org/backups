@@ -19,7 +19,7 @@ struct HistoryView: View {
             dismiss: { model.restoredFolders = [] })
         }
         if case .restoring = model.activity {
-          Banner(systemName: "arrow.down.circle.fill", tint: Brand.blue, text: "Restoring files…") {}
+          Banner(systemName: "arrow.down.circle.fill", tint: Brand.blue, text: "Restoring files") {}
         }
         if model.snapshots.isEmpty {
           switch model.snapshotsLoad {
@@ -95,14 +95,11 @@ struct HistoryView: View {
   }
 
   private var loading: some View {
-    VStack(spacing: 12) {
-      ProgressView()
-        .controlSize(.small)
-      Text("Loading snapshots…")
-        .foregroundStyle(.secondary)
-    }
-    .frame(maxWidth: .infinity)
-    .padding(.vertical, 60)
+    ProgressView()
+      .controlSize(.small)
+      .accessibilityLabel("Loading snapshots")
+      .frame(maxWidth: .infinity)
+      .padding(.vertical, 60)
   }
 
   private func failed(_ message: String) -> some View {
@@ -198,23 +195,28 @@ struct SnapshotRow: View {
       }
       Spacer()
       if let added = snapshot.dataAdded {
-        Text("+\(Format.bytes(added))")
-          .font(.system(size: 11, weight: .semibold, design: .rounded))
-          .foregroundStyle(.green)
-          .padding(.horizontal, 8)
-          .padding(.vertical, 3)
-          .background(Capsule().fill(Color.green.opacity(0.12)))
-          .help("New data uploaded by this backup")
+        Label {
+          Text("+\(Format.bytes(added))")
+            .foregroundStyle(.secondary)
+        } icon: {
+          Image(systemName: "arrow.up")
+            .foregroundStyle(.green)
+        }
+        .font(.system(size: 11, weight: .semibold, design: .rounded))
+        .padding(.horizontal, 8)
+        .padding(.vertical, 3)
+        .background(Capsule().fill(Color.green.opacity(0.12)))
+        .help("New data uploaded by this backup")
       }
       if let warnings = model.config.lastRun?.warnings(forSnapshot: snapshot.id) {
         BackupWarningsBadge(warnings: warnings)
       }
       Text(snapshot.shortId)
         .font(.system(size: 11, design: .monospaced))
-        .foregroundStyle(.tertiary)
-      Button("Browse Files…", action: browse)
+        .foregroundStyle(.secondary)
+      Button("Browse Files", action: browse)
         .buttonStyle(SecondaryButtonStyle())
-      Button("Restore All…", action: restore)
+      Button("Restore All", action: restore)
         .buttonStyle(SecondaryButtonStyle())
         .disabled(model.activity != nil)
     }

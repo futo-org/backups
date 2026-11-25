@@ -196,7 +196,8 @@ struct StatusHero: View {
   var body: some View {
     let status = StatusSummary(model: model, progress: progress.progress, restore: progress.restore)
     HStack(spacing: 30) {
-      StatusRing(progress: status.progress, busy: status.busy, symbol: status.symbol, tint: status.tint)
+      StatusRing(
+        progress: status.progress, busy: status.busy, symbol: status.symbol, tint: status.tint)
       VStack(alignment: .leading, spacing: 8) {
         Text(status.title)
           .font(.system(size: 28, weight: .bold, design: .rounded))

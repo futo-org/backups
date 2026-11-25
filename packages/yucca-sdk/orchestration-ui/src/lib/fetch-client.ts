@@ -405,7 +405,7 @@ export type ScheduleDefaultsDto = {
 export type ScheduleListResponseDto = {
     schedules: ScheduleDto[];
     defaults: ScheduleDefaultsDto;
-    tz: string;
+    tz?: string;
 };
 export type ScheduleUpdateRequestDto = {
     name?: string;

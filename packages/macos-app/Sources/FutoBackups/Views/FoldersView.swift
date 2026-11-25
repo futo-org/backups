@@ -34,12 +34,7 @@ struct FoldersView: View {
     .navigationSubtitle("Everything inside these folders is encrypted and backed up.")
     .toolbar {
       ToolbarItem(placement: .primaryAction) {
-        Button {
-          addFolders()
-        } label: {
-          Label("Add Folder", systemImage: "plus")
-            .labelStyle(.titleAndIcon)
-        }
+        Button("Add Folder") { addFolders() }
       }
     }
     .dropDestination(for: URL.self) { urls, _ in
@@ -117,14 +112,14 @@ struct FoldersView: View {
           Button {
             addExclusions()
           } label: {
-            Label("Add Folder or File…", systemImage: "plus")
+            Label("Add Folder or File", systemImage: "plus")
           }
           .buttonStyle(SecondaryButtonStyle())
           Button {
             patternError = nil
             showPatternEditor = true
           } label: {
-            Label("Add Pattern…", systemImage: "asterisk")
+            Label("Add Pattern", systemImage: "asterisk")
           }
           .buttonStyle(SecondaryButtonStyle())
           .popover(isPresented: $showPatternEditor, arrowEdge: .bottom) {
@@ -171,7 +166,6 @@ struct FoldersView: View {
         .font(.headline)
       TextField("Pattern", text: $patternDraft, prompt: Text("*.iso"))
         .textFieldStyle(.roundedBorder)
-        .onSubmit(addPattern)
         .onChange(of: patternDraft) { _, _ in patternError = nil }
       if let patternError {
         Text(patternError)
@@ -186,8 +180,10 @@ struct FoldersView: View {
       HStack {
         Spacer()
         Button("Cancel") { showPatternEditor = false }
+          .keyboardShortcut(.cancelAction)
         Button("Add", action: addPattern)
           .buttonStyle(PrimaryButtonStyle())
+          .keyboardShortcut(.defaultAction)
       }
     }
     .padding(18)
@@ -288,6 +284,7 @@ private struct ExclusionChip: View {
       .buttonStyle(.plain)
       .opacity(hovering ? 1 : 0.45)
       .help("Stop excluding")
+      .accessibilityLabel("Stop excluding \(Format.abbreviatedPath(pattern))")
     }
     .padding(.leading, 8)
     .padding(.trailing, 6)
@@ -329,6 +326,7 @@ struct FolderCard: View {
   let path: String
   let remove: () -> Void
   @State private var hovering = false
+  @FocusState private var removeFocused: Bool
 
   var body: some View {
     HStack(spacing: 12) {
@@ -357,9 +355,11 @@ struct FolderCard: View {
           .foregroundStyle(.secondary)
       }
       .buttonStyle(.plain)
+      .focused($removeFocused)
       .padding(8)
-      .opacity(hovering ? 1 : 0)
+      .opacity(hovering || removeFocused ? 1 : 0)
       .help("Stop backing up this folder")
+      .accessibilityLabel("Stop backing up \(Format.abbreviatedPath(path))")
     }
     .onHover { hovering = $0 }
     .contextMenu {

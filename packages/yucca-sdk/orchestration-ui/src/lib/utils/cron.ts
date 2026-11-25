@@ -49,12 +49,20 @@ export const resolveCron = (
   return (preset && defaults?.[preset]) ?? cron;
 };
 
-export const withTimeZone = (text: string, tz: string) =>
-  tz === DateTime.local().zoneName
+export const withTimeZone = (text: string, tz: string | undefined) => {
+  if (!tz) {
+    return gt({
+      message: '{text} (server time zone unavailable)',
+      values: { text },
+    });
+  }
+
+  return tz === DateTime.local().zoneName
     ? text
     : `${text} (${tz.replaceAll('_', ' ')})`;
+};
 
-export const describeCron = (expression: string, tz: string) => {
+export const describeCron = (expression: string, tz: string | undefined) => {
   const description = cronstrue.toString(expression, { verbose: true });
   return withTimeZone(
     description.charAt(0).toLowerCase() + description.slice(1),
@@ -82,7 +90,7 @@ export const toDefaultWindow = (expression: string) => {
 export const describeSchedule = (
   cron: string,
   defaults: ScheduleDefaultsDto,
-  tz: string,
+  tz: string | undefined,
 ) => {
   const preset = toSchedulePreset(cron);
   if (!preset) {
