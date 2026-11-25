@@ -42,12 +42,9 @@ struct SnapshotBrowserView: View {
   private var content: some View {
     switch browser.listing {
     case .loading:
-      VStack(spacing: 12) {
-        ProgressView()
-          .controlSize(.small)
-        Text("Loading…")
-          .foregroundStyle(.secondary)
-      }
+      ProgressView()
+        .controlSize(.small)
+        .accessibilityLabel("Loading folder contents")
     case .failed(let message):
       VStack(spacing: 10) {
         Image(systemName: "exclamationmark.triangle.fill")
@@ -103,7 +100,7 @@ struct SnapshotBrowserView: View {
       Button("Cancel", action: close)
         .buttonStyle(.bordered)
         .keyboardShortcut(.cancelAction)
-      Button(browser.selection.isEmpty ? "Restore…" : "Restore \(itemCount(browser.selection.count))…") {
+      Button(browser.selection.isEmpty ? "Restore" : "Restore \(itemCount(browser.selection.count))") {
         restore(browser.selection.entries)
       }
       .buttonStyle(.borderedProminent)

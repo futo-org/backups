@@ -13,11 +13,16 @@ struct MenuBarContent: View {
         MenuBarUploadSpeed(progress: model.activityProgress)
       }
       if let error = model.lastError ?? model.setupError {
-        Label(error, systemImage: "exclamationmark.triangle.fill")
-          .font(.system(size: 11))
-          .foregroundStyle(.orange)
-          .lineLimit(3)
-          .copyable(error)
+        Label {
+          Text(error)
+            .foregroundStyle(.secondary)
+        } icon: {
+          Image(systemName: "exclamationmark.triangle.fill")
+            .foregroundStyle(.orange)
+        }
+        .font(.system(size: 11))
+        .lineLimit(3)
+        .copyable(error)
       }
       if model.signedIn {
         VStack(spacing: 8) {
@@ -52,7 +57,7 @@ struct MenuBarContent: View {
           MenuBarResidency.shared.showMainWindow()
         }
         if updater.isAvailable {
-          Button("Check for Updates…") { updater.checkForUpdates() }
+          Button("Check for Updates") { updater.checkForUpdates() }
             .disabled(!updater.canCheckForUpdates)
         }
         Button("Quit FUTO Backups") { MenuBarResidency.shared.quit() }
@@ -76,7 +81,10 @@ struct MenuBarLabel: View {
   let model: AppModel
 
   var body: some View {
-    Image(systemName: StatusSummary(model: model, progress: nil).menuBarSymbol)
+    let status = StatusSummary(model: model, progress: nil)
+    Image(systemName: status.menuBarSymbol)
+      .accessibilityLabel("FUTO Backups")
+      .accessibilityValue(model.signedIn ? status.title : "Not signed in")
   }
 }
 

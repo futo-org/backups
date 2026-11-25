@@ -28,11 +28,14 @@ struct BackupWarningsBadge: View {
     Button {
       showing = true
     } label: {
-      Label(
-        warnings.total == 1 ? "1 warning" : "\(warnings.total) warnings", systemImage: "exclamationmark.triangle.fill"
-      )
+      Label {
+        Text(warnings.total == 1 ? "1 warning" : "\(warnings.total) warnings")
+      } icon: {
+        Image(systemName: "exclamationmark.triangle.fill")
+          .foregroundStyle(.orange)
+      }
       .font(.system(size: 11, weight: .semibold, design: .rounded))
-      .foregroundStyle(.orange)
+      .foregroundStyle(.primary)
       .padding(.horizontal, 8)
       .padding(.vertical, 3)
       .background(Capsule().fill(Color.orange.opacity(0.12)))
@@ -141,6 +144,7 @@ struct BackupWarningsSheet: View {
     }
     .padding(24)
     .frame(width: 580)
+    .onEscape { dismiss() }
     .task {
       model.refreshFullDiskAccess()
     }

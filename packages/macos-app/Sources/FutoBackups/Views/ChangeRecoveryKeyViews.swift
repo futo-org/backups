@@ -104,7 +104,7 @@ struct ChangeRecoveryKeySheet: View {
           .foregroundStyle(.red)
       }
       buttons(primary: "Change Key", disabled: input.isEmpty || authenticating) { confirm() }
-      Button("View new key again") { step = .save }
+      Button("View New Key Again") { step = .save }
         .buttonStyle(.link)
         .font(.system(size: 12))
     }
@@ -114,7 +114,7 @@ struct ChangeRecoveryKeySheet: View {
     VStack(spacing: 16) {
       ProgressView()
         .controlSize(.large)
-      Text("Changing your recovery key…")
+      Text("Changing your recovery key")
         .font(.system(size: 20, weight: .bold, design: .rounded))
       Text("Keep FUTO Backups open until this finishes.")
         .font(.system(size: 13))
@@ -135,6 +135,7 @@ struct ChangeRecoveryKeySheet: View {
         .tint(Brand.fill)
         .controlSize(.large)
         .keyboardShortcut(.defaultAction)
+        .onEscape { dismiss() }
     }
   }
 

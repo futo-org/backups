@@ -65,7 +65,9 @@ struct IconTile: View {
       .overlay(
         Image(systemName: systemName)
           .font(.system(size: size * 0.5, weight: .semibold))
-          .foregroundStyle(.white))
+          .foregroundStyle(.white)
+      )
+      .accessibilityHidden(true)
   }
 }
 
@@ -78,6 +80,7 @@ struct AppGlyph: View {
       .frame(width: size, height: size)
       .overlay(LogoMark(size: size))
       .shadow(color: Brand.logo.opacity(0.35), radius: size * 0.18, y: size * 0.07)
+      .accessibilityHidden(true)
   }
 }
 
@@ -121,6 +124,7 @@ struct StatusRing: View {
   let symbol: String
   let tint: Color
   var size: CGFloat = 132
+  @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
   var body: some View {
     ZStack {
@@ -131,17 +135,20 @@ struct StatusRing: View {
           .trim(from: 0, to: max(0.02, progress))
           .stroke(Brand.ringGradient, style: StrokeStyle(lineWidth: lineWidth, lineCap: .round))
           .rotationEffect(.degrees(-90))
-          .animation(.easeOut(duration: 0.4), value: progress)
+          .animation(reduceMotion ? nil : .easeOut(duration: 0.4), value: progress)
         Text(progress.wholePercentFraction, format: .percent.precision(.fractionLength(0)))
           .font(.system(size: size * 0.21, weight: .bold, design: .rounded))
           .monospacedDigit()
       } else if busy {
-        TimelineView(.animation) { timeline in
-          Circle()
-            .trim(from: 0, to: 0.28)
-            .stroke(Brand.ringGradient, style: StrokeStyle(lineWidth: lineWidth, lineCap: .round))
-            .rotationEffect(
-              .degrees(timeline.date.timeIntervalSinceReferenceDate.remainder(dividingBy: 1.1) / 1.1 * 360))
+        if reduceMotion {
+          busyArc
+            .rotationEffect(.degrees(-90))
+        } else {
+          TimelineView(.animation) { timeline in
+            busyArc
+              .rotationEffect(
+                .degrees(timeline.date.timeIntervalSinceReferenceDate.remainder(dividingBy: 1.1) / 1.1 * 360))
+          }
         }
         Image(systemName: symbol)
           .font(.system(size: size * 0.26, weight: .semibold))
@@ -158,6 +165,20 @@ struct StatusRing: View {
       }
     }
     .frame(width: size, height: size)
+    .accessibilityElement(children: .ignore)
+    .accessibilityLabel("Progress")
+    .accessibilityValue(percentText)
+    .accessibilityHidden(progress == nil)
+  }
+
+  private var percentText: String {
+    progress?.wholePercentFraction.formatted(.percent.precision(.fractionLength(0))) ?? ""
+  }
+
+  private var busyArc: some View {
+    Circle()
+      .trim(from: 0, to: 0.28)
+      .stroke(Brand.ringGradient, style: StrokeStyle(lineWidth: lineWidth, lineCap: .round))
   }
 
   private var lineWidth: CGFloat { max(4, size * 0.075) }
@@ -168,7 +189,7 @@ struct AlphaBadge: View {
     Text("ALPHA")
       .font(.system(size: 10, weight: .bold, design: .rounded))
       .tracking(0.6)
-      .foregroundStyle(.orange)
+      .foregroundStyle(.primary)
       .padding(.horizontal, 7)
       .padding(.vertical, 2)
       .background(Capsule().fill(Color.orange.opacity(0.15)))
@@ -232,6 +253,8 @@ struct Banner: View {
         }
         .buttonStyle(.plain)
         .help("Copy error")
+        .accessibilityLabel("Copy error")
+        .accessibilityValue(copied ? "Copied" : "")
       }
       Button(action: dismiss) {
         Image(systemName: "xmark")
@@ -241,6 +264,8 @@ struct Banner: View {
           .background(Circle().fill(Color.primary.opacity(0.08)))
       }
       .buttonStyle(.plain)
+      .help("Dismiss")
+      .accessibilityLabel("Dismiss")
     }
     .padding(.horizontal, 16)
     .padding(.vertical, 12)

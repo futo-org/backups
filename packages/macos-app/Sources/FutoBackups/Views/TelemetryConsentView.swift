@@ -20,7 +20,7 @@ struct TelemetryConsentView: View {
             HStack(alignment: .center, spacing: 12) {
               IconTile(systemName: "chart.bar.xaxis", tint: Brand.blue)
               Text(
-                "We collect usage and diagnostic data to understand how FUTO Backups is used and to find problems."
+                "FUTO Backups collects usage and diagnostic data to understand how it's used and to find problems."
               )
               .font(.system(size: 13))
               .fixedSize(horizontal: false, vertical: true)

@@ -33,9 +33,9 @@ func nothingWrittenYetShowsNoPercent(progress: RestoreProgress?) {
   let single = RestoreStep(part: 1, partCount: 1, name: "Documents", progress: progress)
   #expect(single.fraction == nil)
   #expect(single.overallFraction == nil)
-  #expect(subtitle(single) == "Bringing your files back…")
+  #expect(subtitle(single) == "Bringing your files back")
   let multiple = RestoreStep(part: 1, partCount: 2, name: "Documents", progress: progress)
-  #expect(subtitle(multiple) == "Documents · Bringing your files back…")
+  #expect(subtitle(multiple) == "Documents · Bringing your files back")
 }
 
 @Test func aSingleItemIsNotPluralised() {
@@ -57,5 +57,5 @@ func nothingWrittenYetShowsNoPercent(progress: RestoreProgress?) {
   let step = RestoreStep(part: 2, partCount: 3, name: String(repeating: "long name\n", count: 20), progress: started)
   #expect(step.subtitle(namingPart: false, locale: english) { "\($0) B" } == "1200 B of 3400 B · 1,200 of 4,000 items")
   let waiting = RestoreStep(part: 2, partCount: 3, name: "Pictures")
-  #expect(waiting.subtitle(namingPart: false, locale: english) { "\($0) B" } == "Bringing your files back…")
+  #expect(waiting.subtitle(namingPart: false, locale: english) { "\($0) B" } == "Bringing your files back")
 }

@@ -67,7 +67,7 @@ struct WelcomeView: View {
           .keyboardShortcut(.defaultAction)
         Text("You'll approve this Mac in your browser.")
           .font(.system(size: 12))
-          .foregroundStyle(.tertiary)
+          .foregroundStyle(.secondary)
       }
     case .waiting(let userCode, let url):
       VStack(spacing: 18) {
@@ -90,7 +90,7 @@ struct WelcomeView: View {
         HStack(spacing: 8) {
           ProgressView()
             .controlSize(.small)
-          Text("Waiting for approval…")
+          Text("Waiting for approval")
             .font(.system(size: 12))
             .foregroundStyle(.secondary)
           Button("Cancel") { model.cancelLogin() }
@@ -102,16 +102,20 @@ struct WelcomeView: View {
       VStack(spacing: 14) {
         ProgressView()
           .controlSize(.regular)
-        Text("Setting up your encrypted backup…")
+        Text("Setting up your encrypted backup")
           .foregroundStyle(.secondary)
       }
     case .failed(let message):
       VStack(spacing: 14) {
-        Label(message, systemImage: "exclamationmark.triangle.fill")
-          .foregroundStyle(.orange)
-          .multilineTextAlignment(.center)
-          .copyable(message)
-          .frame(maxWidth: 420)
+        Label {
+          Text(message)
+        } icon: {
+          Image(systemName: "exclamationmark.triangle.fill")
+            .foregroundStyle(.orange)
+        }
+        .multilineTextAlignment(.center)
+        .copyable(message)
+        .frame(maxWidth: 420)
         Button("Try Again") { model.startLogin() }
           .buttonStyle(.borderedProminent)
           .tint(Brand.fill)
@@ -169,7 +173,7 @@ struct ServerEditor: View {
       }
       HStack {
         Button("Production") { use(AppConfig.productionServerURL) }
-        Button("Local dev") { use(AppConfig.devServerURL) }
+        Button("Local Dev") { use(AppConfig.devServerURL) }
         Spacer()
         Button("Apply", action: apply)
           .buttonStyle(.borderedProminent)
