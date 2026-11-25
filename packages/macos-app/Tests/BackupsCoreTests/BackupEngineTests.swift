@@ -2397,12 +2397,15 @@ private let skippedFiles = CloudOnlySkip(
   let scanner = FakeCloudOnlyScanner(hangs: true)
   let fixture = makeFixture(cloudOnlyScanner: scanner)
   fixture.restic.set(
-    ResticScript(exitCode: 1, stderr: #"{"message_type":"exit_error","code":1,"message":"no space"}"#),
+    ResticScript(
+      afterLines: { await waitUntil { !scanner.calls.isEmpty } }, exitCode: 1,
+      stderr: #"{"message_type":"exit_error","code":1,"message":"no space"}"#),
     for: "backup")
   let engine = BackupEngine(environment: fixture.environment)
   let record = try await engine.backup(config: testConfig()) { _ in }
   #expect(record.status == .failed)
   #expect(record.cloudOnlySkipped == nil)
+  #expect(!scanner.calls.isEmpty)
   let deadline = ContinuousClock.now + .seconds(10)
   while !scanner.cancelled, ContinuousClock.now < deadline {
     try await Task.sleep(for: .milliseconds(5))
