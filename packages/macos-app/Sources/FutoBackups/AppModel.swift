@@ -727,6 +727,11 @@ final class AppModel {
     Exclusions.isDefault(pattern, home: NSHomeDirectory())
   }
 
+  var customExclusions: [String] {
+    let defaults = Set(Exclusions.defaults(home: NSHomeDirectory()))
+    return config.excludes.filter { !defaults.contains($0) }
+  }
+
   func addExclusions(_ urls: [URL]) {
     addExcludedPaths(urls.map(\.path))
   }
@@ -756,7 +761,11 @@ final class AppModel {
   }
 
   func removeExclusion(_ pattern: String) {
-    updateExclusions(config.excludes.filter { $0 != pattern })
+    removeExclusions([pattern])
+  }
+
+  func removeExclusions(_ patterns: Set<String>) {
+    updateExclusions(config.excludes.filter { !patterns.contains($0) })
   }
 
   func restoreDefaultExclusions() {
