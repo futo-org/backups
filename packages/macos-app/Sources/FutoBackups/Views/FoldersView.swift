@@ -9,6 +9,7 @@ struct FoldersView: View {
   @State private var patternDraft = ""
   @State private var patternError: String?
   @State private var showBuiltInExclusions = false
+  @State private var showingExclusions = false
 
   var body: some View {
     ScrollView {
@@ -84,7 +85,7 @@ struct FoldersView: View {
   }
 
   private var skipped: some View {
-    let custom = model.config.excludes.filter { !model.isDefaultExclusion($0) }
+    let custom = model.customExclusions
     let builtIn = model.config.excludes.filter { model.isDefaultExclusion($0) }
     return Card {
       VStack(alignment: .leading, spacing: 12) {
@@ -106,7 +107,15 @@ struct FoldersView: View {
             .font(.system(size: 12))
             .foregroundStyle(.secondary)
         } else {
-          exclusionChips(custom)
+          HStack {
+            Text(custom.count == 1 ? "1 excluded item" : "\(custom.count.formatted()) excluded items")
+              .font(.system(size: 12))
+              .foregroundStyle(.secondary)
+            Spacer(minLength: 8)
+            Button("Show List") { showingExclusions = true }
+              .buttonStyle(.bordered)
+              .accessibilityLabel("Show the list of excluded items")
+          }
         }
         HStack(spacing: 8) {
           Button {
@@ -148,12 +157,15 @@ struct FoldersView: View {
         }
       }
     }
+    .sheet(isPresented: $showingExclusions) {
+      ExclusionListSheet()
+    }
   }
 
   private func exclusionChips(_ patterns: [String]) -> some View {
     FlowLayout(spacing: 6) {
       ForEach(patterns, id: \.self) { exclude in
-        ExclusionChip(label: excludeLabel(exclude), pattern: exclude, isDefault: model.isDefaultExclusion(exclude)) {
+        ExclusionChip(label: exclusionLabel(exclude), pattern: exclude, isDefault: model.isDefaultExclusion(exclude)) {
           model.removeExclusion(exclude)
         }
       }
@@ -226,11 +238,6 @@ struct FoldersView: View {
     }
   }
 
-  private func excludeLabel(_ pattern: String) -> String {
-    let literal = pattern.replacingOccurrences(of: #"\\(.)"#, with: "$1", options: .regularExpression)
-    return literal.hasPrefix("**/") ? String(literal.dropFirst(3)) : Format.abbreviatedPath(literal)
-  }
-
   private func addPattern() {
     if let error = model.addExclusionPattern(patternDraft) {
       patternError = error
@@ -262,6 +269,88 @@ struct FoldersView: View {
     if panel.runModal() == .OK {
       model.addFolders(panel.urls)
     }
+  }
+}
+
+private func exclusionLabel(_ pattern: String) -> String {
+  let literal = pattern.replacingOccurrences(of: #"\\(.)"#, with: "$1", options: .regularExpression)
+  return literal.hasPrefix("**/") ? String(literal.dropFirst(3)) : Format.abbreviatedPath(literal)
+}
+
+private struct ExclusionListSheet: View {
+  @Environment(AppModel.self) private var model
+  @Environment(\.dismiss) private var dismiss
+  @State private var query = ""
+  @State private var selection = Set<String>()
+
+  var body: some View {
+    let all = model.customExclusions
+    let shown = matching(all)
+    VStack(alignment: .leading, spacing: 10) {
+      HStack(alignment: .firstTextBaseline) {
+        Text("Excluded")
+          .font(.headline)
+        Spacer()
+        Text(
+          query.isEmpty ? "\(all.count.formatted()) items" : "\(shown.count.formatted()) of \(all.count.formatted())"
+        )
+        .font(.system(size: 12))
+        .foregroundStyle(.secondary)
+      }
+      TextField("Search", text: $query, prompt: Text("Search"))
+        .textFieldStyle(.roundedBorder)
+        .onChange(of: query) { selection.formIntersection(matching(model.customExclusions)) }
+      List(shown, id: \.self, selection: $selection) { pattern in
+        HStack(spacing: 8) {
+          Text(exclusionLabel(pattern))
+            .font(.system(size: 11, design: .monospaced))
+            .lineLimit(1)
+            .truncationMode(.middle)
+          if pattern.hasPrefix("!") {
+            Spacer(minLength: 0)
+            Text("Exception")
+              .font(.system(size: 10, weight: .medium))
+              .foregroundStyle(.secondary)
+          }
+        }
+        .help(pattern)
+      }
+      .listStyle(.bordered(alternatesRowBackgrounds: true))
+      .onDeleteCommand { removeSelection(from: shown) }
+      HStack {
+        Text(
+          selection.isEmpty
+            ? "Select rules to remove them." : "\(selection.count.formatted()) selected"
+        )
+        .font(.system(size: 12))
+        .foregroundStyle(.secondary)
+        Spacer()
+        Button("Remove") { removeSelection(from: shown) }
+          .buttonStyle(.bordered)
+          .disabled(selection.isEmpty)
+        Button("Done") { dismiss() }
+          .buttonStyle(.borderedProminent)
+          .tint(Brand.fill)
+          .keyboardShortcut(.defaultAction)
+      }
+    }
+    .padding(20)
+    .frame(width: 560, height: 520)
+  }
+
+  private func matching(_ patterns: [String]) -> [String] {
+    let needle = query.trimmingCharacters(in: .whitespaces)
+    guard !needle.isEmpty else { return patterns }
+    return patterns.filter {
+      $0.localizedCaseInsensitiveContains(needle) || exclusionLabel($0).localizedCaseInsensitiveContains(needle)
+    }
+  }
+
+  private func removeSelection(from shown: [String]) {
+    let removed = selection.intersection(shown)
+    guard !removed.isEmpty else { return }
+    model.removeExclusions(removed)
+    selection.subtract(removed)
   }
 }
 
