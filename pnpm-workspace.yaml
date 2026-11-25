@@ -52,11 +52,11 @@ catalog:
   '@opentelemetry/resources': ^2.5.0
   '@opentelemetry/sdk-node': ^0.217.0
   '@playwright/test': 1.63.0
-  '@sveltejs/adapter-auto': ^7.0.1
+  '@sveltejs/adapter-auto': ^9.0.0
   '@sveltejs/adapter-node': ^5.5.7
   '@sveltejs/adapter-static': ^3.0.10
   '@sveltejs/kit': ^2.70.3
-  '@sveltejs/package': ^2.5.8
+  '@sveltejs/package': ^3.0.0
   '@sveltejs/vite-plugin-svelte': ^7.3.1
   '@tailwindcss/vite': ^4.1.18
   '@tanstack/svelte-query': ^6.3.1
