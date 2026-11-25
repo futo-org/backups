@@ -431,7 +431,7 @@ public actor BackupEngine {
       }
       await session.proxy.stop()
     } catch {
-      if error is CancellationError {
+      if error is CancellationError || (Task.isCancelled && (error as? URLError)?.code == .cancelled) {
         status = .cancelled
       } else {
         status = .failed

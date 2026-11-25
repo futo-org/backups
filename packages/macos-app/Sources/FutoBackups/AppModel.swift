@@ -96,6 +96,7 @@ final class AppModel {
   private var pendingBootstrapError: String? = nil
   private var appActiveObserver: (any NSObjectProtocol)?
   private var backupDeletionTask: Task<Void, Never>?
+  private let failureNotifier = FailureNotifier(center: FailureNotifications.shared)
 
   static let allowsServerSelection =
     Bundle.main.object(forInfoDictionaryKey: "FUTOServerSelection") as? Bool ?? true
@@ -182,6 +183,7 @@ final class AppModel {
     if loadFailure == nil, config.treatExistingFoldersAsOnboarded(at: Date()) {
       saveConfig()
     }
+    failureNotifier.host = self
     scheduler = Scheduler(model: self)
     scheduler?.start()
     let clearsSession = pinnedToProduction
@@ -199,10 +201,7 @@ final class AppModel {
       }
       hasMasterKey = ((try? await engine?.storedMasterKey()) ?? nil) != nil
       signedIn = hasSession && config.repositoryId != nil && config.recoveryKeyConfirmedAt != nil
-      if hasSession && isRecoveringLostKey {
-        signedIn = false
-        recoveryKeyStep = .importKey
-      } else if hasSession && !signedIn {
+      if hasSession && !signedIn {
         continueSetup()
       }
       sessionLoaded = true
@@ -219,12 +218,41 @@ final class AppModel {
       object: nil,
       queue: .main
     ) { [weak self] _ in
-      MainActor.assumeIsolated { self?.refreshFullDiskAccess() }
+      MainActor.assumeIsolated {
+        self?.refreshFullDiskAccess()
+        self?.refreshNotificationAuthorization()
+      }
     }
+    refreshNotificationAuthorization()
   }
 
   func refreshFullDiskAccess() {
     hasFullDiskAccess = FullDiskAccess.isGranted()
+  }
+
+  var failureNotificationToggle: FailureNotificationToggle { failureNotifier.toggle }
+
+  var isRequestingNotificationPermission: Bool { failureNotifier.isRequestingAuthorization }
+
+  var showsFailureNotificationHint: Bool { failureNotifier.showsHint }
+
+  var isMissingRecoveryKey: Bool { signedIn && isRecoveringLostKey }
+
+  func refreshNotificationAuthorization() {
+    Task { await failureNotifier.refreshAuthorization() }
+  }
+
+  func setFailureNotifications(_ enabled: Bool) {
+    Task { await failureNotifier.setEnabled(enabled) }
+  }
+
+  func dismissFailureNotificationHint() {
+    failureNotifier.dismissHint()
+  }
+
+  func openNotificationSettings() {
+    guard let url = FailureNotifications.systemSettingsURL else { return }
+    NSWorkspace.shared.open(url)
   }
 
   var hasSnapshotFolders: Bool {
@@ -256,8 +284,8 @@ final class AppModel {
 
   func tick() {
     recomputeNextRun()
-    guard engine != nil, hasSession, signedIn, config.repositoryId != nil, !config.folders.isEmpty,
-      operationTask == nil
+    guard engine != nil, hasSession, signedIn, !isMissingRecoveryKey, config.repositoryId != nil,
+      !config.folders.isEmpty, operationTask == nil
     else { return }
     if config.scheduleReference == nil {
       config.scheduleAnchor = Date()
@@ -309,6 +337,7 @@ final class AppModel {
           guard generation == self.loginGeneration else { return }
           if self.config.forgetRepository(unlessListedIn: repositories) {
             self.saveConfig()
+            self.failureNotifier.endStreak()
           }
         }
         report("Connected FUTO Backups backend")
@@ -399,7 +428,12 @@ final class AppModel {
     case .failed(let message): return message
     case .finished(.unlocked):
       hasMasterKey = true
-      markRecoveryKeyConfirmed()
+      if signedIn {
+        lastError = nil
+        Task { await refreshSnapshots() }
+      } else {
+        markRecoveryKeyConfirmed()
+      }
       return nil
     case .finished: return "That key doesn't open this Mac's backup."
     }
@@ -675,6 +709,7 @@ final class AppModel {
     saveConfig()
     recomputeNextRun()
     reportRepositoryChange()
+    Task { await failureNotifier.requestPermissionIfNeeded() }
     if startBackup {
       backupNow()
     }
@@ -738,11 +773,13 @@ final class AppModel {
   }
 
   func setSchedule(_ schedule: Schedule) {
+    let previous = config.schedule
     config.schedule = schedule
     config.scheduleAnchor = Date()
     saveConfig()
     recomputeNextRun()
     report("Updated schedule", ["schedule": .string(scheduleDescription(schedule))])
+    Task { await failureNotifier.scheduleChanged(from: previous) }
   }
 
   func setUploadConnections(_ connections: Int?) {
@@ -791,6 +828,7 @@ final class AppModel {
   func setServerURL(_ url: URL) {
     guard url != config.serverURL else { return }
     logout()
+    failureNotifier.cancelPendingNotice()
     config.switchServer(to: url)
     saveConfig()
   }
@@ -807,6 +845,10 @@ final class AppModel {
     }
     guard signedIn else {
       lastError = "Finish setting up FUTO Backups first"
+      return
+    }
+    guard !isMissingRecoveryKey else {
+      lastError = message(for: EngineError.missingMasterKey)
       return
     }
     guard config.repositoryId != nil else {
@@ -849,6 +891,7 @@ final class AppModel {
           self.lastError = record.message
         }
         self.recomputeNextRun()
+        self.failureNotifier.backupFinished(BackupRunOutcome(record: record), scheduled: scheduled)
         await self.refreshSnapshots()
       } catch {
         guard generation == self.sessionGeneration else {
@@ -856,7 +899,11 @@ final class AppModel {
           return
         }
         self.finishOperation()
+        if (error as? EngineError) == .missingMasterKey {
+          self.hasMasterKey = false
+        }
         self.lastError = self.message(for: error)
+        self.failureNotifier.backupFinished(BackupRunOutcome(error: error), scheduled: scheduled)
       }
     }
     if scheduled, let repositoryId = config.repositoryId {
@@ -949,6 +996,7 @@ final class AppModel {
   }
 
   private func resetLocally(signingOut: Bool) async {
+    failureNotifier.invalidate()
     isResetting = true
     await stopRunningWork()
     let token = signingOut ? sessionToken : nil
@@ -1005,6 +1053,7 @@ final class AppModel {
     backupDeletion = .idle
     UserDefaults.standard.removeObject(forKey: SidebarItem.storageKey)
     recomputeNextRun()
+    failureNotifier.endStreak()
   }
 
   func restore(snapshot: Snapshot, to url: URL) {
@@ -1034,6 +1083,10 @@ final class AppModel {
     }
     guard signedIn else {
       lastError = "Finish setting up FUTO Backups first"
+      return
+    }
+    guard !isMissingRecoveryKey else {
+      lastError = message(for: EngineError.missingMasterKey)
       return
     }
     guard config.repositoryId != nil else {
@@ -1181,7 +1234,12 @@ final class AppModel {
 
   private func finishPendingKeyRotation() async {
     guard let engine, operationTask == nil else { return }
+    let generation = sessionGeneration
     _ = try? await engine.finishPendingKeyRotation(config: config)
+    guard generation == sessionGeneration, !hasMasterKey else { return }
+    if ((try? await engine.storedMasterKey()) ?? nil) != nil {
+      hasMasterKey = true
+    }
   }
 
   private func refreshAccount() async {
@@ -1318,6 +1376,18 @@ final class AppModel {
       parts.append("The temporary folder \(leftover.path) couldn't be removed")
     }
     return parts.joined(separator: ". ")
+  }
+}
+
+extension AppModel: FailureNotificationHost {
+  func updateConfig(_ change: (inout AppConfig) -> Void) {
+    change(&config)
+    saveConfig()
+  }
+
+  func failureNotice(for reason: BackupFailureReason) -> FailureNotice {
+    FailureNotice(
+      reason: reason, server: config.serverName, retryAt: nextRun, now: Date(), calendar: .current, locale: .current)
   }
 }
 

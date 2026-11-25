@@ -16,6 +16,9 @@ struct OverviewView: View {
   var body: some View {
     ScrollView {
       VStack(alignment: .leading, spacing: 18) {
+        if model.isMissingRecoveryKey {
+          MissingRecoveryKeyNotice()
+        }
         StatusHero(progress: model.activityProgress, showFolders: showFolders)
         if model.activity == .backingUp {
           LiveUploadSpeedCard(progress: model.activityProgress)
@@ -33,6 +36,9 @@ struct OverviewView: View {
             value: model.snapshots.isEmpty ? "—" : "\(model.snapshots.count)")
         }
         scheduleCard
+        if model.showsFailureNotificationHint {
+          FailureNotificationHint()
+        }
       }
       .padding(28)
       .frame(maxWidth: 820)

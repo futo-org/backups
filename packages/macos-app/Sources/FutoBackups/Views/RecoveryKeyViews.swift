@@ -226,6 +226,60 @@ private struct ImportRecoveryKeyStep: View {
   }
 }
 
+struct MissingRecoveryKeyNotice: View {
+  @State private var entering = false
+
+  var body: some View {
+    Card(padding: 16) {
+      HStack(spacing: 12) {
+        IconTile(systemName: "key.horizontal.fill", tint: .orange, size: 32)
+        VStack(alignment: .leading, spacing: 2) {
+          Text("This Mac's recovery key is missing")
+            .font(.system(size: 13, weight: .semibold))
+          Text("Backups and restores can't run until you enter it again.")
+            .font(.system(size: 12))
+            .foregroundStyle(.secondary)
+            .fixedSize(horizontal: false, vertical: true)
+        }
+        Spacer(minLength: 8)
+        Button("Enter Recovery Key") { entering = true }
+          .buttonStyle(.borderedProminent)
+          .tint(Brand.fill)
+      }
+    }
+    .sheet(isPresented: $entering) {
+      EnterRecoveryKeySheet()
+    }
+  }
+}
+
+private struct EnterRecoveryKeySheet: View {
+  @Environment(AppModel.self) private var model
+  @Environment(\.dismiss) private var dismiss
+  @State private var checking = false
+
+  var body: some View {
+    VStack(spacing: 22) {
+      StepTitle(
+        systemName: "key.horizontal.fill", tint: Brand.blue, title: "Enter your recovery key",
+        subtitle: "This Mac's recovery key is missing. Enter it to keep backing up.")
+      RecoveryKeyEntry(action: "Use This Key", checking: $checking) { await model.importRecoveryKey($0) }
+      Button("Cancel") { dismiss() }
+        .buttonStyle(.link)
+        .font(.system(size: 12))
+        .disabled(checking)
+    }
+    .padding(36)
+    .frame(width: 560)
+    .background(OnboardingBackground())
+    .interactiveDismissDisabled(checking)
+    .onEscape { if !checking { dismiss() } }
+    .onChange(of: model.isMissingRecoveryKey) { _, missing in
+      if !missing { dismiss() }
+    }
+  }
+}
+
 private struct NewBackupKeyStep: View {
   @Environment(AppModel.self) private var model
   let repositories: [RemoteRepository]
