@@ -2,6 +2,7 @@ import Foundation
 
 public enum ConnectionFailure: CaseIterable, Equatable, Sendable {
   case unreachable
+  case unavailable
   case offline
   case insecure
 
@@ -26,6 +27,10 @@ public enum ConnectionFailure: CaseIterable, Equatable, Sendable {
   }
 
   public init?(resticError: String) {
+    if resticError.contains(resticUnavailableStatus) {
+      self = .unavailable
+      return
+    }
     guard resticProxyUnreachableStatuses.contains(where: resticError.contains) else { return nil }
     self = .unreachable
   }
@@ -41,6 +46,8 @@ public enum ConnectionFailure: CaseIterable, Equatable, Sendable {
     switch self {
     case .unreachable:
       "Couldn't reach \(server). Check your internet connection and try again."
+    case .unavailable:
+      "\(server) didn't respond. Check your internet connection, or try again later."
     case .offline:
       "You're offline. Connect to the internet and try again."
     case .insecure:
@@ -161,9 +168,8 @@ extension ResticProxyError: LocalizedError {
   }
 }
 
-private let resticProxyUnreachableStatuses = [
-  "unexpected HTTP response (502)", "unexpected HTTP response (503)", "unexpected HTTP response (504)",
-]
+private let resticProxyUnreachableStatuses = ["unexpected HTTP response (502)", "unexpected HTTP response (504)"]
+private let resticUnavailableStatus = "unexpected HTTP response (503)"
 
 func urlErrorCode(in error: any Error) -> URLError.Code? {
   var current: NSError? = error as NSError

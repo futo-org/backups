@@ -232,6 +232,7 @@ func runRecordOutcome(status: BackupStatus, outcome: BackupRunOutcome) {
   (ErrorMessage.sessionExpired, .signedOut),
   (ConnectionFailure.unreachable.message(server: "futo.cloud"), .unreachable),
   (ConnectionFailure.offline.message(server: "futo.cloud"), .unreachable),
+  (ConnectionFailure.unavailable.message(server: "futo.cloud"), .unreachable),
   (ConnectionFailure.insecure.message(server: "example.org"), .unreachable),
 ])
 func failureReasonFromMessage(message: String, reason: BackupFailureReason) {

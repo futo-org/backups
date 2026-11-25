@@ -1,6 +1,7 @@
-import BackupsCore
 import Foundation
 import Testing
+
+@testable import BackupsCore
 
 private let server = "FUTO Cloud"
 private let unreachable = "Couldn't reach FUTO Cloud. Check your internet connection and try again."
@@ -75,7 +76,7 @@ struct FlaggedError: Sendable, CustomTestStringConvertible {
   ErrorCase(YuccaError.insecureDiscovery("server URL must use https"), "The server address must use HTTPS."),
   ErrorCase(
     EngineError.restic(code: 1, message: "Fatal: unable to open config file: unexpected HTTP response (503)"),
-    unreachable),
+    ConnectionFailure.unavailable.message(server: server)),
   ErrorCase(YuccaError.decoding("keyNotFound"), "The server sent a response FUTO Backups couldn't read."),
   ErrorCase(DeviceLoginError.expired, "The sign-in code expired. Try again."),
   ErrorCase(
@@ -126,7 +127,7 @@ func transientFailures(_ testCase: FlaggedError) {
 
 @Test(arguments: [
   ("unexpected HTTP response (502): 502 Bad Gateway", ConnectionFailure.unreachable),
-  ("Fatal: unable to open config file: unexpected HTTP response (503): 503 Service Unavailable", .unreachable),
+  ("Fatal: unable to open config file: unexpected HTTP response (503): 503 Service Unavailable", .unavailable),
   ("unexpected HTTP response (504): 504 Gateway Timeout", .unreachable),
   ("unexpected HTTP response (500): 500 Internal Server Error", nil),
   ("unexpected HTTP response (404): 404 Not Found", nil),
@@ -187,4 +188,15 @@ func signingOut(_ testCase: FlaggedError) {
 ])
 func cancellation(_ testCase: FlaggedError) {
   #expect(ErrorMessage.isCancellation(testCase.error) == testCase.flag)
+}
+
+@Test func diagnosticsLabelNamesTheErrorCaseWithoutItsDetails() {
+  #expect(
+    EngineDiagnostics.label(of: YuccaError.invalidDiscovery("https://user:secret@example.org/x"))
+      == "YuccaError.invalidDiscovery")
+  #expect(EngineDiagnostics.label(of: YuccaError.unauthorized) == "YuccaError.unauthorized")
+  #expect(
+    !EngineDiagnostics.label(
+      of: URLError(.timedOut, userInfo: [NSURLErrorKey: URL(string: "https://user:secret@example.org")!])
+    ).contains("secret"))
 }
