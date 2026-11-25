@@ -8,7 +8,7 @@ Once the app is installed, setup takes three things: connecting your account, sa
 
 Immich asks you to connect your account first and shows the recovery key after. The standalone app does it the other way round. Either way you do both.
 
-The Mac app has its own setup, which ends with a first backup. See [set up on a Mac](/getting-started/mac#setup).
+The Mac app has its own setup, which ends with a first backup. See [set up on a Mac](/getting-started/mac#set-up-the-app).
 
 ## Choose where your backups live
 

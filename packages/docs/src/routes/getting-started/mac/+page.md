@@ -4,66 +4,74 @@ description: Install the FUTO Backups Mac app and back up the folders on your Ma
 order: 4
 ---
 
-The Mac app backs up folders on your Mac, on a schedule, from the menu bar. It needs macOS 26 or later.
+The Mac app backs up folders on your Mac on a schedule. It runs from the menu bar and needs macOS 26 or later.
 
-> [!NOTE]
-> The Mac app is in alpha, earlier than the rest of the beta. Keep another copy of anything you cannot afford to lose.
+> [!WARNING]
+> Keep a second copy of each file that you cannot lose. The Mac app is in alpha, which is earlier than the rest of the beta.
 
-Before you begin, make sure you have [joined the beta](/getting-started/beta) and can sign in at [backups.futo.cloud](https://backups.futo.cloud).
+Before you start, [join the beta](/getting-started/beta) and make sure that you can sign in at [backups.futo.cloud](https://backups.futo.cloud).
 
-## Install it
+## Install the app
 
-With [Homebrew](https://brew.sh):
+You can install the app with [Homebrew](https://brew.sh) or from a download.
+
+To install with Homebrew, run these two commands:
 
 ```bash
 brew trust --cask futo-org/tap/futo-backups
 brew install --cask futo-org/tap/futo-backups
 ```
 
-The first command is needed once: Homebrew does not load casks from a tap it has not been told to trust.
+The first command tells Homebrew to trust the FUTO tap, which is the list of FUTO packages. You run it one time only.
 
-Or download `FUTO-Backups-<version>.zip` from the newest [FUTO Backups for macOS release](https://github.com/futo-org/backups/releases?q=macos-v&expanded=true), unzip it and move **FUTO Backups** into **Applications**.
+To install from a download, do these steps:
 
-The app keeps itself up to date either way. You can turn that off, or check by hand, under **Settings** → **Updates**.
+1. Download `FUTO-Backups-<version>.zip` from the newest [FUTO Backups for macOS release](https://github.com/futo-org/backups/releases?q=macos-v&expanded=true).
+2. Open the zip file.
+3. Move **FUTO Backups** into **Applications**.
 
-## Setup
+The app installs its own updates. To stop this, or to look for an update now, go to **Settings** → **Updates**.
 
-Open the app and it walks you through setup:
+## Set up the app
 
-1. **Telemetry.** To continue setup during the closed beta, you must agree to share FUTO Backups diagnostics. Telemetry does not collect your files or recovery key.
-2. **Sign in.** Select **Sign In**. Your browser opens on the FUTO sign-in page with a code. Check that it matches the one in the app and approve. The app carries on by itself.
-3. **Save your recovery key.** Use **Save to File**, **Copy** or **Print**, tick "I saved my recovery key somewhere safe", then type the key back in to confirm your copy is correct. Read [your recovery key](/guides/recovery-key) before you go further.
-4. **Full Disk Access.** macOS keeps folders such as Mail, Messages and Safari from apps without this permission. Select **Open System Settings**, turn on **FUTO Backups** in the list and come back. You can skip it and grant it later from **Folders**.
-5. **Choose what to back up.** Pick a preset, **Essentials** (Documents and Desktop), **Essentials + Media** (adds Pictures, Movies and Music) or **Everything** (your whole home folder), or choose folders yourself. The app adds up their sizes as it goes.
-6. **Ready to back up.** Check the schedule and how long snapshots are kept, then select **Back Up Now**.
+Open the app. It shows the setup steps in this order:
 
-If you already back up another Mac or the [standalone container](/getting-started/standalone), select **I Already Have a Recovery Key** at step 3 instead. The app lists the backups on your account: pick the one this Mac should continue, or start a new one, and enter its recovery key.
+1. Telemetry. To continue during the closed beta, select **Continue** to share diagnostic data with FUTO. This data does not include your files or your recovery key.
+2. Sign in. Select **Sign In**. Your browser opens the FUTO sign-in page with a code. Make sure that this code is the same as the code in the app, then approve. The app then continues.
+3. Save your recovery key. Select **Save to File**, **Copy** or **Print**. Then select "I saved my recovery key somewhere safe" and type the key again. This makes sure that your copy is correct. Read [your recovery key](/guides/recovery-key) before you continue.
+4. Full Disk Access. Without this permission, macOS does not let apps read folders such as Mail, Messages and Safari. Select **Open System Settings**, turn on **FUTO Backups** in the list, then go back to the app. If you skip this step, you can turn it on later from **Folders**.
+5. Choose what to back up. Select a preset or choose the folders yourself. The app shows the total size of the folders that you select.
+6. Ready to back up. A snapshot is the copy of your folders that one backup makes. Make sure that the schedule and the time to keep snapshots are correct, then select **Back Up Now**.
 
-Caches, the Trash, cloud-synced folders and container disk images are skipped automatically. Change what is backed up and excluded later under **Folders**.
+There are three presets:
 
-## Day to day
+- **Essentials**: Documents and Desktop.
+- **Essentials + Media**: Documents, Desktop, Pictures, Movies and Music.
+- **Everything**: your full home folder.
 
-Closing the window leaves the app running in the menu bar, where it shows progress and has **Back Up Now**. Keep **Open at login** on, under **Settings** → **General**, so scheduled backups run after a restart.
+If you already back up another Mac or the [standalone container](/getting-started/standalone), select **I Already Have a Recovery Key** at step 3. The app shows the backups on your account. Select the backup that this Mac continues, or start a new one. Then type the recovery key of that backup.
 
-- **Schedule.** On **Overview**, choose **Manual**, **Hourly**, **Daily** or **Weekly**. The default is every day at 12:00. A backup that comes due while the Mac is asleep or the app is not running runs the next time it can.
-- **Keep snapshots.** Under **Settings** → **Snapshots**, choose 15, 30, 60 or 90 days, the latest two backups, everything, or your own rules. The default keeps 60 days.
-- **Upload limit.** Under **Settings** → **Bandwidth**, cap the upload speed and, if you want, lift the cap overnight with **Full speed at night**.
-- **Disk snapshots.** Under **Settings**, **Back up from a disk snapshot** reads folders on your Mac's internal disk from a frozen copy, so files that change during a backup stay consistent. It needs Full Disk Access.
+The app does not back up caches, the Trash, cloud-synced folders or container disk images. To change what the app backs up or excludes, go to **Folders**.
 
-Turn on **Notify me if a scheduled backup fails**, under **Settings** → **General**, to hear about it when scheduled backups stop working.
+## Use the app
 
-## Restoring
+When you close the window, the app continues to run in the menu bar. The menu bar shows the progress of a backup and has **Back Up Now**. Keep **Open at login** on, under **Settings** → **General**. If this setting is off, scheduled backups stop when you restart your Mac.
 
-Open **History** and pick a snapshot:
+You can change these settings:
 
-- **Browse Files** lets you tick individual files and folders to restore.
-- **Restore All** restores everything in the snapshot.
+- Schedule: on **Overview**, select **Manual**, **Hourly**, **Daily** or **Weekly**. The default is each day at 12:00. If your Mac was asleep at that time, the backup starts when the app can run it.
+- Snapshots to keep: under **Settings** → **Snapshots**, select 15, 30, 60 or 90 days, the latest two backups, all backups, or your own rules. The default is 60 days.
+- Upload limit: under **Settings** → **Bandwidth**, set the maximum upload speed. To remove the limit at night, turn on **Full speed at night**.
+- Disk snapshots: under **Settings**, **Back up from a disk snapshot** reads the internal disk of your Mac from a copy that does not change during the backup. This setting needs Full Disk Access.
+- Failure notifications: under **Settings** → **General**, turn on **Notify me if a scheduled backup fails**. The app then tells you when scheduled backups stop.
 
-Either way you choose a folder to restore into. Nothing already in that folder is overwritten: when a name is taken, the restored copy gets a number, for example `Report 2.pdf`.
+To see your recovery key, go to **Settings** → **Security** and select **Show Recovery Key**. The app asks for Touch ID or your password first. To replace the key with a new key, select **Change Recovery Key**.
 
-## Your recovery key
+## Restore files
 
-**Settings** → **Security** → **Show Recovery Key** shows the key after you confirm with Touch ID or your password. **Change Recovery Key** replaces it with a new one.
+Open **History** and select a snapshot. To restore some files and folders, select **Browse Files** and select each item. To restore all of the snapshot, select **Restore All**. Then choose a folder for the restored files.
+
+The restore does not overwrite files in that folder. If a name is already in use, the app adds a number to the restored copy, for example `Report 2.pdf`.
 
 ## Next
 

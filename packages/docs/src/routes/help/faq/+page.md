@@ -38,7 +38,7 @@ Yes. The [standalone container](/getting-started/standalone) runs the same backu
 
 ### Can I back up my Mac?
 
-Yes, with the [Mac app](/getting-started/mac). It needs macOS 26 or later and is in alpha, so keep another copy of anything you cannot afford to lose.
+Yes, with the [Mac app](/getting-started/mac). It needs macOS 26 or later. The Mac app is in alpha, so keep a second copy of each file that you cannot lose.
 
 ### Does it back up my external libraries?
 
