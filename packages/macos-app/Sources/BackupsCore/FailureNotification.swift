@@ -17,6 +17,8 @@ public enum BackupFailureReason: Equatable, Sendable {
     "tls handshake timeout", "connection reset by peer", "no route to host",
   ]
 
+  private static let rejectedCredentialsPhrase = "unexpected HTTP response (401)"
+
   public init(error: any Error) {
     switch error {
     case EngineError.notLoggedIn, YuccaError.unauthorized:
@@ -35,6 +37,10 @@ public enum BackupFailureReason: Equatable, Sendable {
   public init(message: String?) {
     guard let message else {
       self = .other
+      return
+    }
+    if message == String(describing: YuccaError.unauthorized) || message.contains(Self.rejectedCredentialsPhrase) {
+      self = .signedOut
       return
     }
     if let code = Self.urlErrorCode(in: message), Self.unreachableURLErrorCodes.contains(code) {
@@ -65,27 +71,29 @@ public enum BackupRunOutcome: Equatable, Sendable {
   }
 
   public init(error: any Error) {
-    self = error is CancellationError ? .stopped : .failed(BackupFailureReason(error: error))
+    switch error {
+    case is CancellationError: self = .stopped
+    case let urlError as URLError where urlError.code == .cancelled: self = .stopped
+    default: self = .failed(BackupFailureReason(error: error))
+    }
   }
 }
 
-public struct FailureNotificationDecision: Equatable, Sendable {
-  public var notify: Bool
-  public var streakNotified: Bool
+public enum FailureNoticeStep: Equatable, Sendable {
+  case nothing
+  case post(BackupFailureReason)
+  case endStreak
 
-  public init(notify: Bool, streakNotified: Bool) {
-    self.notify = notify
-    self.streakNotified = streakNotified
-  }
-
-  public static func after(_ outcome: BackupRunOutcome, scheduled: Bool, streakNotified: Bool) -> Self {
+  public static func after(
+    _ outcome: BackupRunOutcome, scheduled: Bool, streakNotified: Bool, noticePending: Bool
+  ) -> Self {
     switch outcome {
-    case .succeeded:
-      return Self(notify: false, streakNotified: false)
-    case .failed where scheduled && !streakNotified:
-      return Self(notify: true, streakNotified: true)
-    case .failed, .stopped:
-      return Self(notify: false, streakNotified: streakNotified)
+    case .succeeded where streakNotified || noticePending:
+      return .endStreak
+    case .failed(let reason) where scheduled && !streakNotified && !noticePending:
+      return .post(reason)
+    case .succeeded, .failed, .stopped:
+      return .nothing
     }
   }
 }
@@ -120,7 +128,7 @@ public struct FailureNotice: Equatable, Sendable {
   }
 
   private static func retrySentence(at date: Date, now: Date, calendar: Calendar, locale: Locale) -> String? {
-    guard date > now else { return nil }
+    guard date > now else { return "It will try again shortly." }
     let style = Date.FormatStyle(locale: locale, calendar: calendar, timeZone: calendar.timeZone)
     let time = date.formatted(style.hour().minute())
     if calendar.isDate(date, inSameDayAs: now) {
@@ -141,16 +149,5 @@ extension AppConfig {
 
   public var shouldRequestNotificationPermission: Bool {
     notificationPermissionRequestedAt == nil && schedule != .manual
-  }
-
-  public mutating func noteBackupOutcome(_ outcome: BackupRunOutcome, scheduled: Bool, at date: Date) -> Bool {
-    let decision = FailureNotificationDecision.after(
-      outcome, scheduled: scheduled, streakNotified: failureNotifiedAt != nil)
-    if !decision.streakNotified {
-      failureNotifiedAt = nil
-    } else if failureNotifiedAt == nil {
-      failureNotifiedAt = date
-    }
-    return decision.notify
   }
 }

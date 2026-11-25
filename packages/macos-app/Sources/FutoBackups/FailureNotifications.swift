@@ -3,7 +3,7 @@ import BackupsCore
 import UserNotifications
 
 @MainActor
-final class FailureNotifications: NSObject, UNUserNotificationCenterDelegate {
+final class FailureNotifications: NSObject, UNUserNotificationCenterDelegate, FailureNotificationCenter {
   static let shared = FailureNotifications()
 
   private static let identifier = "backup-failed"
@@ -16,17 +16,30 @@ final class FailureNotifications: NSObject, UNUserNotificationCenterDelegate {
     center?.delegate = self
   }
 
-  func requestPermission() async {
-    _ = try? await center?.requestAuthorization(options: [.alert])
+  func requestPermission() async -> Bool {
+    guard let center else { return false }
+    do {
+      _ = try await center.requestAuthorization(options: [.alert])
+      return true
+    } catch {
+      return false
+    }
   }
 
-  func post(_ notice: FailureNotice) async {
-    guard let center else { return }
+  func post(_ notice: FailureNotice) async -> Bool {
+    guard let center else { return false }
+    let status = await center.notificationSettings().authorizationStatus
+    guard status == .authorized || status == .provisional else { return false }
     let content = UNMutableNotificationContent()
     content.title = notice.title
     content.body = notice.body
     content.interruptionLevel = .active
-    try? await center.add(UNNotificationRequest(identifier: Self.identifier, content: content, trigger: nil))
+    do {
+      try await center.add(UNNotificationRequest(identifier: Self.identifier, content: content, trigger: nil))
+      return true
+    } catch {
+      return false
+    }
   }
 
   func withdraw() {

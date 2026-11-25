@@ -96,6 +96,7 @@ final class AppModel {
   private var pendingBootstrapError: String? = nil
   private var appActiveObserver: (any NSObjectProtocol)?
   private var backupDeletionTask: Task<Void, Never>?
+  private let failureNotifier = FailureNotifier(center: FailureNotifications.shared)
 
   static let allowsServerSelection =
     Bundle.main.object(forInfoDictionaryKey: "FUTOServerSelection") as? Bool ?? true
@@ -182,6 +183,7 @@ final class AppModel {
     if loadFailure == nil, config.treatExistingFoldersAsOnboarded(at: Date()) {
       saveConfig()
     }
+    failureNotifier.host = self
     scheduler = Scheduler(model: self)
     scheduler?.start()
     let clearsSession = pinnedToProduction
@@ -309,6 +311,7 @@ final class AppModel {
           guard generation == self.loginGeneration else { return }
           if self.config.forgetRepository(unlessListedIn: repositories) {
             self.saveConfig()
+            self.failureNotifier.endStreak()
           }
         }
         report("Connected FUTO Backups backend")
@@ -675,7 +678,7 @@ final class AppModel {
     saveConfig()
     recomputeNextRun()
     reportRepositoryChange()
-    requestNotificationPermissionIfNeeded()
+    Task { await failureNotifier.requestPermissionIfNeeded() }
     if startBackup {
       backupNow()
     }
@@ -739,36 +742,13 @@ final class AppModel {
   }
 
   func setSchedule(_ schedule: Schedule) {
+    let previous = config.schedule
     config.schedule = schedule
     config.scheduleAnchor = Date()
     saveConfig()
     recomputeNextRun()
     report("Updated schedule", ["schedule": .string(scheduleDescription(schedule))])
-    requestNotificationPermissionIfNeeded()
-  }
-
-  private func requestNotificationPermissionIfNeeded() {
-    guard config.shouldRequestNotificationPermission else { return }
-    config.notificationPermissionRequestedAt = Date()
-    saveConfig()
-    Task { await FailureNotifications.shared.requestPermission() }
-  }
-
-  private func notifyFailure(_ outcome: BackupRunOutcome) {
-    guard case .failed(let reason) = outcome else { return }
-    let notice = FailureNotice(
-      reason: reason, server: config.serverName, retryAt: nextRun, now: Date(), calendar: .current, locale: .current)
-    let asksPermission = config.shouldRequestNotificationPermission
-    if asksPermission {
-      config.notificationPermissionRequestedAt = Date()
-      saveConfig()
-    }
-    Task {
-      if asksPermission {
-        await FailureNotifications.shared.requestPermission()
-      }
-      await FailureNotifications.shared.post(notice)
-    }
+    Task { await failureNotifier.scheduleChanged(from: previous) }
   }
 
   func setUploadConnections(_ connections: Int?) {
@@ -817,6 +797,7 @@ final class AppModel {
   func setServerURL(_ url: URL) {
     guard url != config.serverURL else { return }
     logout()
+    failureNotifier.cancelPendingNotice()
     config.switchServer(to: url)
     saveConfig()
   }
@@ -869,21 +850,13 @@ final class AppModel {
           return
         }
         self.config.lastRun = record
-        let outcome = BackupRunOutcome(record: record)
-        let streakWasNotified = self.config.failureNotifiedAt != nil
-        let notifies = self.config.noteBackupOutcome(outcome, scheduled: scheduled, at: Date())
         self.saveConfig()
         self.finishOperation()
         if record.status == .failed || record.status == .warn {
           self.lastError = record.message
         }
         self.recomputeNextRun()
-        if streakWasNotified, self.config.failureNotifiedAt == nil {
-          FailureNotifications.shared.withdraw()
-        }
-        if notifies {
-          self.notifyFailure(outcome)
-        }
+        self.failureNotifier.backupFinished(BackupRunOutcome(record: record), scheduled: scheduled)
         await self.refreshSnapshots()
       } catch {
         guard generation == self.sessionGeneration else {
@@ -891,12 +864,13 @@ final class AppModel {
           return
         }
         self.finishOperation()
-        let outcome = BackupRunOutcome(error: error)
-        self.lastError = self.message(for: error)
-        if self.config.noteBackupOutcome(outcome, scheduled: scheduled, at: Date()) {
-          self.saveConfig()
-          self.notifyFailure(outcome)
+        if (error as? EngineError) == .missingMasterKey {
+          self.hasMasterKey = false
+          self.signedIn = false
+          self.recoveryKeyStep = .importKey
         }
+        self.lastError = self.message(for: error)
+        self.failureNotifier.backupFinished(BackupRunOutcome(error: error), scheduled: scheduled)
       }
     }
     if scheduled, let repositoryId = config.repositoryId {
@@ -1035,6 +1009,7 @@ final class AppModel {
     pendingBootstrapError = nil
     backupDeletion = .idle
     recomputeNextRun()
+    failureNotifier.endStreak()
   }
 
   func restore(snapshot: Snapshot, to url: URL) {
@@ -1348,6 +1323,18 @@ final class AppModel {
       parts.append("The temporary folder \(leftover.path) couldn't be removed")
     }
     return parts.joined(separator: ". ")
+  }
+}
+
+extension AppModel: FailureNotificationHost {
+  func updateConfig(_ change: (inout AppConfig) -> Void) {
+    change(&config)
+    saveConfig()
+  }
+
+  func failureNotice(for reason: BackupFailureReason) -> FailureNotice {
+    FailureNotice(
+      reason: reason, server: config.serverName, retryAt: nextRun, now: Date(), calendar: .current, locale: .current)
   }
 }
 

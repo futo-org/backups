@@ -22,50 +22,22 @@ private func record(_ status: BackupStatus, message: String? = nil) -> RunRecord
 }
 
 @Test(arguments: [
-  (BackupRunOutcome.failed(.unreachable), true, false, true, true),
-  (.failed(.other), true, true, false, true),
-  (.failed(.signedOut), false, false, false, false),
-  (.failed(.other), false, true, false, true),
-  (.succeeded, true, true, false, false),
-  (.succeeded, false, true, false, false),
-  (.succeeded, true, false, false, false),
-  (.stopped, true, true, false, true),
-  (.stopped, false, false, false, false),
+  (BackupRunOutcome.failed(.unreachable), true, false, false, FailureNoticeStep.post(.unreachable)),
+  (.failed(.other), true, true, false, .nothing),
+  (.failed(.other), true, false, true, .nothing),
+  (.failed(.signedOut), false, false, false, .nothing),
+  (.succeeded, true, true, false, .endStreak),
+  (.succeeded, false, false, true, .endStreak),
+  (.succeeded, true, false, false, .nothing),
+  (.stopped, true, true, false, .nothing),
+  (.stopped, true, false, false, .nothing),
 ])
-func failureNotificationDecision(
-  outcome: BackupRunOutcome, scheduled: Bool, streakNotified: Bool, notify: Bool, stillNotified: Bool
+func failureNoticeStep(
+  outcome: BackupRunOutcome, scheduled: Bool, streakNotified: Bool, noticePending: Bool, step: FailureNoticeStep
 ) {
   #expect(
-    FailureNotificationDecision.after(outcome, scheduled: scheduled, streakNotified: streakNotified)
-      == FailureNotificationDecision(notify: notify, streakNotified: stillNotified))
-}
-
-@Test func aFailureStreakNotifiesOnceAndASuccessfulBackupStartsANewStreak() {
-  var config = AppConfig.defaults(host: "mac", home: "/Users/t")
-  let failure = BackupRunOutcome.failed(.unreachable)
-
-  let notifies = config.noteBackupOutcome(failure, scheduled: true, at: now)
-  #expect(notifies)
-  #expect(config.failureNotifiedAt == now)
-  let retryNotifies = config.noteBackupOutcome(failure, scheduled: true, at: now.addingTimeInterval(60))
-  #expect(!retryNotifies)
-  #expect(config.failureNotifiedAt == now)
-
-  let successNotifies = config.noteBackupOutcome(.succeeded, scheduled: false, at: now.addingTimeInterval(120))
-  #expect(!successNotifies)
-  #expect(config.failureNotifiedAt == nil)
-
-  let nextStreakNotifies = config.noteBackupOutcome(failure, scheduled: true, at: now.addingTimeInterval(180))
-  #expect(nextStreakNotifies)
-}
-
-@Test func aManualFailureNeitherNotifiesNorStartsAStreak() {
-  var config = AppConfig.defaults(host: "mac", home: "/Users/t")
-  let notifies = config.noteBackupOutcome(.failed(.other), scheduled: false, at: now)
-  #expect(!notifies)
-  #expect(config.failureNotifiedAt == nil)
-  let scheduledNotifies = config.noteBackupOutcome(.failed(.other), scheduled: true, at: now)
-  #expect(scheduledNotifies)
+    FailureNoticeStep.after(
+      outcome, scheduled: scheduled, streakNotified: streakNotified, noticePending: noticePending) == step)
 }
 
 @Test func theNotifiedStreakSurvivesARelaunch() throws {
@@ -73,15 +45,13 @@ func failureNotificationDecision(
   defer { try? FileManager.default.removeItem(at: root) }
   let store = ConfigStore(fileURL: root.appendingPathComponent("config.json"))
   var config = AppConfig.defaults(host: "mac", home: "/Users/t")
-  _ = config.noteBackupOutcome(.failed(.other), scheduled: true, at: now)
+  config.failureNotifiedAt = now
   config.notificationPermissionRequestedAt = now
   try store.save(config)
 
-  var reloaded = try store.load(defaultHost: "ignored", home: "/ignored")
+  let reloaded = try store.load(defaultHost: "ignored", home: "/ignored")
   #expect(reloaded.failureNotifiedAt == now)
   #expect(reloaded.notificationPermissionRequestedAt == now)
-  let notifies = reloaded.noteBackupOutcome(.failed(.other), scheduled: true, at: now)
-  #expect(!notifies)
 }
 
 @Test func aConfigSavedBeforeFailureNotificationsHasNoStreakAndHasNotAskedForPermission() throws {
@@ -98,8 +68,33 @@ func failureNotificationDecision(
 
 @Test func switchingServersStartsANewFailureStreak() {
   var config = AppConfig.defaults(host: "mac", home: "/Users/t")
-  _ = config.noteBackupOutcome(.failed(.other), scheduled: true, at: now)
+  config.repositoryId = "repo-1"
+  config.failureNotifiedAt = now
   config.switchServer(to: AppConfig.devServerURL)
+  #expect(config.failureNotifiedAt == nil)
+}
+
+@Test func returningToARememberedServerKeepsItsFailureStreak() {
+  var config = AppConfig.defaults(host: "mac", home: "/Users/t")
+  config.repositoryId = "repo-1"
+  config.failureNotifiedAt = now
+  config.switchServer(to: AppConfig.devServerURL)
+  config.switchServer(to: AppConfig.productionServerURL)
+  #expect(config.repositoryId == "repo-1")
+  #expect(config.failureNotifiedAt == now)
+}
+
+@Test func aRememberedRepositorySavedBeforeFailureNotificationsHasNoStreak() throws {
+  let json = Data(#"{"id":"repo-1"}"#.utf8)
+  #expect(try JSONDecoder().decode(RememberedRepository.self, from: json).failureNotifiedAt == nil)
+}
+
+@Test func forgettingARepositoryEndsItsFailureStreak() {
+  var config = AppConfig.defaults(host: "mac", home: "/Users/t")
+  config.repositoryId = "repo-1"
+  config.failureNotifiedAt = now
+  let forgot = config.forgetRepository(unlessListedIn: [])
+  #expect(forgot)
   #expect(config.failureNotifiedAt == nil)
 }
 
@@ -132,6 +127,17 @@ func runRecordOutcome(status: BackupStatus, outcome: BackupRunOutcome) {
   #expect(BackupRunOutcome(record: record(status)) == outcome)
 }
 
+@Test func aFailedRunWhoseTokenTheProxyRejectedIsSignedOut() {
+  let message =
+    #"restic(code: 1, message: "Fatal: unable to open config file: unexpected HTTP response (401): 401 Unauthorized")"#
+  #expect(BackupRunOutcome(record: record(.failed, message: message)) == .failed(.signedOut))
+}
+
+@Test func aFailedRunWhoseTokenTheAPIRejectedIsSignedOut() {
+  let message = String(describing: YuccaError.unauthorized)
+  #expect(BackupRunOutcome(record: record(.failed, message: message)) == .failed(.signedOut))
+}
+
 @Test func aFailedRunThatCouldNotReachTheServerIsUnreachable() {
   let message =
     #"Error Domain=NSURLErrorDomain Code=-1009 "The Internet connection appears to be offline." UserInfo={}"#
@@ -145,6 +151,8 @@ func runRecordOutcome(status: BackupStatus, outcome: BackupRunOutcome) {
   ("Fatal: unable to open repository: Get \"https://x\": dial tcp: lookup x: no such host", .unreachable),
   ("Fatal: unable to open repository: read: Connection Reset By Peer", .unreachable),
   ("Fatal: wrong password or no key found", .other),
+  ("Load(<data/1234>, 0, 0) returned error, retrying: unexpected HTTP response (403): 403 Forbidden", .other),
+  ("unauthorized access to /data", .other),
   ("", .other),
 ])
 func failureReasonFromMessage(message: String, reason: BackupFailureReason) {
@@ -172,6 +180,7 @@ func failureReasonFromError(error: any Error, reason: BackupFailureReason) {
 
 @Test func cancellingIsNotAFailure() {
   #expect(BackupRunOutcome(error: CancellationError()) == .stopped)
+  #expect(BackupRunOutcome(error: URLError(.cancelled)) == .stopped)
   #expect(BackupRunOutcome(error: EngineError.busy) == .failed(.other))
 }
 
@@ -182,7 +191,8 @@ func failureReasonFromError(error: any Error, reason: BackupFailureReason) {
   ),
   (.unreachable, 24 * 3600.0, "FUTO Backups couldn't reach FUTO Cloud. It will try again tomorrow at 8:00\u{202F}AM."),
   (.other, 3 * 24 * 3600.0, "The backup ran into a problem. It will try again on Monday at 8:00\u{202F}AM."),
-  (.other, -60.0, "The backup ran into a problem."),
+  (.other, -60.0, "The backup ran into a problem. It will try again shortly."),
+  (.unreachable, 0, "FUTO Backups couldn't reach FUTO Cloud. It will try again shortly."),
   (.signedOut, 3600.0, "You were signed out of FUTO Backups. Sign in again to keep backing up this Mac."),
   (.missingRecoveryKey, 3600.0, "This Mac's recovery key is missing. Enter it again to keep backing up this Mac."),
 ])
