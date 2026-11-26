@@ -39,4 +39,14 @@ export const CONNECTION_TYPES: ConnectionTypeMeta[] = [
       'Added automatically when you sign in from the FUTO Backups Mac app; not created here.',
     addable: false,
   },
+  {
+    type: 'windows',
+    label: 'Windows PC',
+    icon: mdiLaptop,
+    description:
+      'Back up files and folders from a Windows PC running the FUTO Backups app.',
+    limitation:
+      'Added automatically when you sign in from the FUTO Backups Windows app; not created here.',
+    addable: false,
+  },
 ];

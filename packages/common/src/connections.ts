@@ -1,4 +1,4 @@
-export const ConnectionTypes = ['immich', 'standalone', 'restic', 'macos'] as const;
+export const ConnectionTypes = ['immich', 'standalone', 'restic', 'macos', 'windows'] as const;
 
 export type ConnectionType = (typeof ConnectionTypes)[number];
 
@@ -27,6 +27,7 @@ export const ConnectionTypeInfos = {
   standalone: { meters: ['storage', 'transfer', 'activity'], reportsActivity: true, minObjectSizeBytes: MIB },
   restic: { meters: ['storage', 'transfer'], reportsActivity: false, minObjectSizeBytes: MIB },
   macos: { meters: ['storage', 'transfer', 'activity'], reportsActivity: true, minObjectSizeBytes: MIB },
+  windows: { meters: ['storage', 'transfer', 'activity'], reportsActivity: true, minObjectSizeBytes: MIB },
 } as const satisfies Record<ConnectionType, ConnectionTypeInfo>;
 
 export const connectionTypeInfo = (type: string): ConnectionTypeInfo | undefined =>
