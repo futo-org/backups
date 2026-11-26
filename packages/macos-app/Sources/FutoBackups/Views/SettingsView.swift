@@ -67,13 +67,13 @@ struct SettingsView: View {
         if quietEnabled {
           LabeledContent("Hours") {
             HStack(spacing: 6) {
-              DatePicker("From", selection: $quietStart, displayedComponents: .hourAndMinute)
-                .labelsHidden()
+              TimeField(time: $quietStart)
+                .accessibilityLabel("From")
                 .onChange(of: quietStart) { _, _ in applyQuiet() }
               Text("to")
                 .foregroundStyle(.secondary)
-              DatePicker("To", selection: $quietEnd, displayedComponents: .hourAndMinute)
-                .labelsHidden()
+              TimeField(time: $quietEnd)
+                .accessibilityLabel("To")
                 .onChange(of: quietEnd) { _, _ in applyQuiet() }
             }
             .fixedSize()
