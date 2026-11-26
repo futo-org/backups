@@ -82,9 +82,8 @@ struct OverviewView: View {
               .labelsHidden()
               .fixedSize()
             }
-            DatePicker("", selection: timeBinding, displayedComponents: .hourAndMinute)
-              .labelsHidden()
-              .fixedSize()
+            TimeField(time: timeBinding)
+              .accessibilityLabel("Backup time")
           }
         }
         if !model.config.folders.isEmpty {
