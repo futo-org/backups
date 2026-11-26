@@ -105,6 +105,19 @@ describe('handleDeleteRepository', () => {
     });
   });
 
+  it('refuses to open a ticket URL that is not http(s)', async () => {
+    vi.mocked(sdk.futoBackupsCreateTicket).mockResolvedValue({
+      redirectTo: 'javascript:alert(1)',
+    });
+
+    await expect(
+      handleDeleteRepository('repository-1', true),
+    ).rejects.toThrow();
+
+    expect(window.open).not.toHaveBeenCalled();
+    expect(toastManager.danger).toHaveBeenCalled();
+  });
+
   describe('when the repository is gone remotely', () => {
     beforeEach(() => {
       vi.mocked(sdk.futoBackupsCreateTicket).mockRejectedValue(httpError(410));
