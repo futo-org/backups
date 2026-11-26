@@ -68,7 +68,7 @@ catalog:
   '@types/lodash.debounce': ^4.0.9
   '@types/luxon': ^3.7.6
   '@types/ms': ^2.1.0
-  '@types/node': ^26.6.4
+  '@types/node': ^26.6.6
   '@types/oidc-provider': ^9.5.0
   '@types/supertest': ^7.0.0
   '@vitest/browser': ^5.0.0
