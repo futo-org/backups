@@ -3,6 +3,14 @@ name: Deploy
 on:
   push:
     branches: [main]
+    # These touch no image or chart, and every Deploy run queues FIFO ahead of
+    # the release run release-images.yml waits on.
+    paths-ignore:
+      - packages/macos-app/**
+      - packages/docs/**
+      - docs/**
+      - .github/workflows/macos-release.yml
+      - .github/workflows/docs.yml
   workflow_dispatch:
 
 concurrency:
