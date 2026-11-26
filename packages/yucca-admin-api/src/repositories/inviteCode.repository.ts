@@ -21,7 +21,7 @@ export class InviteCodeRepository {
   listRedemptions(inviteCodeId: string) {
     return this.db
       .selectFrom('inviteCodeRedemptions')
-      .innerJoin('users', 'users.id', 'inviteCodeRedemptions.userId')
+      .leftJoin('users', 'users.id', 'inviteCodeRedemptions.userId')
       .select(['inviteCodeRedemptions.userId', 'users.email', 'inviteCodeRedemptions.createdAt'])
       .where('inviteCodeRedemptions.inviteCodeId', '=', sql<string>`${inviteCodeId}::uuid`)
       .orderBy('inviteCodeRedemptions.createdAt', 'desc')

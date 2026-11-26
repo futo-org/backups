@@ -10,8 +10,14 @@ export class InviteCodeRedemptionTable {
   @ForeignKeyColumn(() => InviteCodeTable, { onUpdate: 'CASCADE', onDelete: 'CASCADE', index: true })
   inviteCodeId!: string;
 
-  @ForeignKeyColumn(() => UserTable, { onUpdate: 'CASCADE', onDelete: 'CASCADE', unique: true, index: false })
-  userId!: string;
+  @ForeignKeyColumn(() => UserTable, {
+    onUpdate: 'CASCADE',
+    onDelete: 'SET NULL',
+    nullable: true,
+    unique: true,
+    index: false,
+  })
+  userId!: string | null;
 
   @Column({ type: 'timestamp with time zone', default: () => 'now()' })
   createdAt!: Generated<Date>;

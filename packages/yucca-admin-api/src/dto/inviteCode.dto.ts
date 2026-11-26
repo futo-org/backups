@@ -18,8 +18,8 @@ const InviteCodeSchema = z
 
 const InviteCodeRedemptionSchema = z
   .object({
-    userId: z.string(),
-    email: z.string(),
+    userId: z.string().nullable().describe('Null once the account is deleted; the use still counts'),
+    email: z.string().nullable(),
     createdAt: isoDatetimeToDate,
   })
   .meta({ id: 'InviteCodeRedemptionDto' });
@@ -38,7 +38,7 @@ const InviteCodeCreateRequestSchema = z
       .regex(/^[A-Z0-9-]{6,32}$/)
       .optional()
       .describe('Custom code (6–32 letters, digits or dashes); generated when omitted'),
-    maxUses: z.int().min(1).optional().describe('Unlimited when omitted'),
+    maxUses: z.int().min(1).max(2_147_483_647).optional().describe('Unlimited when omitted'),
     expiresAt: isoDatetimeToDate.optional().describe('Never expires when omitted'),
   })
   .meta({ id: 'InviteCodeCreateRequestDto' });

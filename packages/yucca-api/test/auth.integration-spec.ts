@@ -371,6 +371,19 @@ describe('AuthController (e2e)', () => {
         await expect(testUtils.getInviteCodeRedemptions(inviteCode.id)).resolves.toHaveLength(1);
       });
 
+      it('keeps an exhausted code exhausted after its account is deleted', async () => {
+        const inviteCode = await testUtils.createInviteCode({ code: 'ONE-SEAT', maxUses: 1 });
+        await loginCallback('deleted-seat', 'ONE-SEAT');
+
+        await testUtils.deleteUserBySub('deleted-seat');
+        const response = await loginCallback('next-seat', 'ONE-SEAT');
+
+        expect(response.header.location).toBe('/login/invite?error=not_allowed');
+        await expect(testUtils.getInviteCodeRedemptions(inviteCode.id)).resolves.toEqual([
+          expect.objectContaining({ userId: null }),
+        ]);
+      });
+
       it('rejects an expired code', async () => {
         await testUtils.createInviteCode({ code: 'EXPIRED-CODE', expiresAt: new Date(Date.now() - 1000) });
 

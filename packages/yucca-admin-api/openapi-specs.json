@@ -2483,7 +2483,7 @@
             "description": "Unlimited when omitted",
             "type": "integer",
             "minimum": 1,
-            "maximum": 9007199254740991
+            "maximum": 2147483647
           },
           "expiresAt": {
             "description": "Never expires when omitted",
@@ -2512,10 +2512,13 @@
         "type": "object",
         "properties": {
           "userId": {
-            "type": "string"
+            "type": "string",
+            "description": "Null once the account is deleted; the use still counts",
+            "nullable": true
           },
           "email": {
-            "type": "string"
+            "type": "string",
+            "nullable": true
           },
           "createdAt": {
             "example": "2024-01-01T00:00:00.000Z",

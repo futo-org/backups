@@ -129,6 +129,10 @@ export const testUtils = {
       .executeTakeFirstOrThrow();
   },
 
+  deleteUserBySub: (sub: string) => {
+    return getDb().deleteFrom('users').where('sub', '=', sub).execute();
+  },
+
   getUserBySub: (sub: string) => {
     const db = getDb();
     const userRepository = new UserRepository(db);

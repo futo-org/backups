@@ -16,10 +16,10 @@ export async function up(db: Kysely<any>): Promise<void> {
   await sql`CREATE TABLE "inviteCodeRedemptions" (
   "id" uuid NOT NULL DEFAULT gen_random_uuid(),
   "inviteCodeId" uuid NOT NULL,
-  "userId" uuid NOT NULL,
+  "userId" uuid,
   "createdAt" timestamp with time zone NOT NULL DEFAULT now(),
   CONSTRAINT "inviteCodeRedemptions_inviteCodeId_fkey" FOREIGN KEY ("inviteCodeId") REFERENCES "inviteCodes" ("id") ON UPDATE CASCADE ON DELETE CASCADE,
-  CONSTRAINT "inviteCodeRedemptions_userId_fkey" FOREIGN KEY ("userId") REFERENCES "users" ("id") ON UPDATE CASCADE ON DELETE CASCADE,
+  CONSTRAINT "inviteCodeRedemptions_userId_fkey" FOREIGN KEY ("userId") REFERENCES "users" ("id") ON UPDATE CASCADE ON DELETE SET NULL,
   CONSTRAINT "inviteCodeRedemptions_userId_uq" UNIQUE ("userId"),
   CONSTRAINT "inviteCodeRedemptions_pkey" PRIMARY KEY ("id")
 );`.execute(db);

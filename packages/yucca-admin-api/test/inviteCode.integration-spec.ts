@@ -92,6 +92,7 @@ describe('InviteCodeController (e2e)', () => {
       await create({}).expect(400);
       await create({ name: 'Bad code', code: 'no spaces!' }).expect(400);
       await create({ name: 'Zero uses', maxUses: 0 }).expect(400);
+      await create({ name: 'Too many uses', maxUses: 2_147_483_648 }).expect(400);
     });
   });
 
@@ -135,6 +136,21 @@ describe('InviteCodeController (e2e)', () => {
       ]);
     });
 
+    it('keeps counting the use of a deleted account', async () => {
+      const { body: created } = await create({ name: 'Meetup', maxUses: 1 }).expect(201);
+      const alice = await testUtils.createUser({ email: 'alice@example.com' });
+      await testUtils.createInviteCodeRedemption(created.inviteCode.id, alice.id);
+
+      await request(app.getHttpServer()).delete(`/api/user/${alice.id}`).set('Cookie', authCookie).expect(204);
+
+      const { body } = await request(app.getHttpServer())
+        .get(`/api/invite-codes/${created.inviteCode.id}`)
+        .set('Cookie', authCookie)
+        .expect(200);
+      expect(body.inviteCode).toEqual(expect.objectContaining({ uses: 1, maxUses: 1 }));
+      expect(body.redemptions).toEqual([{ userId: null, email: null, createdAt: expect.any(String) }]);
+    });
+
     it('returns 404 for an unknown code', async () => {
       await request(app.getHttpServer())
         .get('/api/invite-codes/00000000-0000-4000-8000-000000000000')
@@ -146,13 +162,24 @@ describe('InviteCodeController (e2e)', () => {
   describe('DELETE /invite-codes/:id', () => {
     it('revokes the code and keeps its history', async () => {
       const { body: created } = await create({ name: 'Meetup' }).expect(201);
+      const alice = await testUtils.createUser({ email: 'alice@example.com' });
+      await testUtils.createInviteCodeRedemption(created.inviteCode.id, alice.id);
 
-      const { body } = await request(app.getHttpServer())
+      const { body: revoked } = await request(app.getHttpServer())
         .delete(`/api/invite-codes/${created.inviteCode.id}`)
         .set('Cookie', authCookie)
         .expect(200);
 
-      expect(body.inviteCode).toEqual(expect.objectContaining({ name: 'Meetup', revokedAt: expect.any(String) }));
+      expect(revoked.inviteCode).toEqual(
+        expect.objectContaining({ name: 'Meetup', uses: 1, revokedAt: expect.any(String) }),
+      );
+      const { body } = await request(app.getHttpServer())
+        .get(`/api/invite-codes/${created.inviteCode.id}`)
+        .set('Cookie', authCookie)
+        .expect(200);
+      expect(body.redemptions).toEqual([
+        { userId: alice.id, email: 'alice@example.com', createdAt: expect.any(String) },
+      ]);
     });
 
     it('keeps the first revocation time when revoked twice', async () => {
