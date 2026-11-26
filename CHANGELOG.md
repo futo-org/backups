@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.24.0](https://github.com/futo-org/backups/compare/v1.23.0...v1.24.0) (2026-11-26)
+
+
+### Features
+
+* **yucca-api:** reusable named invite codes with use limits and metrics ([#367](https://github.com/futo-org/backups/issues/367)) ([e9df016](https://github.com/futo-org/backups/commit/e9df01639131978ac44549fc2d8dd79bf656ea00))
+
 ## [1.23.0](https://github.com/futo-org/backups/compare/v1.22.0...v1.23.0) (2026-11-26)
 
 
