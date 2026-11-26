@@ -43,7 +43,7 @@ tilt = "0.37.8"
 kubeconform = "0.8.0"
 kustomize = "5.8.2"            # flux-local shells out to it
 flux2 = "2.9.5"                # ...and to the flux CLI
-uv = "0.12.21"
+uv = "0.13.9"
 
 [tasks.dev]
 description = "Start all services in development mode"
