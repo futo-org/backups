@@ -4,6 +4,7 @@ import type { ConnectionRepository } from 'src/repositories/connection.repositor
 import type { CryptoRepository } from 'src/repositories/crypto.repository.js';
 import type { DatabaseRepository } from 'src/repositories/database.repository.js';
 import type { DiscordRepository } from 'src/repositories/discord.repository.js';
+import type { InviteCodeRepository } from 'src/repositories/inviteCode.repository.js';
 import type { OidcRepository } from 'src/repositories/oidc.repository.js';
 import type { RepositoryRepository } from 'src/repositories/repository.repository.js';
 import type { SessionRepository } from 'src/repositories/session.repository.js';
@@ -109,6 +110,13 @@ export const newUserAllowlistRepositoryMock = (): jest.Mocked<RepositoryInterfac
   };
 };
 
+export const newInviteCodeRepositoryMock = (): jest.Mocked<RepositoryInterface<InviteCodeRepository>> => {
+  return {
+    claim: jest.fn(),
+    recordRedemption: jest.fn(),
+  };
+};
+
 export const newRepositoryRepositoryMock = (): jest.Mocked<RepositoryInterface<RepositoryRepository>> => {
   return {
     create: jest.fn(),
@@ -200,6 +208,7 @@ export const newMocks = () => {
     session: newSessionRepositoryMock(),
     user: newUserRepositoryMock(),
     userAllowlist: newUserAllowlistRepositoryMock(),
+    inviteCode: newInviteCodeRepositoryMock(),
     repository: newRepositoryRepositoryMock(),
     settings: newSettingsRepositoryMock(),
     supportLogSession: newSupportLogSessionRepositoryMock(),
@@ -213,6 +222,7 @@ export const newMocks = () => {
     operation({
       user: mocks.user as never,
       allowlist: mocks.userAllowlist as never,
+      inviteCode: mocks.inviteCode as never,
       connection: mocks.connection as never,
       discord: mocks.discord as never,
     }),

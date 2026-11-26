@@ -8,6 +8,8 @@ import { DiscordLinkTable } from './tables/discordLink.table.js';
 import { DiscordLinkRequestTable } from './tables/discordLinkRequest.table.js';
 import { DiscordTicketTable } from './tables/discordTicket.table.js';
 import { DiscordTicketFeatureGrantTable } from './tables/discordTicketFeatureGrant.table.js';
+import { InviteCodeTable } from './tables/inviteCode.table.js';
+import { InviteCodeRedemptionTable } from './tables/inviteCodeRedemption.table.js';
 import { RepositoryTable } from './tables/repository.table.js';
 import { RepositoryMeterTable } from './tables/repositoryMeter.table.js';
 import { RepositoryMeterHistoryTable } from './tables/repositoryMeterHistory.table.js';
@@ -35,6 +37,8 @@ export class ImmichDatabase {
     RepositoryMeterTable,
     RepositoryMeterHistoryTable,
     UserAllowlistTable,
+    InviteCodeTable,
+    InviteCodeRedemptionTable,
     SettingsTable,
     UserFeatureFlagOverrideTable,
     TicketTable,
@@ -64,6 +68,8 @@ export interface DB {
   repositoryMeter: RepositoryMeterTable;
   repositoryMeterHistory: RepositoryMeterHistoryTable;
   userAllowlist: UserAllowlistTable;
+  inviteCodes: InviteCodeTable;
+  inviteCodeRedemptions: InviteCodeRedemptionTable;
   settings: SettingsTable;
   userFeatureFlagOverride: UserFeatureFlagOverrideTable;
   tickets: TicketTable;

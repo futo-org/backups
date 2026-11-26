@@ -11,6 +11,7 @@ import { AuthController } from './controllers/auth.controller.js';
 import { ColumboController } from './controllers/columbo.controller.js';
 import { DiscordInviteController } from './controllers/discordInvite.controller.js';
 import { FeaturesController } from './controllers/features.controller.js';
+import { InviteCodeController } from './controllers/inviteCode.controller.js';
 import { RepositoryController } from './controllers/repository.controller.js';
 import { SessionController } from './controllers/session.controller.js';
 import { SettingsController } from './controllers/settings.controller.js';
@@ -24,6 +25,7 @@ import { DiscordInviteRepository } from './repositories/discordInvite.repository
 import { DiscordLinkRepository } from './repositories/discordLink.repository.js';
 import { FeatureFlagRepository } from './repositories/featureFlag.repository.js';
 import { FutoBackupsBotRepository } from './repositories/futoBackupsBot.repository.js';
+import { InviteCodeRepository } from './repositories/inviteCode.repository.js';
 import { OidcRepository } from './repositories/oidc.repository.js';
 import { RepositoryRepository } from './repositories/repository.repository.js';
 import { SessionRepository } from './repositories/session.repository.js';
@@ -39,6 +41,7 @@ import { ColumboService } from './services/columbo.service.js';
 import { DatabaseService } from './services/database.service.js';
 import { DiscordInviteService } from './services/discordInvite.service.js';
 import { FeaturesService } from './services/features.service.js';
+import { InviteCodeService } from './services/inviteCode.service.js';
 import { RepositoryService } from './services/repository.service.js';
 import { SessionService } from './services/session.service.js';
 import { SettingsService } from './services/settings.service.js';
@@ -67,6 +70,7 @@ export const controllers = [
   AllowlistController,
   ColumboController,
   DiscordInviteController,
+  InviteCodeController,
   SettingsController,
   FeaturesController,
 ];
@@ -78,6 +82,7 @@ export const providers: Provider[] = [
   ColumboRepository,
   DatabaseRepository,
   DiscordInviteRepository,
+  InviteCodeRepository,
   DiscordLinkRepository,
   FutoBackupsBotRepository,
   DatabaseService,
@@ -95,6 +100,7 @@ export const providers: Provider[] = [
   AllowlistService,
   ColumboService,
   DiscordInviteService,
+  InviteCodeService,
   AuthService,
   UserService,
   SessionService,

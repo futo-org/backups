@@ -6,6 +6,7 @@ import { KyselyModule } from 'nestjs-kysely';
 import { AllowlistRepository } from './repositories/allowlist.repository.js';
 import { BetaInvitesRepository } from './repositories/betaInvites.repository.js';
 import { ConnectionMetricsRepository } from './repositories/connectionMetrics.repository.js';
+import { InviteCodeRepository } from './repositories/inviteCode.repository.js';
 import { MeterRepository } from './repositories/meter.repository.js';
 import { RepositoryRepository } from './repositories/repository.repository.js';
 import { RgwFleetRepository } from './repositories/rgwFleet.repository.js';
@@ -29,6 +30,7 @@ export const providers = [
   RepositoryRepository,
   ConnectionMetricsRepository,
   AllowlistRepository,
+  InviteCodeRepository,
   BetaInvitesRepository,
   BetaInvitesService,
   MetricsService,

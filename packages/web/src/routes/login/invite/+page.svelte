@@ -15,7 +15,7 @@
 
   let { data } = $props();
 
-  let inviteCode = $state("");
+  let inviteCode = $state(page.url.searchParams.get("code") ?? "");
 
   const notAllowed = page.url.searchParams.get("error") === "not_allowed";
 

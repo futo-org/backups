@@ -340,6 +340,85 @@ describe('AuthController (e2e)', () => {
       expect(response.header.location).toBe('/login/invite?error=not_allowed');
       await expect(testUtils.getUserBySub('second-code-user')).resolves.toBeUndefined();
     });
+
+    describe('reusable invite codes', () => {
+      it('lets several people sign up with the same code and records each redemption', async () => {
+        const inviteCode = await testUtils.createInviteCode({ code: 'MEETUP-2026' });
+
+        for (const sub of ['meetup-a', 'meetup-b', 'meetup-c']) {
+          const response = await loginCallback(sub, 'meetup-2026');
+          expect(response.header.location).toBe('/');
+        }
+
+        const redemptions = await testUtils.getInviteCodeRedemptions(inviteCode.id);
+        expect(redemptions).toHaveLength(3);
+      });
+
+      it('stops admitting people once the use limit is reached', async () => {
+        await testUtils.createInviteCode({ code: 'TWO-SEATS', maxUses: 2 });
+
+        await loginCallback('seat-a', 'TWO-SEATS');
+        await loginCallback('seat-b', 'TWO-SEATS');
+        const response = await loginCallback('seat-c', 'TWO-SEATS');
+
+        expect(response.header.location).toBe('/login/invite?error=not_allowed');
+        await expect(testUtils.getUserBySub('seat-c')).resolves.toBeUndefined();
+      });
+
+      it('does not count a returning user twice', async () => {
+        const inviteCode = await testUtils.createInviteCode({ code: 'RETURNING', maxUses: 1 });
+
+        await loginCallback('returning-user', 'RETURNING');
+        const response = await loginCallback('returning-user', 'RETURNING');
+
+        expect(response.header.location).toBe('/');
+        await expect(testUtils.getInviteCodeRedemptions(inviteCode.id)).resolves.toHaveLength(1);
+      });
+
+      it('keeps an exhausted code exhausted after its account is deleted', async () => {
+        const inviteCode = await testUtils.createInviteCode({ code: 'ONE-SEAT', maxUses: 1 });
+        await loginCallback('deleted-seat', 'ONE-SEAT');
+
+        await testUtils.deleteUserBySub('deleted-seat');
+        const response = await loginCallback('next-seat', 'ONE-SEAT');
+
+        expect(response.header.location).toBe('/login/invite?error=not_allowed');
+        await expect(testUtils.getInviteCodeRedemptions(inviteCode.id)).resolves.toEqual([
+          expect.objectContaining({ userId: null }),
+        ]);
+      });
+
+      it('rejects an expired code', async () => {
+        await testUtils.createInviteCode({ code: 'EXPIRED-CODE', expiresAt: new Date(Date.now() - 1000) });
+
+        const response = await loginCallback('expired-user', 'EXPIRED-CODE');
+
+        expect(response.header.location).toBe('/login/invite?error=not_allowed');
+        await expect(testUtils.getUserBySub('expired-user')).resolves.toBeUndefined();
+      });
+
+      it('rejects a revoked code', async () => {
+        await testUtils.createInviteCode({ code: 'REVOKED-CODE', revokedAt: new Date() });
+
+        const response = await loginCallback('revoked-user', 'REVOKED-CODE');
+
+        expect(response.header.location).toBe('/login/invite?error=not_allowed');
+        await expect(testUtils.getUserBySub('revoked-user')).resolves.toBeUndefined();
+      });
+
+      it('never exceeds the use limit under concurrent sign-ups', async () => {
+        const inviteCode = await testUtils.createInviteCode({ code: 'RACE-CODE', maxUses: 3 });
+
+        const results = await Promise.allSettled(
+          Array.from({ length: 8 }, (_, index) =>
+            auth.getOrCreateUser({ sub: `racer-${index}`, email: `racer-${index}@example.com` }, 'RACE-CODE'),
+          ),
+        );
+
+        expect(results.filter((result) => result.status === 'fulfilled')).toHaveLength(3);
+        await expect(testUtils.getInviteCodeRedemptions(inviteCode.id)).resolves.toHaveLength(3);
+      });
+    });
   });
 
   describe('ticket confirmation flow', () => {

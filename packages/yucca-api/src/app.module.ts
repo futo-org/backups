@@ -19,6 +19,7 @@ import { ConnectionRepository } from './repositories/connection.repository.js';
 import { CryptoRepository } from './repositories/crypto.repository.js';
 import { DatabaseRepository } from './repositories/database.repository.js';
 import { DiscordRepository } from './repositories/discord.repository.js';
+import { InviteCodeRepository } from './repositories/inviteCode.repository.js';
 import { OidcRepository } from './repositories/oidc.repository.js';
 import { RepositoryRepository } from './repositories/repository.repository.js';
 import { RepositoryMetricsRepository } from './repositories/repositoryMetrics.repository.js';
@@ -77,6 +78,7 @@ export const providers: Provider[] = [
   TicketRepository,
   UserRepository,
   UserAllowlistRepository,
+  InviteCodeRepository,
   RepositoryRepository,
   RepositoryMetricsRepository,
   RepositoryMetricsHistoryRepository,
