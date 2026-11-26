@@ -29,6 +29,7 @@ export const testUtils = {
     await db.deleteFrom('userFeatureFlagOverride').execute();
     await db.deleteFrom('users').execute();
     await db.deleteFrom('userAllowlist').execute();
+    await db.deleteFrom('inviteCodes').execute();
     await db.deleteFrom('settings').execute();
   },
 
@@ -46,6 +47,30 @@ export const testUtils = {
       .values({ email, inviteCode, invited })
       .returningAll()
       .executeTakeFirstOrThrow();
+  },
+
+  createInviteCode: ({
+    code,
+    name = code,
+    maxUses = null,
+    expiresAt = null,
+    revokedAt = null,
+  }: {
+    code: string;
+    name?: string;
+    maxUses?: number | null;
+    expiresAt?: Date | null;
+    revokedAt?: Date | null;
+  }) => {
+    return getDb()
+      .insertInto('inviteCodes')
+      .values({ code, name, maxUses, expiresAt, revokedAt })
+      .returningAll()
+      .executeTakeFirstOrThrow();
+  },
+
+  getInviteCodeRedemptions: (inviteCodeId: string) => {
+    return getDb().selectFrom('inviteCodeRedemptions').selectAll().where('inviteCodeId', '=', inviteCodeId).execute();
   },
 
   getAllowlistEntry: (email: string) => {

@@ -4,6 +4,7 @@ import { jsonArrayFrom } from 'kysely/helpers/postgres';
 import { InjectKysely } from 'nestjs-kysely';
 import { ConnectionRepository } from 'src/repositories/connection.repository.js';
 import { DiscordRepository } from 'src/repositories/discord.repository.js';
+import { InviteCodeRepository } from 'src/repositories/inviteCode.repository.js';
 import { inTransaction } from 'src/repositories/transaction.js';
 import { UserAllowlistRepository } from 'src/repositories/userAllowlist.repository.js';
 import { DB } from 'src/schema/index.js';
@@ -12,6 +13,7 @@ import { UserTable } from 'src/schema/tables/user.table.js';
 export type RegistrationRepositories = {
   user: UserRepository;
   allowlist: UserAllowlistRepository;
+  inviteCode: InviteCodeRepository;
   connection: ConnectionRepository;
   discord: DiscordRepository;
 };
@@ -30,6 +32,7 @@ export class UserRepository {
         return operation({
           user: new UserRepository(transaction),
           allowlist: new UserAllowlistRepository(transaction),
+          inviteCode: new InviteCodeRepository(transaction),
           connection: new ConnectionRepository(transaction),
           discord: new DiscordRepository(transaction),
         });

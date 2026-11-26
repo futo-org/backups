@@ -485,6 +485,44 @@ describe(AuthService.name, () => {
       expect(mocks.user.create).not.toHaveBeenCalled();
     });
 
+    it('should allow a new user with a reusable invite code and record the redemption', async () => {
+      mocks.inviteCode.claim.mockResolvedValue('reusable-code-id');
+
+      await expect(sut.getOrCreateUser(claims, ' meetup2026 ')).resolves.toBe(mockUser);
+
+      expect(mocks.userAllowlist.consumeInviteCode).toHaveBeenCalledWith('MEETUP2026');
+      expect(mocks.inviteCode.claim).toHaveBeenCalledWith('MEETUP2026');
+      expect(mocks.inviteCode.recordRedemption).toHaveBeenCalledWith('reusable-code-id', mockUser.id);
+    });
+
+    it('should prefer a single-use invite code over a reusable one', async () => {
+      mocks.userAllowlist.consumeInviteCode.mockResolvedValue({ id: entry.id });
+
+      await expect(sut.getOrCreateUser(claims, 'CODE123456')).resolves.toBe(mockUser);
+
+      expect(mocks.inviteCode.claim).not.toHaveBeenCalled();
+      expect(mocks.inviteCode.recordRedemption).not.toHaveBeenCalled();
+    });
+
+    it('should reject an exhausted, expired or revoked reusable invite code', async () => {
+      mocks.inviteCode.claim.mockResolvedValue(undefined);
+
+      await expect(sut.getOrCreateUser(claims, 'MEETUP2026')).rejects.toThrowErrorMatchingInlineSnapshot(
+        `"Email is not allowed during the beta"`,
+      );
+      expect(mocks.user.create).not.toHaveBeenCalled();
+      expect(mocks.inviteCode.recordRedemption).not.toHaveBeenCalled();
+    });
+
+    it('should not record a redemption for an existing user', async () => {
+      mocks.user.getBySub.mockResolvedValue(mockUser);
+
+      await expect(sut.getOrCreateUser(claims, 'MEETUP2026')).resolves.toEqual(mockUser);
+
+      expect(mocks.inviteCode.claim).not.toHaveBeenCalled();
+      expect(mocks.inviteCode.recordRedemption).not.toHaveBeenCalled();
+    });
+
     it('should reject a new user with no allowlist match', async () => {
       await expect(sut.getOrCreateUser(claims)).rejects.toThrowErrorMatchingInlineSnapshot(
         `"Email is not allowed during the beta"`,

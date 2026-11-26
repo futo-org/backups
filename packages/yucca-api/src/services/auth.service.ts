@@ -14,6 +14,7 @@ import { CookieName, DeviceFlowEventType, DeviceFlowFailureReason, TicketAction 
 import { env } from 'src/env.js';
 import { ConnectionRepository } from 'src/repositories/connection.repository.js';
 import { CryptoRepository } from 'src/repositories/crypto.repository.js';
+import { InviteCodeRepository } from 'src/repositories/inviteCode.repository.js';
 import { OidcRepository } from 'src/repositories/oidc.repository.js';
 import { RepositoryRepository } from 'src/repositories/repository.repository.js';
 import { SessionRepository } from 'src/repositories/session.repository.js';
@@ -243,7 +244,7 @@ export class AuthService {
     inviteCode?: string,
     discordInvite?: string,
   ) {
-    const { user: users, allowlist, connection, discord } = repositories;
+    const { user: users, allowlist, inviteCode: inviteCodes, connection, discord } = repositories;
     let user = await users.getBySub(claims.sub);
 
     if (user) {
@@ -262,9 +263,9 @@ export class AuthService {
     const invite = discordInvite ? await discord.consumeInviteRequest(discordInvite) : undefined;
 
     if (!user) {
-      if (!invite) {
-        await this.assertEmailAllowed(claims.email.toLowerCase(), allowlist, inviteCode);
-      }
+      const reusableInviteCodeId = invite
+        ? undefined
+        : await this.authorizeRegistration(claims.email.toLowerCase(), allowlist, inviteCodes, inviteCode);
 
       user = await users.create({
         sub: claims.sub,
@@ -273,6 +274,10 @@ export class AuthService {
       });
 
       await connection.getOrCreateDefault(user.id);
+
+      if (reusableInviteCodeId) {
+        await inviteCodes.recordRedemption(reusableInviteCodeId, user.id);
+      }
     }
 
     if (invite?.allowlistId) {
@@ -282,7 +287,12 @@ export class AuthService {
     return user;
   }
 
-  private async assertEmailAllowed(email: string, allowlist: UserAllowlistRepository, inviteCode?: string) {
+  private async authorizeRegistration(
+    email: string,
+    allowlist: UserAllowlistRepository,
+    inviteCodes: InviteCodeRepository,
+    inviteCode?: string,
+  ): Promise<string | undefined> {
     const domain = email.split('@').pop() ?? '';
     if (env.ALLOWED_EMAIL_DOMAINS.includes(domain)) {
       return;
@@ -293,8 +303,14 @@ export class AuthService {
       return;
     }
 
-    if (inviteCode && (await allowlist.consumeInviteCode(inviteCode.trim().toUpperCase()))) {
+    const code = inviteCode?.trim().toUpperCase();
+    if (code && (await allowlist.consumeInviteCode(code))) {
       return;
+    }
+
+    const reusableInviteCodeId = code ? await inviteCodes.claim(code) : undefined;
+    if (reusableInviteCodeId) {
+      return reusableInviteCodeId;
     }
 
     throw new EmailNotAllowedException();

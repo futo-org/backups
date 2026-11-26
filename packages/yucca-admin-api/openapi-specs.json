@@ -1109,6 +1109,114 @@
         ]
       }
     },
+    "/api/invite-codes": {
+      "get": {
+        "operationId": "listInviteCodes",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InviteCodeListResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "InviteCode"
+        ]
+      },
+      "post": {
+        "operationId": "createInviteCode",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/InviteCodeCreateRequestDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InviteCodeResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "InviteCode"
+        ]
+      }
+    },
+    "/api/invite-codes/{id}": {
+      "get": {
+        "operationId": "getInviteCode",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InviteCodeGetResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "InviteCode"
+        ]
+      },
+      "delete": {
+        "operationId": "revokeInviteCode",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InviteCodeResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "InviteCode"
+        ]
+      }
+    },
     "/api/settings": {
       "get": {
         "operationId": "listSettings",
@@ -2287,6 +2395,157 @@
         },
         "required": [
           "items"
+        ]
+      },
+      "InviteCodeDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "code": {
+            "type": "string"
+          },
+          "inviteUrl": {
+            "type": "string"
+          },
+          "maxUses": {
+            "type": "number",
+            "nullable": true
+          },
+          "uses": {
+            "type": "number"
+          },
+          "expiresAt": {
+            "example": "2024-01-01T00:00:00.000Z",
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$",
+            "nullable": true
+          },
+          "revokedAt": {
+            "example": "2024-01-01T00:00:00.000Z",
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$",
+            "nullable": true
+          },
+          "createdAt": {
+            "example": "2024-01-01T00:00:00.000Z",
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "code",
+          "inviteUrl",
+          "maxUses",
+          "uses",
+          "expiresAt",
+          "revokedAt",
+          "createdAt"
+        ]
+      },
+      "InviteCodeListResponseDto": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/InviteCodeDto"
+            }
+          }
+        },
+        "required": [
+          "items"
+        ]
+      },
+      "InviteCodeCreateRequestDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100
+          },
+          "code": {
+            "description": "Custom code (6–32 letters, digits or dashes); generated when omitted",
+            "type": "string",
+            "pattern": "^[A-Z0-9-]{6,32}$"
+          },
+          "maxUses": {
+            "description": "Unlimited when omitted",
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9007199254740991
+          },
+          "expiresAt": {
+            "description": "Never expires when omitted",
+            "example": "2024-01-01T00:00:00.000Z",
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+          }
+        },
+        "required": [
+          "name"
+        ]
+      },
+      "InviteCodeResponseDto": {
+        "type": "object",
+        "properties": {
+          "inviteCode": {
+            "$ref": "#/components/schemas/InviteCodeDto"
+          }
+        },
+        "required": [
+          "inviteCode"
+        ]
+      },
+      "InviteCodeRedemptionDto": {
+        "type": "object",
+        "properties": {
+          "userId": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string"
+          },
+          "createdAt": {
+            "example": "2024-01-01T00:00:00.000Z",
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+          }
+        },
+        "required": [
+          "userId",
+          "email",
+          "createdAt"
+        ]
+      },
+      "InviteCodeGetResponseDto": {
+        "type": "object",
+        "properties": {
+          "inviteCode": {
+            "$ref": "#/components/schemas/InviteCodeDto"
+          },
+          "redemptions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/InviteCodeRedemptionDto"
+            }
+          }
+        },
+        "required": [
+          "inviteCode",
+          "redemptions"
         ]
       },
       "SettingsEntryDto": {

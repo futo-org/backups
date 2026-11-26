@@ -23,6 +23,7 @@ export const testUtils = {
     await db.deleteFrom('userFeatureFlagOverride').execute();
     await db.deleteFrom('users').execute();
     await db.deleteFrom('userAllowlist').execute();
+    await db.deleteFrom('inviteCodes').execute();
     await db.deleteFrom('settings').execute();
   },
 
@@ -72,6 +73,14 @@ export const testUtils = {
         disabled,
         ...(createdAt ? { createdAt } : {}),
       })
+      .returningAll()
+      .executeTakeFirstOrThrow();
+  },
+
+  createInviteCodeRedemption: (inviteCodeId: string, userId: string) => {
+    return getDb()
+      .insertInto('inviteCodeRedemptions')
+      .values({ inviteCodeId, userId })
       .returningAll()
       .executeTakeFirstOrThrow();
   },
