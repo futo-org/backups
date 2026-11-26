@@ -48,7 +48,8 @@ struct MenuBarContent: View {
             Text("Cancel")
               .frame(maxWidth: .infinity)
           }
-          .buttonStyle(.bordered)
+          .buttonStyle(.borderedProminent)
+          .tint(Brand.fill)
         }
       }
       Divider()
