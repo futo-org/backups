@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.25.0](https://github.com/futo-org/backups/compare/v1.24.1...v1.25.0) (2026-11-26)
+
+
+### Features
+
+* **macos-app:** icon row for menu bar actions ([#376](https://github.com/futo-org/backups/issues/376)) ([dc19a0b](https://github.com/futo-org/backups/commit/dc19a0b23e740f9cee6e2aff0e90d58b3aeccfa2))
+
+
+### Bug Fixes
+
+* **macos-app:** replace stepper time pickers with a borderless time field ([#378](https://github.com/futo-org/backups/issues/378)) ([294d087](https://github.com/futo-org/backups/commit/294d087c686f76b14f0b74883f4cc28acb5a3dff))
+
 ## [1.24.1](https://github.com/futo-org/backups/compare/v1.24.0...v1.24.1) (2026-11-26)
 
 
