@@ -7,6 +7,7 @@ import {
   deviceFlowEndpoints,
   type DeviceFlowKind,
 } from '$lib/services/session.service';
+import { toOpenableUrl } from '$lib/utils/url';
 import { createQuery } from '@tanstack/svelte-query';
 import { gt, msg } from 'svelte-i18n-lingui';
 
@@ -144,8 +145,9 @@ export function createDeviceFlow(
         }
 
         state.userCode = started.userCode;
-        state.verificationUri =
-          started.verificationUriComplete ?? started.verificationUri;
+        state.verificationUri = toOpenableUrl(
+          started.verificationUriComplete ?? started.verificationUri,
+        );
         state.deviceCode = started.deviceCode;
         state.interval = started.interval ?? DEFAULT_POLL_INTERVAL_SECONDS;
         firstPoll = setTimeout(() => {

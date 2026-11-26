@@ -20,6 +20,7 @@ import { getProvider } from '$lib/providers';
 import { queryClient } from '$lib/query-client';
 import { snapshotKeys } from '$lib/services/snapshot.service';
 import { handleError } from '$lib/utils/handle-error';
+import { openUrl } from '$lib/utils/url';
 import { createTicket } from '@futo-org/backups-api-client';
 import { modalManager, toastManager, type ActionItem } from '@immich/ui';
 import {
@@ -257,7 +258,7 @@ export const handleDeleteRepository = async (
       repositoryId,
     });
 
-    window.open(redirectTo, '_blank');
+    openUrl(redirectTo, '_blank');
   } catch (error) {
     if (local && isRepositoryGone(error)) {
       await handleRemoveDeletedRepository(repositoryId);
@@ -285,7 +286,7 @@ export const handleDisableWormRepository = async (
       repositoryId,
     });
 
-    window.open(redirectTo, '_blank');
+    openUrl(redirectTo, '_blank');
   } catch (error) {
     handleError(error, gt`Failed to start disable write-only process`);
     throw error;
