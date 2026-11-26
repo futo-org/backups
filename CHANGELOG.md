@@ -1,5 +1,14 @@
 # Changelog
 
+## [1.23.0](https://github.com/futo-org/backups/compare/v1.22.0...v1.23.0) (2026-11-26)
+
+
+### Features
+
+* **common:** add windows connection type ([#365](https://github.com/futo-org/backups/issues/365)) ([76c22ff](https://github.com/futo-org/backups/commit/76c22ff04a843f96a68a363ea3047f6dba75902c))
+* **macos-app:** keep the Mac awake during backups and let scheduled backups wait for power, Ethernet or a dock ([#363](https://github.com/futo-org/backups/issues/363)) ([262ad6a](https://github.com/futo-org/backups/commit/262ad6ad25aac8e29424ed00fcdffe8c3ba1c031))
+* **macos-app:** list exclusions in a searchable sheet ([#362](https://github.com/futo-org/backups/issues/362)) ([38f0183](https://github.com/futo-org/backups/commit/38f0183a82a56669c04b5c0a06c4220390f2132b))
+
 ## [1.22.0](https://github.com/futo-org/backups/compare/v1.21.0...v1.22.0) (2026-11-25)
 
 
