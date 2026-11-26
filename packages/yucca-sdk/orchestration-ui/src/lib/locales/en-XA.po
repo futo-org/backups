@@ -219,19 +219,19 @@ msgstr ""
 msgid "Add path"
 msgstr ""
 
-#: src/lib/components/integrations/immich/settings/ImmichSettingsStorage.svelte
+#: src/lib/components/backups/RetentionPolicyField.svelte
 msgid "After 15 days"
 msgstr ""
 
-#: src/lib/components/integrations/immich/settings/ImmichSettingsStorage.svelte
+#: src/lib/components/backups/RetentionPolicyField.svelte
 msgid "After 30 days"
 msgstr ""
 
-#: src/lib/components/integrations/immich/settings/ImmichSettingsStorage.svelte
+#: src/lib/components/backups/RetentionPolicyField.svelte
 msgid "After 60 days"
 msgstr ""
 
-#: src/lib/components/integrations/immich/settings/ImmichSettingsStorage.svelte
+#: src/lib/components/backups/RetentionPolicyField.svelte
 msgid "After 90 days"
 msgstr ""
 
@@ -839,7 +839,7 @@ msgstr ""
 msgid "Delete"
 msgstr ""
 
-#: src/lib/components/integrations/immich/settings/ImmichSettingsStorage.svelte
+#: src/lib/components/backups/RetentionPolicyField.svelte
 msgid "Delete old backups"
 msgstr ""
 
@@ -867,6 +867,7 @@ msgstr ""
 msgid "Deleting snapshot"
 msgstr ""
 
+#: src/lib/components/backups/dialogs/RepositoryFormModal.svelte
 #: src/lib/components/integrations/immich/settings/ImmichSettingsStorage.svelte
 msgid "Disable write-only"
 msgstr ""
@@ -1454,7 +1455,7 @@ msgstr ""
 msgid "Keep both"
 msgstr ""
 
-#: src/lib/components/integrations/immich/settings/ImmichSettingsStorage.svelte
+#: src/lib/components/backups/RetentionPolicyField.svelte
 msgid "Keep latest two backups"
 msgstr ""
 
@@ -1715,7 +1716,7 @@ msgstr ""
 msgid "Needs attention"
 msgstr ""
 
-#: src/lib/components/integrations/immich/settings/ImmichSettingsStorage.svelte
+#: src/lib/components/backups/RetentionPolicyField.svelte
 msgid "Never (keep all backups)"
 msgstr ""
 
@@ -1906,7 +1907,7 @@ msgstr ""
 msgid "Old backups were pruned, with warnings"
 msgstr ""
 
-#: src/lib/components/integrations/immich/settings/ImmichSettingsStorage.svelte
+#: src/lib/components/backups/RetentionPolicyField.svelte
 msgid "Older snapshots are pruned automatically."
 msgstr ""
 
@@ -2018,6 +2019,7 @@ msgstr ""
 msgid "Preparing…"
 msgstr ""
 
+#: src/lib/components/backups/dialogs/RepositoryFormModal.svelte
 #: src/lib/components/backups/dialogs/RepositoryFormModal.svelte
 msgid "Prevent anything being deleted"
 msgstr ""
@@ -2868,6 +2870,7 @@ msgstr ""
 msgid "With warnings only"
 msgstr ""
 
+#: src/lib/components/backups/dialogs/RepositoryFormModal.svelte
 #: src/lib/components/backups/dialogs/RepositoryFormModal.svelte
 #: src/lib/components/backups/dialogs/RepositoryFormModal.svelte
 msgid "Write once (WORM)"

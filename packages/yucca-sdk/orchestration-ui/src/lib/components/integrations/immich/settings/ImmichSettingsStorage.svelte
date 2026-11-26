@@ -1,5 +1,8 @@
 <script lang="ts">
   import BackendsList from "$lib/components/backends/BackendsList.svelte";
+  import RetentionPolicyField, {
+    defaultRetentionPolicy,
+  } from "$lib/components/backups/RetentionPolicyField.svelte";
   import Accordion from "$lib/components/ui/Accordion.svelte";
   import OnEvents from "$lib/components/util/OnEvents.svelte";
   import type { RetentionPolicyDto } from "$lib/fetch-client";
@@ -24,29 +27,11 @@
     HStack,
     Input,
     LoadingSpinner,
-    Select,
     Stack,
     Switch,
   } from "@immich/ui";
   import { mdiDownloadBox } from "@mdi/js";
-  import { msg, t } from "svelte-i18n-lingui";
-
-  type RetentionChoice = {
-    key: string;
-    label: string;
-    policy: RetentionPolicyDto | null;
-  };
-
-  const retentionChoices: RetentionChoice[] = [
-    { key: "15d", label: msg`After 15 days`, policy: { keepWithin: "15d" } },
-    { key: "30d", label: msg`After 30 days`, policy: { keepWithin: "30d" } },
-    { key: "60d", label: msg`After 60 days`, policy: { keepWithin: "60d" } },
-    { key: "90d", label: msg`After 90 days`, policy: { keepWithin: "90d" } },
-    { key: "2", label: msg`Keep latest two backups`, policy: { keepLast: 2 } },
-    { key: "never", label: msg`Never (keep all backups)`, policy: null },
-  ];
-
-  const defaultRetentionKey = "60d";
+  import { t } from "svelte-i18n-lingui";
 
   const integrations = useIntegrations();
   const repositories = useRepositories();
@@ -79,7 +64,7 @@
 
   let name = $state("");
   let worm = $state(false);
-  let retentionKey = $state(defaultRetentionKey);
+  let retentionPolicy = $state<RetentionPolicyDto | null>(defaultRetentionPolicy);
   let loaded = false;
 
   const nameMissing = $derived(name.trim().length === 0);
@@ -91,11 +76,7 @@
 
     name = repository.name;
 
-    const policy = repository.configuration?.retentionPolicy ?? null;
-    retentionKey =
-      retentionChoices.find(
-        (choice) => JSON.stringify(choice.policy) === JSON.stringify(policy),
-      )?.key ?? defaultRetentionKey;
+    retentionPolicy = repository.configuration?.retentionPolicy ?? null;
   };
 
   $effect(() => {
@@ -119,10 +100,7 @@
       backupConfiguration: integration.configuration.backupConfiguration,
       libraries: integration.configuration.libraries,
       worm,
-      retentionPolicy: worm
-        ? null
-        : (retentionChoices.find((choice) => choice.key === retentionKey)
-            ?.policy ?? null),
+      retentionPolicy: worm ? null : retentionPolicy,
     });
   };
 </script>
@@ -173,20 +151,7 @@
         </Field>
       {/if}
 
-      <Field
-        label={$t`Delete old backups`}
-        description={$t`Older snapshots are pruned automatically.`}
-        disabled={worm}
-      >
-        <Select
-          options={retentionChoices.map(({ key, label }) => ({
-            value: key,
-            label: $t(label),
-          }))}
-          value={worm ? "never" : retentionKey}
-          onChange={(value) => (retentionKey = value)}
-        />
-      </Field>
+      <RetentionPolicyField bind:policy={retentionPolicy} disabled={worm} />
 
       <HStack gap={2} class="justify-end">
         <Button

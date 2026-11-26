@@ -219,19 +219,19 @@ msgstr "Add more files"
 msgid "Add path"
 msgstr "Add path"
 
-#: src/lib/components/integrations/immich/settings/ImmichSettingsStorage.svelte
+#: src/lib/components/backups/RetentionPolicyField.svelte
 msgid "After 15 days"
 msgstr "After 15 days"
 
-#: src/lib/components/integrations/immich/settings/ImmichSettingsStorage.svelte
+#: src/lib/components/backups/RetentionPolicyField.svelte
 msgid "After 30 days"
 msgstr "After 30 days"
 
-#: src/lib/components/integrations/immich/settings/ImmichSettingsStorage.svelte
+#: src/lib/components/backups/RetentionPolicyField.svelte
 msgid "After 60 days"
 msgstr "After 60 days"
 
-#: src/lib/components/integrations/immich/settings/ImmichSettingsStorage.svelte
+#: src/lib/components/backups/RetentionPolicyField.svelte
 msgid "After 90 days"
 msgstr "After 90 days"
 
@@ -839,7 +839,7 @@ msgstr "Days 29, 30 and 31 only run in months that have that day."
 msgid "Delete"
 msgstr "Delete"
 
-#: src/lib/components/integrations/immich/settings/ImmichSettingsStorage.svelte
+#: src/lib/components/backups/RetentionPolicyField.svelte
 msgid "Delete old backups"
 msgstr "Delete old backups"
 
@@ -867,6 +867,7 @@ msgstr "Deleted snapshot"
 msgid "Deleting snapshot"
 msgstr "Deleting snapshot"
 
+#: src/lib/components/backups/dialogs/RepositoryFormModal.svelte
 #: src/lib/components/integrations/immich/settings/ImmichSettingsStorage.svelte
 msgid "Disable write-only"
 msgstr "Disable write-only"
@@ -1454,7 +1455,7 @@ msgstr "Keep backing up"
 msgid "Keep both"
 msgstr "Keep both"
 
-#: src/lib/components/integrations/immich/settings/ImmichSettingsStorage.svelte
+#: src/lib/components/backups/RetentionPolicyField.svelte
 msgid "Keep latest two backups"
 msgstr "Keep latest two backups"
 
@@ -1715,7 +1716,7 @@ msgstr "Need help?"
 msgid "Needs attention"
 msgstr "Needs attention"
 
-#: src/lib/components/integrations/immich/settings/ImmichSettingsStorage.svelte
+#: src/lib/components/backups/RetentionPolicyField.svelte
 msgid "Never (keep all backups)"
 msgstr "Never (keep all backups)"
 
@@ -1906,7 +1907,7 @@ msgstr "Old backups were pruned successfully"
 msgid "Old backups were pruned, with warnings"
 msgstr "Old backups were pruned, with warnings"
 
-#: src/lib/components/integrations/immich/settings/ImmichSettingsStorage.svelte
+#: src/lib/components/backups/RetentionPolicyField.svelte
 msgid "Older snapshots are pruned automatically."
 msgstr "Older snapshots are pruned automatically."
 
@@ -2018,6 +2019,7 @@ msgstr "Preparing restore"
 msgid "Preparing…"
 msgstr "Preparing…"
 
+#: src/lib/components/backups/dialogs/RepositoryFormModal.svelte
 #: src/lib/components/backups/dialogs/RepositoryFormModal.svelte
 msgid "Prevent anything being deleted"
 msgstr "Prevent anything being deleted"
@@ -2868,6 +2870,7 @@ msgstr "With warnings"
 msgid "With warnings only"
 msgstr "With warnings only"
 
+#: src/lib/components/backups/dialogs/RepositoryFormModal.svelte
 #: src/lib/components/backups/dialogs/RepositoryFormModal.svelte
 #: src/lib/components/backups/dialogs/RepositoryFormModal.svelte
 msgid "Write once (WORM)"

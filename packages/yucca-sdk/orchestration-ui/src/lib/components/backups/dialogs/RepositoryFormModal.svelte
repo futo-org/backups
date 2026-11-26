@@ -1,12 +1,24 @@
 <script lang="ts">
   import BackendsList from "$lib/components/backends/BackendsList.svelte";
+  import RetentionPolicyField, {
+    defaultRetentionPolicy,
+  } from "$lib/components/backups/RetentionPolicyField.svelte";
   import PathListField from "$lib/components/ui/PathListField.svelte";
-  import type { LocalRepositoryDto } from "$lib/fetch-client";
+  import type { LocalRepositoryDto, RetentionPolicyDto } from "$lib/fetch-client";
   import {
+    handleDisableWormRepository,
     useCreateRepository,
     useUpdateRepository,
   } from "$lib/services/repository.service";
-  import { Checkbox, Field, FormModal, Input, Stack, Text } from "@immich/ui";
+  import {
+    Button,
+    Checkbox,
+    Field,
+    FormModal,
+    Input,
+    Stack,
+    Text,
+  } from "@immich/ui";
   import { SvelteSet } from "svelte/reactivity";
   import { t } from "svelte-i18n-lingui";
 
@@ -22,11 +34,18 @@
   let worm = $state(false);
   // svelte-ignore state_referenced_locally
   const paths = new SvelteSet(repository?.configuration?.paths ?? []);
+  // svelte-ignore state_referenced_locally
+  let retentionPolicy = $state<RetentionPolicyDto | null>(
+    repository
+      ? (repository.configuration?.retentionPolicy ?? null)
+      : defaultRetentionPolicy,
+  );
   let submitted = $state(false);
 
   const local = $derived(
     !repository || typeof repository.configuration === "object",
   );
+  const writeOnce = $derived(Boolean(repository?.worm) || worm);
   const createMutation = useCreateRepository();
   const updateMutation = useUpdateRepository();
   const pending = $derived(
@@ -40,12 +59,28 @@
 
     if (repository) {
       updateMutation.mutate(
-        { id: repository.id, dto: { name, paths: [...paths] }, local },
+        {
+          id: repository.id,
+          dto: {
+            name,
+            paths: [...paths],
+            ...(worm && { worm }),
+            ...(local && {
+              retentionPolicy: writeOnce ? null : retentionPolicy,
+            }),
+          },
+          local,
+        },
         { onSuccess: onClose },
       );
     } else {
       createMutation.mutate(
-        { name, worm, paths: [...paths] },
+        {
+          name,
+          worm,
+          paths: [...paths],
+          retentionPolicy: worm ? null : retentionPolicy,
+        },
         { onSuccess: onClose },
       );
     }
@@ -81,7 +116,7 @@
       </Text>
     {/if}
 
-    {#if !repository}
+    {#if !repository?.worm}
       <Field
         label={$t`Write once (WORM)`}
         description={$t`Prevent anything being deleted`}
@@ -92,6 +127,23 @@
           aria-label={$t`Write once (WORM)`}
         />
       </Field>
+    {:else}
+      <div>
+        <Text size="small" fontWeight="medium">{$t`Write once (WORM)`}</Text>
+        <Text color="secondary" size="small" class="mt-1 mb-2">
+          {$t`Prevent anything being deleted`}
+        </Text>
+        <Button
+          color="secondary"
+          variant="outline"
+          shape="round"
+          size="small"
+          disabled={pending}
+          onclick={() => handleDisableWormRepository(repository.id, local)}
+        >
+          {$t`Disable write-only`}
+        </Button>
+      </div>
     {/if}
 
     {#if local}
@@ -113,6 +165,13 @@
           {$t`Select at least one backup path`}
         </Text>
       {/if}
+
+      <fieldset disabled={pending} class="min-w-0">
+        <RetentionPolicyField
+          bind:policy={retentionPolicy}
+          disabled={writeOnce}
+        />
+      </fieldset>
     {/if}
 
     {#if repository}

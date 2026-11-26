@@ -38,6 +38,11 @@ const pickPaths = async (paths: string[]) => {
   await page.getByRole('button', { name: 'Add first path' }).click();
 };
 
+const chooseRetention = async (option: string) => {
+  await page.getByRole('button', { name: 'Delete old backups' }).click();
+  await page.getByRole('option', { name: option, exact: true }).click();
+};
+
 const submitDraft = async () => {
   await nameInput().fill('Photos');
   await pickPaths(['/photos']);
@@ -114,6 +119,7 @@ it('creates with the selected paths and WORM in one request without opening conf
     name: 'Photos',
     worm: true,
     paths: ['/photos'],
+    retentionPolicy: null,
   });
   expect(sdk.futoBackupsUpdateRepository).not.toHaveBeenCalled();
   expect(modalManager.open).not.toHaveBeenCalled();
@@ -121,6 +127,91 @@ it('creates with the selected paths and WORM in one request without opening conf
   expect(queryClient.getQueryState(repositoryKeys.all)?.isInvalidated).toBe(
     true,
   );
+});
+
+it('keeps 60 days of backups unless another retention is chosen', async () => {
+  await render(CreateRepositoryModal, { onClose: vi.fn() });
+  await submitDraft();
+  await vi.waitFor(() =>
+    expect(sdk.futoBackupsCreateRepository).toHaveBeenCalledWith(
+      expect.objectContaining({ retentionPolicy: { keepWithin: '60d' } }),
+    ),
+  );
+});
+
+it('creates with the chosen retention policy', async () => {
+  await render(CreateRepositoryModal, { onClose: vi.fn() });
+  await chooseRetention('Keep latest two backups');
+  await submitDraft();
+  await vi.waitFor(() =>
+    expect(sdk.futoBackupsCreateRepository).toHaveBeenCalledWith(
+      expect.objectContaining({ retentionPolicy: { keepLast: 2 } }),
+    ),
+  );
+});
+
+it('never prunes a write-once backup and offers to disable write-only', async () => {
+  const onClose = vi.fn();
+  vi.mocked(sdk.futoBackupsUpdateRepository).mockResolvedValue({
+    repository: { id: 'local' },
+  } as never);
+  await render(ConfigureRepositoryModal, {
+    repository: {
+      id: 'local',
+      name: 'Photos',
+      worm: true,
+      configuration: {
+        paths: ['/photos'],
+        retentionPolicy: { keepWithin: '60d' },
+      },
+    } as never,
+    onClose,
+  });
+  await expect
+    .element(page.getByRole('button', { name: 'Delete old backups' }))
+    .toHaveTextContent('Never (keep all backups)');
+  await expect
+    .element(
+      page.getByRole('button', { name: 'Disable write-only', exact: true }),
+    )
+    .toBeVisible();
+  await saveButton().click();
+  await vi.waitFor(() => expect(onClose).toHaveBeenCalledOnce());
+  expect(sdk.futoBackupsUpdateRepository).toHaveBeenCalledWith(
+    'local',
+    expect.objectContaining({ retentionPolicy: null }),
+  );
+});
+
+it('turns on write-once for an existing backup without a retention policy', async () => {
+  const onClose = vi.fn();
+  vi.mocked(sdk.futoBackupsUpdateRepository).mockResolvedValue({
+    repository: { id: 'local' },
+  } as never);
+  await render(ConfigureRepositoryModal, {
+    repository: {
+      id: 'local',
+      name: 'Photos',
+      worm: false,
+      configuration: {
+        paths: ['/photos'],
+        retentionPolicy: { keepWithin: '30d' },
+      },
+    } as never,
+    onClose,
+  });
+  await page.getByRole('checkbox', { name: 'Write once (WORM)' }).click();
+  await expect
+    .element(page.getByRole('button', { name: 'Delete old backups' }))
+    .toHaveTextContent('Never (keep all backups)');
+  await saveButton().click();
+  await vi.waitFor(() => expect(onClose).toHaveBeenCalledOnce());
+  expect(sdk.futoBackupsUpdateRepository).toHaveBeenCalledWith('local', {
+    name: 'Photos',
+    paths: ['/photos'],
+    worm: true,
+    retentionPolicy: null,
+  });
 });
 
 it('requires a path again after the last selected path is removed', async () => {
@@ -187,7 +278,7 @@ it('edits remote repositories without requiring local paths', async () => {
 });
 
 it.each([{ paths: ['/photos'] }, { paths: [] }])(
-  'preserves local paths $paths when renaming a configured backup',
+  'preserves local paths $paths and retention when renaming a configured backup',
   async ({ paths }) => {
     const onClose = vi.fn();
     vi.mocked(sdk.futoBackupsUpdateRepository).mockResolvedValue({
@@ -197,7 +288,7 @@ it.each([{ paths: ['/photos'] }, { paths: [] }])(
       repository: {
         id: 'local',
         name: 'Photos',
-        configuration: { paths },
+        configuration: { paths, retentionPolicy: { keepWithin: '30d' } },
       } as never,
       onClose,
     });
@@ -207,6 +298,7 @@ it.each([{ paths: ['/photos'] }, { paths: [] }])(
     expect(sdk.futoBackupsUpdateRepository).toHaveBeenCalledWith('local', {
       name: 'Pictures',
       paths,
+      retentionPolicy: { keepWithin: '30d' },
     });
     expect(sdk.futoBackupsCreateRepository).not.toHaveBeenCalled();
   },
