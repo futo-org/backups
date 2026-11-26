@@ -66,7 +66,9 @@
 </script>
 
 <Stack>
-  <Heading size="tiny">{@render label?.()}</Heading>
+  {#if label}
+    <Heading size="tiny">{@render label()}</Heading>
+  {/if}
 
   {#if paths.size > 0}
     <StackList>
