@@ -132,6 +132,8 @@ export const useCreateRepository = () =>
       mutationFn: (dto: RepositoryCreateRequestDto) =>
         sdk.futoBackupsCreateRepository(dto),
       onError: (error) => handleError(error, gt`Failed to create repository`),
+      onSuccess: () =>
+        queryClient.invalidateQueries({ queryKey: repositoryKeys.all }),
     }),
     () => queryClient,
   );
