@@ -18,6 +18,11 @@ describe('billableBytes (storage-tier billing floor)', () => {
     expect(billableBytes('macos', 800 * MIB, 500)).toBe(800 * MIB);
   });
 
+  it('floors windows like standalone', () => {
+    expect(billableBytes('windows', 1024, 500)).toBe(500 * MIB);
+    expect(billableBytes('windows', 800 * MIB, 500)).toBe(800 * MIB);
+  });
+
   it('floors small restic objects at 1 MiB each', () => {
     expect(billableBytes('restic', 1024, 100)).toBe(100 * MIB);
   });

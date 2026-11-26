@@ -31,17 +31,18 @@ per-user/instance state is data. The descriptor lives in
 | `standalone` | storage, transfer, activity | yes | 1 MiB | no | none (always on) |
 | `restic` | storage, transfer | no | 1 MiB | yes | `connection-restic` |
 | `macos` | storage, transfer, activity | yes | 1 MiB | no | none (always on) |
+| `windows` | storage, transfer, activity | yes | 1 MiB | no | none (always on) |
 | `s3` *(future)* | storage | no | 1 MiB | yes |, |
 
 ### Metering tiers
 
 Billing keys off **storage**, the only universal tier.
 
-| Tier | Source | immich | standalone | restic | macos | s3 |
-|---|---|---|---|---|---|---|
-| **Storage** (bytes, objects) → **billed** | RadosGW | ✅ | ✅ | ✅ | ✅ | ✅ |
-| Transfer | michael | ✅ | ✅ | ✅ | ✅ | ❌ |
-| Activity (backup start/end) | client | ✅ | ✅ | ❌ | ✅ | ❌ |
+| Tier | Source | immich | standalone | restic | macos | windows | s3 |
+|---|---|---|---|---|---|---|---|
+| **Storage** (bytes, objects) → **billed** | RadosGW | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| Transfer | michael | ✅ | ✅ | ✅ | ✅ | ✅ | ❌ |
+| Activity (backup start/end) | client | ✅ | ✅ | ❌ | ✅ | ✅ | ❌ |
 
 ## Billing rollup
 

@@ -41,7 +41,7 @@ export type DeviceFlowStartDto = {
 export type DeviceFlowPollRequestDto = {
     /** Device verification code */
     deviceCode: string;
-    /** immich | standalone | restic | macos */
+    /** immich | standalone | restic | macos | windows */
     connectionType?: string;
     /** Instance name, e.g. a hostname */
     connectionName?: string;
@@ -135,7 +135,7 @@ export type MetaResponseDto = {
 };
 export type ConnectionDto = {
     id: string;
-    "type": "immich" | "standalone" | "restic" | "macos";
+    "type": "immich" | "standalone" | "restic" | "macos" | "windows";
     name: string;
     createdAt: string;
     lastSeenAt: string | null;
@@ -151,7 +151,7 @@ export type ConnectionListResponseDto = {
     connections: ConnectionDto[];
 };
 export type ConnectionCreateRequestDto = {
-    "type": "immich" | "standalone" | "restic" | "macos";
+    "type": "immich" | "standalone" | "restic" | "macos" | "windows";
     name: string;
 };
 export type ConnectionResponseDto = {
