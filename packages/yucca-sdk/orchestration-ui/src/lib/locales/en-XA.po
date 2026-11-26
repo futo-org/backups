@@ -267,7 +267,7 @@ msgstr ""
 msgid "Attempted"
 msgstr ""
 
-#: src/lib/components/integrations/immich/settings/ImmichSettingsBandwidth.svelte
+#: src/lib/components/settings/SettingsBandwidth.svelte
 msgid "Automatic ({count})"
 msgstr ""
 
@@ -486,7 +486,7 @@ msgstr ""
 #~ msgid "Backups will run between {start} and {end}, {days}."
 #~ msgstr ""
 
-#: src/lib/components/integrations/immich/settings/ImmichSettingsBandwidth.svelte
+#: src/lib/components/settings/SettingsBandwidth.svelte
 msgid "Bandwidth"
 msgstr ""
 
@@ -1198,11 +1198,11 @@ msgstr ""
 msgid "Friday"
 msgstr ""
 
-#: src/lib/components/integrations/immich/settings/ImmichSettingsBandwidth.svelte
+#: src/lib/components/settings/SettingsBandwidth.svelte
 msgid "From"
 msgstr ""
 
-#: src/lib/components/integrations/immich/settings/ImmichSettingsBandwidth.svelte
+#: src/lib/components/settings/SettingsBandwidth.svelte
 msgid "Full speed during quiet hours"
 msgstr ""
 
@@ -1526,7 +1526,7 @@ msgstr ""
 msgid "Library successfully backed up."
 msgstr ""
 
-#: src/lib/components/integrations/immich/settings/ImmichSettingsBandwidth.svelte
+#: src/lib/components/settings/SettingsBandwidth.svelte
 msgid "Lift the limit while you are asleep."
 msgstr ""
 
@@ -1624,7 +1624,7 @@ msgstr ""
 msgid "Manage billing"
 msgstr ""
 
-#: src/lib/components/integrations/immich/settings/ImmichSettingsBandwidth.svelte
+#: src/lib/components/settings/SettingsBandwidth.svelte
 msgid "Manage how fast backups upload."
 msgstr ""
 
@@ -1804,7 +1804,7 @@ msgstr ""
 msgid "No libraries"
 msgstr ""
 
-#: src/lib/components/integrations/immich/settings/ImmichSettingsBandwidth.svelte
+#: src/lib/components/settings/SettingsBandwidth.svelte
 msgid "No limit"
 msgstr ""
 
@@ -1955,7 +1955,7 @@ msgstr ""
 msgid "Page {item}"
 msgstr ""
 
-#: src/lib/components/integrations/immich/settings/ImmichSettingsBandwidth.svelte
+#: src/lib/components/settings/SettingsBandwidth.svelte
 msgid "Parallel uploads to storage. Raise on fast links, lower if your network or disk is struggling. Leave empty for automatic."
 msgstr ""
 
@@ -2154,9 +2154,9 @@ msgstr ""
 msgid "Repository no longer on FUTO Backups"
 msgstr ""
 
-#: src/lib/components/integrations/immich/settings/ImmichSettingsBandwidth.svelte
 #: src/lib/components/integrations/immich/settings/ImmichSettingsSchedule.svelte
 #: src/lib/components/integrations/immich/settings/ImmichSettingsStorage.svelte
+#: src/lib/components/settings/SettingsBandwidth.svelte
 #: src/lib/components/settings/SettingsSupportMode.svelte
 msgid "Reset"
 msgstr ""
@@ -2312,10 +2312,10 @@ msgid "Saturday"
 msgstr ""
 
 #: src/lib/components/integrations/immich/settings/ImmichSettingsBackupContents.svelte
-#: src/lib/components/integrations/immich/settings/ImmichSettingsBandwidth.svelte
 #: src/lib/components/integrations/immich/settings/ImmichSettingsSchedule.svelte
 #: src/lib/components/integrations/immich/settings/ImmichSettingsStorage.svelte
 #: src/lib/components/onboarding/steps/OnboardingStepImportRecoveryKey.svelte
+#: src/lib/components/settings/SettingsBandwidth.svelte
 #: src/lib/components/settings/SettingsNotifications.svelte
 #: src/lib/components/settings/SettingsSupportMode.svelte
 #: src/lib/components/ui/PathPickerModal.svelte
@@ -2441,7 +2441,7 @@ msgstr ""
 msgid "Skip to content"
 msgstr ""
 
-#: src/lib/components/integrations/immich/settings/ImmichSettingsBandwidth.svelte
+#: src/lib/components/settings/SettingsBandwidth.svelte
 msgid "Slow down backup uploads without affecting restores. Leave empty for no limit."
 msgstr ""
 
@@ -2732,7 +2732,7 @@ msgstr ""
 msgid "Unable to link your Discord account."
 msgstr ""
 
-#: src/lib/components/integrations/immich/settings/ImmichSettingsBandwidth.svelte
+#: src/lib/components/settings/SettingsBandwidth.svelte
 msgid "Until"
 msgstr ""
 
@@ -2740,11 +2740,11 @@ msgstr ""
 msgid "Update Immich to v3.4.0"
 msgstr ""
 
-#: src/lib/components/integrations/immich/settings/ImmichSettingsBandwidth.svelte
+#: src/lib/components/settings/SettingsBandwidth.svelte
 msgid "Upload connections"
 msgstr ""
 
-#: src/lib/components/integrations/immich/settings/ImmichSettingsBandwidth.svelte
+#: src/lib/components/settings/SettingsBandwidth.svelte
 msgid "Upload speed"
 msgstr ""
 
@@ -2848,7 +2848,7 @@ msgstr ""
 msgid "Where your backup is stored"
 msgstr ""
 
-#: src/lib/components/integrations/immich/settings/ImmichSettingsBandwidth.svelte
+#: src/lib/components/settings/SettingsBandwidth.svelte
 msgid "With the same start and end time, the limit never applies."
 msgstr ""
 
