@@ -180,6 +180,7 @@ struct SettingsView: View {
               systemName: "arrow.up.arrow.down", tint: .blue, title: "Simultaneous uploads",
               detail: "Connections to FUTO Cloud at once. Automatic follows the server's recommendation.")
           }
+          .padding(.top, 6)
           Picker(selection: readConcurrencyBinding) {
             Text("Automatic").tag(Int?.none)
             ForEach(AppConfig.parallelismChoices, id: \.self) { Text("\($0)").tag(Int?.some($0)) }
@@ -191,6 +192,7 @@ struct SettingsView: View {
           Text("Changes apply from the next backup.")
             .font(.caption)
             .foregroundStyle(.secondary)
+            .padding(.top, 6)
         }
         if AppModel.allowsServerSelection {
           ServerEditor()
