@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.24.1](https://github.com/futo-org/backups/compare/v1.24.0...v1.24.1) (2026-11-26)
+
+
+### Bug Fixes
+
+* **yucca sdk:** minor ui hardening ([#375](https://github.com/futo-org/backups/issues/375)) ([87da3e9](https://github.com/futo-org/backups/commit/87da3e9b2be0f7588d996319f84749ecbe85fc75))
+
+
+### Continuous Integration
+
+* skip deploy for macos-app and docs only commits ([#369](https://github.com/futo-org/backups/issues/369)) ([ffd269b](https://github.com/futo-org/backups/commit/ffd269b6af17fb811f5695fcafb87b65977c5be0))
+
 ## [1.24.0](https://github.com/futo-org/backups/compare/v1.23.0...v1.24.0) (2026-11-26)
 
 
