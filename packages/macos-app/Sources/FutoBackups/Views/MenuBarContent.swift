@@ -52,19 +52,20 @@ struct MenuBarContent: View {
         }
       }
       Divider()
-      VStack(spacing: 0) {
-        Button("Open FUTO Backups") {
+      HStack(spacing: 4) {
+        MenuIconButton(title: "Settings", symbol: "gearshape") {
           MenuBarResidency.shared.showMainWindow()
         }
+        Spacer()
         if updater.isAvailable {
-          Button("Check for Updates") { updater.checkForUpdates() }
-            .disabled(!updater.canCheckForUpdates)
+          MenuIconButton(title: "Check for Updates", symbol: "arrow.trianglehead.2.clockwise.rotate.90") {
+            updater.checkForUpdates()
+          }
+          .disabled(!updater.canCheckForUpdates)
         }
-        Button("Quit FUTO Backups") { MenuBarResidency.shared.quit() }
-          .help("Stops FUTO Backups, including scheduled backups, until you open it again")
+        MenuIconButton(title: "Quit", symbol: "power") { MenuBarResidency.shared.quit() }
       }
-      .buttonStyle(MenuRowButtonStyle())
-      .padding(.horizontal, -8)
+      .padding(-6)
     }
     .padding(16)
     .frame(width: 300)
@@ -138,23 +139,36 @@ struct InfoRow: View {
   }
 }
 
-private struct MenuRowButtonStyle: ButtonStyle {
+private struct MenuIconButton: View {
+  let title: String
+  let symbol: String
+  let action: () -> Void
+
+  var body: some View {
+    Button(action: action) {
+      Label(title, systemImage: symbol)
+        .labelStyle(.iconOnly)
+    }
+    .buttonStyle(MenuIconButtonStyle())
+    .help(title)
+  }
+}
+
+private struct MenuIconButtonStyle: ButtonStyle {
   func makeBody(configuration: Configuration) -> some View {
-    MenuRow(configuration: configuration)
+    MenuIcon(configuration: configuration)
   }
 
-  private struct MenuRow: View {
+  private struct MenuIcon: View {
     let configuration: ButtonStyleConfiguration
     @Environment(\.isEnabled) private var isEnabled
     @State private var hovering = false
 
     var body: some View {
       configuration.label
-        .font(.system(size: 13))
-        .foregroundStyle(isEnabled ? AnyShapeStyle(.primary) : AnyShapeStyle(.tertiary))
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(.horizontal, 8)
-        .padding(.vertical, 5)
+        .font(.system(size: 14))
+        .foregroundStyle(isEnabled ? AnyShapeStyle(.secondary) : AnyShapeStyle(.tertiary))
+        .frame(width: 28, height: 28)
         .background(
           RoundedRectangle(cornerRadius: 6, style: .continuous)
             .fill(Color.primary.opacity(highlight))
