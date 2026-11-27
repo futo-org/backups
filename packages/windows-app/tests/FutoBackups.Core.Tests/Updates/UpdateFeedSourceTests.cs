@@ -8,7 +8,7 @@ using Velopack.Logging;
 
 namespace FutoBackups.Core.Tests.Updates;
 
-public class SignedFeedSourceTests
+public class UpdateFeedSourceTests
 {
     private const string Feed = """{"Assets":[{"PackageId":"FUTOBackups","Version":"1.26.0","Type":"Full","FileName":"FUTOBackups-1.26.0-win-x64-full.nupkg","SHA1":"a","SHA256":"b","Size":3}]}""";
 
@@ -21,7 +21,7 @@ public class SignedFeedSourceTests
     private static string Sign(string feed, ECDsa key) =>
         Convert.ToBase64String(key.SignData(Encoding.UTF8.GetBytes(feed), HashAlgorithmName.SHA256, DSASignatureFormat.Rfc3279DerSequence));
 
-    private static SignedFeedSource Source(FakeHttp transport) =>
+    private static UpdateFeedSource Source(FakeHttp transport) =>
         new(transport.Client(), FeedRoot, ReleasesRoot, ReleaseKey.ExportSubjectPublicKeyInfoPem());
 
     [Fact]
@@ -48,7 +48,7 @@ public class SignedFeedSourceTests
             """;
         const string signature = "MEYCIQCvliV7QEa49j9yFSo20pYCFa5vwDMOKaykNWk+tdl0fgIhAK1kUBSl7jp/6k43wkRyvigxtt25XpHkHIzHftkswm8M";
 
-        Assert.True(SignedFeedSource.IsSignedBy(Encoding.UTF8.GetBytes(Feed), signature, publicKey));
+        Assert.True(UpdateFeedSource.IsSignedBy(Encoding.UTF8.GetBytes(Feed), signature, publicKey));
     }
 
     [Fact]
@@ -74,6 +74,17 @@ public class SignedFeedSourceTests
         var transport = new FakeHttp().Respond(200, Feed).Respond(404, "Not Found");
 
         await Assert.ThrowsAsync<UpdateFeedException>(() => Source(transport).GetReleaseFeed(NullVelopackLogger.Instance, "FUTOBackups", "win-x64"));
+    }
+
+    [Fact]
+    public async Task WithoutAReleaseKeyTheFeedIsReadWithoutASignature()
+    {
+        var transport = new FakeHttp().Respond(200, Feed);
+
+        var feed = await new UpdateFeedSource(transport.Client(), FeedRoot, ReleasesRoot, null).GetReleaseFeed(NullVelopackLogger.Instance, "FUTOBackups", "win-x64");
+
+        Assert.Equal("1.26.0", Assert.Single(feed.Assets).Version.ToString());
+        Assert.Equal([new Uri(FeedRoot, "releases.win-x64.json")], transport.Requests.Select(request => request.Url));
     }
 
     [Fact]

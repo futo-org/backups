@@ -1,6 +1,6 @@
 name: Windows Release
 
-# Signed update feeds live on the rolling `windows-feed` prerelease so the app's feed URL
+# Update feeds live on the rolling `windows-feed` prerelease so the app's feed URL
 # never changes; each `windows-v<version>` keeps a copy so a rerun can repair the feed.
 # Unsigned builds (no Artifact Signing account) make SmartScreen warn on first launch.
 on:
@@ -114,8 +114,8 @@ jobs:
             if [ -n "$cmp" ] && [ "$cmp" -ge 0 ]; then
               skip "windows-v$version is already published"
             fi
-            if ! gh release view "windows-v$version" --json assets --jq '.assets[].name' | grep -qxF releases.win-x64.json.sig; then
-              skip "windows-v$version is published without a signed feed"
+            if ! gh release view "windows-v$version" --json assets --jq '.assets[].name' | grep -qxF releases.win-x64.json; then
+              skip "windows-v$version is published without an update feed"
             fi
             echo "::notice::windows-v$version is published but the feed is behind it; republishing its feed"
             printf 'mode=repair\nversion=%s\n' "$version" >> "$GITHUB_OUTPUT"
@@ -145,8 +145,6 @@ jobs:
     environment: windows-release
     permissions:
       contents: write
-    outputs:
-      signed: ${{ steps.key.outputs.present }}
     defaults:
       run:
         shell: bash
@@ -161,7 +159,7 @@ jobs:
           ref: ${{ needs.gate.outputs.sha }}
           persist-credentials: false
 
-      # Without the update key there is no feed and the app never checks for updates.
+      # Without the update key the feed is published unsigned, and only apps built without a key accept it.
       - name: Check the update key
         id: key
         env:
@@ -175,7 +173,7 @@ jobs:
                 echo "::error::$public is committed but the windows-release environment is missing WINDOWS_UPDATE_PRIVATE_KEY"
                 exit 1
               fi
-              echo "::notice::no update key; publishing installers without an update feed"
+              echo "::notice::no update key; publishing an unsigned update feed"
               exit 0
               ;;
           esac
@@ -267,9 +265,9 @@ jobs:
             exit 1
           fi
           shopt -s nullglob
-          assets=("$OUT_DIR"/win-*/FUTOBackups-* "$OUT_DIR/SHA256SUMS")
+          assets=("$OUT_DIR"/win-*/FUTOBackups-* "$OUT_DIR/SHA256SUMS" "$OUT_DIR"/win-*/releases.win-*.json)
           if [ "$SIGNED" = true ]; then
-            assets+=("$OUT_DIR"/win-*/releases.win-*.json "$OUT_DIR"/win-*/releases.win-*.json.sig)
+            assets+=("$OUT_DIR"/win-*/releases.win-*.json.sig)
           fi
           gh release create "windows-v$VERSION" "${assets[@]}" \
             --target "$SHA" \
@@ -284,7 +282,7 @@ jobs:
   feed:
     name: Publish the update feeds
     needs: [gate, release]
-    if: ${{ !cancelled() && (needs.gate.outputs.mode == 'repair' || (needs.gate.outputs.mode == 'build' && needs.release.result == 'success' && needs.release.outputs.signed == 'true')) }}
+    if: ${{ !cancelled() && (needs.gate.outputs.mode == 'repair' || (needs.gate.outputs.mode == 'build' && needs.release.result == 'success')) }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
     # Only this job joins the group: a pending job replaces the pending one.
@@ -342,8 +340,11 @@ jobs:
             echo "::error::could not look up the $1 release: $err"
             exit 1
           }
-          feeds=(releases.win-arm64.json releases.win-arm64.json.sig releases.win-x64.json releases.win-x64.json.sig)
+          feeds=(releases.win-arm64.json releases.win-x64.json)
           assets=$(gh release view "windows-v$VERSION" --json assets --jq '.assets[].name')
+          if grep -qxF releases.win-x64.json.sig <<< "$assets"; then
+            feeds+=(releases.win-arm64.json.sig releases.win-x64.json.sig)
+          fi
           for asset in "${feeds[@]}"; do
             if ! grep -qxF "$asset" <<< "$assets"; then
               echo "::error::windows-v$VERSION has no $asset asset to publish the feed from"
@@ -358,7 +359,7 @@ jobs:
             fi
           done
           if ! release_exists windows-feed; then
-            gh release create windows-feed --prerelease --latest=false --title "Windows update feed" --notes "Signed Velopack feeds for the FUTO Backups Windows app. Do not delete."
+            gh release create windows-feed --prerelease --latest=false --title "Windows update feed" --notes "Velopack update feeds for the FUTO Backups Windows app. Do not delete."
           fi
           # Never move the feed backwards.
           if gh release download windows-feed -p releases.win-x64.json -D "$RUNNER_TEMP/current" 2> /dev/null; then

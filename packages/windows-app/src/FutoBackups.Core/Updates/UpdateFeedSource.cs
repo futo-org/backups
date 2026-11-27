@@ -10,7 +10,7 @@ namespace FutoBackups.Core.Updates;
 
 public sealed class UpdateFeedException(string message) : Exception(message);
 
-public sealed class SignedFeedSource(HttpClient http, Uri feedRoot, Uri releasesRoot, string publicKeyPem) : IUpdateSource
+public sealed class UpdateFeedSource(HttpClient http, Uri feedRoot, Uri releasesRoot, string? publicKeyPem) : IUpdateSource
 {
     public static bool IsSignedBy(byte[] feed, string base64Signature, string publicKeyPem)
     {
@@ -30,10 +30,13 @@ public sealed class SignedFeedSource(HttpClient http, Uri feedRoot, Uri releases
     {
         var name = $"releases.{channel}.json";
         var feed = await DownloadAsync(new Uri(feedRoot, name), CancellationToken.None);
-        var signature = await DownloadAsync(new Uri(feedRoot, name + ".sig"), CancellationToken.None);
-        if (!IsSignedBy(feed, Encoding.ASCII.GetString(signature).Trim(), publicKeyPem))
+        if (publicKeyPem is not null)
         {
-            throw new UpdateFeedException($"{name} is not signed by the FUTO Backups release key");
+            var signature = await DownloadAsync(new Uri(feedRoot, name + ".sig"), CancellationToken.None);
+            if (!IsSignedBy(feed, Encoding.ASCII.GetString(signature).Trim(), publicKeyPem))
+            {
+                throw new UpdateFeedException($"{name} is not signed by the FUTO Backups release key");
+            }
         }
 
         return VelopackAssetFeed.FromJson(Encoding.UTF8.GetString(feed));

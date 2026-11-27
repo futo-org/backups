@@ -31,8 +31,7 @@ public sealed partial class Updater : ObservableObject
     public Updater(AppModel model)
     {
         this.model = model;
-        if (ReleasePublicKey() is not { } key) return;
-        var candidate = new UpdateManager(new SignedFeedSource(new HttpClient { Timeout = TimeSpan.FromMinutes(10) }, FeedRoot, ReleasesRoot, key));
+        var candidate = new UpdateManager(new UpdateFeedSource(new HttpClient { Timeout = TimeSpan.FromMinutes(10) }, FeedRoot, ReleasesRoot, ReleasePublicKey()));
         if (candidate.IsInstalled)
         {
             manager = candidate;
