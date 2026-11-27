@@ -181,20 +181,21 @@ jobs:
           kubectl -n rook-ceph exec ds/rook-ceph-loop-device -- \
             sh -c 'losetup -d $(losetup -j /var/lib/rook/osd-loop.img | cut -d: -f1)'
 
-  macos-changes:
-    name: macOS app changes
+  desktop-changes:
+    name: Desktop app changes
     runs-on: ubuntu-latest
     permissions:
       contents: read
     outputs:
-      changed: ${{ steps.changes.outputs.changed }}
+      macos: ${{ steps.changes.outputs.macos }}
+      windows: ${{ steps.changes.outputs.windows }}
     steps:
       - uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3 # v6.0.0
         with:
           persist-credentials: false
           fetch-depth: 0
 
-      - name: Detect macOS app changes
+      - name: Detect desktop app changes
         id: changes
         env:
           PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
@@ -207,20 +208,26 @@ jobs:
           fi
           # First push and force pushes report an all-zero before, and a base
           # commit deleted after the PR opened is absent even at fetch-depth 0;
-          # a range that cannot be built must not skip the app's only check.
+          # a range that cannot be built must not skip an app's only check.
+          unknown=false
           if [ -z "$base" ] || printf '%s' "$base" | grep -Eq '^0+$' || ! git cat-file -e "$base^{commit}" 2>/dev/null; then
-            changed=true
-          elif git diff --name-only "$base" HEAD | grep -Eq -e '^packages/macos-app/' -e '^packages/restic-proxy/' -e '^packages/standalone-app/Dockerfile$' -e '^\.mise/tasks/restic/' -e '^\.mise/config\.toml$' -e '^\.github/workflows/ci\.yml$'; then
-            changed=true
+            unknown=true
           else
-            changed=false
+            files=$(git diff --name-only "$base" HEAD)
           fi
-          echo "changed=$changed" >> "$GITHUB_OUTPUT"
+          shared='^(packages/restic-proxy/|packages/standalone-app/Dockerfile$|\.mise/tasks/restic/|\.mise/config\.toml$|\.github/workflows/ci\.yml$)'
+          for app in macos windows; do
+            if [ "$unknown" = true ] || grep -Eq -e "^packages/$app-app/" -e "$shared" <<< "$files"; then
+              echo "$app=true" >> "$GITHUB_OUTPUT"
+            else
+              echo "$app=false" >> "$GITHUB_OUTPUT"
+            fi
+          done
 
   macos:
     name: macOS app
-    needs: macos-changes
-    if: needs.macos-changes.outputs.changed == 'true'
+    needs: desktop-changes
+    if: needs.desktop-changes.outputs.macos == 'true'
     runs-on: xcode-27
     timeout-minutes: 45
     permissions:
@@ -248,3 +255,26 @@ jobs:
         # mac:test drives real restic; this path is the FUTO build mise
         # install compiles from source on macOS.
         run: FUTO_BACKUPS_RESTIC="$GITHUB_WORKSPACE/.mise/bin/restic" mise run mac:check
+
+  windows:
+    name: Windows app
+    needs: desktop-changes
+    if: needs.desktop-changes.outputs.windows == 'true'
+    runs-on: windows-latest
+    timeout-minutes: 45
+    permissions:
+      contents: read
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3 # v6.0.0
+        with:
+          persist-credentials: false
+
+      - name: Setup Mise
+        uses: jdx/mise-action@c2a87611a18de5b3828c5652fe268e992400cb5c # v4.3.0
+
+      - name: Run win:check
+        working-directory: packages/windows-app
+        run: mise run win:check
