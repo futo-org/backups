@@ -21,4 +21,8 @@
     <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.2" />
     <PackageReference Include="Cronos" Version="0.13.0" />
   </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\FutoBackups.ResticWrapper\FutoBackups.ResticWrapper.csproj" />
+  </ItemGroup>
 </Project>

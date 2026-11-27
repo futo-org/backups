@@ -1,0 +1,698 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <data name="CommonAdd" xml:space="preserve"><value>Add</value><comment>Button that adds the exclusion pattern typed in the Folders page. Verb.</comment></data>
+  <data name="CommonAlpha" xml:space="preserve"><value>ALPHA</value><comment>Small badge in the window header marking this app as alpha. Keep in capitals.</comment></data>
+  <data name="CommonAlphaTooltip" xml:space="preserve"><value>This Windows app is in alpha</value><comment>Tooltip of the ALPHA badge.</comment></data>
+  <data name="CommonAppHelp" xml:space="preserve"><value>FUTO Backups Help</value><comment>Tray menu item and title of the Help row in Settings. Opens the help website.</comment></data>
+  <data name="CommonAppName" xml:space="preserve"><value>FUTO Backups</value><comment>Product name, normally kept in English. Shown in the window title bar.</comment></data>
+  <data name="CommonApply" xml:space="preserve"><value>Apply</value><comment>Button that applies the value just entered. Verb.</comment></data>
+  <data name="CommonBack" xml:space="preserve"><value>Back</value><comment>Button that returns to the previous step of the sign-in flow. Navigation, not the body part and not &quot;backup&quot;.</comment></data>
+  <data name="CommonBackUpNow" xml:space="preserve"><value>Back Up Now</value><comment>Button and tray menu item that starts a backup immediately. &quot;Back up&quot; is a verb here, not the noun &quot;backup&quot;.</comment></data>
+  <data name="CommonCancel" xml:space="preserve"><value>Cancel</value><comment>Button that closes a dialog without making a change. Verb.</comment></data>
+  <data name="CommonChooseWhatToBackUp" xml:space="preserve"><value>Choose what to back up</value><comment>Heading shown when no folders are chosen yet. &quot;Back up&quot; is a verb.</comment></data>
+  <data name="CommonClose" xml:space="preserve"><value>Close</value><comment>Button that closes a dialog. Verb.</comment></data>
+  <data name="CommonConfirm" xml:space="preserve"><value>Confirm</value><comment>Button and step name for confirming the recovery key the user typed. Verb.</comment></data>
+  <data name="CommonContinue" xml:space="preserve"><value>Continue</value><comment>Button that moves on to the next step. Verb.</comment></data>
+  <data name="CommonCopied" xml:space="preserve"><value>Copied</value><comment>Label shown briefly after the recovery key was copied to the clipboard. Past tense.</comment></data>
+  <data name="CommonCopy" xml:space="preserve"><value>Copy</value><comment>Accessible name of the icon button that copies the recovery key to the clipboard. Verb.</comment></data>
+  <data name="CommonCopyCode" xml:space="preserve"><value>Copy Code</value><comment>Button in the sign-in dialog that copies the device code to the clipboard. Verb.</comment></data>
+  <data name="CommonDismiss" xml:space="preserve"><value>Dismiss</value><comment>Accessible name of the button that hides a notice. Verb.</comment></data>
+  <data name="CommonDone" xml:space="preserve"><value>Done</value><comment>Button that closes a dialog after the user has read it.</comment></data>
+  <data name="CommonEdit" xml:space="preserve"><value>Edit</value><comment>Button on the Overview page that opens the list of folders to change. Verb.</comment></data>
+  <data name="CommonFolders" xml:space="preserve"><value>Folders</value><comment>Navigation item and step name. Plural noun.</comment></data>
+  <data name="CommonFutoCloud" xml:space="preserve"><value>FUTO Cloud</value><comment>Name of the hosted FUTO backup service. Product name.</comment></data>
+  <data name="CommonHistory" xml:space="preserve"><value>History</value><comment>Navigation item for the page listing past backups and restores. Noun.</comment></data>
+  <data name="CommonLoading" xml:space="preserve"><value>Loading</value><comment>Accessible name of a progress ring while content loads.</comment></data>
+  <data name="CommonNotSignedIn" xml:space="preserve"><value>Not signed in</value><comment>Status shown when the user is signed out. Used in the tray and in error messages.</comment></data>
+  <data name="CommonOneFile" xml:space="preserve"><value>1 file</value><comment>Exactly one file.</comment></data>
+  <data name="CommonOpenBrowser" xml:space="preserve"><value>Open Browser</value><comment>Button in the sign-in dialog that opens the web browser. Verb.</comment></data>
+  <data name="CommonOverview" xml:space="preserve"><value>Overview</value><comment>Navigation item for the main page, and its accessible name.</comment></data>
+  <data name="CommonPrint" xml:space="preserve"><value>Print</value><comment>Accessible name of the icon button that prints the recovery key. Verb.</comment></data>
+  <data name="CommonRemove" xml:space="preserve"><value>Remove</value><comment>Menu item that removes a chosen folder from the list of folders to back up. Verb.</comment></data>
+  <data name="CommonSaveToFile" xml:space="preserve"><value>Save to File</value><comment>Accessible name of the icon button that saves the recovery key to a file. Verb.</comment></data>
+  <data name="CommonSaved" xml:space="preserve"><value>Saved</value><comment>Label shown briefly after the recovery key was saved to a file. Past tense.</comment></data>
+  <data name="CommonSchedule" xml:space="preserve"><value>Schedule</value><comment>Heading above the schedule options. Noun.</comment></data>
+  <data name="CommonShowInFileExplorer" xml:space="preserve"><value>Show in File Explorer</value><comment>Menu item that reveals a folder in Windows File Explorer.</comment></data>
+  <data name="CommonSignIn" xml:space="preserve"><value>Sign In</value><comment>Button that starts signing in to the FUTO account. Verb.</comment></data>
+  <data name="CommonSignOut" xml:space="preserve"><value>Sign Out</value><comment>Button in a confirmation dialog that signs the user out. Verb.</comment></data>
+  <data name="CommonTextFile" xml:space="preserve"><value>Text</value><comment>Name of the plain text file type in the Save dialog.</comment></data>
+  <data name="CommonTryAgain" xml:space="preserve"><value>Try Again</value><comment>Button that repeats an action that failed.</comment></data>
+  <data name="CommonUnknown" xml:space="preserve"><value>Unknown</value><comment>Shown in place of a value that is not known, such as a folder size or snapshot count.</comment></data>
+  <data name="ConditionEthernet" xml:space="preserve"><value>Ethernet</value><comment>Name of a backup condition, used after Waiting for, as in Waiting for Ethernet.</comment></data>
+  <data name="ConditionExternalDisplay" xml:space="preserve"><value>an external display</value><comment>Name of a backup condition, used after Waiting for, as in Waiting for an external display.</comment></data>
+  <data name="ConditionPower" xml:space="preserve"><value>power</value><comment>Name of a backup condition, used after Waiting for. Lower case: Waiting for power.</comment></data>
+  <data name="ConditionWaitingFor" xml:space="preserve"><value>Waiting for {0}</value><comment>Shown instead of the next backup time while a scheduled backup waits. {0} is a list of conditions, such as power and Ethernet.</comment></data>
+  <data name="ErrorAlreadyExcluded" xml:space="preserve"><value>That is already excluded.</value><comment>Shown when the user adds an exclusion that is already in the list.</comment></data>
+  <data name="ErrorAlreadyHasBackup" xml:space="preserve"><value>This PC already has a backup.</value></data>
+  <data name="ErrorAlreadyHasRecoveryKey" xml:space="preserve"><value>This PC already has a recovery key.</value></data>
+  <data name="ErrorBackupRunning" xml:space="preserve"><value>A backup is running. Wait for it to finish, then try again.</value></data>
+  <data name="ErrorBackupToolProblem" xml:space="preserve"><value>FUTO Backups ran into a problem. Try again, or contact FUTO support if it keeps happening. Details: {0}</value><comment>Error when the bundled backup tool failed for an unrecognised reason. {0} is the technical detail.</comment></data>
+  <data name="ErrorBusy" xml:space="preserve"><value>Another backup or restore is running. Wait for it to finish, then try again.</value></data>
+  <data name="ErrorConfigFileEmpty" xml:space="preserve"><value>The configuration file is empty.</value><comment>Shown when the settings file exists but has no content.</comment></data>
+  <data name="ErrorCouldNotChangeLaunchAtLogin" xml:space="preserve"><value>FUTO Backups could not change whether it opens when you sign in to Windows: {0}</value><comment>{0} is the error message from Windows.</comment></data>
+  <data name="ErrorCouldNotConnect" xml:space="preserve"><value>Could not connect to {0}. Make sure that this PC is connected to the internet.</value><comment>{0} is the server name, such as FUTO Cloud.</comment></data>
+  <data name="ErrorCouldNotConnectSecurely" xml:space="preserve"><value>Could not connect securely to {0}. Make sure that the network and the date and time on this PC are correct.</value><comment>{0} is the server name, such as FUTO Cloud.</comment></data>
+  <data name="ErrorCouldNotDeleteOldSnapshots" xml:space="preserve"><value>Could not delete old snapshots: {0}</value><comment>{0} is the error message from the backup program.</comment></data>
+  <data name="ErrorCouldNotLoadSettings" xml:space="preserve"><value>FUTO Backups could not load its settings: {0} It kept the file aside and started with default settings.</value><comment>{0} is the reason, a sentence ending in a full stop. It is followed by the rest of this message.</comment></data>
+  <data name="ErrorCouldNotReadFolderListing" xml:space="preserve"><value>FUTO Backups could not read the folder listing. Try again.</value></data>
+  <data name="ErrorCouldNotReadResponse" xml:space="preserve"><value>FUTO Backups could not read the response from the server. Try again later.</value></data>
+  <data name="ErrorCouldNotRemoveEverything" xml:space="preserve"><value>FUTO Backups could not remove everything from this PC: {0}.</value><comment>{0} is a comma-separated list of what could not be removed, such as settings, cache.</comment></data>
+  <data name="ErrorCouldNotRemoveSignIn" xml:space="preserve"><value>FUTO Backups could not remove your sign-in from this PC. Restart FUTO Backups, then sign out again.</value></data>
+  <data name="ErrorCouldNotRemoveTemporaryFolder" xml:space="preserve"><value>FUTO Backups could not remove the temporary folder {0}</value><comment>{0} is a folder path.</comment></data>
+  <data name="ErrorCouldNotSaveSettings" xml:space="preserve"><value>FUTO Backups could not save its settings: {0} Check that there is free space on this PC, then try again.</value><comment>{0} is the reason, a sentence ending in a full stop. It is followed by the rest of this message.</comment></data>
+  <data name="ErrorDeleteConnectionNotDeleted" xml:space="preserve"><value>FUTO Cloud deleted this PC's backup, but could not remove this PC from your account. Try again.</value></data>
+  <data name="ErrorDeleteConnectionUnreachable" xml:space="preserve"><value>Could not connect to FUTO Cloud. Make sure that this PC is connected to the internet.</value></data>
+  <data name="ErrorDeleteNoConnection" xml:space="preserve"><value>This PC is not linked to its own connection on FUTO Cloud, so you cannot delete its backup here.</value></data>
+  <data name="ErrorDeleteSessionExpired" xml:space="preserve"><value>Your session expired. FUTO Cloud deleted nothing. Sign in, then try again.</value></data>
+  <data name="ErrorDeleteTimedOut" xml:space="preserve"><value>You did not approve the deletion in your browser within 15 minutes. FUTO Cloud deleted nothing. Try again.</value></data>
+  <data name="ErrorDeletingOldSnapshotsStopped" xml:space="preserve"><value>Deleting old snapshots stopped early</value><comment>Shown as part of a backup result when removing old snapshots did not finish.</comment></data>
+  <data name="ErrorDiskFull" xml:space="preserve"><value>This PC's disk is full. Free up some space, then try again.</value><comment>Error when the local disk has no free space.</comment></data>
+  <data name="ErrorEmailNotAllowed" xml:space="preserve"><value>This account cannot use FUTO Backups yet. Sign in with an account that has access, or contact FUTO support.</value></data>
+  <data name="ErrorEnterFolderFilePattern" xml:space="preserve"><value>Enter a folder, file or pattern.</value></data>
+  <data name="ErrorFeatureNotEnabled" xml:space="preserve"><value>Windows backups are not enabled for this account. Contact FUTO support to turn them on.</value></data>
+  <data name="ErrorFinishSetupFirst" xml:space="preserve"><value>Finish setting up FUTO Backups first</value></data>
+  <data name="ErrorHelperCouldNotStart" xml:space="preserve"><value>The backup helper could not start. Try again, or reinstall FUTO Backups.</value></data>
+  <data name="ErrorInvalidRecoveryKey" xml:space="preserve"><value>That is not a valid recovery key.</value></data>
+  <data name="ErrorKeptOldSnapshots" xml:space="preserve"><value>FUTO Backups kept the old snapshots because the snapshot retention setting is not valid</value></data>
+  <data name="ErrorKeptUnreadableFile" xml:space="preserve"><value>{0} FUTO Backups kept the unreadable file as {1}.</value><comment>{0} is a sentence saying why the settings could not be loaded. {1} is the file name the unreadable settings file was renamed to.</comment></data>
+  <data name="ErrorKeyChangeCancelled" xml:space="preserve"><value>The key change was cancelled.</value></data>
+  <data name="ErrorKeyChangeRunning" xml:space="preserve"><value>The recovery key is being changed. Wait for it to finish, then try again.</value></data>
+  <data name="ErrorKeyDoesNotOpenBackup" xml:space="preserve"><value>That key does not open this PC's backup.</value></data>
+  <data name="ErrorKeyDoesNotOpenRepository" xml:space="preserve"><value>That key does not open {0}.</value><comment>{0} is the name of a backup, usually the name of a PC.</comment></data>
+  <data name="ErrorKeyEarlierChange" xml:space="preserve"><value>FUTO Backups could not finish an earlier key change.</value></data>
+  <data name="ErrorKeyNotAccepted" xml:space="preserve"><value>The backup did not accept the new key.</value></data>
+  <data name="ErrorKeyNotFoundInBackup" xml:space="preserve"><value>FUTO Backups could not find this PC's current key in the backup.</value></data>
+  <data name="ErrorKeyPrepareFailed" xml:space="preserve"><value>FUTO Backups could not prepare the new key on this PC.</value></data>
+  <data name="ErrorLocalAccessDenied" xml:space="preserve"><value>Windows did not let FUTO Backups use a file or folder. Check that it is not open in another app, then try again. Details: {0}</value><comment>Error when Windows refused access to a local file. {0} is the technical detail, shown after the plain message.</comment></data>
+  <data name="ErrorLocalProblem" xml:space="preserve"><value>FUTO Backups could not use a file or folder on this PC. Details: {0}</value><comment>Error for other local file problems. {0} is the technical detail.</comment></data>
+  <data name="ErrorMissingHelper" xml:space="preserve"><value>A part of FUTO Backups is missing. Reinstall FUTO Backups to fix it.</value></data>
+  <data name="ErrorMissingHelperNamed" xml:space="preserve"><value>{0} is missing from FUTO Backups. Reinstall FUTO Backups to fix it.</value><comment>Start-up error. {0} is the file name of a program that comes with FUTO Backups, such as restic.exe.</comment></data>
+  <data name="ErrorMissingKey" xml:space="preserve"><value>This PC's recovery key is missing. Enter it to keep backing up.</value></data>
+  <data name="ErrorNoFolders" xml:space="preserve"><value>No folders are selected. Choose a folder to back up.</value></data>
+  <data name="ErrorNoFoldersSelected" xml:space="preserve"><value>No folders selected</value><comment>Short reason shown when a backup cannot start because no folders are chosen.</comment></data>
+  <data name="ErrorNoRepository" xml:space="preserve"><value>This PC has no backup yet. Finish setting up FUTO Backups.</value></data>
+  <data name="ErrorNoRepositoryYet" xml:space="preserve"><value>No repository yet</value><comment>Short reason shown when an action needs a backup that has not been set up yet. The repository is the place where the backup is stored.</comment></data>
+  <data name="ErrorNotAFutoBackupsServer" xml:space="preserve"><value>The server address is not a FUTO Backups server. Make sure that the address is correct.</value></data>
+  <data name="ErrorNotSignedIn" xml:space="preserve"><value>You are signed out. Sign in to back up this PC.</value></data>
+  <data name="ErrorOffline" xml:space="preserve"><value>This PC is offline. Connect it to the internet, then try again.</value></data>
+  <data name="ErrorOperationRunning" xml:space="preserve"><value>Another operation is running</value><comment>Short reason shown when an action is refused because a backup or restore is running.</comment></data>
+  <data name="ErrorOwnerUnavailable" xml:space="preserve"><value>This PC cannot confirm your identity now, so the recovery key stays protected.</value></data>
+  <data name="ErrorRanIntoProblem" xml:space="preserve"><value>FUTO Backups ran into a problem: {0} Try again. If it happens again, restart FUTO Backups.</value><comment>{0} is the reason, a sentence ending in a full stop. It is followed by the rest of this message.</comment></data>
+  <data name="ErrorRecoveryKeyNotHexadecimal" xml:space="preserve"><value>The recovery key is not 64 hexadecimal characters.</value></data>
+  <data name="ErrorResticExited" xml:space="preserve"><value>restic exited with code {0}</value><comment>{0} is the exit code, a number. restic is the name of the backup program and is not translated.</comment></data>
+  <data name="ErrorRestoreCancelled" xml:space="preserve"><value>Restore cancelled</value><comment>First part of a message when a restore was cancelled. It can be followed by further sentences.</comment></data>
+  <data name="ErrorRestoreRunning" xml:space="preserve"><value>A restore is running. Wait for it to finish, then try again.</value></data>
+  <data name="ErrorRestoredItems" xml:space="preserve"><value>FUTO Backups restored {0} items before the restore stopped</value><comment>{0} is the number of items restored, 2 or more. Items are files and folders.</comment></data>
+  <data name="ErrorRestoredOneItem" xml:space="preserve"><value>FUTO Backups restored 1 item before the restore stopped</value><comment>Exactly one item, a file or a folder.</comment></data>
+  <data name="ErrorRotationKeyUnreadable" xml:space="preserve"><value>FUTO Backups could not read this PC's recovery key. Your current recovery key still works. Try again.</value></data>
+  <data name="ErrorRotationNewKeyRejected" xml:space="preserve"><value>The backup did not accept the new recovery key. Your current recovery key still works. Try again.</value></data>
+  <data name="ErrorRotationPasswordFileFailed" xml:space="preserve"><value>FUTO Backups could not prepare the new recovery key. Your current recovery key still works. Try again.</value></data>
+  <data name="ErrorServerDidNotRespond" xml:space="preserve"><value>{0} did not respond. Make sure that this PC is connected to the internet, or try again later.</value><comment>{0} is the server name, such as FUTO Cloud.</comment></data>
+  <data name="ErrorServerMustUseHttps" xml:space="preserve"><value>The server address must use HTTPS.</value></data>
+  <data name="ErrorServerReturnedTryAgain" xml:space="preserve"><value>The server returned an error (HTTP {0}). Try again, or contact FUTO support if it keeps happening.</value><comment>{0} is the HTTP status code, a number such as 500.</comment></data>
+  <data name="ErrorServerReturnedTryLater" xml:space="preserve"><value>The server returned an error (HTTP {0}). Try again later.</value><comment>{0} is the HTTP status code, a number such as 503.</comment></data>
+  <data name="ErrorSessionExpired" xml:space="preserve"><value>Your session expired. Sign in again.</value></data>
+  <data name="ErrorSetupIncomplete" xml:space="preserve"><value>Setup incomplete</value><comment>Short reason shown when an action cannot run because setup has not finished.</comment></data>
+  <data name="ErrorSignInCodeExpired" xml:space="preserve"><value>The sign-in code expired. Try again.</value></data>
+  <data name="ErrorSignInDeclined" xml:space="preserve"><value>You declined the sign-in in your browser. Try again, then approve it in your browser.</value></data>
+  <data name="ErrorSignInFailed" xml:space="preserve"><value>Sign-in failed ({0}). Try again, or contact FUTO support if it keeps happening.</value><comment>{0} is a short error code from the server, such as ACCESS_DENIED. It is not translated.</comment></data>
+  <data name="ErrorSignInUnknown" xml:space="preserve"><value>{0} could not finish signing in this PC. This happens if it does not support the Windows app yet. Try again later.</value><comment>{0} is the server name, such as FUTO Cloud.</comment></data>
+  <data name="ErrorSnapshotTimeUnreadable" xml:space="preserve"><value>Snapshot {0} has an unreadable time.</value><comment>{0} is the short identifier of a snapshot. A snapshot is one saved version of a backup.</comment></data>
+  <data name="ErrorSomethingWentWrong" xml:space="preserve"><value>Something went wrong</value><comment>Title of an error dialog.</comment></data>
+  <data name="ErrorUnsupportedConnectionType" xml:space="preserve"><value>{0} does not support the Windows app yet. Try again later.</value><comment>{0} is the server name, such as FUTO Cloud.</comment></data>
+  <data name="ErrorWrongAccount" xml:space="preserve"><value>You approved the sign-in with a different account from the one this PC uses. Try again with the same account.</value></data>
+  <data name="FlowAlphaNotice" xml:space="preserve"><value>This Windows app is in alpha. Keep another copy of anything you cannot lose.</value></data>
+  <data name="FlowAlreadyHaveKey" xml:space="preserve"><value>I Already Have a Recovery Key</value><comment>Button for people who already have a recovery key from an earlier backup.</comment></data>
+  <data name="FlowAlwaysSkips" xml:space="preserve"><value>FUTO Backups always skips caches and the Recycle Bin.</value></data>
+  <data name="FlowApproveInBrowser" xml:space="preserve"><value>You will approve this PC in your browser.</value></data>
+  <data name="FlowBundleEssentials" xml:space="preserve"><value>Essentials</value><comment>Name of a folder preset that backs up Documents and Desktop.</comment></data>
+  <data name="FlowBundleEssentialsAndMedia" xml:space="preserve"><value>Essentials + Media</value><comment>Name of a folder preset. The plus sign joins two groups of folders.</comment></data>
+  <data name="FlowBundleEssentialsAndMediaDetail" xml:space="preserve"><value>Adds Pictures, Videos and Music.</value><comment>Pictures, Videos and Music are the names of Windows user folders.</comment></data>
+  <data name="FlowBundleEssentialsDetail" xml:space="preserve"><value>Documents and Desktop.</value><comment>Documents and Desktop are the names of Windows user folders.</comment></data>
+  <data name="FlowBundleEverything" xml:space="preserve"><value>Everything</value><comment>Name of a folder preset that backs up the whole user folder.</comment></data>
+  <data name="FlowBundleEverythingDetail" xml:space="preserve"><value>Your whole user folder, except anything excluded.</value></data>
+  <data name="FlowCheckBrowserCode" xml:space="preserve"><value>Make sure that your browser shows this code</value></data>
+  <data name="FlowChooseAtLeastOneFolder" xml:space="preserve"><value>Choose at least one folder to back up.</value></data>
+  <data name="FlowChooseOtherFolders" xml:space="preserve"><value>Choose Other Folders</value><comment>Accessible name of the button that opens a folder picker. Verb.</comment></data>
+  <data name="FlowConfirmKeySubtitle" xml:space="preserve"><value>To make sure that your copy is correct, enter the key exactly as you saved it. Spaces and capital letters do not matter.</value></data>
+  <data name="FlowConfirmKeyTitle" xml:space="preserve"><value>Confirm your recovery key</value><comment>Heading of the step where the user types the recovery key again.</comment></data>
+  <data name="FlowContinueExistingSubtitle" xml:space="preserve"><value>Choose the backup for this PC to continue.</value></data>
+  <data name="FlowContinueExistingTitle" xml:space="preserve"><value>Continue an existing backup</value><comment>Heading of the step where the user chooses an existing backup of this PC to continue.</comment></data>
+  <data name="FlowContinueThisBackup" xml:space="preserve"><value>Continue This Backup</value><comment>Button that continues the backup the user chose. Verb.</comment></data>
+  <data name="FlowCouldNotStartTitle" xml:space="preserve"><value>FUTO Backups could not start properly</value></data>
+  <data name="FlowDeleteOldSnapshotsBody" xml:space="preserve"><value>This backup already has snapshots from this PC. “{0}” can delete the ones it does not keep, starting with the first backup. You cannot recover deleted snapshots.</value><comment>{0} is a summary of the snapshot retention rule, such as Keep all snapshots within 60 days. A snapshot is one saved version of a backup.</comment></data>
+  <data name="FlowDeleteOldSnapshotsTitle" xml:space="preserve"><value>Delete old snapshots?</value><comment>Title of a confirmation dialog. Question. A snapshot is one saved version of a backup.</comment></data>
+  <data name="FlowDeviceCode" xml:space="preserve"><value>Device code</value><comment>Accessible name of the sign-in code shown to the user.</comment></data>
+  <data name="FlowDeviceCodeName" xml:space="preserve"><value>Device code {0}</value><comment>Accessible name of the sign-in code. {0} is the code itself, such as ABCD-EFGH.</comment></data>
+  <data name="FlowEnterItsKey" xml:space="preserve"><value>Enter its recovery key</value><comment>Heading when continuing an existing backup. &quot;its&quot; refers to the backup the user chose.</comment></data>
+  <data name="FlowEnterKeyError" xml:space="preserve"><value>Enter your recovery key. A recovery key has 64 characters (0–9 and A–F).</value></data>
+  <data name="FlowEnterKeySavedFor" xml:space="preserve"><value>Enter the recovery key you saved for {0}.</value><comment>{0} is the name of a backup, usually the name of a PC.</comment></data>
+  <data name="FlowEnterYourKey" xml:space="preserve"><value>Enter your recovery key</value><comment>Heading of the step where the user types a recovery key. Verb phrase.</comment></data>
+  <data name="FlowEnteredKeyChecking" xml:space="preserve"><value>Checking the key you entered</value><comment>Shown under a backup in the list of backups to reconnect to, after the user typed a recovery key for another backup.</comment></data>
+  <data name="FlowEnteredKeyDoesNotOpen" xml:space="preserve"><value>The key you entered does not open this backup</value><comment>Shown under a backup in the list of backups to reconnect to, after the user typed a recovery key for another backup.</comment></data>
+  <data name="FlowEnteredKeyOpens" xml:space="preserve"><value>The key you entered opens this backup</value><comment>Shown under a backup in the list of backups to reconnect to, after the user typed a recovery key for another backup.</comment></data>
+  <data name="FlowEnteredKeyUnknown" xml:space="preserve"><value>Could not check the key you entered</value><comment>Shown under a backup in the list of backups to reconnect to, after the user typed a recovery key for another backup.</comment></data>
+  <data name="FlowEntireUserFolder" xml:space="preserve"><value>Entire user folder</value><comment>Name of the whole user folder (the profile folder of the signed-in Windows user) in the list of chosen folders.</comment></data>
+  <data name="FlowEstimatedSize" xml:space="preserve"><value>Estimated size</value><comment>Column heading above the estimated size of each chosen folder.</comment></data>
+  <data name="FlowFolders" xml:space="preserve"><value>{0} folders</value><comment>{0} is the number of folders, 2 or more.</comment></data>
+  <data name="FlowKeepSnapshots" xml:space="preserve"><value>Keep snapshots</value><comment>Label of the choice for how long snapshots are kept. Snapshots are saved versions of the backup.</comment></data>
+  <data name="FlowKeyHint" xml:space="preserve"><value>A recovery key has 64 characters (0–9 and A–F). {0} of 64 so far.</value><comment>{0} is the number of characters typed so far. 0-9 and A-F are the hexadecimal digits a key may contain.</comment></data>
+  <data name="FlowKeyLooksGood" xml:space="preserve"><value>Looks good.</value><comment>Shown when the typed recovery key has the right length.</comment></data>
+  <data name="FlowKeyStoredLocally" xml:space="preserve"><value>This key is stored locally</value><comment>Caption saying the recovery key is stored on this PC.</comment></data>
+  <data name="FlowNewBackupKeySubtitle" xml:space="preserve"><value>Enter your recovery key. This PC will encrypt its new backup with it.</value></data>
+  <data name="FlowNoBackupsYet" xml:space="preserve"><value>No backups yet</value><comment>Shown in place of the last backup time for an existing backup that has no snapshots.</comment></data>
+  <data name="FlowNotNow" xml:space="preserve"><value>Not Now</value><comment>Button that postpones the choice for later.</comment></data>
+  <data name="FlowOneFolder" xml:space="preserve"><value>1 folder</value><comment>Exactly one folder.</comment></data>
+  <data name="FlowOpenAtLogin" xml:space="preserve"><value>Open FUTO Backups at login, so scheduled backups keep running</value></data>
+  <data name="FlowQuit" xml:space="preserve"><value>Quit</value><comment>Button that quits the app. Verb.</comment></data>
+  <data name="FlowReadySubtitle" xml:space="preserve"><value>This PC encrypts your files before it uploads them.</value></data>
+  <data name="FlowReadyTitle" xml:space="preserve"><value>Ready to back up</value><comment>Heading of the last setup step. &quot;Back up&quot; is a verb.</comment></data>
+  <data name="FlowRetentionCustomRules" xml:space="preserve"><value>You can set custom rules in Settings.</value></data>
+  <data name="FlowRetentionDeletesOlder" xml:space="preserve"><value>FUTO Backups deletes older snapshots after each backup.</value></data>
+  <data name="FlowRetentionKeepsEverything" xml:space="preserve"><value>FUTO Backups keeps every snapshot, which uses more storage over time.</value></data>
+  <data name="FlowSaveKeySubtitle" xml:space="preserve"><value>This PC encrypts your backups with this key. Without it, FUTO cannot restore them. If you lose the key, FUTO cannot recover it.</value></data>
+  <data name="FlowSaveKeyTitle" xml:space="preserve"><value>Save your recovery key</value><comment>Heading of the step that shows the recovery key to save.</comment></data>
+  <data name="FlowSavedKeyCheck" xml:space="preserve"><value>I saved my recovery key somewhere safe.</value></data>
+  <data name="FlowScheduleHint" xml:space="preserve"><value>You can change this on the Overview page.</value></data>
+  <data name="FlowSettingUpBackup" xml:space="preserve"><value>Setting up your encrypted backup</value></data>
+  <data name="FlowSignInTitle" xml:space="preserve"><value>Sign in</value><comment>Heading of the sign-in step, name of that step and title of the sign-in dialog. Verb phrase.</comment></data>
+  <data name="FlowSizeAbout" xml:space="preserve"><value>About {0}</value><comment>{0} is a size such as 1.2 GB. The size is an estimate.</comment></data>
+  <data name="FlowSizeAtLeast" xml:space="preserve"><value>At least {0}</value><comment>{0} is a size such as 1.2 GB. The real size is larger.</comment></data>
+  <data name="FlowSizeCalculating" xml:space="preserve"><value>Calculating</value><comment>Shown while the size of a folder is being worked out.</comment></data>
+  <data name="FlowStartNewBackup" xml:space="preserve"><value>Start New Backup</value><comment>Button that sets up a new backup for this PC.</comment></data>
+  <data name="FlowStartNewBackupTitle" xml:space="preserve"><value>Start a new backup</value><comment>Heading of the step for a new backup. &quot;Backup&quot; is a noun.</comment></data>
+  <data name="FlowStartNewInstead" xml:space="preserve"><value>Start a New Backup Instead</value><comment>Button that sets up a new backup instead of continuing an existing one.</comment></data>
+  <data name="FlowStepReady" xml:space="preserve"><value>Ready</value><comment>Step name in the progress indicator. Adjective.</comment></data>
+  <data name="FlowStepSaveKey" xml:space="preserve"><value>Save key</value><comment>Step name in the progress indicator. &quot;Save&quot; is a verb.</comment></data>
+  <data name="FlowTagline" xml:space="preserve"><value>Automatic, end-to-end encrypted backups of the folders you care about.</value></data>
+  <data name="FlowTelemetryCollects" xml:space="preserve"><value>FUTO Backups collects usage and diagnostic data to learn how people use it and to find problems.</value></data>
+  <data name="FlowTelemetryNever" xml:space="preserve"><value>FUTO Backups never collects your photos, files or recovery key, and they never leave your device unencrypted.</value></data>
+  <data name="FlowTelemetryTitle" xml:space="preserve"><value>Telemetry required for closed beta</value></data>
+  <data name="FlowThisPc" xml:space="preserve"><value>This PC</value><comment>Small badge on the entry for this computer in the list of existing backups.</comment></data>
+  <data name="FlowTotal" xml:space="preserve"><value>Total</value><comment>Label of the row showing the total size of all chosen folders.</comment></data>
+  <data name="FlowUseThisKey" xml:space="preserve"><value>Use This Key</value><comment>Button that accepts the recovery key the user typed.</comment></data>
+  <data name="FlowViewKeyAgain" xml:space="preserve"><value>View Recovery Key Again</value><comment>Button that shows the recovery key again. &quot;View&quot; is a verb.</comment></data>
+  <data name="FlowWaitingForApproval" xml:space="preserve"><value>Waiting for approval</value><comment>Shown in the sign-in dialog while the user approves the sign-in in their browser.</comment></data>
+  <data name="FoldersAddFolder" xml:space="preserve"><value>Add Folder</value><comment>Button that opens a folder picker to add a folder to back up. Verb.</comment></data>
+  <data name="FoldersAddFolderOrFile" xml:space="preserve"><value>Add Folder or File</value><comment>Accessible name of the icon button that adds an exclusion by choosing a folder or file.</comment></data>
+  <data name="FoldersAddPattern" xml:space="preserve"><value>Add Pattern</value><comment>Accessible name of the icon button that adds an exclusion pattern.</comment></data>
+  <data name="FoldersBackUp" xml:space="preserve"><value>Back Up</value><comment>Caption shown while the user drags folders over the window. &quot;Back up&quot; is a verb.</comment></data>
+  <data name="FoldersBuiltInHeader" xml:space="preserve"><value>Built-in exclusions ({0})</value><comment>{0} is the number of built-in exclusion rules.</comment></data>
+  <data name="FoldersBuiltInSummary" xml:space="preserve"><value>FUTO Backups always skips caches, the Recycle Bin, files kept only in the cloud and container disk images.</value></data>
+  <data name="FoldersChooseFile" xml:space="preserve"><value>Choose a File</value><comment>Menu item that opens a file picker to choose a file to exclude.</comment></data>
+  <data name="FoldersChooseFolder" xml:space="preserve"><value>Choose a Folder</value><comment>Menu item that opens a folder picker to choose a folder to exclude.</comment></data>
+  <data name="FoldersCloudOnlyBody" xml:space="preserve"><value>FUTO Backups skips iCloud Drive, Dropbox, OneDrive and Google Drive files that are not on this PC. To include them, choose Always keep on this device in File Explorer.</value></data>
+  <data name="FoldersCloudOnlyTitle" xml:space="preserve"><value>Files kept only in the cloud are not backed up</value></data>
+  <data name="FoldersDropHere" xml:space="preserve"><value>Drop folders here</value><comment>Shown in the empty folder list as the target for dragged folders.</comment></data>
+  <data name="FoldersDropHint" xml:space="preserve"><value>or click Add Folder to choose them</value></data>
+  <data name="FoldersExcludePattern" xml:space="preserve"><value>Exclude a pattern</value><comment>Heading above the box for typing an exclusion pattern.</comment></data>
+  <data name="FoldersExcluded" xml:space="preserve"><value>Excluded</value><comment>Heading above the list of exclusions. Adjective used as a heading.</comment></data>
+  <data name="FoldersExcludedSubtitle" xml:space="preserve"><value>Folders, files and patterns you leave out of backups.</value></data>
+  <data name="FoldersKeepOne" xml:space="preserve"><value>Add another folder to back up before you remove this one.</value></data>
+  <data name="FoldersNothingExcluded" xml:space="preserve"><value>Nothing excluded yet.</value><comment>Shown when the list of exclusions is empty.</comment></data>
+  <data name="FoldersPattern" xml:space="preserve"><value>Pattern</value><comment>Label of a text box. A pattern is a file name pattern such as *.iso.</comment></data>
+  <data name="FoldersPatternHint" xml:space="preserve"><value>For example *.iso, **/build or ~/Downloads/Old. A name without a slash matches everywhere.</value></data>
+  <data name="FoldersPatternPlaceholder" xml:space="preserve"><value>*.iso</value><comment>Example shown in the empty pattern box. Usually kept unchanged.</comment></data>
+  <data name="FoldersPresets" xml:space="preserve"><value>Or start from a preset</value></data>
+  <data name="FoldersRestoreBuiltIn" xml:space="preserve"><value>Restore Built-in Exclusions</value><comment>Button that puts back the built-in exclusions the user removed.</comment></data>
+  <data name="FoldersStopBackingUp" xml:space="preserve"><value>Stop backing up this folder</value></data>
+  <data name="FoldersStopExcluding" xml:space="preserve"><value>Stop excluding</value><comment>Tooltip of the button that removes an exclusion. The files are backed up again.</comment></data>
+  <data name="FoldersStopExcludingName" xml:space="preserve"><value>Stop excluding {0}</value><comment>Accessible name of the button that removes an exclusion. {0} is the pattern or path.</comment></data>
+  <data name="FoldersSubtitle" xml:space="preserve"><value>FUTO Backups encrypts and backs up everything inside these folders.</value></data>
+  <data name="FormatBytes" xml:space="preserve"><value>{0} bytes</value><comment>{0} is a number of bytes from 2 to 999.</comment></data>
+  <data name="FormatGb" xml:space="preserve"><value>{0} GB</value><comment>{0} is a size such as 1.5. The unit is gigabytes (1 GB is 1000 MB).</comment></data>
+  <data name="FormatGbitPerSecond" xml:space="preserve"><value>{0} Gbit/s</value><comment>{0} is a transfer speed such as 1.5. The unit is gigabits per second.</comment></data>
+  <data name="FormatHoursMinutesLeft" xml:space="preserve"><value>{0} hr, {1} min left</value><comment>Time remaining. {0} is whole hours and {1} is minutes. hr and min are abbreviations of hours and minutes.</comment></data>
+  <data name="FormatKb" xml:space="preserve"><value>{0} KB</value><comment>{0} is a size such as 12.5. The unit is kilobytes (1 KB is 1000 bytes).</comment></data>
+  <data name="FormatKbitPerSecond" xml:space="preserve"><value>{0} kbit/s</value><comment>{0} is a transfer speed such as 640. The unit is kilobits per second.</comment></data>
+  <data name="FormatMb" xml:space="preserve"><value>{0} MB</value><comment>{0} is a size such as 12.5. The unit is megabytes (1 MB is 1000 KB).</comment></data>
+  <data name="FormatMbitPerSecond" xml:space="preserve"><value>{0} Mbit/s</value><comment>{0} is a transfer speed such as 12.5. The unit is megabits per second.</comment></data>
+  <data name="FormatMinutesLeft" xml:space="preserve"><value>{0} min left</value><comment>Time remaining. {0} is minutes. min is an abbreviation of minutes.</comment></data>
+  <data name="FormatOneByte" xml:space="preserve"><value>1 byte</value><comment>Exactly one byte.</comment></data>
+  <data name="FormatPb" xml:space="preserve"><value>{0} PB</value><comment>{0} is a size such as 1.5. The unit is petabytes.</comment></data>
+  <data name="FormatTb" xml:space="preserve"><value>{0} TB</value><comment>{0} is a size such as 1.5. The unit is terabytes.</comment></data>
+  <data name="FormatToday" xml:space="preserve"><value>Today</value><comment>Heading for today&apos;s entries in the activity list.</comment></data>
+  <data name="FormatTodayAt" xml:space="preserve"><value>Today at {0}</value><comment>{0} is a time of day such as 14:30. Starts a sentence or label, so it is capitalised.</comment></data>
+  <data name="FormatTodayAtInSentence" xml:space="preserve"><value>today at {0}</value><comment>{0} is a time of day such as 14:30. Used in the middle of a sentence, so it is in lower case.</comment></data>
+  <data name="FormatTomorrowAt" xml:space="preserve"><value>Tomorrow at {0}</value><comment>{0} is a time of day such as 14:30. Starts a sentence or label, so it is capitalised.</comment></data>
+  <data name="FormatTomorrowAtInSentence" xml:space="preserve"><value>tomorrow at {0}</value><comment>{0} is a time of day such as 14:30. Used in the middle of a sentence, so it is in lower case.</comment></data>
+  <data name="FormatUnderAMinuteLeft" xml:space="preserve"><value>under a minute left</value><comment>Time remaining. Lower case because it follows the amount transferred, as in 1 GB of 2 GB and under a minute left.</comment></data>
+  <data name="FormatYesterday" xml:space="preserve"><value>Yesterday</value><comment>Heading for yesterday&apos;s entries in the activity list.</comment></data>
+  <data name="FormatYesterdayAt" xml:space="preserve"><value>Yesterday at {0}</value><comment>{0} is a time of day such as 14:30. Starts a sentence or label, so it is capitalised.</comment></data>
+  <data name="FormatYesterdayAtInSentence" xml:space="preserve"><value>yesterday at {0}</value><comment>{0} is a time of day such as 14:30. Used in the middle of a sentence, so it is in lower case.</comment></data>
+  <data name="FormatZeroKb" xml:space="preserve"><value>Zero KB</value><comment>Shown for a size of zero. KB is kilobytes.</comment></data>
+  <data name="HistoryActivity" xml:space="preserve"><value>Activity</value><comment>Heading above the list of past backups and restores.</comment></data>
+  <data name="HistoryBrowseFiles" xml:space="preserve"><value>Browse Files</value><comment>Button on a snapshot that opens a browser to choose single files to restore.</comment></data>
+  <data name="HistoryCouldNotBackUpSome" xml:space="preserve"><value>FUTO Backups could not back up some files. Click to see which.</value></data>
+  <data name="HistoryCouldNotLoad" xml:space="preserve"><value>Could not load snapshots</value><comment>Heading shown when the list of snapshots cannot be loaded. A snapshot is one saved version of a backup.</comment></data>
+  <data name="HistoryFiles" xml:space="preserve"><value>{0:N0} files</value><comment>{0:N0} is the number of files in a snapshot, 2 or more, with thousands separators.</comment></data>
+  <data name="HistoryFilterAll" xml:space="preserve"><value>All results</value><comment>Option in the activity filter. Shows every kind of result.</comment></data>
+  <data name="HistoryFilterComplete" xml:space="preserve"><value>Complete</value><comment>Option in the activity filter. Shows runs that finished without problems.</comment></data>
+  <data name="HistoryFilterFailed" xml:space="preserve"><value>Failed</value><comment>Option in the activity filter. Shows runs that failed.</comment></data>
+  <data name="HistoryFilterInterrupted" xml:space="preserve"><value>Interrupted</value><comment>Option in the activity filter. Shows runs that were stopped by closing the app or shutting down the PC.</comment></data>
+  <data name="HistoryFilterWarnings" xml:space="preserve"><value>With warnings</value><comment>Option in the activity filter. Shows runs that finished but could not read some files.</comment></data>
+  <data name="HistoryLatest" xml:space="preserve"><value>Latest</value><comment>Badge on the newest snapshot.</comment></data>
+  <data name="HistoryLoadingSnapshots" xml:space="preserve"><value>Loading snapshots</value><comment>Accessible name of a progress ring.</comment></data>
+  <data name="HistoryNewDataUploaded" xml:space="preserve"><value>New data uploaded by this backup</value><comment>Tooltip of the amount shown with a plus sign on a snapshot.</comment></data>
+  <data name="HistoryNoMatchingActivity" xml:space="preserve"><value>No matching activity.</value><comment>Shown when the activity search and filter match nothing.</comment></data>
+  <data name="HistoryNoSnapshots" xml:space="preserve"><value>No snapshots yet</value><comment>Heading of the empty list of snapshots.</comment></data>
+  <data name="HistoryNoSnapshotsHint" xml:space="preserve"><value>Your first backup will show up here.</value></data>
+  <data name="HistoryOneWarning" xml:space="preserve"><value>1 warning</value><comment>Exactly one warning.</comment></data>
+  <data name="HistoryRefresh" xml:space="preserve"><value>Refresh</value><comment>Accessible name of the icon button that reloads the list. Verb.</comment></data>
+  <data name="HistoryRestoreAll" xml:space="preserve"><value>Restore All</value><comment>Button that restores a whole snapshot. Verb.</comment></data>
+  <data name="HistoryRestoreComplete" xml:space="preserve"><value>Restore complete</value><comment>Title of a finished restore in the activity list.</comment></data>
+  <data name="HistoryRestoreHere" xml:space="preserve"><value>Restore Here</value><comment>Title and confirm button of the folder picker used to choose where to restore to. &quot;Here&quot; means the folder being picked.</comment></data>
+  <data name="HistoryRetentionLine" xml:space="preserve"><value>Restore a whole snapshot, or browse it for single files. Retention for this PC: {0}</value><comment>{0} is a summary of the retention rule, such as Keep all snapshots within 60 days.</comment></data>
+  <data name="HistorySaveSupportLog" xml:space="preserve"><value>Save Support Log</value><comment>Link on a run in History that saves its support log to a file.</comment></data>
+  <data name="HistorySearchActivity" xml:space="preserve"><value>Search activity</value><comment>Placeholder text of the search box above the activity list.</comment></data>
+  <data name="HistoryShowResults" xml:space="preserve"><value>Show results</value><comment>Accessible name of the button that opens the filter for the activity list.</comment></data>
+  <data name="HistoryStarted" xml:space="preserve"><value>Started {0}</value><comment>{0} is when the run started, such as Today at 14:30.</comment></data>
+  <data name="HistorySupportCode" xml:space="preserve"><value>Support code: {0}</value><comment>Shown on a run in History. {0} is a code to give FUTO support.</comment></data>
+  <data name="HistorySupportLogFileType" xml:space="preserve"><value>Support log</value><comment>File type name in the save dialog for support logs.</comment></data>
+  <data name="HistoryWarnings" xml:space="preserve"><value>{0} warnings</value><comment>{0} is the number of warnings, 2 or more.</comment></data>
+  <data name="KeyChangeRecoveryKey" xml:space="preserve"><value>Change Recovery Key</value><comment>Button in Settings that starts changing the recovery key. Verb.</comment></data>
+  <data name="KeyCouldNotPrint" xml:space="preserve"><value>FUTO Backups could not print. Save the key to a file and print that instead.</value></data>
+  <data name="KeyCouldNotSave" xml:space="preserve"><value>FUTO Backups could not save the key to that file. Choose another folder, then try again.</value></data>
+  <data name="KeyEnterRecoveryKey" xml:space="preserve"><value>Enter Recovery Key</value><comment>Button on the Overview page that asks for the missing recovery key. Verb.</comment></data>
+  <data name="KeyFileName" xml:space="preserve"><value>FUTO Backups Recovery Key</value><comment>Default file name offered in the Save dialog for the recovery key file. The extension is added by the app.</comment></data>
+  <data name="KeyFileTitle" xml:space="preserve"><value>FUTO Backups recovery key</value><comment>First line inside the saved recovery key file.</comment></data>
+  <data name="KeyKeepItSafe" xml:space="preserve"><value>Keep it somewhere safe: you need it to restore your backups.</value></data>
+  <data name="KeyMismatch" xml:space="preserve"><value>That key does not match. Compare it with your saved copy, then try again.</value></data>
+  <data name="KeyMissingSubtitle" xml:space="preserve"><value>Backups and restores cannot run until you enter it again.</value></data>
+  <data name="KeyMissingTitle" xml:space="preserve"><value>This PC's recovery key is missing</value></data>
+  <data name="KeyOneKeySplitAcrossLines" xml:space="preserve"><value>This is one key. It is split across lines only to make it easier to read.</value></data>
+  <data name="KeyRecoveryKey" xml:space="preserve"><value>Recovery key</value><comment>Accessible name of the box that shows the recovery key.</comment></data>
+  <data name="KeyShowRecoveryKey" xml:space="preserve"><value>Show Recovery Key</value><comment>Button that shows the recovery key. Verb.</comment></data>
+  <data name="KeyWantsToChange" xml:space="preserve"><value>FUTO Backups wants to change your recovery key.</value><comment>Message in the Windows security prompt that asks the user to confirm their identity.</comment></data>
+  <data name="KeyWantsToShow" xml:space="preserve"><value>FUTO Backups wants to show your recovery key.</value><comment>Message in the Windows security prompt that asks the user to confirm their identity.</comment></data>
+  <data name="ListAnd" xml:space="preserve"><value>{0} and {1}</value><comment>Joins the last two items of a list, such as conditions or times. {0} is the earlier items, already joined, and {1} is the last one.</comment></data>
+  <data name="ListSeparator" xml:space="preserve"><value>, </value><comment>Separator between earlier items in a list, as in power, Ethernet and an external display.</comment></data>
+  <data name="NextBackupDueNow" xml:space="preserve"><value>Due now</value><comment>Shown under NEXT BACKUP when the backup is overdue and about to start.</comment></data>
+  <data name="NextBackupPaused" xml:space="preserve"><value>Paused</value><comment>Shown under NEXT BACKUP when the schedule is paused.</comment></data>
+  <data name="NextBackupRunningNow" xml:space="preserve"><value>Running now</value><comment>Shown under NEXT BACKUP while a backup is running.</comment></data>
+  <data name="NotificationCouldNotConnect" xml:space="preserve"><value>FUTO Backups could not connect to {0}.</value><comment>First sentence of a Windows notification. {0} is the server name. A sentence about when it will try again may follow.</comment></data>
+  <data name="NotificationDefaultTitle" xml:space="preserve"><value>Backup did not finish</value><comment>Title of a Windows notification shown when a scheduled backup fails.</comment></data>
+  <data name="NotificationMissingKey" xml:space="preserve"><value>This PC's recovery key is missing. To keep backing up this PC, enter the key again.</value></data>
+  <data name="NotificationRetryAt" xml:space="preserve"><value>It will try again at {0}.</value><comment>Second sentence of a notification. &quot;It&quot; is FUTO Backups. {0} is a time of day such as 14:30.</comment></data>
+  <data name="NotificationRetryOnAt" xml:space="preserve"><value>It will try again on {0} at {1}.</value><comment>Second sentence of a notification. &quot;It&quot; is FUTO Backups. {0} is a day of the week and {1} is a time of day such as 14:30.</comment></data>
+  <data name="NotificationRetrySoon" xml:space="preserve"><value>It will try again soon.</value><comment>Second sentence of a notification. &quot;It&quot; is FUTO Backups.</comment></data>
+  <data name="NotificationRetryTomorrowAt" xml:space="preserve"><value>It will try again tomorrow at {0}.</value><comment>Second sentence of a notification. &quot;It&quot; is FUTO Backups. {0} is a time of day such as 14:30.</comment></data>
+  <data name="NotificationSignedOut" xml:space="preserve"><value>FUTO Backups signed you out. To keep backing up this PC, sign in again.</value></data>
+  <data name="NotificationStopped" xml:space="preserve"><value>The backup stopped because of an error.</value><comment>First sentence of a Windows notification. A sentence about when it will try again may follow.</comment></data>
+  <data name="OverviewAddFolders" xml:space="preserve"><value>Add Folders</value><comment>Accessible name of the button that opens the list of folders. Verb.</comment></data>
+  <data name="OverviewCancelBackup" xml:space="preserve"><value>Cancel Backup</value><comment>Button in a confirmation dialog that stops the running backup. Verb.</comment></data>
+  <data name="OverviewCancelBackupBody" xml:space="preserve"><value>FUTO Backups stops safely. No snapshot is made, but what was uploaded is kept and the next backup continues from it.</value></data>
+  <data name="OverviewCancelBackupTitle" xml:space="preserve"><value>Cancel the backup?</value><comment>Title of a confirmation dialog. Question.</comment></data>
+  <data name="OverviewCancelRestore" xml:space="preserve"><value>Cancel Restore</value><comment>Button in a confirmation dialog that stops the running restore. Verb.</comment></data>
+  <data name="OverviewCancelRestoreBody" xml:space="preserve"><value>FUTO Backups stops restoring. Files it already restored stay where they are.</value></data>
+  <data name="OverviewCancelRestoreTitle" xml:space="preserve"><value>Cancel the restore?</value><comment>Title of a confirmation dialog. Question.</comment></data>
+  <data name="OverviewCauseChanged" xml:space="preserve"><value>The file changed or was deleted while the backup read it.</value></data>
+  <data name="OverviewCauseLocked" xml:space="preserve"><value>Another app had the file open or locked. Quit that app before the next backup.</value></data>
+  <data name="OverviewCausePermission" xml:space="preserve"><value>Permission denied or operation not permitted. Check that your Windows account can open the file.</value></data>
+  <data name="OverviewCloudOnlyHint" xml:space="preserve"><value>Download them to this PC to include them in your next backup.</value></data>
+  <data name="OverviewCloudOnlyIntro" xml:space="preserve"><value>{0} They are not on this PC. To back them up, this PC must download them first.</value><comment>{0} is a sentence saying how many files are stored only in the cloud, such as 3 files (1.2 MB) are stored only in the cloud and were not backed up.</comment></data>
+  <data name="OverviewCloudOnlyOtherApps" xml:space="preserve"><value>Dropbox, OneDrive, Google Drive and other cloud apps work the same way: make the files available offline and the next backup includes them.</value></data>
+  <data name="OverviewCloudOnlyStepFiles" xml:space="preserve"><value>In File Explorer, right-click the files or their folder and choose Always keep on this device.</value></data>
+  <data name="OverviewCloudOnlyStepOneDrive" xml:space="preserve"><value>Or keep all of OneDrive on this PC: in OneDrive settings, open Sync and back up, then Advanced settings, and choose Download all OneDrive files now.</value></data>
+  <data name="OverviewCloudOnlyTitle" xml:space="preserve"><value>Stored only in the cloud</value><comment>Title of the dialog listing files that exist only in a cloud service such as OneDrive.</comment></data>
+  <data name="OverviewCommonCauses" xml:space="preserve"><value>Common causes</value><comment>Heading above the list of likely reasons why files could not be backed up.</comment></data>
+  <data name="OverviewContinuesInBackground" xml:space="preserve"><value>You can close this window. FUTO Backups carries on in the background.</value><comment>Shown on Overview while a backup or restore runs. Closing the window leaves the app running in the system tray.</comment></data>
+  <data name="OverviewCopyList" xml:space="preserve"><value>Copy List</value><comment>Button that copies the list of files to the clipboard. Verb.</comment></data>
+  <data name="OverviewDay" xml:space="preserve"><value>Day</value><comment>Accessible name of the drop-down for the weekday of a weekly schedule. Noun.</comment></data>
+  <data name="OverviewExclude" xml:space="preserve"><value>Exclude</value><comment>Button next to a file that could not be backed up. Leaves it out of future backups. Verb.</comment></data>
+  <data name="OverviewExcludeAll" xml:space="preserve"><value>Exclude All</value><comment>Button that leaves all the listed files out of future backups. Verb.</comment></data>
+  <data name="OverviewExcludeAllToolTip" xml:space="preserve"><value>Leave all of these out of future backups</value></data>
+  <data name="OverviewExcludeName" xml:space="preserve"><value>Exclude {0}</value><comment>Accessible name of the Exclude button. {0} is a file name or path.</comment></data>
+  <data name="OverviewExcludeToolTip" xml:space="preserve"><value>Leave this out of future backups</value></data>
+  <data name="OverviewInFolders" xml:space="preserve"><value>In Folders</value><comment>Label shown instead of the Exclude button for a file that is inside a folder the user chose to back up.</comment></data>
+  <data name="OverviewInFoldersToolTip" xml:space="preserve"><value>This is or contains a folder you chose to back up. To stop backing it up, remove it in Folders.</value></data>
+  <data name="OverviewKeepGoing" xml:space="preserve"><value>Keep Going</value><comment>Button in the cancel dialog that closes it and lets the backup continue.</comment></data>
+  <data name="OverviewMissingOnServiceMessage" xml:space="preserve"><value>FUTO Cloud no longer has this PC's backup. Start a new backup to keep this PC protected. Its history is not carried over.</value></data>
+  <data name="OverviewMissingOnServiceTitle" xml:space="preserve"><value>This PC's backup is missing on the service</value></data>
+  <data name="OverviewNextBackup" xml:space="preserve"><value>NEXT BACKUP</value><comment>Small caption in capitals above the time of the next backup.</comment></data>
+  <data name="OverviewNotifyBody" xml:space="preserve"><value>FUTO Backups can tell you when a scheduled backup does not finish.</value></data>
+  <data name="OverviewNotifyTitle" xml:space="preserve"><value>Get notified if a backup fails</value></data>
+  <data name="OverviewPauseSchedule" xml:space="preserve"><value>Pause Schedule</value><comment>Button that pauses the schedule. Verb.</comment></data>
+  <data name="OverviewProgress" xml:space="preserve"><value>Progress</value><comment>Accessible name of the progress bar. Noun.</comment></data>
+  <data name="OverviewProtected" xml:space="preserve"><value>PROTECTED</value><comment>Small caption in capitals above the amount of data protected.</comment></data>
+  <data name="OverviewResumeSchedule" xml:space="preserve"><value>Resume Schedule</value><comment>Button that resumes a paused schedule. Verb.</comment></data>
+  <data name="OverviewScheduleCustom" xml:space="preserve"><value>Backs up when your cron expression says.</value><comment>Description of the custom schedule choice on Overview.</comment></data>
+  <data name="OverviewScheduleDaily" xml:space="preserve"><value>Once a day. Missed backups run when your PC wakes.</value></data>
+  <data name="OverviewScheduleHourly" xml:space="preserve"><value>Every hour while your PC is awake.</value></data>
+  <data name="OverviewScheduleManual" xml:space="preserve"><value>Backups run only when you start them.</value></data>
+  <data name="OverviewScheduleWeekly" xml:space="preserve"><value>Every {0}. Missed backups run when your PC wakes.</value><comment>{0} is a day of the week such as Sunday.</comment></data>
+  <data name="OverviewShowFiles" xml:space="preserve"><value>Show Files</value><comment>Button that shows the list of files that were skipped. Verb.</comment></data>
+  <data name="OverviewShowInFileExplorer" xml:space="preserve"><value>Show {0} in File Explorer</value><comment>Accessible name of a button. {0} is a folder path.</comment></data>
+  <data name="OverviewShowWarnings" xml:space="preserve"><value>Show Warnings</value><comment>Accessible name of the button that opens the list of files that could not be read.</comment></data>
+  <data name="OverviewSignOutBody" xml:space="preserve"><value>Scheduled backups stop until you sign in again. Your backup and recovery key stay on this PC.</value></data>
+  <data name="OverviewSignOutTitle" xml:space="preserve"><value>Sign out?</value><comment>Title of a confirmation dialog. Question.</comment></data>
+  <data name="OverviewSnapshots" xml:space="preserve"><value>SNAPSHOTS</value><comment>Small caption in capitals above the number of snapshots. A snapshot is one saved version of a backup.</comment></data>
+  <data name="OverviewStartNewBackup" xml:space="preserve"><value>Start a New Backup</value><comment>Button that sets up a new backup for this PC. Verb.</comment></data>
+  <data name="OverviewStopBackingUp" xml:space="preserve"><value>Stop backing up {0}</value><comment>Accessible name of the button that removes a folder from the backup. {0} is a folder path.</comment></data>
+  <data name="OverviewTime" xml:space="preserve"><value>Time</value><comment>Accessible name of the time picker of the schedule. Noun.</comment></data>
+  <data name="OverviewToBackThemUp" xml:space="preserve"><value>To back them up</value><comment>Heading above the steps for making cloud-only files available. &quot;Them&quot; refers to those files.</comment></data>
+  <data name="OverviewTurnOn" xml:space="preserve"><value>Turn On</value><comment>Button that turns on notifications about failed backups. Verb.</comment></data>
+  <data name="OverviewUpcomingRuns" xml:space="preserve"><value>Next runs: {0}.</value><comment>Under the schedule on Overview. {0} is a list of the next few backup times, such as today at 14:00, tomorrow at 14:00 and Saturday at 14:00.</comment></data>
+  <data name="OverviewUploadSpeedHeading" xml:space="preserve"><value>UPLOAD SPEED</value><comment>Small caption in capitals above the upload speed graph.</comment></data>
+  <data name="OverviewWarningsIntro" xml:space="preserve"><value>The rest of your backup completed. FUTO Backups could not read all of these this time. The next backup tries them again.</value></data>
+  <data name="ResetCache" xml:space="preserve"><value>cache</value><comment>Lower case noun in a comma-separated list of what could not be removed from this PC.</comment></data>
+  <data name="ResetCredentialManagerItems" xml:space="preserve"><value>Credential Manager items</value><comment>Lower case noun in a comma-separated list of what could not be removed. Credential Manager is a Windows feature.</comment></data>
+  <data name="ResetSettings" xml:space="preserve"><value>settings</value><comment>Lower case noun in a comma-separated list of what could not be removed from this PC.</comment></data>
+  <data name="RestoreBackedUpFolders" xml:space="preserve"><value>Backed-Up Folders</value><comment>Name of the top level of the file browser. It lists the folders that were backed up.</comment></data>
+  <data name="RestoreClear" xml:space="preserve"><value>Clear</value><comment>Button that clears the selection. Verb.</comment></data>
+  <data name="RestoreDateModified" xml:space="preserve"><value>Date Modified</value><comment>Column heading.</comment></data>
+  <data name="RestoreFiles" xml:space="preserve"><value>Restore Files</value><comment>Title of the file browser used to choose files to restore. Verb phrase.</comment></data>
+  <data name="RestoreFolderContents" xml:space="preserve"><value>Folder contents</value><comment>Accessible name of the list of files and folders.</comment></data>
+  <data name="RestoreFolderEmpty" xml:space="preserve"><value>This folder is empty</value><comment>Shown in the file browser when a folder has no items.</comment></data>
+  <data name="RestoreIncludedWithFolder" xml:space="preserve"><value>Included with its folder</value><comment>Tooltip for an item that is already selected because the folder that contains it is selected.</comment></data>
+  <data name="RestoreItemsSelected" xml:space="preserve"><value>{0} items selected</value><comment>{0} is the number of selected items, 2 or more. Items are files and folders.</comment></data>
+  <data name="RestoreLoadingFolder" xml:space="preserve"><value>Loading folder</value><comment>Accessible name of a progress ring.</comment></data>
+  <data name="RestoreName" xml:space="preserve"><value>Name</value><comment>Column heading.</comment></data>
+  <data name="RestoreNoValue" xml:space="preserve"><value>--</value><comment>Shown when a value is missing, such as a modified date.</comment></data>
+  <data name="RestoreOneItemSelected" xml:space="preserve"><value>1 item selected</value><comment>Exactly one selected item, a file or a folder.</comment></data>
+  <data name="RestoreOpen" xml:space="preserve"><value>Open {0}</value><comment>Accessible name of a button that opens a folder. {0} is the folder name. Verb.</comment></data>
+  <data name="RestorePickFiles" xml:space="preserve"><value>Pick files and folders from the snapshot from {0}.</value><comment>{0} is when the snapshot was made, such as Today at 14:30.</comment></data>
+  <data name="RestoreRestore" xml:space="preserve"><value>Restore</value><comment>Button that restores the selected items. Verb. Shown while nothing is selected.</comment></data>
+  <data name="RestoreRestoreItems" xml:space="preserve"><value>Restore {0} Items</value><comment>Button that restores the selected items. Verb. {0} is the number of items, 2 or more.</comment></data>
+  <data name="RestoreRestoreOneItem" xml:space="preserve"><value>Restore 1 Item</value><comment>Button that restores the one selected item. Verb.</comment></data>
+  <data name="RestoreSelectFiles" xml:space="preserve"><value>Select the files and folders to restore.</value></data>
+  <data name="RestoreSize" xml:space="preserve"><value>Size</value><comment>Column heading.</comment></data>
+  <data name="RetentionAfter15Days" xml:space="preserve"><value>After 15 days</value><comment>Choice in the retention drop-down. Older snapshots are deleted after 15 days. The same applies to the other choices of this kind.</comment></data>
+  <data name="RetentionAfter30Days" xml:space="preserve"><value>After 30 days</value><comment>Choice in the retention drop-down. Older snapshots are deleted after 30 days.</comment></data>
+  <data name="RetentionAfter60Days" xml:space="preserve"><value>After 60 days</value><comment>Choice in the retention drop-down. Older snapshots are deleted after 60 days.</comment></data>
+  <data name="RetentionAfter90Days" xml:space="preserve"><value>After 90 days</value><comment>Choice in the retention drop-down. Older snapshots are deleted after 90 days.</comment></data>
+  <data name="RetentionAllFor" xml:space="preserve"><value>all for {0}</value><comment>{0} is a duration such as 2 months. Lower case part of a comma-separated retention summary, as in latest 2 backups, all for 2 months. The app capitalises the first letter of the whole summary.</comment></data>
+  <data name="RetentionDailyDetail" xml:space="preserve"><value>The last snapshot of each day.</value></data>
+  <data name="RetentionDailyFor" xml:space="preserve"><value>daily for {0}</value><comment>Lower case part of a comma-separated retention summary. {0} is a duration such as 1 month. One snapshot per day is kept.</comment></data>
+  <data name="RetentionDays" xml:space="preserve"><value>{0} days</value><comment>{0} is a number of days, 2 or more.</comment></data>
+  <data name="RetentionDurationTooLong" xml:space="preserve"><value>Enter a shorter duration.</value><comment>Error shown under a retention box when the duration entered is too large.</comment></data>
+  <data name="RetentionForever" xml:space="preserve"><value>Forever</value><comment>Short label for how long snapshots are kept when they are never deleted.</comment></data>
+  <data name="RetentionHourlyDetail" xml:space="preserve"><value>The last snapshot of each hour.</value></data>
+  <data name="RetentionHourlyFor" xml:space="preserve"><value>hourly for {0}</value><comment>Lower case part of a comma-separated retention summary. {0} is a duration such as 2 days. One snapshot per hour is kept.</comment></data>
+  <data name="RetentionHours" xml:space="preserve"><value>{0} hours</value><comment>{0} is a number of hours, 2 or more.</comment></data>
+  <data name="RetentionInvalidDuration" xml:space="preserve"><value>Enter a duration like 60d or 1y6m: h hours, d days, m months, y years.</value><comment>The letters h, d, m and y are what the user types for hours, days, months and years. Keep them unchanged.</comment></data>
+  <data name="RetentionKeep15Days" xml:space="preserve"><value>15 days</value><comment>Short label for how long snapshots are kept.</comment></data>
+  <data name="RetentionKeep30Days" xml:space="preserve"><value>30 days</value><comment>Short label for how long snapshots are kept.</comment></data>
+  <data name="RetentionKeep60Days" xml:space="preserve"><value>60 days</value><comment>Short label for how long snapshots are kept.</comment></data>
+  <data name="RetentionKeep90Days" xml:space="preserve"><value>90 days</value><comment>Short label for how long snapshots are kept.</comment></data>
+  <data name="RetentionKeepAllSnapshots" xml:space="preserve"><value>Keep all snapshots</value><comment>Summary of the retention setting when nothing is ever deleted.</comment></data>
+  <data name="RetentionKeepAllUntilCorrected" xml:space="preserve"><value>Keep all snapshots until you correct the retention setting</value></data>
+  <data name="RetentionKeepAllWithin" xml:space="preserve"><value>Keep all snapshots within</value><comment>Label of a retention field. A box for a duration such as 60d follows it.</comment></data>
+  <data name="RetentionKeepDailyWithin" xml:space="preserve"><value>Keep daily snapshots within</value><comment>Label of a retention field. One snapshot per day is kept. A box for a duration such as 1m follows it.</comment></data>
+  <data name="RetentionKeepHourlyWithin" xml:space="preserve"><value>Keep hourly snapshots within</value><comment>Label of a retention field. One snapshot per hour is kept. A box for a duration such as 2d follows it.</comment></data>
+  <data name="RetentionKeepLast" xml:space="preserve"><value>Keep the last {0}</value><comment>Retention summary. {0} is a duration such as 60 days.</comment></data>
+  <data name="RetentionKeepLatestBackup" xml:space="preserve"><value>Keep the latest backup</value><comment>Retention summary. Exactly one backup is kept.</comment></data>
+  <data name="RetentionKeepLatestBackups" xml:space="preserve"><value>Keep the latest {0} backups</value><comment>Retention summary. {0} is the number of backups kept, 2 or more.</comment></data>
+  <data name="RetentionKeepLatestTwo" xml:space="preserve"><value>Keep latest two backups</value><comment>Choice in the retention drop-down.</comment></data>
+  <data name="RetentionKeepMonthlyWithin" xml:space="preserve"><value>Keep monthly snapshots within</value><comment>Label of a retention field. One snapshot per month is kept. A box for a duration such as 2y follows it.</comment></data>
+  <data name="RetentionKeepTheLatest" xml:space="preserve"><value>Keep the latest</value><comment>Label of a retention field. A box for a number of backups follows it.</comment></data>
+  <data name="RetentionKeepWeeklyWithin" xml:space="preserve"><value>Keep weekly snapshots within</value><comment>Label of a retention field. One snapshot per week is kept. A box for a duration such as 6m follows it.</comment></data>
+  <data name="RetentionKeepYearlyWithin" xml:space="preserve"><value>Keep yearly snapshots within</value><comment>Label of a retention field. One snapshot per year is kept. A box for a duration such as 10y follows it.</comment></data>
+  <data name="RetentionLastDetail" xml:space="preserve"><value>Number of backups, however old.</value></data>
+  <data name="RetentionLatestBackup" xml:space="preserve"><value>latest backup</value><comment>Lower case part of a comma-separated retention summary. Exactly one backup. The app capitalises the first letter of the whole summary.</comment></data>
+  <data name="RetentionLatestBackups" xml:space="preserve"><value>latest {0} backups</value><comment>Lower case part of a comma-separated retention summary. {0} is the number of backups, 2 or more.</comment></data>
+  <data name="RetentionLatestTwoBackups" xml:space="preserve"><value>Latest two backups</value><comment>Short label for the retention choice that keeps the two newest backups.</comment></data>
+  <data name="RetentionListAnd" xml:space="preserve"><value>{0} and {1}</value><comment>Joins a list of durations. {0} is the comma-separated list of all but the last duration and {1} is the last, as in 1 year, 2 months and 3 days.</comment></data>
+  <data name="RetentionMonthlyDetail" xml:space="preserve"><value>The last snapshot of each month.</value></data>
+  <data name="RetentionMonthlyFor" xml:space="preserve"><value>monthly for {0}</value><comment>Lower case part of a comma-separated retention summary. {0} is a duration such as 2 years. One snapshot per month is kept.</comment></data>
+  <data name="RetentionMonths" xml:space="preserve"><value>{0} months</value><comment>{0} is a number of months, 2 or more.</comment></data>
+  <data name="RetentionNever" xml:space="preserve"><value>Never (keep all backups)</value><comment>Choice in the retention drop-down. Snapshots are never deleted.</comment></data>
+  <data name="RetentionNoRules" xml:space="preserve"><value>Fill in at least one rule. To keep all snapshots, choose Never.</value></data>
+  <data name="RetentionNotAPositiveNumber" xml:space="preserve"><value>Enter a whole number of 1 or more.</value></data>
+  <data name="RetentionNumberTooLarge" xml:space="preserve"><value>Enter at most {0:N0}.</value><comment>{0:N0} is the largest number allowed, with thousands separators.</comment></data>
+  <data name="RetentionOneDay" xml:space="preserve"><value>1 day</value><comment>Exactly one day.</comment></data>
+  <data name="RetentionOneHour" xml:space="preserve"><value>1 hour</value><comment>Exactly one hour.</comment></data>
+  <data name="RetentionOneMonth" xml:space="preserve"><value>1 month</value><comment>Exactly one month.</comment></data>
+  <data name="RetentionOneYear" xml:space="preserve"><value>1 year</value><comment>Exactly one year.</comment></data>
+  <data name="RetentionWeeklyDetail" xml:space="preserve"><value>The last snapshot of each week.</value></data>
+  <data name="RetentionWeeklyFor" xml:space="preserve"><value>weekly for {0}</value><comment>Lower case part of a comma-separated retention summary. {0} is a duration such as 6 months. One snapshot per week is kept.</comment></data>
+  <data name="RetentionWithinDetail" xml:space="preserve"><value>Every snapshot newer than this.</value></data>
+  <data name="RetentionYearlyDetail" xml:space="preserve"><value>The last snapshot of each year.</value></data>
+  <data name="RetentionYearlyFor" xml:space="preserve"><value>yearly for {0}</value><comment>Lower case part of a comma-separated retention summary. {0} is a duration such as 10 years. One snapshot per year is kept.</comment></data>
+  <data name="RetentionYears" xml:space="preserve"><value>{0} years</value><comment>{0} is a number of years, 2 or more.</comment></data>
+  <data name="RetentionZeroDuration" xml:space="preserve"><value>Enter a duration longer than zero.</value></data>
+  <data name="RetentionZeroHours" xml:space="preserve"><value>0 hours</value><comment>Shown for a duration of zero.</comment></data>
+  <data name="RunBackupComplete" xml:space="preserve"><value>Backup complete</value><comment>Title of a finished backup in the activity list.</comment></data>
+  <data name="RunBackupFailed" xml:space="preserve"><value>Backup failed</value><comment>Title of a failed backup in the activity list.</comment></data>
+  <data name="RunBackupSkipped" xml:space="preserve"><value>Backup skipped</value><comment>Title of a scheduled backup that did not run, in the activity list.</comment></data>
+  <data name="RunCancelledMessage" xml:space="preserve"><value>No snapshot was made. What was uploaded is kept, and the next backup continues from it.</value><comment>Message in the bar shown when the user cancels a backup.</comment></data>
+  <data name="RunHoursMinutes" xml:space="preserve"><value>{0} hr {1} min</value><comment>Duration of a run. {0} is hours and {1} is minutes. hr and min are abbreviations.</comment></data>
+  <data name="RunInterruptedMessage" xml:space="preserve"><value>FUTO Backups closed before the backup finished, so no snapshot was made. The next backup continues from where it stopped.</value><comment>Message in the bar shown at start-up when the last backup stopped because the app closed or the PC shut down.</comment></data>
+  <data name="RunMinutes" xml:space="preserve"><value>{0} min</value><comment>Duration of a run. {0} is minutes. min is an abbreviation.</comment></data>
+  <data name="RunRestoreFailed" xml:space="preserve"><value>Restore failed</value><comment>Title of a failed restore in the activity list.</comment></data>
+  <data name="RunRestoreStoppedEarly" xml:space="preserve"><value>Restore stopped early</value><comment>Title of a restore that stopped before it finished, in the activity list.</comment></data>
+  <data name="RunSeconds" xml:space="preserve"><value>{0} s</value><comment>Duration of a run. {0} is seconds. s is an abbreviation.</comment></data>
+  <data name="ScheduleCronInvalid" xml:space="preserve"><value>Enter a valid cron expression, for example 0 3 * * *</value><comment>Error under the cron field. Keep the example 0 3 * * * as it is.</comment></data>
+  <data name="ScheduleCronLabel" xml:space="preserve"><value>Cron expression</value><comment>Label of the field for a cron expression. Keep the word cron.</comment></data>
+  <data name="ScheduleCronNeverRuns" xml:space="preserve"><value>This schedule never runs.</value><comment>Message under the cron field when the expression has no future times, such as 30 February.</comment></data>
+  <data name="ScheduleCronTooFrequent" xml:space="preserve"><value>This schedule runs more than once an hour, which uses more battery and data. You can still save it.</value><comment>Warning under the cron field when it runs more often than hourly.</comment></data>
+  <data name="ScheduleCustom" xml:space="preserve"><value>Custom</value><comment>Schedule choice for a cron expression the user writes.</comment></data>
+  <data name="ScheduleCustomSummary" xml:space="preserve"><value>On a custom schedule: {0}</value><comment>Summary of a custom schedule. {0} is the cron expression, such as 0 3 * * *.</comment></data>
+  <data name="ScheduleDaily" xml:space="preserve"><value>Daily</value><comment>Option in the schedule choice. Adjective.</comment></data>
+  <data name="ScheduleEveryDayAt" xml:space="preserve"><value>Every day at {0}</value><comment>{0} is a time of day such as 14:30.</comment></data>
+  <data name="ScheduleEveryHour" xml:space="preserve"><value>Every hour</value><comment>Description of an hourly schedule.</comment></data>
+  <data name="ScheduleEveryWeekdayAt" xml:space="preserve"><value>Every {0} at {1}</value><comment>{0} is a day of the week such as Sunday. {1} is a time of day such as 14:30.</comment></data>
+  <data name="ScheduleHourly" xml:space="preserve"><value>Hourly</value><comment>Option in the schedule choice. Adjective.</comment></data>
+  <data name="ScheduleManual" xml:space="preserve"><value>Manual</value><comment>Shown under NEXT BACKUP when backups only run when the user starts them.</comment></data>
+  <data name="ScheduleOnlyWhenYouStart" xml:space="preserve"><value>Only when you start a backup</value><comment>Description of a manual schedule.</comment></data>
+  <data name="ScheduleWeekly" xml:space="preserve"><value>Weekly</value><comment>Option in the schedule choice. Adjective.</comment></data>
+  <data name="SettingsAdvanced" xml:space="preserve"><value>Advanced</value><comment>Section heading in Settings for settings most people never need to change.</comment></data>
+  <data name="SettingsAutomatic" xml:space="preserve"><value>Automatic</value><comment>Choice in the drop-down for the number of simultaneous uploads. The server decides the number.</comment></data>
+  <data name="SettingsAutomaticWith" xml:space="preserve"><value>Automatic ({0})</value><comment>Choice in the drop-down for the number of simultaneous uploads. {0} is the number the server recommends.</comment></data>
+  <data name="SettingsBackUpAnyway" xml:space="preserve"><value>Back up anyway</value><comment>Setting title. How long a scheduled backup waits for its conditions before running without them.</comment></data>
+  <data name="SettingsBackUpAnywayHint" xml:space="preserve"><value>If the conditions stay unmet for this long, the scheduled backup runs without them.</value><comment>Description under Back up anyway.</comment></data>
+  <data name="SettingsBackupName" xml:space="preserve"><value>Backup name</value><comment>Setting title. The name of this PC's backup.</comment></data>
+  <data name="SettingsBackupNameHint" xml:space="preserve"><value>Shown on the FUTO Backups dashboard.</value><comment>Description under Backup name.</comment></data>
+  <data name="SettingsBackupNameRequired" xml:space="preserve"><value>Enter a backup name.</value><comment>Error when the backup name is empty.</comment></data>
+  <data name="SettingsBandwidth" xml:space="preserve"><value>Bandwidth</value><comment>Section heading.</comment></data>
+  <data name="SettingsChangeKeyButton" xml:space="preserve"><value>Change Key</value><comment>Button in a dialog that changes the recovery key. Verb.</comment></data>
+  <data name="SettingsChangeKeyChangedComplete" xml:space="preserve"><value>This PC's backup now uses your new key. The old key no longer opens it.</value></data>
+  <data name="SettingsChangeKeyChangedPending" xml:space="preserve"><value>This PC's backup now uses your new key. The old key will stop working after the next backup.</value></data>
+  <data name="SettingsChangeKeyChangedTitle" xml:space="preserve"><value>Recovery key changed</value><comment>Title of the dialog shown after the recovery key was changed.</comment></data>
+  <data name="SettingsChangeKeyChanging" xml:space="preserve"><value>Changing your recovery key</value><comment>Shown next to a progress ring while the recovery key is being changed.</comment></data>
+  <data name="SettingsChangeKeyConfirmSubtitle" xml:space="preserve"><value>Enter the new key exactly as you saved it. Spaces and capital letters do not matter.</value></data>
+  <data name="SettingsChangeKeyConfirmTitle" xml:space="preserve"><value>Confirm your new recovery key</value></data>
+  <data name="SettingsChangeKeyCurrentStops" xml:space="preserve"><value>Your current key stops opening this PC's backup after the change finishes.</value></data>
+  <data name="SettingsChangeKeyExplain" xml:space="preserve"><value>Replace the recovery key that encrypts this PC's backup with a new one.</value></data>
+  <data name="SettingsChangeKeyFailedTitle" xml:space="preserve"><value>Could not change the recovery key</value></data>
+  <data name="SettingsChangeKeyKeepOpen" xml:space="preserve"><value>Keep FUTO Backups open until this finishes.</value></data>
+  <data name="SettingsChangeKeyNewKey" xml:space="preserve"><value>New recovery key</value><comment>Accessible name of the box where the new recovery key is typed.</comment></data>
+  <data name="SettingsChangeKeyNoReencrypt" xml:space="preserve"><value>FUTO Backups does not re-encrypt your backup. Anyone who already opened it with the old key can still read it.</value></data>
+  <data name="SettingsChangeKeyOnlyThisPc" xml:space="preserve"><value>Only this PC's backup changes. Other PCs and the FUTO Backups standalone app keep the key they use now.</value></data>
+  <data name="SettingsChangeKeySaveSubtitle" xml:space="preserve"><value>You need it to restore this PC's backup. If you lose it, FUTO cannot recover it.</value></data>
+  <data name="SettingsChangeKeySaveTitle" xml:space="preserve"><value>Save your new recovery key</value></data>
+  <data name="SettingsChangeKeySavedCheck" xml:space="preserve"><value>I saved my new recovery key somewhere safe.</value></data>
+  <data name="SettingsChangeKeyTitle" xml:space="preserve"><value>Change recovery key</value><comment>Title of a dialog. Verb phrase.</comment></data>
+  <data name="SettingsChangeKeyViewAgain" xml:space="preserve"><value>View New Key Again</value><comment>Button that shows the new recovery key again. &quot;View&quot; is a verb.</comment></data>
+  <data name="SettingsChangesApply" xml:space="preserve"><value>Changes apply from the next backup.</value></data>
+  <data name="SettingsConditionsFooter" xml:space="preserve"><value>Back Up Now does not wait for these conditions.</value><comment>Note under the Scheduled backups section.</comment></data>
+  <data name="SettingsDeleteBackupBrowserOpens" xml:space="preserve"><value>Your browser opens. Sign in again, then click Permanently Delete.</value></data>
+  <data name="SettingsDeleteBackupButton" xml:space="preserve"><value>Delete This PC's Backup</value><comment>Button in Settings that starts deleting this PC&apos;s backup. Verb.</comment></data>
+  <data name="SettingsDeleteBackupButtonShort" xml:space="preserve"><value>Delete Backup</value><comment>Button in a confirmation dialog that deletes this PC&apos;s backup. Verb.</comment></data>
+  <data name="SettingsDeleteBackupClearAnyway" xml:space="preserve"><value>Clear Local Data Anyway</value><comment>Button that removes this PC&apos;s local data without removing the PC from the account. Verb.</comment></data>
+  <data name="SettingsDeleteBackupConfirmBody" xml:space="preserve"><value>Sign in again, then click Permanently Delete. This window updates after FUTO Cloud deletes the backup.</value></data>
+  <data name="SettingsDeleteBackupConfirmTitle" xml:space="preserve"><value>Confirm the deletion in your browser</value></data>
+  <data name="SettingsDeleteBackupDeleteThem" xml:space="preserve"><value>Delete them from the FUTO Backups website, or clear this PC's local data now and leave them listed.</value></data>
+  <data name="SettingsDeleteBackupDeletedTitle" xml:space="preserve"><value>Backup deleted</value><comment>Title of the dialog shown after the backup was deleted.</comment></data>
+  <data name="SettingsDeleteBackupDialogTitle" xml:space="preserve"><value>Delete this PC's backup?</value><comment>Title of a confirmation dialog. Question.</comment></data>
+  <data name="SettingsDeleteBackupExplain" xml:space="preserve"><value>FUTO Cloud will permanently delete the backup that {0} uses, and all its history. You cannot undo this. The backups of your other PCs do not change. Then FUTO Backups removes this PC from your account and clears its settings, sign-in, recovery key and cache.</value><comment>{0} is the host name of the server, such as backups.futo.org.</comment></data>
+  <data name="SettingsDeleteBackupFailedTitle" xml:space="preserve"><value>Could not delete the backup</value></data>
+  <data name="SettingsDeleteBackupHint" xml:space="preserve"><value>Permanently delete this PC's backup and its history from FUTO Cloud, and remove this PC from your account.</value></data>
+  <data name="SettingsDeleteBackupOpenAgain" xml:space="preserve"><value>Open Browser Again</value><comment>Button that opens the web browser again. Verb.</comment></data>
+  <data name="SettingsDeleteBackupOpeningBrowser" xml:space="preserve"><value>Opening your browser</value><comment>Shown next to a progress ring.</comment></data>
+  <data name="SettingsDeleteBackupOtherBackups" xml:space="preserve"><value>FUTO Cloud deleted this PC's backup. This PC is still linked to other backups, so FUTO Backups did not remove it from your account:</value></data>
+  <data name="SettingsDeleteBackupRemovingPc" xml:space="preserve"><value>Removing this PC from your account</value></data>
+  <data name="SettingsDeleteBackupStillLinked" xml:space="preserve"><value>FUTO Cloud deleted this PC's backup, but FUTO Backups could not remove this PC from your account. Try again, or clear this PC's local data anyway. This PC then stays listed in your account.</value></data>
+  <data name="SettingsDeleteBackupTitle" xml:space="preserve"><value>Delete this PC's backup</value><comment>Title of a row in Settings. Verb phrase.</comment></data>
+  <data name="SettingsDeleteBackupUnderstood" xml:space="preserve"><value>I understand that FUTO Cloud will permanently delete this PC's backup history.</value></data>
+  <data name="SettingsDeleteMoreBody" xml:space="preserve"><value>“{0}” can delete snapshots that your current setting keeps. It applies to backups that start after this change. You cannot recover deleted snapshots.</value><comment>{0} is a summary of the new retention rule, such as Keep all snapshots within 60 days.</comment></data>
+  <data name="SettingsDeleteMoreTitle" xml:space="preserve"><value>Delete more old snapshots?</value><comment>Title of a confirmation dialog. Question. A snapshot is one saved version of a backup.</comment></data>
+  <data name="SettingsDeleteOldSnapshots" xml:space="preserve"><value>Delete old snapshots</value><comment>Title of a row in Settings. Verb phrase.</comment></data>
+  <data name="SettingsDeleteOldSnapshotsButton" xml:space="preserve"><value>Delete Old Snapshots</value><comment>Button in a confirmation dialog that applies the retention rule. Verb.</comment></data>
+  <data name="SettingsDiagnostics" xml:space="preserve"><value>Diagnostics</value><comment>Section heading.</comment></data>
+  <data name="SettingsFilesReadAtOnce" xml:space="preserve"><value>Files read at once</value><comment>Title of the Settings row that sets how many files are read at the same time.</comment></data>
+  <data name="SettingsFilesReadAtOnceHint" xml:space="preserve"><value>More is faster on fast disks; fewer keeps your PC more responsive.</value></data>
+  <data name="SettingsFromLabel" xml:space="preserve"><value>From</value><comment>Accessible name of the start time picker for the full speed hours, as in from 22:00.</comment></data>
+  <data name="SettingsFullSpeedAtNight" xml:space="preserve"><value>Full speed at night</value><comment>Title of a Settings row.</comment></data>
+  <data name="SettingsFullSpeedAtNightHint" xml:space="preserve"><value>Ignore the upload limit during these hours.</value></data>
+  <data name="SettingsGeneral" xml:space="preserve"><value>General</value><comment>Section heading.</comment></data>
+  <data name="SettingsGetSupport" xml:space="preserve"><value>Get Support</value><comment>Menu item under Open Help in Settings. Opens the support page on the help website.</comment></data>
+  <data name="SettingsHelp" xml:space="preserve"><value>Help</value><comment>Section heading.</comment></data>
+  <data name="SettingsHelpHint" xml:space="preserve"><value>Guides for setting up, restoring and getting support.</value></data>
+  <data name="SettingsHours" xml:space="preserve"><value>Hours</value><comment>Title of the Settings row for the hours of full speed. Noun.</comment></data>
+  <data name="SettingsHoursTo" xml:space="preserve"><value>to</value><comment>Lower case word between two time pickers, as in from 22:00 to 06:00.</comment></data>
+  <data name="SettingsKeepAwake" xml:space="preserve"><value>Keep this PC awake</value><comment>Setting title. Stops the PC going to sleep during a backup.</comment></data>
+  <data name="SettingsKeepAwakeHint" xml:space="preserve"><value>Stops this PC from going to sleep on its own during a backup. Closing the lid still puts it to sleep.</value><comment>Description under Keep this PC awake.</comment></data>
+  <data name="SettingsManageAccount" xml:space="preserve"><value>Manage Account</value><comment>Button that opens the account page in the web browser. Verb.</comment></data>
+  <data name="SettingsNotifyOnFailure" xml:space="preserve"><value>Notify me if a scheduled backup fails</value></data>
+  <data name="SettingsNotifyOnFailureHint" xml:space="preserve"><value>One notification when backups stop working, and none until one succeeds again.</value></data>
+  <data name="SettingsOnlyOnEthernet" xml:space="preserve"><value>Only when on Ethernet</value><comment>Setting title. Scheduled backups run only on a wired network connection.</comment></data>
+  <data name="SettingsOnlyOnEthernetHint" xml:space="preserve"><value>Scheduled backups wait while this PC uses Wi-Fi.</value><comment>Description under Only when on Ethernet.</comment></data>
+  <data name="SettingsOnlyOnPower" xml:space="preserve"><value>Only when on power</value><comment>Setting title. Scheduled backups run only while the PC is plugged in.</comment></data>
+  <data name="SettingsOnlyOnPowerHint" xml:space="preserve"><value>Scheduled backups wait while this PC runs on battery.</value><comment>Description under Only when on power.</comment></data>
+  <data name="SettingsOnlyWithDisplay" xml:space="preserve"><value>Only with an external display</value><comment>Setting title. Scheduled backups run only while an external monitor is connected.</comment></data>
+  <data name="SettingsOnlyWithDisplayHint" xml:space="preserve"><value>Use this to back up only while this PC is docked.</value><comment>Description under Only with an external display. Docked means connected to a desk dock.</comment></data>
+  <data name="SettingsOnlyWithUsb" xml:space="preserve"><value>Only with a USB device</value><comment>Setting title. Scheduled backups run only while a chosen USB device is attached.</comment></data>
+  <data name="SettingsOnlyWithUsbHint" xml:space="preserve"><value>Choose your dock, or another device that is only attached at your desk.</value><comment>Description under Only with a USB device.</comment></data>
+  <data name="SettingsOpenAtLogin" xml:space="preserve"><value>Open at login</value><comment>Title of a Settings row.</comment></data>
+  <data name="SettingsOpenAtLoginHint" xml:space="preserve"><value>Keeps scheduled backups running from the system tray.</value></data>
+  <data name="SettingsOpenHelp" xml:space="preserve"><value>Open Help</value><comment>Button that opens the help website. Verb.</comment></data>
+  <data name="SettingsOtherDevices" xml:space="preserve"><value>Other devices</value><comment>Section heading in Settings listing backups on the same account made by other devices.</comment></data>
+  <data name="SettingsPerformance" xml:space="preserve"><value>Performance</value><comment>Expandable group under Advanced with the settings that set how much work runs at the same time.</comment></data>
+  <data name="SettingsQuietHoursSame" xml:space="preserve"><value>Choose different start and end times.</value></data>
+  <data name="SettingsRecoveryKeyHint" xml:space="preserve"><value>Your backups are encrypted with this key. Without it, a reinstalled PC cannot read them.</value></data>
+  <data name="SettingsRemoveThisPc" xml:space="preserve"><value>Remove this PC</value><comment>Section heading for the actions that remove this PC from FUTO Backups. Verb phrase.</comment></data>
+  <data name="SettingsReportIssue" xml:space="preserve"><value>Report an Issue</value><comment>Menu item under Open Help in Settings. Opens the public issue tracker on GitHub.</comment></data>
+  <data name="SettingsRetentionCustom" xml:space="preserve"><value>Custom</value><comment>Choice in the retention drop-down. The user types their own rules.</comment></data>
+  <data name="SettingsRetentionDurationsHint" xml:space="preserve"><value>Durations count back from the latest backup: h hours, d days, m months, y years, like 1y6m.</value><comment>The letters h, d, m and y are what the user types for hours, days, months and years. Keep them unchanged.</comment></data>
+  <data name="SettingsRetentionWarning" xml:space="preserve"><value>Applies after the next backup. You cannot recover deleted snapshots. Keeping more snapshots uses more storage.</value></data>
+  <data name="SettingsRetentionWriteOnce" xml:space="preserve"><value>Never: this backup is write-once.</value><comment>Shown instead of the snapshot retention choice while the backup is write-once. Never means snapshots are never deleted.</comment></data>
+  <data name="SettingsRunAnywayDays" xml:space="preserve"><value>After {0} days</value><comment>Choice for Back up anyway. {0} is a number of days, 2 or more.</comment></data>
+  <data name="SettingsRunAnywayNever" xml:space="preserve"><value>Never</value><comment>Choice for Back up anyway: the scheduled backup always waits for its conditions.</comment></data>
+  <data name="SettingsRunAnywayOneDay" xml:space="preserve"><value>After 1 day</value><comment>Choice for Back up anyway.</comment></data>
+  <data name="SettingsScheduledBackups" xml:space="preserve"><value>Scheduled backups</value><comment>Section heading in Settings for the conditions scheduled backups wait for.</comment></data>
+  <data name="SettingsSecurity" xml:space="preserve"><value>Security</value><comment>Section heading.</comment></data>
+  <data name="SettingsServer" xml:space="preserve"><value>Server</value><comment>Label of the server choice.</comment></data>
+  <data name="SettingsServerChangeSignsOut" xml:space="preserve"><value>Changing the server signs you out.</value></data>
+  <data name="SettingsServerLocalDev" xml:space="preserve"><value>Local Dev</value><comment>Button that chooses the server used for development. Not shown to most users.</comment></data>
+  <data name="SettingsServerProduction" xml:space="preserve"><value>Production</value><comment>Button that chooses the live server.</comment></data>
+  <data name="SettingsServerUrlError" xml:space="preserve"><value>Enter a valid http(s) URL</value></data>
+  <data name="SettingsServerUrlName" xml:space="preserve"><value>Server URL</value><comment>Accessible name of the box for the server address.</comment></data>
+  <data name="SettingsServerUrlPlaceholder" xml:space="preserve"><value>https://…/.well-known/yucca.json</value><comment>Example address shown in the empty box. Keep it unchanged.</comment></data>
+  <data name="SettingsSignedIn" xml:space="preserve"><value>Signed in</value><comment>Shown instead of the account email when the email is not known. Status.</comment></data>
+  <data name="SettingsSimultaneousUploads" xml:space="preserve"><value>Simultaneous uploads</value><comment>Title of a Settings row.</comment></data>
+  <data name="SettingsSimultaneousUploadsHint" xml:space="preserve"><value>Connections to FUTO Cloud at once. Automatic follows the server's recommendation.</value></data>
+  <data name="SettingsSnapshots" xml:space="preserve"><value>Snapshots</value><comment>Section heading. Snapshots are saved versions of the backup.</comment></data>
+  <data name="SettingsStorage" xml:space="preserve"><value>Storage</value><comment>Title of the Settings row that shows where the backup is stored. Noun.</comment></data>
+  <data name="SettingsStoredOn" xml:space="preserve"><value>Stored on {0}</value><comment>{0} is the server name, such as FUTO Cloud.</comment></data>
+  <data name="SettingsStoredOnEstimated" xml:space="preserve"><value>About {0} stored on {1}. This is an estimate made on this PC.</value><comment>Storage line in Settings when the server has not measured the backup yet. {0} is a size such as 1.2 GB. {1} is the server name, such as FUTO Cloud.</comment></data>
+  <data name="SettingsStoredOnSized" xml:space="preserve"><value>{0} stored on {1}</value><comment>{0} is a size such as 1.2 GB. {1} is the server name, such as FUTO Cloud.</comment></data>
+  <data name="SettingsSupportIncludeNames" xml:space="preserve"><value>Include file names</value><comment>Support mode setting title.</comment></data>
+  <data name="SettingsSupportIncludeNamesHint" xml:space="preserve"><value>When this is off, file names are replaced by placeholders.</value><comment>Description under Include file names.</comment></data>
+  <data name="SettingsSupportMode" xml:space="preserve"><value>Support mode</value><comment>Setting title in Settings.</comment></data>
+  <data name="SettingsSupportModeHint" xml:space="preserve"><value>Records detailed logs for the next backups so FUTO support can find a problem. Turns itself off when those backups are done.</value><comment>Description under Support mode.</comment></data>
+  <data name="SettingsSupportOneRun" xml:space="preserve"><value>Next backup</value><comment>Support mode choice: record only the next backup.</comment></data>
+  <data name="SettingsSupportRuns" xml:space="preserve"><value>Next {0} backups</value><comment>Support mode choice. {0} is a number of backups, 2 or more.</comment></data>
+  <data name="SettingsSupportRunsOff" xml:space="preserve"><value>Off</value><comment>Support mode choice: not recording.</comment></data>
+  <data name="SettingsSupportShare" xml:space="preserve"><value>Send logs to FUTO</value><comment>Support mode setting title. Sends the recorded logs to FUTO as they are made.</comment></data>
+  <data name="SettingsSupportShareHint" xml:space="preserve"><value>Each recorded backup gets a support code to quote when you contact FUTO.</value><comment>Description under Send logs to FUTO.</comment></data>
+  <data name="SettingsTelemetry" xml:space="preserve"><value>Shared with FUTO to find problems. Required during the closed beta.</value></data>
+  <data name="SettingsTelemetryAgreed" xml:space="preserve"><value>Shared with FUTO to find problems. Required during the closed beta. You agreed on {0}.</value><comment>{0} is the date and time the user agreed, such as Tuesday 3 November 2026 at 14:30.</comment></data>
+  <data name="SettingsTitle" xml:space="preserve"><value>Settings</value><comment>Navigation item for the settings page, and its title.</comment></data>
+  <data name="SettingsToLabel" xml:space="preserve"><value>To</value><comment>Accessible name of the end time picker for the full speed hours, as in to 06:00.</comment></data>
+  <data name="SettingsUnlimited" xml:space="preserve"><value>Unlimited</value><comment>Placeholder in the empty upload limit box. There is no limit.</comment></data>
+  <data name="SettingsUnlinkButton" xml:space="preserve"><value>Unlink This PC</value><comment>Button in a confirmation dialog that unlinks this PC. Verb.</comment></data>
+  <data name="SettingsUnlinkConfirm" xml:space="preserve"><value>I have my recovery key. Without it, I cannot restore this PC's backup.</value></data>
+  <data name="SettingsUnlinkDialogTitle" xml:space="preserve"><value>Unlink this PC?</value><comment>Title of a confirmation dialog. Question.</comment></data>
+  <data name="SettingsUnlinkExplain" xml:space="preserve"><value>This removes FUTO Backups' settings, sign-in, recovery key and cache from this PC. Your backup stays on FUTO Cloud and this PC stays listed in your account. To continue it later, sign in and enter your recovery key.</value></data>
+  <data name="SettingsUnlinkHint" xml:space="preserve"><value>Remove FUTO Backups' settings, sign-in and recovery key from this PC. Its backup stays on FUTO Cloud and this PC stays listed in your account.</value></data>
+  <data name="SettingsUnlinkTitle" xml:space="preserve"><value>Unlink this PC</value><comment>Title of a row in Settings. Verb phrase.</comment></data>
+  <data name="SettingsUnlinking" xml:space="preserve"><value>Unlinking this PC</value><comment>Shown next to a progress ring.</comment></data>
+  <data name="SettingsUpdates" xml:space="preserve"><value>Updates</value><comment>Section heading.</comment></data>
+  <data name="SettingsUploadLimit" xml:space="preserve"><value>Upload limit</value><comment>Title of a Settings row.</comment></data>
+  <data name="SettingsUploadLimitHint" xml:space="preserve"><value>In KB/s. Leave empty for no limit.</value><comment>KB/s is kilobytes per second.</comment></data>
+  <data name="SettingsUploadLimitNotAWholeNumber" xml:space="preserve"><value>Enter a whole number of KB/s, or leave it empty for no limit.</value><comment>KB/s is kilobytes per second.</comment></data>
+  <data name="SettingsUploadLimitTooLarge" xml:space="preserve"><value>Enter at most {0:N0} KB/s.</value><comment>{0:N0} is the largest number allowed, with thousands separators. KB/s is kilobytes per second.</comment></data>
+  <data name="SettingsUsageData" xml:space="preserve"><value>Usage and diagnostic data</value><comment>Title of a Settings row.</comment></data>
+  <data name="SettingsUsbModel" xml:space="preserve"><value>{0} ({1})</value><comment>USB device choice when two devices share a name. {0} is the device name and {1} is its model code, such as 2188:0610.</comment></data>
+  <data name="SettingsUsbNotAttached" xml:space="preserve"><value>{0} (not attached)</value><comment>USB device choice for a device that is not plugged in now. {0} is the device name.</comment></data>
+  <data name="SettingsUsbOff" xml:space="preserve"><value>Off</value><comment>Choice in the USB device list meaning no device is required.</comment></data>
+  <data name="SettingsVersion" xml:space="preserve"><value>Version {0}, alpha. This version does not update itself yet.</value><comment>{0} is the version number of the app, such as 0.1.0.</comment></data>
+  <data name="SettingsVersionDevelopment" xml:space="preserve"><value>Version {0}, alpha. Updates are off in development builds.</value><comment>{0} is the version number of the app, such as 0.1.0.</comment></data>
+  <data name="SettingsWriteOnce" xml:space="preserve"><value>Write-once backup</value><comment>Setting title. A write-once backup can never have its snapshots removed.</comment></data>
+  <data name="SettingsWriteOnceConfirmBody" xml:space="preserve"><value>Once written, backups can't be removed, not even by you. Old snapshots are kept for ever, so storage keeps growing. Turning this off later needs confirmation in your browser.</value><comment>Body of the dialog before turning on write-once.</comment></data>
+  <data name="SettingsWriteOnceConfirmTitle" xml:space="preserve"><value>Turn on write-once?</value><comment>Title of the dialog before turning on write-once.</comment></data>
+  <data name="SettingsWriteOnceHint" xml:space="preserve"><value>Once written, backups can't be removed. Turning this off needs confirmation in your browser.</value><comment>Description under Write-once backup.</comment></data>
+  <data name="SettingsWriteOnceTurnOn" xml:space="preserve"><value>Turn On</value><comment>Button in the write-once dialog. Verb.</comment></data>
+  <data name="SettingsWriteOnceWaiting" xml:space="preserve"><value>Confirm in your browser to turn off write-once.</value><comment>Shown after the browser opens to confirm turning off write-once.</comment></data>
+  <data name="StartupReportFailed" xml:space="preserve"><value>The report could not be sent. Check your connection and try again.</value><comment>Shown on the start-up error bar when sending the report failed.</comment></data>
+  <data name="StartupReportNeedsSignIn" xml:space="preserve"><value>Sign in to send this report to FUTO.</value><comment>Shown on the start-up error bar when the report cannot be sent because nobody is signed in.</comment></data>
+  <data name="StartupReportSending" xml:space="preserve"><value>Sending the report.</value><comment>Shown on the start-up error bar while the report is being sent.</comment></data>
+  <data name="StartupReportSent" xml:space="preserve"><value>Report sent. Thank you.</value><comment>Shown on the start-up error bar after the report was sent.</comment></data>
+  <data name="StartupSendReport" xml:space="preserve"><value>Send Report</value><comment>Button on the start-up error bar. Sends the error to FUTO.</comment></data>
+  <data name="StatusAddFolders" xml:space="preserve"><value>Add the folders you want to keep safe.</value></data>
+  <data name="StatusAllCount" xml:space="preserve"><value>All {0}</value><comment>{0} is the total number of items in a list, as in All 12.</comment></data>
+  <data name="StatusBackedUpWithWarnings" xml:space="preserve"><value>Backed up with warnings</value><comment>Title when the last backup finished but could not read some files.</comment></data>
+  <data name="StatusBackingUp" xml:space="preserve"><value>Backing up</value><comment>Title while a backup is running. Verb form.</comment></data>
+  <data name="StatusBackupCancelled" xml:space="preserve"><value>Backup cancelled</value><comment>Title when the last backup was cancelled by the user.</comment></data>
+  <data name="StatusBackupInterrupted" xml:space="preserve"><value>Backup interrupted</value><comment>Title when the last backup stopped because the app closed or the PC shut down.</comment></data>
+  <data name="StatusBackupInterruptedSubtitle" xml:space="preserve"><value>The backup stopped {0} because FUTO Backups closed or this PC shut down. The next backup continues from what was uploaded.</value><comment>{0} is when the backup stopped, written to fit in a sentence, such as today at 14:30.</comment></data>
+  <data name="StatusBackupMissing" xml:space="preserve"><value>This PC's backup is missing</value></data>
+  <data name="StatusBackupMissingSubtitle" xml:space="preserve"><value>Start a new backup to keep this PC protected.</value></data>
+  <data name="StatusBringingFilesBack" xml:space="preserve"><value>Bringing your files back</value><comment>Subtitle while a restore is starting.</comment></data>
+  <data name="StatusCancelled" xml:space="preserve"><value>Cancelled</value><comment>Option in the activity filter, and status of a cancelled run.</comment></data>
+  <data name="StatusCancelling" xml:space="preserve"><value>Cancelling</value><comment>Title while a cancel is in progress.</comment></data>
+  <data name="StatusCannotBackUp" xml:space="preserve"><value>FUTO Backups cannot back up</value><comment>Title when a backup cannot run. &quot;Back up&quot; is a verb.</comment></data>
+  <data name="StatusCannotBeAccessed" xml:space="preserve"><value>Cannot be accessed</value><comment>Reason shown for a file that could not be read.</comment></data>
+  <data name="StatusChangingRecoveryKey" xml:space="preserve"><value>Changing recovery key</value><comment>Title while the recovery key is being changed.</comment></data>
+  <data name="StatusCheckConnection" xml:space="preserve"><value>Make sure that this PC is connected to the internet, then try again.</value></data>
+  <data name="StatusCloudOnlyFiles" xml:space="preserve"><value>{0} files are stored only in the cloud and were not backed up.</value><comment>Headline. {0} is the number of files, 2 or more. {1} is their total size, which is not used in this variant.</comment></data>
+  <data name="StatusCloudOnlyFilesSized" xml:space="preserve"><value>{0} files ({1}) are stored only in the cloud and were not backed up.</value><comment>Headline. {0} is the number of files, 2 or more. {1} is their total size such as 1.2 MB.</comment></data>
+  <data name="StatusCloudOnlyItems" xml:space="preserve"><value>{0} items are stored only in the cloud and were not backed up.</value><comment>Headline. {0} is the number of items, 2 or more. Items are folders. {1} is their total size, which is not used in this variant.</comment></data>
+  <data name="StatusCloudOnlyItemsSized" xml:space="preserve"><value>{0} items ({1}) are stored only in the cloud and were not backed up.</value><comment>Headline. {0} is the number of items, 2 or more. Items are folders. {1} is their total size such as 1.2 MB.</comment></data>
+  <data name="StatusCloudOnlyOneFile" xml:space="preserve"><value>1 file is stored only in the cloud and was not backed up.</value><comment>Headline for exactly one file. {0} is the number, which is 1 and is not used. {1} is not used.</comment></data>
+  <data name="StatusCloudOnlyOneFileSized" xml:space="preserve"><value>1 file ({1}) is stored only in the cloud and was not backed up.</value><comment>Headline for exactly one file. {0} is the number, which is 1 and is not used. {1} is its size such as 1.2 MB.</comment></data>
+  <data name="StatusCloudOnlyOneItem" xml:space="preserve"><value>1 item is stored only in the cloud and was not backed up.</value><comment>Headline for exactly one item, a folder. {0} is the number, which is 1 and is not used. {1} is not used.</comment></data>
+  <data name="StatusCloudOnlyOneItemSized" xml:space="preserve"><value>1 item ({1}) is stored only in the cloud and was not backed up.</value><comment>Headline for exactly one item, a folder. {0} is the number, which is 1 and is not used. {1} is its size such as 1.2 MB.</comment></data>
+  <data name="StatusCouldNotBackUpFiles" xml:space="preserve"><value>FUTO Backups could not back up {0} files.</value><comment>{0} is the number of files, 2 or more.</comment></data>
+  <data name="StatusCouldNotBackUpOneFile" xml:space="preserve"><value>FUTO Backups could not back up 1 file.</value><comment>Exactly one file.</comment></data>
+  <data name="StatusCouldNotReadSome" xml:space="preserve"><value>FUTO Backups could not read some files.</value></data>
+  <data name="StatusDataAdded" xml:space="preserve"><value>{0} added</value><comment>{0} is a size such as 1.2 MB. It is how much new data a backup added.</comment></data>
+  <data name="StatusDoesNotExist" xml:space="preserve"><value>Does not exist</value><comment>Reason shown for a file that is no longer on the PC.</comment></data>
+  <data name="StatusFinishingBackup" xml:space="preserve"><value>Finishing backup</value><comment>Title while a backup is finishing.</comment></data>
+  <data name="StatusFirstAndMore" xml:space="preserve"><value>First {0}, and {1} more</value><comment>{0} is how many items are listed and {1} is how many are not listed.</comment></data>
+  <data name="StatusFoldersSelected" xml:space="preserve"><value>{0} folders selected. Everything is encrypted on this PC.</value><comment>{0} is the number of folders, 2 or more.</comment></data>
+  <data name="StatusHeadlineFiles" xml:space="preserve"><value>Could not back up {0} files</value><comment>{0} is the number of files, 2 or more.</comment></data>
+  <data name="StatusHeadlineOneFile" xml:space="preserve"><value>Could not back up 1 file</value><comment>Exactly one file.</comment></data>
+  <data name="StatusItems" xml:space="preserve"><value>{0:N0} items</value><comment>{0:N0} is the number of items, 2 or more, with thousands separators.</comment></data>
+  <data name="StatusItemsRestoredOfMany" xml:space="preserve"><value>{0:N0} of {1:N0} items</value><comment>{0:N0} is the number of items restored so far. {1:N0} is the total, 2 or more.</comment></data>
+  <data name="StatusItemsRestoredOfOne" xml:space="preserve"><value>{0:N0} of {1:N0} item</value><comment>{0:N0} is the number of items restored so far. {1:N0} is the total, which is 1.</comment></data>
+  <data name="StatusLastBackupFailed" xml:space="preserve"><value>Last backup failed</value><comment>Title when the last backup failed.</comment></data>
+  <data name="StatusLastBackupFailedSubtitle" xml:space="preserve"><value>{0} Your existing backups did not change. Last attempt {1}.</value><comment>{0} is a sentence saying why it failed. {1} is when the last attempt was, written to fit in a sentence, such as today at 14:30.</comment></data>
+  <data name="StatusLastBackupProtected" xml:space="preserve"><value>Last backup {0} · {1} protected</value><comment>{0} is when the last backup was, written to fit in a sentence, such as today at 14:30. {1} is the amount of data protected, such as 1.2 GB.</comment></data>
+  <data name="StatusLookingForChanges" xml:space="preserve"><value>Looking for changes in your folders</value><comment>Subtitle while a backup is getting ready.</comment></data>
+  <data name="StatusLookingForCloudOnly" xml:space="preserve"><value>Looking for files kept only in the cloud</value><comment>Subtitle while a backup is finishing.</comment></data>
+  <data name="StatusNever" xml:space="preserve"><value>Never</value><comment>Shown as the time of the last backup when there has not been one.</comment></data>
+  <data name="StatusNewFiles" xml:space="preserve"><value>{0:N0} new files</value><comment>{0:N0} is the number of new files, 2 or more, with thousands separators.</comment></data>
+  <data name="StatusNoChanges" xml:space="preserve"><value>No changes since the last backup.</value><comment>Shown as the result of a backup that found nothing new to back up.</comment></data>
+  <data name="StatusOffline" xml:space="preserve"><value>Backups are offline</value><comment>Title when the last backup failed because this PC could not connect.</comment></data>
+  <data name="StatusOneFolderSelected" xml:space="preserve"><value>1 folder selected. Everything is encrypted on this PC.</value><comment>Exactly one folder.</comment></data>
+  <data name="StatusOneItem" xml:space="preserve"><value>1 item</value><comment>Exactly one item.</comment></data>
+  <data name="StatusOneNewFile" xml:space="preserve"><value>1 new file</value><comment>Exactly one new file.</comment></data>
+  <data name="StatusPreparingBackup" xml:space="preserve"><value>Preparing backup</value><comment>Title while a backup is getting ready.</comment></data>
+  <data name="StatusPreparingUpload" xml:space="preserve"><value>Preparing upload</value><comment>Description of the upload speed graph before any data has been uploaded.</comment></data>
+  <data name="StatusProtected" xml:space="preserve"><value>Your files are protected</value><comment>Title when the last backup finished without problems.</comment></data>
+  <data name="StatusReadyForFirstBackup" xml:space="preserve"><value>Ready for your first backup</value><comment>Title when folders are chosen but no backup has run yet.</comment></data>
+  <data name="StatusRemovingOldSnapshots" xml:space="preserve"><value>Removing old snapshots</value><comment>Subtitle while old snapshots are being deleted.</comment></data>
+  <data name="StatusRestoring" xml:space="preserve"><value>Restoring</value><comment>Title while a restore is running. Verb form.</comment></data>
+  <data name="StatusRestoringPart" xml:space="preserve"><value>Restoring {0} of {1}</value><comment>Title while a restore runs in several parts. {0} is the number of the current part and {1} is the number of parts.</comment></data>
+  <data name="StatusSchedulePaused" xml:space="preserve"><value>Scheduled backups are paused</value><comment>Title when the schedule is paused.</comment></data>
+  <data name="StatusSchedulePausedSubtitle" xml:space="preserve"><value>Last backup {0}. Back up now, or resume the schedule.</value><comment>{0} is when the last backup was, written to fit in a sentence, such as today at 14:30.</comment></data>
+  <data name="StatusShowingFirstOf" xml:space="preserve"><value>Showing the first {0} of {1}</value><comment>{0} is how many items are shown and {1} is the total.</comment></data>
+  <data name="StatusSignedOut" xml:space="preserve"><value>You are signed out</value><comment>Title when the user is signed out.</comment></data>
+  <data name="StatusSignedOutSubtitle" xml:space="preserve"><value>Backups are paused until you sign in again.</value></data>
+  <data name="StatusStoppedAt" xml:space="preserve"><value>Stopped {0}.</value><comment>{0} is when the backup stopped, written to fit in a sentence, such as today at 14:30.</comment></data>
+  <data name="StatusStoppingSafely" xml:space="preserve"><value>Stopping safely</value><comment>Subtitle while a backup is being cancelled.</comment></data>
+  <data name="StatusTidyingUp" xml:space="preserve"><value>Tidying up</value><comment>Title while old snapshots are being deleted.</comment></data>
+  <data name="StatusTransferred" xml:space="preserve"><value>{0} of {1}</value><comment>{0} is the amount transferred so far, such as 1.2 GB. {1} is the total, such as 4 GB.</comment></data>
+  <data name="StatusUpdatingKey" xml:space="preserve"><value>Updating the key for this PC's backup</value><comment>Subtitle while the recovery key is being changed.</comment></data>
+  <data name="StatusUploadAverage" xml:space="preserve"><value>Average {0}</value><comment>{0} is an upload speed such as 12 Mbit/s.</comment></data>
+  <data name="StatusUploadLimitedTo" xml:space="preserve"><value>limited to {0}</value><comment>Lower case, shown after the average speed. {0} is an upload speed limit such as 5 Mbit/s.</comment></data>
+  <data name="StatusUploadSummary" xml:space="preserve"><value>{0} now, average {1}, peak {2}</value><comment>Description of the upload speed graph for screen readers. {0} is the current speed, {1} the average and {2} the highest speed.</comment></data>
+  <data name="StatusUploadingLastChanges" xml:space="preserve"><value>Uploading the last changes</value><comment>Subtitle while a backup is finishing.</comment></data>
+  <data name="TrayFlyoutLastBackup" xml:space="preserve"><value>Last backup</value><comment>Label in the tray panel, beside when the last backup finished.</comment></data>
+  <data name="TrayFlyoutNextBackup" xml:space="preserve"><value>Next backup</value><comment>Label in the tray panel, beside when the next backup is due.</comment></data>
+  <data name="TrayLastBackup" xml:space="preserve"><value>Last backup: {0}</value><comment>Tray menu line. {0} is when the last backup was, such as Today at 14:30, or Never.</comment></data>
+  <data name="TrayNextBackup" xml:space="preserve"><value>Next backup: {0}</value><comment>Tray menu line. {0} is when the next backup is due, such as Tomorrow at 14:30, or a status such as Paused.</comment></data>
+  <data name="TrayOpen" xml:space="preserve"><value>Open FUTO Backups</value><comment>Tray menu item that opens the app window.</comment></data>
+  <data name="TrayQuit" xml:space="preserve"><value>Quit FUTO Backups</value><comment>Tray menu item that quits the app.</comment></data>
+  <data name="TrayQuitHelp" xml:space="preserve"><value>Stops FUTO Backups, including scheduled backups, until you open it again.</value><comment>Tooltip on Quit FUTO Backups in the tray panel.</comment></data>
+  <data name="TraySignInHint" xml:space="preserve"><value>Open FUTO Backups to sign in.</value><comment>Shown in the tray panel under Not signed in.</comment></data>
+  <data name="TrayStatusProgress" xml:space="preserve"><value>{0} {1}</value><comment>First line of the tray menu while a backup runs. {0} is the status and {1} is the progress, such as 42%.</comment></data>
+  <data name="TrayToolTip" xml:space="preserve"><value>FUTO Backups: {0}</value><comment>Tooltip of the tray icon. {0} is the current status.</comment></data>
+  <data name="TrayToolTipProgress" xml:space="preserve"><value>FUTO Backups: {0} {1}</value><comment>Tooltip of the tray icon while a backup runs. {0} is the current status and {1} is the progress, such as 42%.</comment></data>
+</root>
