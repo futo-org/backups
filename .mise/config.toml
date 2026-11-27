@@ -7,6 +7,7 @@ config_roots = [
   "packages/emails",
   "packages/futo-backups-bot",
   "packages/macos-app",
+  "packages/windows-app",
   "packages/restic-proxy",
   "packages/standalone-app",
   "packages/web",

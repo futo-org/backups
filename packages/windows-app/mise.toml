@@ -1,0 +1,11 @@
+[tools]
+dotnet = "11.0.100"
+
+[tasks."win:format"]
+description = "Fix formatting and the analyzer findings dotnet format can fix; the build checks them"
+run = "bash scripts/format.sh"
+
+[tasks."win:test"]
+description = "Run the Windows engine unit tests"
+run = "dotnet test --project tests/FutoBackups.Core.Tests"
+
