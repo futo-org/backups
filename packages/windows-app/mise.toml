@@ -1,5 +1,6 @@
 [tools]
 dotnet = "11.0.100"
+"dotnet:vpk" = "1.2.161"
 "dotnet:NSwag.ConsoleCore" = "14.8.0"
 
 [tasks."win:build"]
@@ -21,6 +22,14 @@ run = "dotnet test --project tests/FutoBackups.Core.Tests"
 [tasks."win:check"]
 description = "Build and test the Windows app"
 run = [{ task = "win:build" }, { task = "win:test" }]
+
+[tasks."win:release"]
+description = "Build the Velopack installers and update packages of the Windows app for arm64 and x64: mise run win:release <version> [publish|package]"
+run = "bash scripts/release.sh"
+
+[tasks."win:update-key"]
+description = "Create the update signing key pair: mise run win:update-key <private key path>"
+run = "bash scripts/update-key.sh"
 
 [tasks."win:mock"]
 description = "Run the Windows app against simulated services, without an account"
