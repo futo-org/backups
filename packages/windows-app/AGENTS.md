@@ -11,7 +11,7 @@ reader would otherwise miss; these are rare. Re-read your diff and delete every 
 ## Tooling
 
 - Run everything from `packages/windows-app` through mise: `mise run win:build`, `mise run win:test`,
-  `mise run win:check`, `mise run win:mock`, `mise run win:helpers`. mise pins the .NET SDK.
+  `mise run win:check`, `mise run win:mock`. mise pins the .NET SDK and Go; building the tests or the app builds restic.exe and restic-proxy.exe first.
 - The .NET analyzers run at the Recommended level with warnings as errors, and formatting follows the .NET
   defaults in `.editorconfig`, so the build fails on either. `mise run win:format` fixes what it can. A rule is turned
   off only in `.editorconfig`, with the reason beside it.
@@ -29,13 +29,14 @@ src/FutoBackups.Core/       library, all logic, fully unit-tested, no UI
   Engine/                   backup, restore, key rotation, deletion and reset orchestration
   Status/                   the status summary every surface shows
   Models/                   AppModel: app state and flows, the port of the macOS AppModel
+src/FutoBackups.ResticWrapper/ builders for the restic commands the app runs, the process runner and restic's JSON output
 src/FutoBackups/            WinUI app (thin; logic stays in Core)
   ViewModels/               one view model per page, built on AppModel
   Pages/, Controls/         XAML views
   Platform/                 notifications, start at login, Windows Hello and password checks, pickers
   Mock/                     simulated engine and account for --mock
 tests/FutoBackups.Core.Tests/
-scripts/build-helpers.sh    builds restic.exe and restic-proxy.exe for both architectures
+Helpers.targets             builds restic.exe (root restic:install task) and restic-proxy.exe before each build
 ```
 
 ## Rules

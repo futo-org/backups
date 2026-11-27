@@ -13,9 +13,12 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\FutoBackups.Core\FutoBackups.Core.csproj" />
+    <ProjectReference Include="..\..\src\FutoBackups.ResticWrapper\FutoBackups.ResticWrapper.csproj" />
   </ItemGroup>
 
   <ItemGroup>
     <Using Include="Xunit" />
   </ItemGroup>
+
+  <Import Project="..\..\Helpers.targets" />
 </Project>
