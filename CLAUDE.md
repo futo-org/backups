@@ -117,6 +117,8 @@ added explicitly in `pnpm-workspace.yaml`.
 
 **API client generation**: yucca-api DTOs → `mise //packages/yucca-api:sync-openapi` →
 `mise //packages/yucca-api-client:build` (oazapfts) → `packages/yucca-api-client/src/fetch-client.ts`.
+The Windows app's C# client is generated from the same spec by `mise //packages/windows-app:win:api` (NSwag) →
+`packages/windows-app/src/FutoBackups.YuccaApi/YuccaApiClient.g.cs`.
 Generated — regenerate on contract changes, never hand-edit.
 
 **Database**: PostgreSQL via **Kysely**. Schema in `packages/yucca-api/src/schema/`

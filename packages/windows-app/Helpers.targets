@@ -1,0 +1,31 @@
+<Project>
+  <PropertyGroup>
+    <HelpersDirectory>$(MSBuildThisFileDirectory)build\helpers\</HelpersDirectory>
+    <HelpersRepositoryRoot>$(MSBuildThisFileDirectory)..\..\</HelpersRepositoryRoot>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <HelperArchitecture Include="arm64" GoArch="arm64" />
+    <HelperArchitecture Include="x64" GoArch="amd64" />
+    <ResticProxySource Include="$(HelpersRepositoryRoot)packages\restic-proxy\**\*.go;$(HelpersRepositoryRoot)packages\restic-proxy\go.mod;$(HelpersRepositoryRoot)packages\restic-proxy\go.sum" />
+  </ItemGroup>
+
+  <Target Name="BuildHelpers" BeforeTargets="BeforeBuild" DependsOnTargets="BuildRestic;BuildResticProxy" />
+
+  <Target
+    Name="BuildRestic"
+    Inputs="$(HelpersRepositoryRoot)packages\standalone-app\Dockerfile;$(HelpersRepositoryRoot).mise\tasks\restic\install"
+    Outputs="$(HelpersDirectory)arm64\restic.exe;$(HelpersDirectory)x64\restic.exe">
+    <Exec Command="mise run restic:install windows &quot;$(HelpersDirectory.TrimEnd('\'))&quot;" WorkingDirectory="$(HelpersRepositoryRoot)" />
+  </Target>
+
+  <Target
+    Name="BuildResticProxy"
+    Inputs="@(ResticProxySource)"
+    Outputs="@(HelperArchitecture->'$(HelpersDirectory)%(Identity)\restic-proxy.exe')">
+    <Exec
+      Command="mise exec -- go build -trimpath -ldflags &quot;-s -w&quot; -o &quot;$(HelpersDirectory)%(HelperArchitecture.Identity)\restic-proxy.exe&quot; ."
+      EnvironmentVariables="CGO_ENABLED=0;GOOS=windows;GOARCH=%(HelperArchitecture.GoArch)"
+      WorkingDirectory="$(HelpersRepositoryRoot)packages\restic-proxy" />
+  </Target>
+</Project>

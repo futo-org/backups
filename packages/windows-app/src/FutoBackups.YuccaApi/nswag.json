@@ -1,0 +1,33 @@
+{
+  "runtime": "Net110",
+  "defaultVariables": "Spec=",
+  "documentGenerator": {
+    "fromDocument": {
+      "url": "$(Spec)"
+    }
+  },
+  "codeGenerators": {
+    "openApiToCSharpClient": {
+      "namespace": "FutoBackups.YuccaApi",
+      "className": "YuccaApiClient",
+      "operationGenerationMode": "SingleClientFromOperationId",
+      "useBaseUrl": false,
+      "injectHttpClient": true,
+      "disposeHttpClient": false,
+      "generateClientInterfaces": false,
+      "generateExceptionClasses": true,
+      "exceptionClass": "YuccaApiException",
+      "jsonLibrary": "SystemTextJson",
+      "generateNullableReferenceTypes": true,
+      "generateOptionalPropertiesAsNullable": true,
+      "generateDataAnnotations": false,
+      "classStyle": "Poco",
+      "dateTimeType": "System.DateTimeOffset",
+      "arrayType": "System.Collections.Generic.IReadOnlyList",
+      "arrayInstanceType": "System.Collections.Generic.List",
+      "dictionaryType": "System.Collections.Generic.IReadOnlyDictionary",
+      "dictionaryInstanceType": "System.Collections.Generic.Dictionary",
+      "output": "YuccaApiClient.g.cs"
+    }
+  }
+}

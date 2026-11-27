@@ -1,35 +1,21 @@
 #!/usr/bin/env bash
-#MISE description="Install the restic build the standalone image ships into .mise/bin"
+#MISE description="Install the restic build the standalone image ships into .mise/bin, or with `windows <dir>` build restic.exe for arm64 and x64 into <dir>"
 set -euo pipefail
 
 root=$(cd "$(dirname "$0")/../../.." && pwd)
 image=$(sed -n 's/^ARG RESTIC_IMAGE=//p' "$root/packages/standalone-app/Dockerfile")
-bin="$root/.mise/bin"
-marker="$bin/.restic-image"
+tag=${image#*:}
+tag=${tag%@*}
+commit=${tag#sha-}
 
-if [ -x "$bin/restic" ] && [ "$(cat "$marker" 2>/dev/null)" = "$image" ]; then
-  exit 0
-fi
-
-mkdir -p "$bin"
-if [ "$(uname -s)" = Linux ]; then
-  case "$(uname -m)" in
-    x86_64) arch=amd64 ;;
-    aarch64 | arm64) arch=arm64 ;;
-    *) echo "no restic image for $(uname -m)" >&2 && exit 1 ;;
-  esac
-  crane export --platform "linux/$arch" "$image" - | tar -xOf - usr/bin/restic >"$bin/restic.new"
-else
-  tag=${image#*:}
-  tag=${tag%@*}
-  commit=${tag#sha-}
-  source=$(mktemp -d)
-  trap 'rm -rf "$source"' EXIT
+checkout_pinned_source() {
+  local source=$1
   git clone -q --filter=blob:none --no-checkout https://github.com/futo-org/restic.git "$source"
   if [ -n "$(git -C "$source" for-each-ref "refs/tags/$commit" "refs/heads/$commit" "refs/remotes/origin/$commit")" ]; then
     echo "$commit is a ref name, not a commit id" >&2
     exit 1
   fi
+  local full
   full=$(git -C "$source" rev-parse --verify --quiet "$commit^{commit}") || full=
   if [ -z "$full" ]; then
     echo "$commit does not resolve to a commit in futo-org/restic" >&2
@@ -48,6 +34,46 @@ else
     exit 1
   fi
   sed -i.orig -E "s/^const Version = \"([^\"]+)\"$/const Version = \"\1+futo.$commit\"/" "$source/internal/global/global.go"
+}
+
+if [ "${1:-}" = windows ]; then
+  out=${2:?usage: restic:install windows <dir>}
+  marker="$out/.restic-image"
+  if [ -f "$out/arm64/restic.exe" ] && [ -f "$out/x64/restic.exe" ] && [ "$(cat "$marker" 2>/dev/null)" = "$image" ]; then
+    touch "$out/arm64/restic.exe" "$out/x64/restic.exe"
+    exit 0
+  fi
+
+  source=$(mktemp -d)
+  trap 'rm -rf "$source"' EXIT
+  checkout_pinned_source "$source"
+  for pair in arm64:arm64 x64:amd64; do
+    mkdir -p "$out/${pair%%:*}"
+    (cd "$source" && CGO_ENABLED=0 GOOS=windows GOARCH=${pair##*:} go build -trimpath -ldflags "-s -w" -tags disable_grpc_modules -o "$out/${pair%%:*}/restic.exe" ./cmd/restic)
+  done
+  printf '%s\n' "$image" >"$marker"
+  exit 0
+fi
+
+bin="$root/.mise/bin"
+marker="$bin/.restic-image"
+
+if [ -x "$bin/restic" ] && [ "$(cat "$marker" 2>/dev/null)" = "$image" ]; then
+  exit 0
+fi
+
+mkdir -p "$bin"
+if [ "$(uname -s)" = Linux ]; then
+  case "$(uname -m)" in
+    x86_64) arch=amd64 ;;
+    aarch64 | arm64) arch=arm64 ;;
+    *) echo "no restic image for $(uname -m)" >&2 && exit 1 ;;
+  esac
+  crane export --platform "linux/$arch" "$image" - | tar -xOf - usr/bin/restic >"$bin/restic.new"
+else
+  source=$(mktemp -d)
+  trap 'rm -rf "$source"' EXIT
+  checkout_pinned_source "$source"
   (cd "$source" && CGO_ENABLED=0 go build -trimpath -ldflags "-s -w" -tags disable_grpc_modules -o "$bin/restic.new" ./cmd/restic)
 fi
 
