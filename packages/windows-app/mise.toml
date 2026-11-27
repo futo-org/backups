@@ -1,0 +1,7 @@
+[tools]
+dotnet = "11.0.100"
+
+[tasks."win:test"]
+description = "Run the Windows engine unit tests"
+run = "dotnet test --project tests/FutoBackups.Core.Tests"
+
