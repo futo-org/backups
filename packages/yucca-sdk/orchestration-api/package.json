@@ -16,7 +16,7 @@
   "keywords": [],
   "author": "",
   "license": "Source First License 1.1",
-  "packageManager": "pnpm@10.28.1",
+  "packageManager": "pnpm@12.23.0",
   "peerDependencies": {
     "@electric-sql/pglite": "catalog:",
     "@electric-sql/pglite-prepopulatedfs": "catalog:",
