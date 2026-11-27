@@ -36,7 +36,7 @@ jobs:
       GH_REPO: ${{ github.repository }}
     steps:
       - name: Checkout release tree
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: refs/tags/${{ github.event.release.tag_name || inputs.tag }}
           fetch-depth: 0
@@ -177,7 +177,7 @@ jobs:
           fi
 
       - name: Checkout release tree
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ needs.gate.outputs.sha }}
           fetch-depth: 0
@@ -203,7 +203,7 @@ jobs:
           printf '\nBuilt from v%s.\n' "$VERSION" >> "$RUNNER_TEMP/macos-notes.md"
 
       - name: Setup Mise
-        uses: jdx/mise-action@c2a87611a18de5b3828c5652fe268e992400cb5c # v4.3.0
+        uses: jdx/mise-action@924e7c586e33d7d4bae9c14e26c5d22e2beb6e78 # v5.3.0
         with:
           # The action caches by default; a poisoned cache would end up in
           # the shipped binary, so a release build never restores one.
@@ -254,7 +254,7 @@ jobs:
       # and tagging a commit that changes workflow files needs workflows access.
       - name: Generate a release bot token
         id: bot
-        uses: actions/create-github-app-token@67018539274d69449ef7c02e8e71183d1719ab42 # v2.1.4
+        uses: actions/create-github-app-token@f418cff399f7aef4c2f0ad47e25ca7a6abbdd6fc # v3.4.0
         with:
           app-id: ${{ secrets.RELEASE_BOT_APP_ID }}
           private-key: ${{ secrets.RELEASE_BOT_APP_KEY }}
@@ -309,7 +309,7 @@ jobs:
     steps:
       - name: Generate a release bot token
         id: bot
-        uses: actions/create-github-app-token@67018539274d69449ef7c02e8e71183d1719ab42 # v2.1.4
+        uses: actions/create-github-app-token@f418cff399f7aef4c2f0ad47e25ca7a6abbdd6fc # v3.4.0
         with:
           app-id: ${{ secrets.RELEASE_BOT_APP_ID }}
           private-key: ${{ secrets.RELEASE_BOT_APP_KEY }}
@@ -442,7 +442,7 @@ jobs:
 
       - name: Checkout the cask template
         if: steps.key.outputs.present == 'true'
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
           sparse-checkout: packages/macos-app
