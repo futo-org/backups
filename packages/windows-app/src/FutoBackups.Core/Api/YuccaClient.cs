@@ -42,7 +42,30 @@ public interface IYuccaRepositoryApi
     Task SubmitStructuredLogAsync(StructuredLog log, CancellationToken cancellation = default);
 }
 
-public sealed class YuccaClient(Uri apiRoot, HttpClient http, string? accessToken = null, Func<TimeSpan, CancellationToken, Task>? sleep = null) : IYuccaRepositoryApi
+public interface IAccountApi
+{
+    Task<AuthInfo> MeAsync(CancellationToken cancellation = default);
+
+    Task LogoutAsync(CancellationToken cancellation = default);
+
+    Task<IReadOnlyList<RemoteRepository>> ListRepositoriesAsync(CancellationToken cancellation = default);
+
+    Task<RemoteRepository> UpdateRepositoryAsync(string repositoryId, string? name = null, bool? worm = null, CancellationToken cancellation = default);
+
+    Task<Uri> CreateTicketAsync(string action, string repositoryId, CancellationToken cancellation = default);
+
+    Task DeleteConnectionAsync(string id, CancellationToken cancellation = default);
+
+    Task SubmitStructuredLogAsync(StructuredLog log, CancellationToken cancellation = default);
+
+    Task<SupportSession> CreateSupportSessionAsync(string jobId, string jobName, bool includesPaths, string clientVersion, CancellationToken cancellation = default);
+
+    Task<SupportSession> RefreshSupportSessionAsync(string sessionId, CancellationToken cancellation = default);
+
+    Task<int> SendSupportBatchAsync(Uri url, string token, byte[] gzippedLines, int sequence, int droppedLines, bool final, CancellationToken cancellation = default);
+}
+
+public sealed class YuccaClient(Uri apiRoot, HttpClient http, string? accessToken = null, Func<TimeSpan, CancellationToken, Task>? sleep = null) : IYuccaRepositoryApi, IAccountApi
 {
     public const string ConnectionType = "windows";
 
