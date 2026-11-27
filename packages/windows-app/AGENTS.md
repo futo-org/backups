@@ -12,6 +12,9 @@ reader would otherwise miss; these are rare. Re-read your diff and delete every 
 
 - Run everything from `packages/windows-app` through mise: `mise run win:build`, `mise run win:test`,
   `mise run win:check`, `mise run win:mock`, `mise run win:helpers`. mise pins the .NET SDK.
+- The .NET analyzers run at the Recommended level with warnings as errors, and formatting follows the .NET
+  defaults in `.editorconfig`, so the build fails on either. `mise run win:format` fixes what it can. A rule is turned
+  off only in `.editorconfig`, with the reason beside it.
 - .NET 11, WinUI 3 (Windows App SDK), unpackaged and self-contained, for win-arm64 and win-x64.
 - Tests: xUnit v3 on Microsoft.Testing.Platform (`global.json`). `ResticIntegrationTests` run against the real
   restic.exe from `build/helpers` and skip when it has not been built.
