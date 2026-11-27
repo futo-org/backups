@@ -44,6 +44,9 @@ The size your machine calculated, shown because we have not measured it on our s
 **"Can't access, is your recovery key correct?" or "Can't read repository."**
 The app cannot decrypt that backup, which nearly always means the recovery key on this machine is not the one that created it. Import the correct key. See [your recovery key](/guides/recovery-key).
 
+**A backup stays queued and never starts on a multi-container Immich deployment.**
+The FUTO Backups integration runs inside Immich's API worker, and only one instance of it holds the backup lock. If more than one container runs the API worker, for example on Nomad or Kubernetes, or a split server and microservices setup where neither sets `IMMICH_WORKERS_INCLUDE` or `IMMICH_WORKERS_EXCLUDE`, a backup picked up by the wrong instance waits forever. Until multi-node support lands ([#379](https://github.com/futo-org/backups/issues/379)), make exactly one container run the API worker. For example, set `IMMICH_WORKERS_EXCLUDE=api` on the microservices container, or set `IMMICH_WORKERS_INCLUDE` to match, then restart. If that container has an HTTP health check on `/api/server/ping`, remove it or point it elsewhere: once the API is excluded it no longer answers, and orchestrators that roll back failed deployments, such as Nomad with `auto_revert`, will undo the change.
+
 ## Restoring
 
 **A restore fails with a permissions error.**

@@ -32,6 +32,10 @@ Immich v3.4.0 or later. Earlier releases do not include backups, so on them the 
 
 If your installation has not picked up v3.4.0 yet, for example the Unraid all-in-one image, you can join the beta with the [standalone container](/getting-started/standalone) in the meantime.
 
+### Does it work with Immich running on several nodes?
+
+Not yet. If more than one container runs Immich's API worker, backups stay queued. Until multi-node support lands, make exactly one container run the API worker. See [troubleshooting](/help/troubleshooting#backups).
+
 ### Can I back up more than my Immich library?
 
 Yes. The [standalone container](/getting-started/standalone) runs the same backup software outside Immich and backs up any folders you mount into it, so you can use it for a whole home server or NAS. One account can have Immich and standalone machines connected at the same time.
