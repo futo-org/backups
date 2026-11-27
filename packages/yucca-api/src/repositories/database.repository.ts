@@ -5,6 +5,7 @@ import { FileMigrationProvider, Migrator } from 'kysely/migration';
 import { InjectKysely } from 'nestjs-kysely';
 import { readdir } from 'node:fs/promises';
 import { join } from 'node:path';
+import { pathToFileURL } from 'node:url';
 import { DatabaseLock } from 'src/enum.js';
 import { env } from 'src/env.js';
 import { DB } from 'src/schema/index.js';
@@ -84,6 +85,7 @@ export class DatabaseRepository {
         },
         path: { join },
         migrationFolder: join(import.meta.dirname, '..', 'schema/migrations'),
+        import: (path) => import(pathToFileURL(path).href),
       }),
     });
   }
