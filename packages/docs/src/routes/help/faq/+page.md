@@ -40,6 +40,10 @@ Yes. The [standalone container](/getting-started/standalone) runs the same backu
 
 Yes, with the [Mac app](/getting-started/mac). It needs macOS 26 or later. The Mac app is in alpha, so keep a second copy of each file that you cannot lose.
 
+### Can I back up my Windows PC?
+
+Yes, with the [Windows app](/getting-started/windows). It needs Windows 10 version 2004 or later, or Windows 11. The Windows app is in alpha, so keep a second copy of each file that you cannot lose.
+
 ### Does it back up my external libraries?
 
 Yes. The recommended settings for your first backup in Immich include external libraries. Under **Backup Contents** you can choose to include all of them, none, or specific ones. See [choose what gets backed up](/getting-started/immich#4-choose-what-gets-backed-up).

@@ -1,0 +1,386 @@
+name: Windows Release
+
+# Update feeds live on the rolling `windows-feed` prerelease so the app's feed URL
+# never changes; each `windows-v<version>` keeps a copy so a rerun can repair the feed.
+# Unsigned builds (no Artifact Signing account) make SmartScreen warn on first launch.
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Release tag to build the Windows app for (e.g. v1.0.0)
+        required: true
+        type: string
+
+permissions: {}
+
+jobs:
+  gate:
+    name: Decide whether this release needs a Windows build
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    outputs:
+      mode: ${{ steps.decision.outputs.mode }}
+      version: ${{ steps.decision.outputs.version }}
+      sha: ${{ steps.decision.outputs.sha }}
+    env:
+      TAG: ${{ github.event.release.tag_name || inputs.tag }}
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+    steps:
+      - name: Checkout release tree
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          ref: refs/tags/${{ github.event.release.tag_name || inputs.tag }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Check the release against the Windows inputs
+        id: decision
+        env:
+          EVENT_PRERELEASE: ${{ github.event.release.prerelease }}
+        run: |
+          set -euo pipefail
+          version_cmp() {
+            local IFS=.
+            local -a a b
+            read -ra a <<< "$1"
+            read -ra b <<< "$2"
+            [ "${#a[@]}" -eq 3 ] && [ "${#b[@]}" -eq 3 ] || return 2
+            local i
+            for i in 0 1 2; do
+              case "${a[$i]}" in '' | *[!0-9]*) return 2 ;; esac
+              case "${b[$i]}" in '' | *[!0-9]*) return 2 ;; esac
+            done
+            for i in 0 1 2; do
+              if [ "${a[$i]}" -lt "${b[$i]}" ]; then printf '%s\n' -1; return; fi
+              if [ "${a[$i]}" -gt "${b[$i]}" ]; then printf '%s\n' 1; return; fi
+            done
+            printf '%s\n' 0
+          }
+          restic_image() {
+            git show "$1:packages/standalone-app/Dockerfile" | sed -n 's/^ARG RESTIC_IMAGE=//p'
+          }
+          release_exists() {
+            local err
+            if err=$(gh release view "$1" --json tagName 2>&1 > /dev/null); then
+              return 0
+            fi
+            if [[ $err == *"release not found"* ]]; then
+              return 1
+            fi
+            echo "::error::could not look up the $1 release: $err"
+            exit 1
+          }
+          skip() {
+            echo "mode=skip" >> "$GITHUB_OUTPUT"
+            echo "::notice::$1"
+            exit 0
+          }
+          version=${TAG#v}
+          if ! [[ $version =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            skip "$TAG is not a plain MAJOR.MINOR.PATCH release tag"
+          fi
+          if [ "$GITHUB_EVENT_NAME" = release ]; then
+            prerelease=$EVENT_PRERELEASE
+          else
+            prerelease=$(gh release view "$TAG" --json isPrerelease --jq .isPrerelease)
+          fi
+          if [ "$prerelease" = true ]; then
+            skip "$TAG is a prerelease"
+          fi
+          sha=$(git rev-parse "refs/tags/$TAG^{commit}")
+          previous=
+          cmp=
+          feed_assets=
+          if release_exists windows-feed; then
+            feed_assets=$(gh release view windows-feed --json assets --jq '.assets[].name')
+          fi
+          if grep -qxF releases.win-x64.json <<< "$feed_assets"; then
+            if ! gh release download windows-feed -p releases.win-x64.json -D "$RUNNER_TEMP/feed"; then
+              echo "::error::could not download the live feed"
+              exit 1
+            fi
+            previous=$(jq -r '[.Assets[] | select(.Type == "Full") | .Version] | last // empty' "$RUNNER_TEMP/feed/releases.win-x64.json")
+            if ! cmp=$(version_cmp "$previous" "$version"); then
+              echo "::error::the live feed advertises no readable version ('$previous')"
+              exit 1
+            fi
+          fi
+          if release_exists "windows-v$version"; then
+            if [ -n "$cmp" ] && [ "$cmp" -ge 0 ]; then
+              skip "windows-v$version is already published"
+            fi
+            if ! gh release view "windows-v$version" --json assets --jq '.assets[].name' | grep -qxF releases.win-x64.json; then
+              skip "windows-v$version is published without an update feed"
+            fi
+            echo "::notice::windows-v$version is published but the feed is behind it; republishing its feed"
+            printf 'mode=repair\nversion=%s\n' "$version" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          if [ -n "$cmp" ]; then
+            if [ "$cmp" -eq 0 ]; then
+              skip "v$version is already published"
+            fi
+            if [ "$cmp" -eq 1 ]; then
+              skip "a newer version (v$previous) is already published"
+            fi
+            if git rev-parse -q --verify "refs/tags/v$previous" > /dev/null &&
+              git diff --quiet "v$previous" "$sha" -- packages/windows-app packages/restic-proxy .mise/config.toml &&
+              [ "$(restic_image "v$previous")" = "$(restic_image "$sha")" ]; then
+              skip "Windows app inputs unchanged since v$previous"
+            fi
+          fi
+          printf 'mode=build\nversion=%s\nsha=%s\n' "$version" "$sha" >> "$GITHUB_OUTPUT"
+
+  release:
+    name: Build and publish the Windows app
+    needs: gate
+    if: needs.gate.outputs.mode == 'build'
+    runs-on: windows-latest
+    timeout-minutes: 60
+    environment: windows-release
+    permissions:
+      contents: write
+    defaults:
+      run:
+        shell: bash
+    env:
+      VERSION: ${{ needs.gate.outputs.version }}
+      SHA: ${{ needs.gate.outputs.sha }}
+      OUT_DIR: ${{ runner.temp }}/windows-release
+    steps:
+      - name: Checkout release tree
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          ref: ${{ needs.gate.outputs.sha }}
+          persist-credentials: false
+
+      # Without the update key the feed is published unsigned, and only apps built without a key accept it.
+      - name: Check the update key
+        id: key
+        env:
+          WINDOWS_UPDATE_PRIVATE_KEY: ${{ secrets.WINDOWS_UPDATE_PRIVATE_KEY }}
+        run: |
+          set -euo pipefail
+          public=packages/windows-app/packaging/update-public-key.pem
+          case "$WINDOWS_UPDATE_PRIVATE_KEY" in
+            '' | REPLACE_ME)
+              if [ -s "$public" ]; then
+                echo "::error::$public is committed but the windows-release environment is missing WINDOWS_UPDATE_PRIVATE_KEY"
+                exit 1
+              fi
+              echo "::notice::no update key; publishing an unsigned update feed"
+              exit 0
+              ;;
+          esac
+          if [ ! -s "$public" ]; then
+            echo "::error::WINDOWS_UPDATE_PRIVATE_KEY is set but $public is not committed"
+            exit 1
+          fi
+          echo "present=true" >> "$GITHUB_OUTPUT"
+
+      - name: Setup Mise
+        uses: jdx/mise-action@c2a87611a18de5b3828c5652fe268e992400cb5c # v4.3.0
+        with:
+          # A poisoned cache would ship in the binary.
+          cache: false
+
+      - name: Build the app
+        working-directory: packages/windows-app
+        run: mise run win:release "$VERSION" publish
+
+      - name: Prepare signing
+        env:
+          AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+          AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+          AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
+          ARTIFACT_SIGNING_ENDPOINT: ${{ secrets.ARTIFACT_SIGNING_ENDPOINT }}
+          ARTIFACT_SIGNING_ACCOUNT: ${{ secrets.ARTIFACT_SIGNING_ACCOUNT }}
+          ARTIFACT_SIGNING_PROFILE: ${{ secrets.ARTIFACT_SIGNING_PROFILE }}
+        run: |
+          set -euo pipefail
+          missing=
+          for name in AZURE_TENANT_ID AZURE_CLIENT_ID AZURE_CLIENT_SECRET ARTIFACT_SIGNING_ENDPOINT \
+            ARTIFACT_SIGNING_ACCOUNT ARTIFACT_SIGNING_PROFILE; do
+            case "${!name}" in '' | REPLACE_ME) missing="$missing $name" ;; esac
+          done
+          if [ -n "$missing" ]; then
+            echo "::notice::the windows-release environment is missing:${missing}; publishing unsigned packages"
+            exit 0
+          fi
+          jq -n --arg endpoint "$ARTIFACT_SIGNING_ENDPOINT" --arg account "$ARTIFACT_SIGNING_ACCOUNT" --arg profile "$ARTIFACT_SIGNING_PROFILE" \
+            '{Endpoint: $endpoint, CodeSigningAccountName: $account, CertificateProfileName: $profile}' > "$RUNNER_TEMP/signing.json"
+          {
+            echo "ARTIFACT_SIGNING_METADATA=$RUNNER_TEMP/signing.json"
+            echo "AZURE_TENANT_ID=$AZURE_TENANT_ID"
+            echo "AZURE_CLIENT_ID=$AZURE_CLIENT_ID"
+            echo "AZURE_CLIENT_SECRET=$AZURE_CLIENT_SECRET"
+          } >> "$GITHUB_ENV"
+
+      - name: Package the installers and update packages
+        working-directory: packages/windows-app
+        run: |
+          set -euo pipefail
+          printf 'Built from v%s.\n' "$VERSION" > "$RUNNER_TEMP/notes.md"
+          RELEASE_NOTES_FILE="$RUNNER_TEMP/notes.md" mise run win:release "$VERSION" package
+
+      - name: Sign the update feeds
+        if: steps.key.outputs.present == 'true'
+        env:
+          WINDOWS_UPDATE_PRIVATE_KEY: ${{ secrets.WINDOWS_UPDATE_PRIVATE_KEY }}
+        run: |
+          set -euo pipefail
+          umask 077
+          printf '%s\n' "$WINDOWS_UPDATE_PRIVATE_KEY" > "$RUNNER_TEMP/update.key"
+          public=packages/windows-app/packaging/update-public-key.pem
+          for feed in "$OUT_DIR"/win-*/releases.win-*.json; do
+            openssl dgst -sha256 -sign "$RUNNER_TEMP/update.key" "$feed" | openssl base64 -A > "$feed.sig"
+            openssl base64 -d -A -in "$feed.sig" > "$RUNNER_TEMP/feed.der"
+            openssl dgst -sha256 -verify "$public" -signature "$RUNNER_TEMP/feed.der" "$feed"
+          done
+          rm -f "$RUNNER_TEMP/update.key" "$RUNNER_TEMP/feed.der"
+
+      # Only the release bot may create tags under the repository's tag ruleset.
+      - name: Generate a release bot token
+        id: bot
+        uses: actions/create-github-app-token@67018539274d69449ef7c02e8e71183d1719ab42 # v2.1.4
+        with:
+          app-id: ${{ secrets.RELEASE_BOT_APP_ID }}
+          private-key: ${{ secrets.RELEASE_BOT_APP_KEY }}
+          permission-contents: write
+
+      - name: Publish the packages and their feeds
+        env:
+          GH_TOKEN: ${{ steps.bot.outputs.token }}
+          GH_REPO: ${{ github.repository }}
+          SIGNED: ${{ steps.key.outputs.present }}
+        run: |
+          set -euo pipefail
+          if gh release view "windows-v$VERSION" > /dev/null 2>&1; then
+            echo "::error::windows-v$VERSION was published while this run was building; a published package is never replaced"
+            exit 1
+          fi
+          shopt -s nullglob
+          assets=("$OUT_DIR"/win-*/FUTOBackups-* "$OUT_DIR/SHA256SUMS" "$OUT_DIR"/win-*/releases.win-*.json)
+          if [ "$SIGNED" = true ]; then
+            assets+=("$OUT_DIR"/win-*/releases.win-*.json.sig)
+          fi
+          gh release create "windows-v$VERSION" "${assets[@]}" \
+            --target "$SHA" \
+            --title "FUTO Backups for Windows $VERSION (alpha)" \
+            --notes "Run FUTOBackups-win-x64-Setup.exe, or FUTOBackups-win-arm64-Setup.exe on an Arm PC. Built from v$VERSION." \
+            --latest=false
+
+      - name: Remove the signing material
+        if: always()
+        run: rm -f "$RUNNER_TEMP/update.key" "$RUNNER_TEMP/feed.der" "$RUNNER_TEMP/signing.json"
+
+  feed:
+    name: Publish the update feeds
+    needs: [gate, release]
+    if: ${{ !cancelled() && (needs.gate.outputs.mode == 'repair' || (needs.gate.outputs.mode == 'build' && needs.release.result == 'success')) }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    # Only this job joins the group: a pending job replaces the pending one.
+    concurrency:
+      group: windows-feed
+      cancel-in-progress: false
+    permissions:
+      contents: write
+    env:
+      VERSION: ${{ needs.gate.outputs.version }}
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+    steps:
+      - name: Generate a release bot token
+        id: bot
+        uses: actions/create-github-app-token@67018539274d69449ef7c02e8e71183d1719ab42 # v2.1.4
+        with:
+          app-id: ${{ secrets.RELEASE_BOT_APP_ID }}
+          private-key: ${{ secrets.RELEASE_BOT_APP_KEY }}
+          permission-contents: write
+
+      - name: Point the feed at the packages of this version
+        env:
+          GH_TOKEN: ${{ steps.bot.outputs.token }}
+        run: |
+          set -euo pipefail
+          version_cmp() {
+            local IFS=.
+            local -a a b
+            read -ra a <<< "$1"
+            read -ra b <<< "$2"
+            [ "${#a[@]}" -eq 3 ] && [ "${#b[@]}" -eq 3 ] || return 2
+            local i
+            for i in 0 1 2; do
+              case "${a[$i]}" in '' | *[!0-9]*) return 2 ;; esac
+              case "${b[$i]}" in '' | *[!0-9]*) return 2 ;; esac
+            done
+            for i in 0 1 2; do
+              if [ "${a[$i]}" -lt "${b[$i]}" ]; then printf '%s\n' -1; return; fi
+              if [ "${a[$i]}" -gt "${b[$i]}" ]; then printf '%s\n' 1; return; fi
+            done
+            printf '%s\n' 0
+          }
+          feed_version() {
+            jq -r '[.Assets[] | select(.Type == "Full") | .Version] | last // empty' "$1"
+          }
+          release_exists() {
+            local err
+            if err=$(gh release view "$1" --json tagName 2>&1 > /dev/null); then
+              return 0
+            fi
+            if [[ $err == *"release not found"* ]]; then
+              return 1
+            fi
+            echo "::error::could not look up the $1 release: $err"
+            exit 1
+          }
+          feeds=(releases.win-arm64.json releases.win-x64.json)
+          assets=$(gh release view "windows-v$VERSION" --json assets --jq '.assets[].name')
+          if grep -qxF releases.win-x64.json.sig <<< "$assets"; then
+            feeds+=(releases.win-arm64.json.sig releases.win-x64.json.sig)
+          fi
+          for asset in "${feeds[@]}"; do
+            if ! grep -qxF "$asset" <<< "$assets"; then
+              echo "::error::windows-v$VERSION has no $asset asset to publish the feed from"
+              exit 1
+            fi
+          done
+          gh release download "windows-v$VERSION" -p 'releases.win-*' -D "$RUNNER_TEMP/next"
+          for arch in arm64 x64; do
+            if [ "$(feed_version "$RUNNER_TEMP/next/releases.win-$arch.json")" != "$VERSION" ]; then
+              echo "::error::the win-$arch feed attached to windows-v$VERSION does not advertise v$VERSION"
+              exit 1
+            fi
+          done
+          if ! release_exists windows-feed; then
+            gh release create windows-feed --prerelease --latest=false --title "Windows update feed" --notes "Velopack update feeds for the FUTO Backups Windows app. Do not delete."
+          fi
+          # Never move the feed backwards.
+          if gh release download windows-feed -p releases.win-x64.json -D "$RUNNER_TEMP/current" 2> /dev/null; then
+            published=$(feed_version "$RUNNER_TEMP/current/releases.win-x64.json")
+            if ! cmp=$(version_cmp "$published" "$VERSION"); then
+              echo "::error::the live feed advertises no readable version ('$published')"
+              exit 1
+            fi
+            if [ "$cmp" -ge 0 ]; then
+              echo "::notice::the feed already advertises v$published; leaving it unchanged"
+              exit 0
+            fi
+          fi
+          # --clobber deletes before uploading: a failed upload breaks the feed until a rerun.
+          for attempt in 1 2 3; do
+            if (cd "$RUNNER_TEMP/next" && gh release upload windows-feed "${feeds[@]}" --clobber); then
+              exit 0
+            fi
+            if [ "$attempt" -lt 3 ]; then
+              sleep $((attempt * 15))
+            fi
+          done
+          echo "::error::could not upload the feeds to windows-feed; rerun to republish them from windows-v$VERSION"
+          exit 1

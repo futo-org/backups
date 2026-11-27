@@ -7,9 +7,11 @@ on:
     # the release run release-images.yml waits on.
     paths-ignore:
       - packages/macos-app/**
+      - packages/windows-app/**
       - packages/docs/**
       - docs/**
       - .github/workflows/macos-release.yml
+      - .github/workflows/windows-release.yml
       - .github/workflows/docs.yml
   workflow_dispatch:
 

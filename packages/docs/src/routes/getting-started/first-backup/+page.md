@@ -1,14 +1,14 @@
 ---
 title: Your first backup
 description: Connect your account, save your recovery key and get one backup finished from end to end
-order: 5
+order: 6
 ---
 
 Once the app is installed, setup takes three things: connecting your account, saving your recovery key, and creating a backup. This page covers all three.
 
 Immich asks you to connect your account first and shows the recovery key after. The standalone app does it the other way round. Either way you do both.
 
-The Mac app has its own setup, which ends with a first backup. See [set up on a Mac](/getting-started/mac#set-up-the-app).
+The Mac and Windows apps have their own setup, which ends with a first backup. See [set up on a Mac](/getting-started/mac#set-up-the-app) or [set up on Windows](/getting-started/windows#set-up-the-app).
 
 ## Choose where your backups live
 

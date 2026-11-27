@@ -1,6 +1,11 @@
 [tools]
 dotnet = "11.0.100"
+"dotnet:vpk" = "1.2.161"
 "dotnet:NSwag.ConsoleCore" = "14.8.0"
+
+[tasks."win:build"]
+description = "Build the Windows app (debug) for this machine's architecture"
+run = "dotnet build src/FutoBackups/FutoBackups.csproj -r win-{{arch(arm64='arm64', x64='x64')}} -p:Platform={{arch(arm64='ARM64', x64='x64')}}"
 
 [tasks."win:api"]
 description = "Regenerate the yucca-api client from the OpenAPI spec in packages/yucca-api-client"
@@ -14,3 +19,19 @@ run = "bash scripts/format.sh"
 description = "Run the Windows engine unit tests"
 run = "dotnet test --project tests/FutoBackups.Core.Tests"
 
+[tasks."win:check"]
+description = "Build and test the Windows app"
+run = [{ task = "win:build" }, { task = "win:test" }]
+
+[tasks."win:release"]
+description = "Build the Velopack installers and update packages of the Windows app for arm64 and x64: mise run win:release <version> [publish|package]"
+run = "bash scripts/release.sh"
+
+[tasks."win:update-key"]
+description = "Create the update signing key pair: mise run win:update-key <private key path>"
+run = "bash scripts/update-key.sh"
+
+[tasks."win:mock"]
+description = "Run the Windows app against simulated services, without an account"
+depends = ["win:build"]
+run = "src/FutoBackups/bin/{{arch(arm64='ARM64', x64='x64')}}/Debug/net11.0-windows10.0.26100.0/win-{{arch(arm64='arm64', x64='x64')}}/FutoBackups.exe --mock"

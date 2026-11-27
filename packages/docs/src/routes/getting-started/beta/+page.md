@@ -9,7 +9,7 @@ FUTO Backups is in a closed beta. Accounts are invite-only, so the first step is
 ## What you need
 
 - **An invite.** Invites are handed out in the FUTO Backups channels on the [Immich Discord](https://discord.immich.app). See below.
-- **Somewhere to run the backup app.** An [Immich](/getting-started/immich) server, any machine that runs Docker for the [standalone container](/getting-started/standalone), or a Mac running macOS 26 or later for the [Mac app](/getting-started/mac). You can use any mix of them against the same account.
+- **Somewhere to run the backup app.** An [Immich](/getting-started/immich) server, any machine that runs Docker for the [standalone container](/getting-started/standalone), a Mac running macOS 26 or later for the [Mac app](/getting-started/mac), or a PC running Windows 10 version 2004 or later for the [Windows app](/getting-started/windows). You can use any mix of them against the same account.
 - **A few minutes for setup.** The app walks you through connecting your account, saving a recovery key and running a first backup.
 
 ## Getting an invite
@@ -39,3 +39,4 @@ Install the backup app where your data lives:
 - [Set up in Immich](/getting-started/immich) if you want to back up an Immich library.
 - [Set up the standalone container](/getting-started/standalone) to back up folders on any machine that runs Docker.
 - [Set up on a Mac](/getting-started/mac) to back up the folders on your Mac.
+- [Set up on Windows](/getting-started/windows) to back up the folders on your PC.

@@ -1,0 +1,15 @@
+<UserControl
+    x:Class="FutoBackups.Controls.AlphaBadge"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:s="using:FutoBackups.Core.Strings">
+    <Border
+        Background="{ThemeResource SystemFillColorCautionBackgroundBrush}"
+        BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+        BorderThickness="1"
+        CornerRadius="4"
+        Padding="6,1"
+        ToolTipService.ToolTip="{x:Bind s:Text.CommonAlphaTooltip}">
+        <TextBlock Text="{x:Bind s:Text.CommonAlpha}" FontSize="10" FontWeight="Bold" CharacterSpacing="60" />
+    </Border>
+</UserControl>

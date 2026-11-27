@@ -1,0 +1,24 @@
+<UserControl
+    x:Class="FutoBackups.Controls.StartupFailureBar"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:s="using:FutoBackups.Core.Strings">
+    <InfoBar
+        Severity="Error"
+        Title="{x:Bind s:Text.FlowCouldNotStartTitle}"
+        Message="{x:Bind ViewModel.Message, Mode=OneWay}"
+        IsOpen="{x:Bind ViewModel.HasFailure, Mode=OneWay}"
+        IsClosable="False">
+        <InfoBar.Content>
+            <TextBlock
+                Text="{x:Bind ViewModel.ReportText, Mode=OneWay}"
+                Margin="0,0,0,12"
+                TextWrapping="Wrap"
+                AutomationProperties.LiveSetting="Polite"
+                Visibility="{x:Bind ViewModel.HasReportText, Mode=OneWay}" />
+        </InfoBar.Content>
+        <InfoBar.ActionButton>
+            <Button Content="{x:Bind s:Text.StartupSendReport}" Command="{x:Bind ViewModel.SendCommand}" IsEnabled="{x:Bind ViewModel.CanSend, Mode=OneWay}" />
+        </InfoBar.ActionButton>
+    </InfoBar>
+</UserControl>

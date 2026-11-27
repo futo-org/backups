@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ContentDialog
+    x:Class="FutoBackups.SignInDialog"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:s="using:FutoBackups.Core.Strings"
+    Title="{x:Bind s:Text.FlowSignInTitle}"
+    PrimaryButtonText="{x:Bind s:Text.CommonOpenBrowser}"
+    SecondaryButtonText="{x:Bind s:Text.CommonCopyCode}"
+    CloseButtonText="{x:Bind s:Text.CommonCancel}"
+    DefaultButton="Primary"
+    PrimaryButtonCommand="{x:Bind OpenBrowserCommand}"
+    SecondaryButtonCommand="{x:Bind CopyCodeCommand}"
+    PrimaryButtonClick="KeepOpen"
+    SecondaryButtonClick="KeepOpen">
+    <StackPanel Spacing="12" Width="400">
+        <TextBlock Text="{x:Bind s:Text.FlowCheckBrowserCode}" TextWrapping="Wrap" />
+        <TextBlock Text="{x:Bind Login.UserCode}" FontFamily="{StaticResource MonoFontFamily}" FontSize="28" FontWeight="SemiBold" IsTextSelectionEnabled="True" />
+        <TextBlock Text="{x:Bind s:Text.FlowWaitingForApproval}" Style="{StaticResource BodySecondaryTextStyle}" />
+    </StackPanel>
+</ContentDialog>

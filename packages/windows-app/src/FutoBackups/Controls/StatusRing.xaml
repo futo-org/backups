@@ -1,0 +1,43 @@
+<UserControl
+    x:Class="FutoBackups.Controls.StatusRing"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:s="using:FutoBackups.Core.Strings">
+    <Grid x:Name="Root">
+        <Grid Visibility="{x:Bind Status.ShowsStatusRing, Mode=OneWay}">
+            <Ellipse x:Name="Ring" Stroke="{x:Bind Status.StatusBrush, Mode=OneWay}" />
+            <FontIcon
+                x:Name="StatusIcon"
+                Glyph="{x:Bind Status.StatusGlyph, Mode=OneWay}"
+                AutomationProperties.AccessibilityView="Raw"
+                Foreground="{x:Bind Status.StatusBrush, Mode=OneWay}" />
+        </Grid>
+        <Grid Visibility="{x:Bind Status.HasProgress, Mode=OneWay}">
+            <ProgressRing
+                x:Name="Progress"
+                IsIndeterminate="False"
+                Background="{ThemeResource ControlStrokeColorDefaultBrush}"
+                Value="{x:Bind Status.ProgressPercent, Mode=OneWay}"
+                AutomationProperties.Name="{x:Bind s:Text.OverviewProgress}" />
+            <TextBlock
+                x:Name="Percent"
+                Text="{x:Bind Status.ProgressText, Mode=OneWay}"
+                FontWeight="SemiBold"
+                HorizontalAlignment="Center"
+                VerticalAlignment="Center"
+                AutomationProperties.AccessibilityView="Raw" />
+        </Grid>
+        <Grid Visibility="{x:Bind Status.ShowsBusyRing, Mode=OneWay}">
+            <ProgressRing
+                x:Name="Busy"
+                IsIndeterminate="True"
+                Background="{ThemeResource ControlStrokeColorDefaultBrush}"
+                AutomationProperties.AccessibilityView="Raw" />
+            <FontIcon
+                x:Name="BusyIcon"
+                Glyph="{x:Bind Status.StatusGlyph, Mode=OneWay}"
+                AutomationProperties.AccessibilityView="Raw"
+                Foreground="{ThemeResource AccentTextFillColorPrimaryBrush}" />
+        </Grid>
+    </Grid>
+</UserControl>

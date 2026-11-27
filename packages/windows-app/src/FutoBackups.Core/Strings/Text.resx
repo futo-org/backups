@@ -13,6 +13,7 @@
   <data name="CommonBack" xml:space="preserve"><value>Back</value><comment>Button that returns to the previous step of the sign-in flow. Navigation, not the body part and not &quot;backup&quot;.</comment></data>
   <data name="CommonBackUpNow" xml:space="preserve"><value>Back Up Now</value><comment>Button and tray menu item that starts a backup immediately. &quot;Back up&quot; is a verb here, not the noun &quot;backup&quot;.</comment></data>
   <data name="CommonCancel" xml:space="preserve"><value>Cancel</value><comment>Button that closes a dialog without making a change. Verb.</comment></data>
+  <data name="CommonCheckForUpdatesAutomatically" xml:space="preserve"><value>Check for updates automatically</value><comment>Checkbox in setup and switch in Settings. FUTO Backups looks for a new version once a day.</comment></data>
   <data name="CommonChooseWhatToBackUp" xml:space="preserve"><value>Choose what to back up</value><comment>Heading shown when no folders are chosen yet. &quot;Back up&quot; is a verb.</comment></data>
   <data name="CommonClose" xml:space="preserve"><value>Close</value><comment>Button that closes a dialog. Verb.</comment></data>
   <data name="CommonConfirm" xml:space="preserve"><value>Confirm</value><comment>Button and step name for confirming the recovery key the user typed. Verb.</comment></data>
@@ -210,15 +211,25 @@
   <data name="FoldersDropHere" xml:space="preserve"><value>Drop folders here</value><comment>Shown in the empty folder list as the target for dragged folders.</comment></data>
   <data name="FoldersDropHint" xml:space="preserve"><value>or click Add Folder to choose them</value></data>
   <data name="FoldersExcludePattern" xml:space="preserve"><value>Exclude a pattern</value><comment>Heading above the box for typing an exclusion pattern.</comment></data>
+  <data name="FoldersException" xml:space="preserve"><value>Exception</value><comment>Tag on an exclusion rule that starts with ! and backs a path up again. Noun.</comment></data>
   <data name="FoldersExcluded" xml:space="preserve"><value>Excluded</value><comment>Heading above the list of exclusions. Adjective used as a heading.</comment></data>
+  <data name="FoldersExcludedItems" xml:space="preserve"><value>{0} excluded items</value><comment>{0} is the number of exclusion rules the user added, 2 or more.</comment></data>
   <data name="FoldersExcludedSubtitle" xml:space="preserve"><value>Folders, files and patterns you leave out of backups.</value></data>
+  <data name="FoldersExclusionCount" xml:space="preserve"><value>{0} items</value><comment>Count of exclusion rules at the top of the list of exclusions. {0} is the number.</comment></data>
+  <data name="FoldersExclusionsShown" xml:space="preserve"><value>{0} of {1}</value><comment>Shown while searching the list of exclusions. {0} is the number that match, {1} the total.</comment></data>
   <data name="FoldersKeepOne" xml:space="preserve"><value>Add another folder to back up before you remove this one.</value></data>
   <data name="FoldersNothingExcluded" xml:space="preserve"><value>Nothing excluded yet.</value><comment>Shown when the list of exclusions is empty.</comment></data>
+  <data name="FoldersOneExcludedItem" xml:space="preserve"><value>1 excluded item</value></data>
   <data name="FoldersPattern" xml:space="preserve"><value>Pattern</value><comment>Label of a text box. A pattern is a file name pattern such as *.iso.</comment></data>
   <data name="FoldersPatternHint" xml:space="preserve"><value>For example *.iso, **/build or ~/Downloads/Old. A name without a slash matches everywhere.</value></data>
   <data name="FoldersPatternPlaceholder" xml:space="preserve"><value>*.iso</value><comment>Example shown in the empty pattern box. Usually kept unchanged.</comment></data>
   <data name="FoldersPresets" xml:space="preserve"><value>Or start from a preset</value></data>
   <data name="FoldersRestoreBuiltIn" xml:space="preserve"><value>Restore Built-in Exclusions</value><comment>Button that puts back the built-in exclusions the user removed.</comment></data>
+  <data name="FoldersSearch" xml:space="preserve"><value>Search</value><comment>Placeholder and accessible name of the search box in the list of exclusions.</comment></data>
+  <data name="FoldersSelectToRemove" xml:space="preserve"><value>Select rules to remove them.</value><comment>Shown under the list of exclusions when nothing is selected.</comment></data>
+  <data name="FoldersSelected" xml:space="preserve"><value>{0} selected</value><comment>{0} is the number of selected exclusion rules.</comment></data>
+  <data name="FoldersShowList" xml:space="preserve"><value>Show List</value><comment>Button that opens the list of exclusion rules. Verb.</comment></data>
+  <data name="FoldersShowListName" xml:space="preserve"><value>Show the list of excluded items</value><comment>Accessible name of the Show List button.</comment></data>
   <data name="FoldersStopBackingUp" xml:space="preserve"><value>Stop backing up this folder</value></data>
   <data name="FoldersStopExcluding" xml:space="preserve"><value>Stop excluding</value><comment>Tooltip of the button that removes an exclusion. The files are backed up again.</comment></data>
   <data name="FoldersStopExcludingName" xml:space="preserve"><value>Stop excluding {0}</value><comment>Accessible name of the button that removes an exclusion. {0} is the pattern or path.</comment></data>
@@ -489,6 +500,7 @@
   <data name="SettingsChangeKeyTitle" xml:space="preserve"><value>Change recovery key</value><comment>Title of a dialog. Verb phrase.</comment></data>
   <data name="SettingsChangeKeyViewAgain" xml:space="preserve"><value>View New Key Again</value><comment>Button that shows the new recovery key again. &quot;View&quot; is a verb.</comment></data>
   <data name="SettingsChangesApply" xml:space="preserve"><value>Changes apply from the next backup.</value></data>
+  <data name="SettingsCheckNow" xml:space="preserve"><value>Check Now</value><comment>Button that looks for a new version of FUTO Backups. Verb.</comment></data>
   <data name="SettingsConditionsFooter" xml:space="preserve"><value>Back Up Now does not wait for these conditions.</value><comment>Note under the Scheduled backups section.</comment></data>
   <data name="SettingsDeleteBackupBrowserOpens" xml:space="preserve"><value>Your browser opens. Sign in again, then click Permanently Delete.</value></data>
   <data name="SettingsDeleteBackupButton" xml:space="preserve"><value>Delete This PC's Backup</value><comment>Button in Settings that starts deleting this PC&apos;s backup. Verb.</comment></data>
@@ -592,6 +604,7 @@
   <data name="SettingsUnlinkHint" xml:space="preserve"><value>Remove FUTO Backups' settings, sign-in and recovery key from this PC. Its backup stays on FUTO Cloud and this PC stays listed in your account.</value></data>
   <data name="SettingsUnlinkTitle" xml:space="preserve"><value>Unlink this PC</value><comment>Title of a row in Settings. Verb phrase.</comment></data>
   <data name="SettingsUnlinking" xml:space="preserve"><value>Unlinking this PC</value><comment>Shown next to a progress ring.</comment></data>
+  <data name="SettingsUpdateReady" xml:space="preserve"><value>Version {0} is ready. It installs the next time FUTO Backups starts.</value><comment>{0} is the version number of the downloaded update, such as 1.26.0.</comment></data>
   <data name="SettingsUpdates" xml:space="preserve"><value>Updates</value><comment>Section heading.</comment></data>
   <data name="SettingsUploadLimit" xml:space="preserve"><value>Upload limit</value><comment>Title of a Settings row.</comment></data>
   <data name="SettingsUploadLimitHint" xml:space="preserve"><value>In KB/s. Leave empty for no limit.</value><comment>KB/s is kilobytes per second.</comment></data>
@@ -603,6 +616,7 @@
   <data name="SettingsUsbOff" xml:space="preserve"><value>Off</value><comment>Choice in the USB device list meaning no device is required.</comment></data>
   <data name="SettingsVersion" xml:space="preserve"><value>Version {0}, alpha. This version does not update itself yet.</value><comment>{0} is the version number of the app, such as 0.1.0.</comment></data>
   <data name="SettingsVersionDevelopment" xml:space="preserve"><value>Version {0}, alpha. Updates are off in development builds.</value><comment>{0} is the version number of the app, such as 0.1.0.</comment></data>
+  <data name="SettingsVersionUpdating" xml:space="preserve"><value>Version {0}, alpha.</value><comment>{0} is the version number of the app, such as 0.1.0. Shown when the app updates itself.</comment></data>
   <data name="SettingsWriteOnce" xml:space="preserve"><value>Write-once backup</value><comment>Setting title. A write-once backup can never have its snapshots removed.</comment></data>
   <data name="SettingsWriteOnceConfirmBody" xml:space="preserve"><value>Once written, backups can't be removed, not even by you. Old snapshots are kept for ever, so storage keeps growing. Turning this off later needs confirmation in your browser.</value><comment>Body of the dialog before turning on write-once.</comment></data>
   <data name="SettingsWriteOnceConfirmTitle" xml:space="preserve"><value>Turn on write-once?</value><comment>Title of the dialog before turning on write-once.</comment></data>
@@ -684,6 +698,7 @@
   <data name="StatusUploadLimitedTo" xml:space="preserve"><value>limited to {0}</value><comment>Lower case, shown after the average speed. {0} is an upload speed limit such as 5 Mbit/s.</comment></data>
   <data name="StatusUploadSummary" xml:space="preserve"><value>{0} now, average {1}, peak {2}</value><comment>Description of the upload speed graph for screen readers. {0} is the current speed, {1} the average and {2} the highest speed.</comment></data>
   <data name="StatusUploadingLastChanges" xml:space="preserve"><value>Uploading the last changes</value><comment>Subtitle while a backup is finishing.</comment></data>
+  <data name="TrayCheckForUpdates" xml:space="preserve"><value>Check for Updates</value><comment>Accessible name of the tray icon button that looks for a new version. Verb.</comment></data>
   <data name="TrayFlyoutLastBackup" xml:space="preserve"><value>Last backup</value><comment>Label in the tray panel, beside when the last backup finished.</comment></data>
   <data name="TrayFlyoutNextBackup" xml:space="preserve"><value>Next backup</value><comment>Label in the tray panel, beside when the next backup is due.</comment></data>
   <data name="TrayLastBackup" xml:space="preserve"><value>Last backup: {0}</value><comment>Tray menu line. {0} is when the last backup was, such as Today at 14:30, or Never.</comment></data>
@@ -695,4 +710,13 @@
   <data name="TrayStatusProgress" xml:space="preserve"><value>{0} {1}</value><comment>First line of the tray menu while a backup runs. {0} is the status and {1} is the progress, such as 42%.</comment></data>
   <data name="TrayToolTip" xml:space="preserve"><value>FUTO Backups: {0}</value><comment>Tooltip of the tray icon. {0} is the current status.</comment></data>
   <data name="TrayToolTipProgress" xml:space="preserve"><value>FUTO Backups: {0} {1}</value><comment>Tooltip of the tray icon while a backup runs. {0} is the current status and {1} is the progress, such as 42%.</comment></data>
+  <data name="UpdatesFailedBody" xml:space="preserve"><value>FUTO Backups could not check for updates: {0}. Check your internet connection and try again.</value><comment>{0} is the error message.</comment></data>
+  <data name="UpdatesFailedTitle" xml:space="preserve"><value>Could not check for updates</value></data>
+  <data name="UpdatesLater" xml:space="preserve"><value>Later</value><comment>Button that closes the update dialog without restarting.</comment></data>
+  <data name="UpdatesReadyBody" xml:space="preserve"><value>FUTO Backups {0} is ready. Restart now to install it, or it installs the next time FUTO Backups starts.</value><comment>{0} is the version number, such as 1.26.0.</comment></data>
+  <data name="UpdatesReadyDuringBackup" xml:space="preserve"><value>FUTO Backups {0} is ready. It installs the next time FUTO Backups starts, so the backup in progress is not interrupted.</value><comment>{0} is the version number, such as 1.26.0.</comment></data>
+  <data name="UpdatesReadyTitle" xml:space="preserve"><value>Update ready</value><comment>Title of the dialog shown when a new version has downloaded.</comment></data>
+  <data name="UpdatesRestartNow" xml:space="preserve"><value>Restart Now</value><comment>Button that restarts FUTO Backups to install the update. Verb.</comment></data>
+  <data name="UpdatesUpToDateBody" xml:space="preserve"><value>Version {0} is the newest version.</value><comment>{0} is the version number of the app, such as 1.26.0.</comment></data>
+  <data name="UpdatesUpToDateTitle" xml:space="preserve"><value>FUTO Backups is up to date</value></data>
 </root>

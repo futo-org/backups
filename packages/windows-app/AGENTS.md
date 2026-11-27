@@ -24,7 +24,8 @@ reader would otherwise miss; these are rare. Re-read your diff and delete every 
 ```
 src/FutoBackups.Core/       library, all logic, fully unit-tested, no UI
   Api/                      the account and repository calls the app makes, over the generated client
-  Restic/                   restic commands, output parsing, restic-proxy over a named pipe
+  Restic/                   how the app calls restic, restic-proxy over a named pipe, snapshot listings, warnings
+  Util/                     display formatting, and restic's exclude matching for checks outside a backup run
   State/                    config, secrets (Credential Manager), keys, schedule, retention, exclusions, run history
   Engine/                   backup, restore, key rotation, deletion and reset orchestration
   Status/                   the status summary every surface shows
@@ -49,3 +50,9 @@ Helpers.targets             builds restic.exe (root restic:install task) and res
 - Inject time, sleep, transports, process launchers and file locations; tests never hit the network or the real
   Credential Manager.
 - Keyboard access everywhere, with accessible names on every control. No emoji or text glyphs as icons.
+- Icons are Segoe Fluent Icons glyphs, named once in `src/FutoBackups/Icons.cs` and bound by name (`{x:Bind i:Icons.CheckMark}`).
+  Core says what an icon means (`StatusIcon`), never which glyph draws it.
+- Pages and dialogs are XAML bound with `{x:Bind}` to view models; actions are `[RelayCommand]`s and dialogs are
+  `ContentDialog`s defined in XAML. View models derive from `ModelViewModel`, which raises a change only for properties
+  whose value changed. Code-behind keeps only what binding cannot do: window placement, gestures, drag and drop,
+  keyboard accelerators and keeping a dialog open.

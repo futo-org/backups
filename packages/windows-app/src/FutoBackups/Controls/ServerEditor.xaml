@@ -1,0 +1,27 @@
+<UserControl
+    x:Class="FutoBackups.Controls.ServerEditor"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:s="using:FutoBackups.Core.Strings">
+    <Border Style="{StaticResource CardStyle}">
+        <StackPanel Spacing="8">
+            <TextBlock Text="{x:Bind s:Text.SettingsServer}" Style="{StaticResource BodyStrongTextBlockStyle}" />
+            <TextBox
+                PlaceholderText="{x:Bind s:Text.SettingsServerUrlPlaceholder}"
+                AutomationProperties.Name="{x:Bind s:Text.SettingsServerUrlName}"
+                Text="{x:Bind ViewModel.Draft, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+            <TextBlock
+                Text="{x:Bind s:Text.SettingsServerUrlError}"
+                Style="{StaticResource CaptionTextBlockStyle}"
+                Foreground="{ThemeResource SystemFillColorCriticalBrush}"
+                AutomationProperties.LiveSetting="Assertive"
+                Visibility="{x:Bind ViewModel.IsInvalid, Mode=OneWay}" />
+            <StackPanel Orientation="Horizontal" Spacing="8">
+                <Button Content="{x:Bind s:Text.SettingsServerProduction}" Command="{x:Bind ViewModel.UseProductionCommand}" />
+                <Button Content="{x:Bind s:Text.SettingsServerLocalDev}" Command="{x:Bind ViewModel.UseLocalDevelopmentCommand}" />
+                <Button Content="{x:Bind s:Text.CommonApply}" Command="{x:Bind ViewModel.ApplyCommand}" />
+            </StackPanel>
+            <TextBlock Text="{x:Bind s:Text.SettingsServerChangeSignsOut}" Style="{StaticResource SecondaryTextStyle}" />
+        </StackPanel>
+    </Border>
+</UserControl>
