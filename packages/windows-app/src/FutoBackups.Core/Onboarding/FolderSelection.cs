@@ -47,13 +47,6 @@ public static class FolderBundles
         FolderBundle.EssentialsAndMedia => Text.FlowBundleEssentialsAndMediaDetail,
         _ => Text.FlowBundleEverythingDetail,
     };
-
-    public static string Glyph(this FolderBundle bundle) => bundle switch
-    {
-        FolderBundle.Essentials => "",
-        FolderBundle.EssentialsAndMedia => "",
-        _ => "",
-    };
 }
 
 public abstract record FolderChoice
