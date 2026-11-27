@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<UserControl
+    x:Class="FutoBackups.Controls.UploadSpeedCard"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:s="using:FutoBackups.Core.Strings"
+    IsTabStop="False">
+    <Border Style="{StaticResource CardStyle}" AutomationProperties.Name="{x:Bind State.UploadSummary, Mode=OneWay}">
+        <Grid ColumnSpacing="20">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" MinWidth="180" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+            <StackPanel Spacing="4" VerticalAlignment="Center">
+                <TextBlock Text="{x:Bind s:Text.OverviewUploadSpeedHeading}" Style="{StaticResource SecondaryTextStyle}" />
+                <StackPanel Spacing="4" Visibility="{x:Bind State.HasUploadStarted, Mode=OneWay}">
+                    <TextBlock Text="{x:Bind State.UploadRate, Mode=OneWay}" FontSize="26" FontWeight="SemiBold" />
+                    <TextBlock Text="{x:Bind State.UploadDetails, Mode=OneWay}" Style="{StaticResource SecondaryTextStyle}" />
+                </StackPanel>
+                <TextBlock
+                    Text="{x:Bind s:Text.StatusPreparingUpload}"
+                    FontSize="15"
+                    Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                    Visibility="{x:Bind State.HasNoUploadYet, Mode=OneWay}" />
+            </StackPanel>
+            <Canvas x:Name="Chart" Grid.Column="1" Height="64" AutomationProperties.AccessibilityView="Raw">
+                <Polygon x:Name="Area" Fill="{ThemeResource AccentFillColorDefaultBrush}" Opacity="0.15" />
+                <Polyline x:Name="Line" Stroke="{ThemeResource AccentFillColorDefaultBrush}" StrokeThickness="2" StrokeLineJoin="Round" />
+            </Canvas>
+        </Grid>
+    </Border>
+</UserControl>

@@ -1,0 +1,291 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Page
+    x:Class="FutoBackups.Pages.FoldersPage"
+    x:Name="Root"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:s="using:FutoBackups.Core.Strings"
+    xmlns:i="using:FutoBackups"
+    xmlns:vm="using:FutoBackups.ViewModels"
+    xmlns:controls="using:FutoBackups.Controls"
+    NavigationCacheMode="Required">
+    <Page.Resources>
+        <DataTemplate x:Key="ChipTemplate" x:DataType="vm:ExclusionItem">
+            <Border Style="{StaticResource PillStyle}" Padding="10,2,3,2" ToolTipService.ToolTip="{x:Bind Pattern}">
+                <StackPanel Orientation="Horizontal" Spacing="4">
+                    <TextBlock
+                        Text="{x:Bind Pattern}"
+                        FontFamily="{StaticResource MonoFontFamily}"
+                        FontSize="12"
+                        VerticalAlignment="Center" />
+                    <Button
+                        Style="{StaticResource ChipRemoveButtonStyle}"
+                        Command="{x:Bind Remove}"
+                        CommandParameter="{x:Bind Pattern}"
+                        AutomationProperties.Name="{x:Bind RemoveLabel}"
+                        ToolTipService.ToolTip="{x:Bind s:Text.FoldersStopExcluding}">
+                        <FontIcon Glyph="{x:Bind i:Icons.Cancel}" FontSize="10" />
+                    </Button>
+                </StackPanel>
+            </Border>
+        </DataTemplate>
+    </Page.Resources>
+
+    <ScrollViewer AllowDrop="True" DragOver="Folders_DragOver" Drop="Folders_Drop">
+        <Grid>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" MaxWidth="1040" />
+            </Grid.ColumnDefinitions>
+        <StackPanel Padding="36,20,36,36" Spacing="12">
+            <controls:PageHeader Title="{x:Bind s:Text.CommonFolders}" Subtitle="{x:Bind s:Text.FoldersSubtitle}">
+                <controls:PageHeader.Actions>
+                    <Button Content="{x:Bind s:Text.FoldersAddFolder}" Command="{x:Bind ViewModel.AddFolderCommand}" />
+                </controls:PageHeader.Actions>
+            </controls:PageHeader>
+            <Grid Visibility="{x:Bind ViewModel.HasNoFolders, Mode=OneWay}">
+                <Rectangle
+                    RadiusX="8"
+                    RadiusY="8"
+                    Fill="{ThemeResource SubtleFillColorSecondaryBrush}"
+                    Stroke="{ThemeResource AccentFillColorDefaultBrush}"
+                    StrokeThickness="1.5"
+                    StrokeDashArray="5,3" />
+                <StackPanel HorizontalAlignment="Center" Padding="0,48" Spacing="8">
+                    <FontIcon Glyph="{x:Bind i:Icons.NewFolder}" FontSize="40" Foreground="{ThemeResource AccentTextFillColorPrimaryBrush}" />
+                    <TextBlock Text="{x:Bind s:Text.FoldersDropHere}" Style="{StaticResource SubtitleTextBlockStyle}" HorizontalAlignment="Center" />
+                    <TextBlock Text="{x:Bind s:Text.FoldersDropHint}" Foreground="{ThemeResource TextFillColorSecondaryBrush}" HorizontalAlignment="Center" />
+                </StackPanel>
+            </Grid>
+            <StackPanel Spacing="10" Visibility="{x:Bind ViewModel.HasNoFolders, Mode=OneWay}">
+                <TextBlock Text="{x:Bind s:Text.FoldersPresets}" Style="{StaticResource BodyStrongTextBlockStyle}" />
+                <ItemsRepeater ItemsSource="{x:Bind ViewModel.FolderBundles}">
+                    <ItemsRepeater.Layout>
+                        <UniformGridLayout MinItemWidth="200" MinColumnSpacing="12" MinRowSpacing="12" ItemsStretch="Fill" MaximumRowsOrColumns="3" />
+                    </ItemsRepeater.Layout>
+                    <ItemsRepeater.ItemTemplate>
+                        <DataTemplate x:DataType="vm:BundleItem">
+                            <Button
+                                Command="{Binding ViewModel.AddPresetCommand, ElementName=Root}"
+                                CommandParameter="{x:Bind}"
+                                AutomationProperties.Name="{x:Bind Title}"
+                                HorizontalAlignment="Stretch"
+                                VerticalAlignment="Stretch"
+                                HorizontalContentAlignment="Left"
+                                VerticalContentAlignment="Top"
+                                MinHeight="120"
+                                Padding="14">
+                                <StackPanel Spacing="8">
+                                    <FontIcon Glyph="{x:Bind Glyph}" HorizontalAlignment="Left" FontSize="24" Foreground="{ThemeResource AccentTextFillColorPrimaryBrush}" />
+                                    <TextBlock Text="{x:Bind Title}" Style="{StaticResource BodyStrongTextBlockStyle}" />
+                                    <TextBlock Text="{x:Bind Detail}" Style="{StaticResource SecondaryTextStyle}" />
+                                </StackPanel>
+                            </Button>
+                        </DataTemplate>
+                    </ItemsRepeater.ItemTemplate>
+                </ItemsRepeater>
+            </StackPanel>
+
+            <ItemsRepeater ItemsSource="{x:Bind ViewModel.Folders, Mode=OneWay}">
+                <ItemsRepeater.Layout>
+                    <UniformGridLayout MinItemWidth="300" MinColumnSpacing="12" MinRowSpacing="12" ItemsStretch="Fill" />
+                </ItemsRepeater.Layout>
+                <ItemsRepeater.ItemTemplate>
+                    <DataTemplate x:DataType="vm:FolderItem">
+                        <Border Style="{StaticResource CardStyle}" Padding="16,14,10,14" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}">
+                            <Border.ContextFlyout>
+                                <MenuFlyout>
+                                    <MenuFlyoutItem Text="{x:Bind s:Text.CommonShowInFileExplorer}" Command="{Binding ViewModel.ShowInExplorerCommand, ElementName=Root}" CommandParameter="{x:Bind}">
+                                        <MenuFlyoutItem.Icon>
+                                            <FontIcon Glyph="{x:Bind i:Icons.FileExplorer}" />
+                                        </MenuFlyoutItem.Icon>
+                                    </MenuFlyoutItem>
+                                    <MenuFlyoutItem Text="{x:Bind s:Text.CommonRemove}" Command="{Binding ViewModel.RemoveFolderCommand, ElementName=Root}" CommandParameter="{x:Bind}">
+                                        <MenuFlyoutItem.Icon>
+                                            <FontIcon Glyph="{x:Bind i:Icons.Delete}" />
+                                        </MenuFlyoutItem.Icon>
+                                    </MenuFlyoutItem>
+                                </MenuFlyout>
+                            </Border.ContextFlyout>
+                            <Grid ColumnSpacing="14">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <FontIcon Glyph="{x:Bind i:Icons.Folder}" FontSize="28" Foreground="{ThemeResource AccentTextFillColorPrimaryBrush}" />
+                                <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="1">
+                                    <TextBlock Text="{x:Bind Name}" Style="{StaticResource BodyStrongTextBlockStyle}" TextTrimming="CharacterEllipsis" />
+                                    <TextBlock
+                                        Text="{x:Bind Path}"
+                                        Style="{StaticResource SecondaryTextStyle}"
+                                        TextWrapping="NoWrap"
+                                        TextTrimming="CharacterEllipsis"
+                                        ToolTipService.ToolTip="{x:Bind Path}" />
+                                </StackPanel>
+                                <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="2" VerticalAlignment="Center">
+                                    <Button
+                                        Style="{StaticResource SubtleButtonStyle}"
+                                        Padding="8"
+                                        Command="{Binding ViewModel.ShowInExplorerCommand, ElementName=Root}"
+                                        CommandParameter="{x:Bind}"
+                                        AutomationProperties.Name="{x:Bind RevealLabel}"
+                                        ToolTipService.ToolTip="{x:Bind s:Text.CommonShowInFileExplorer}">
+                                        <FontIcon Glyph="{x:Bind i:Icons.FileExplorer}" FontSize="14" />
+                                    </Button>
+                                    <Button
+                                        Style="{StaticResource SubtleButtonStyle}"
+                                        Padding="8"
+                                        Command="{Binding ViewModel.RemoveFolderCommand, ElementName=Root}"
+                                        CommandParameter="{x:Bind}"
+                                        AutomationProperties.Name="{x:Bind RemoveLabel}"
+                                        ToolTipService.ToolTip="{x:Bind s:Text.FoldersStopBackingUp}">
+                                        <FontIcon Glyph="{x:Bind i:Icons.Delete}" FontSize="14" />
+                                    </Button>
+                                </StackPanel>
+                            </Grid>
+                        </Border>
+                    </DataTemplate>
+                </ItemsRepeater.ItemTemplate>
+            </ItemsRepeater>
+
+            <Border Style="{StaticResource CardStyle}" Margin="0,10,0,0">
+                <StackPanel Spacing="12">
+                    <Grid ColumnSpacing="12">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <FontIcon Glyph="{x:Bind i:Icons.Hide}" Style="{StaticResource CardIconStyle}" />
+                        <StackPanel Grid.Column="1" Spacing="1">
+                            <TextBlock Text="{x:Bind s:Text.FoldersExcluded}" Style="{StaticResource BodyStrongTextBlockStyle}" />
+                            <TextBlock Text="{x:Bind s:Text.FoldersExcludedSubtitle}" Style="{StaticResource SecondaryTextStyle}" />
+                        </StackPanel>
+                    </Grid>
+                    <Grid
+                        ColumnSpacing="10"
+                        Padding="10"
+                        CornerRadius="{ThemeResource ControlCornerRadius}"
+                        Background="{ThemeResource SubtleFillColorSecondaryBrush}">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="20" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <FontIcon Glyph="{x:Bind i:Icons.Cloud}" FontSize="13" VerticalAlignment="Top" Margin="0,2,0,0" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                        <StackPanel Grid.Column="1" Spacing="2">
+                            <TextBlock Text="{x:Bind s:Text.FoldersCloudOnlyTitle}" FontSize="12" FontWeight="SemiBold" />
+                            <TextBlock
+                                Text="{x:Bind s:Text.FoldersCloudOnlyBody}"
+                                FontSize="11"
+                                TextWrapping="Wrap"
+                                Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                        </StackPanel>
+                    </Grid>
+                    <TextBlock
+                        Text="{x:Bind s:Text.FoldersNothingExcluded}"
+                        Style="{StaticResource SecondaryTextStyle}"
+                        Visibility="{x:Bind ViewModel.HasNoExclusions, Mode=OneWay}" />
+                    <Grid ColumnSpacing="8" Visibility="{x:Bind ViewModel.HasExclusions, Mode=OneWay}">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <TextBlock
+                            Text="{x:Bind ViewModel.ExclusionSummary, Mode=OneWay}"
+                            Style="{StaticResource SecondaryTextStyle}"
+                            VerticalAlignment="Center" />
+                        <Button
+                            Grid.Column="1"
+                            Content="{x:Bind s:Text.FoldersShowList}"
+                            AutomationProperties.Name="{x:Bind s:Text.FoldersShowListName}"
+                            Command="{x:Bind ViewModel.ShowExclusionsCommand}" />
+                    </Grid>
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <SplitButton Command="{x:Bind ViewModel.ExcludeFolderCommand}" AutomationProperties.Name="{x:Bind s:Text.FoldersAddFolderOrFile}">
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                <FontIcon Glyph="{x:Bind i:Icons.Add}" FontSize="14" />
+                                <TextBlock Text="{x:Bind s:Text.FoldersAddFolderOrFile}" />
+                            </StackPanel>
+                            <SplitButton.Flyout>
+                                <MenuFlyout Placement="Bottom">
+                                    <MenuFlyoutItem Text="{x:Bind s:Text.FoldersChooseFolder}" Command="{x:Bind ViewModel.ExcludeFolderCommand}" />
+                                    <MenuFlyoutItem Text="{x:Bind s:Text.FoldersChooseFile}" Command="{x:Bind ViewModel.ExcludeFileCommand}" />
+                                </MenuFlyout>
+                            </SplitButton.Flyout>
+                        </SplitButton>
+                        <Button AutomationProperties.Name="{x:Bind s:Text.FoldersAddPattern}">
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                <FontIcon Glyph="{x:Bind i:Icons.Pattern}" FontSize="14" />
+                                <TextBlock Text="{x:Bind s:Text.FoldersAddPattern}" />
+                            </StackPanel>
+                            <Button.Flyout>
+                                <Flyout x:Name="PatternFlyout" Opening="{x:Bind ViewModel.ResetPattern}">
+                                    <StackPanel Width="320" Spacing="10">
+                                        <TextBlock Text="{x:Bind s:Text.FoldersExcludePattern}" Style="{StaticResource BodyStrongTextBlockStyle}" />
+                                        <TextBox
+                                            Text="{x:Bind ViewModel.PatternDraft, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                            controls:Commit.EnterCommand="{x:Bind ViewModel.AddPatternCommand}"
+                                            Header="{x:Bind s:Text.FoldersPattern}"
+                                            PlaceholderText="{x:Bind s:Text.FoldersPatternPlaceholder}"
+                                            FontFamily="Cascadia Mono, Consolas" />
+                                        <TextBlock
+                                            Text="{x:Bind ViewModel.PatternError, Mode=OneWay}"
+                                            Foreground="{ThemeResource SystemFillColorCriticalBrush}"
+                                            Style="{StaticResource CaptionTextBlockStyle}"
+                                            AutomationProperties.LiveSetting="Assertive"
+                                            Visibility="{x:Bind ViewModel.HasPatternError, Mode=OneWay}" />
+                                        <TextBlock
+                                            Visibility="{x:Bind ViewModel.ShowsPatternHint, Mode=OneWay}"
+                                            Text="{x:Bind s:Text.FoldersPatternHint}"
+                                            Style="{StaticResource SecondaryTextStyle}" />
+                                        <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Right">
+                                            <Button Content="{x:Bind s:Text.CommonCancel}" Click="CancelPattern_Click" />
+                                            <Button Content="{x:Bind s:Text.CommonAdd}" Style="{StaticResource AccentButtonStyle}" Command="{x:Bind ViewModel.AddPatternCommand}" />
+                                        </StackPanel>
+                                    </StackPanel>
+                                </Flyout>
+                            </Button.Flyout>
+                        </Button>
+                    </StackPanel>
+                    <Border Height="1" Background="{ThemeResource DividerStrokeColorDefaultBrush}" />
+                    <Button
+                        Command="{x:Bind ViewModel.ToggleBuiltInsCommand}"
+                        AutomationProperties.Name="{x:Bind ViewModel.BuiltInHeader, Mode=OneWay}"
+                        Style="{StaticResource SubtleButtonStyle}"
+                        Background="Transparent"
+                        BorderThickness="0"
+                        Padding="0,4">
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <FontIcon Glyph="{x:Bind ViewModel.BuiltInChevron, Mode=OneWay}" FontSize="10" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                            <TextBlock
+                                Text="{x:Bind ViewModel.BuiltInHeader, Mode=OneWay}"
+                                Style="{StaticResource CaptionTextBlockStyle}"
+                                FontWeight="SemiBold"
+                                Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                        </StackPanel>
+                    </Button>
+                <StackPanel Spacing="10" Visibility="{x:Bind ViewModel.IsBuiltInExpanded, Mode=OneWay}">
+                    <TextBlock
+                        Text="{x:Bind s:Text.FoldersBuiltInSummary}"
+                        Style="{StaticResource SecondaryTextStyle}" />
+                    <ItemsControl
+                        ItemsSource="{x:Bind ViewModel.BuiltInExclusions, Mode=OneWay}"
+                        ItemTemplate="{StaticResource ChipTemplate}"
+                        IsTabStop="False">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <controls:WrapPanel />
+                            </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                    </ItemsControl>
+                    <HyperlinkButton
+                        Content="{x:Bind s:Text.FoldersRestoreBuiltIn}"
+                        Padding="0"
+                        Visibility="{x:Bind ViewModel.IsMissingBuiltIns, Mode=OneWay}"
+                        Command="{x:Bind ViewModel.RestoreBuiltInExclusionsCommand}" />
+                </StackPanel>
+                </StackPanel>
+            </Border>
+        </StackPanel>
+        </Grid>
+    </ScrollViewer>
+</Page>

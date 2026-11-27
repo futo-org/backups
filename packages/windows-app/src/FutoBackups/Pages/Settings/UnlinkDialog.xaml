@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ContentDialog
+    x:Class="FutoBackups.Pages.Settings.UnlinkDialog"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:s="using:FutoBackups.Core.Strings"
+    xmlns:controls="using:FutoBackups.Controls"
+    Title="{x:Bind s:Text.SettingsUnlinkDialogTitle}"
+    PrimaryButtonText="{x:Bind s:Text.SettingsUnlinkButton}"
+    CloseButtonText="{x:Bind s:Text.CommonCancel}"
+    IsPrimaryButtonEnabled="{x:Bind CanUnlink, Mode=OneWay}"
+    PrimaryButtonClick="Unlink_Click">
+    <Grid Width="440">
+        <StackPanel Spacing="16" Visibility="{x:Bind IsAsking, Mode=OneWay}">
+            <TextBlock Text="{x:Bind s:Text.SettingsUnlinkExplain}" TextWrapping="Wrap" />
+            <controls:RecoveryKeyCard Key="{x:Bind RevealedKey, Mode=OneWay}" Visibility="{x:Bind IsKeyRevealed, Mode=OneWay}" />
+            <Button Content="{x:Bind s:Text.KeyShowRecoveryKey}" Command="{x:Bind RevealKeyCommand}" Visibility="{x:Bind IsKeyHidden, Mode=OneWay}" />
+            <CheckBox Content="{x:Bind s:Text.SettingsUnlinkConfirm}" IsChecked="{x:Bind Confirmed, Mode=TwoWay}" />
+        </StackPanel>
+        <StackPanel Orientation="Horizontal" Spacing="12" Visibility="{x:Bind IsUnlinking, Mode=OneWay}">
+            <ProgressRing IsActive="{x:Bind IsUnlinking, Mode=OneWay}" Width="20" Height="20" />
+            <TextBlock Text="{x:Bind s:Text.SettingsUnlinking}" VerticalAlignment="Center" />
+        </StackPanel>
+    </Grid>
+</ContentDialog>

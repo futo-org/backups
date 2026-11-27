@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="utf-8"?>
+<UserControl
+    x:Class="FutoBackups.Controls.RecoveryKeyCard"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:s="using:FutoBackups.Core.Strings"
+    xmlns:i="using:FutoBackups"
+    IsTabStop="False">
+    <StackPanel Spacing="10">
+        <Border
+            Padding="16,20"
+            CornerRadius="{ThemeResource ControlCornerRadius}"
+            Background="{ThemeResource ControlFillColorSecondaryBrush}"
+            BorderBrush="{ThemeResource ControlStrokeColorDefaultBrush}"
+            BorderThickness="1">
+            <TextBlock
+                Text="{x:Bind KeyLines, Mode=OneWay}"
+                FontFamily="{StaticResource MonoFontFamily}"
+                FontSize="18"
+                FontWeight="SemiBold"
+                CharacterSpacing="80"
+                LineHeight="30"
+                TextAlignment="Center"
+                HorizontalAlignment="Center"
+                IsTextSelectionEnabled="True"
+                AutomationProperties.Name="{x:Bind s:Text.KeyRecoveryKey}" />
+        </Border>
+        <TextBlock Text="{x:Bind s:Text.KeyOneKeySplitAcrossLines}" Style="{StaticResource SecondaryTextStyle}" TextWrapping="Wrap" />
+        <StackPanel Orientation="Horizontal" Spacing="8">
+            <Button Click="Copy_Click" AutomationProperties.Name="{x:Bind s:Text.CommonCopy}">
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                    <FontIcon Glyph="{x:Bind CopyGlyph, Mode=OneWay}" FontSize="14" />
+                    <TextBlock Text="{x:Bind CopyLabel, Mode=OneWay}" />
+                </StackPanel>
+            </Button>
+            <Button Click="Save_Click" AutomationProperties.Name="{x:Bind s:Text.CommonSaveToFile}">
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                    <FontIcon Glyph="{x:Bind SaveGlyph, Mode=OneWay}" FontSize="14" />
+                    <TextBlock Text="{x:Bind SaveLabel, Mode=OneWay}" />
+                </StackPanel>
+            </Button>
+            <Button Click="Print_Click" AutomationProperties.Name="{x:Bind s:Text.CommonPrint}">
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                    <FontIcon Glyph="{x:Bind i:Icons.Print}" FontSize="14" />
+                    <TextBlock Text="{x:Bind s:Text.CommonPrint}" />
+                </StackPanel>
+            </Button>
+        </StackPanel>
+        <TextBlock
+            Text="{x:Bind Note, Mode=OneWay}"
+            Style="{StaticResource SecondaryTextStyle}"
+            AutomationProperties.LiveSetting="Polite"
+            Visibility="{x:Bind HasNote, Mode=OneWay}" />
+    </StackPanel>
+</UserControl>

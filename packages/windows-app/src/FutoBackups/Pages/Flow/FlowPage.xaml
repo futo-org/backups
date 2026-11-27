@@ -1,0 +1,460 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Page
+    x:Class="FutoBackups.Pages.Flow.FlowPage"
+    x:Name="Root"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:s="using:FutoBackups.Core.Strings"
+    xmlns:i="using:FutoBackups"
+    xmlns:vm="using:FutoBackups.ViewModels"
+    xmlns:controls="using:FutoBackups.Controls"
+    KeyboardAcceleratorPlacementMode="Hidden">
+    <Page.KeyboardAccelerators>
+        <KeyboardAccelerator Key="Escape" Invoked="Escape_Invoked" />
+    </Page.KeyboardAccelerators>
+    <Page.Resources>
+        <Style x:Key="StepHeadingStyle" TargetType="TextBlock" BasedOn="{StaticResource TitleTextBlockStyle}">
+            <Setter Property="TextWrapping" Value="Wrap" />
+        </Style>
+        <Style x:Key="StepSubtitleStyle" TargetType="TextBlock" BasedOn="{StaticResource BodyTextBlockStyle}">
+            <Setter Property="Foreground" Value="{ThemeResource TextFillColorSecondaryBrush}" />
+        </Style>
+        <Style x:Key="KeyBoxStyle" TargetType="TextBox">
+            <Setter Property="FontFamily" Value="{StaticResource MonoFontFamily}" />
+            <Setter Property="AcceptsReturn" Value="True" />
+            <Setter Property="TextWrapping" Value="Wrap" />
+            <Setter Property="MinHeight" Value="90" />
+            <Setter Property="PlaceholderText" Value="0000 0000 0000 0000 …" />
+        </Style>
+        <Style x:Key="ErrorTextStyle" TargetType="TextBlock">
+            <Setter Property="Foreground" Value="{ThemeResource SystemFillColorCriticalBrush}" />
+            <Setter Property="TextWrapping" Value="Wrap" />
+            <Setter Property="IsTextSelectionEnabled" Value="True" />
+        </Style>
+    </Page.Resources>
+
+    <Grid>
+        <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="18" Visibility="{x:Bind Flow.IsLaunching, Mode=OneWay}">
+            <Image Source="ms-appx:///Assets/AppIcon.png" Width="72" Height="72" AutomationProperties.AccessibilityView="Raw" />
+            <ProgressRing IsActive="{x:Bind Flow.IsLaunching, Mode=OneWay}" Width="20" Height="20" AutomationProperties.Name="{x:Bind s:Text.CommonLoading}" />
+        </StackPanel>
+
+        <ScrollViewer Visibility="{x:Bind Flow.ShowsContent, Mode=OneWay}">
+            <StackPanel MaxWidth="580" Padding="40,48" Spacing="0">
+                <controls:StartupFailureBar MaxWidth="460" Margin="0,0,0,20" />
+                <StackPanel Spacing="0" Visibility="{x:Bind Flow.IsTelemetryConsent, Mode=OneWay}">
+                    <Image Source="ms-appx:///Assets/AppIcon.png" Width="96" Height="96" Margin="0,0,0,26" AutomationProperties.AccessibilityView="Raw" />
+                    <TextBlock Text="{x:Bind s:Text.FlowTelemetryTitle}" Style="{StaticResource SubtitleTextBlockStyle}" FontSize="22" HorizontalAlignment="Center" TextAlignment="Center" Margin="0,0,0,22" />
+                    <Border Style="{StaticResource CardStyle}" MaxWidth="460">
+                        <StackPanel Spacing="16">
+                            <Grid ColumnSpacing="12">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                <FontIcon Glyph="{x:Bind i:Icons.Diagnostic}" Style="{StaticResource CardIconStyle}" Foreground="{ThemeResource AccentTextFillColorPrimaryBrush}" />
+                                <TextBlock Grid.Column="1" Text="{x:Bind s:Text.FlowTelemetryCollects}" TextWrapping="Wrap" VerticalAlignment="Center" />
+                            </Grid>
+                            <Grid ColumnSpacing="12">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                <FontIcon Glyph="{x:Bind i:Icons.Hide}" Style="{StaticResource CardIconStyle}" Foreground="{ThemeResource SystemFillColorSuccessBrush}" />
+                                <TextBlock Grid.Column="1" Text="{x:Bind s:Text.FlowTelemetryNever}" TextWrapping="Wrap" VerticalAlignment="Center" />
+                            </Grid>
+                        </StackPanel>
+                    </Border>
+                    <StackPanel Orientation="Horizontal" Spacing="12" HorizontalAlignment="Center" Margin="0,28,0,0">
+                        <Button Content="{x:Bind s:Text.CommonContinue}" Style="{StaticResource AccentButtonStyle}" Padding="20,8" Command="{x:Bind Flow.ConsentContinueCommand}" />
+                        <Button Content="{x:Bind s:Text.FlowQuit}" Padding="20,8" Command="{x:Bind Flow.QuitCommand}" />
+                    </StackPanel>
+                </StackPanel>
+
+                <StackPanel Spacing="0" Visibility="{x:Bind Flow.IsWelcome, Mode=OneWay}">
+                    <Image Source="ms-appx:///Assets/AppIcon.png" Width="96" Height="96" Margin="0,0,0,26" AutomationProperties.AccessibilityView="Raw" />
+                    <Image Source="{ThemeResource WordmarkImage}" Height="40" HorizontalAlignment="Center" AutomationProperties.Name="{x:Bind s:Text.CommonAppName}" />
+                    <TextBlock
+                        Text="{x:Bind s:Text.FlowTagline}"
+                        Style="{StaticResource StepSubtitleStyle}"
+                        FontSize="15"
+                        MaxWidth="380"
+                        TextAlignment="Center"
+                        HorizontalAlignment="Center"
+                        Margin="0,8,0,0" />
+                    <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Center" Margin="0,14,0,0">
+                        <controls:AlphaBadge VerticalAlignment="Center" />
+                        <TextBlock Text="{x:Bind s:Text.FlowAlphaNotice}" Style="{StaticResource SecondaryTextStyle}" VerticalAlignment="Center" />
+                    </StackPanel>
+
+                    <StackPanel Margin="0,34,0,0" MinHeight="200" HorizontalAlignment="Center">
+                        <StackPanel Spacing="14" Visibility="{x:Bind Flow.IsLoginIdle, Mode=OneWay}">
+                            <Button Content="{x:Bind s:Text.CommonSignIn}" Style="{StaticResource AccentButtonStyle}" Padding="32,10" FontSize="16" HorizontalAlignment="Center" Command="{x:Bind Flow.SignInCommand}" />
+                            <TextBlock Text="{x:Bind s:Text.FlowApproveInBrowser}" Style="{StaticResource SecondaryTextStyle}" HorizontalAlignment="Center" />
+                            <controls:ServerEditor Width="420" Margin="0,16,0,0" Visibility="{x:Bind Flow.AllowsServerSelection, Mode=OneWay}" />
+                        </StackPanel>
+                        <StackPanel Spacing="18" Visibility="{x:Bind Flow.IsLoginWaiting, Mode=OneWay}">
+                            <TextBlock Text="{x:Bind s:Text.FlowCheckBrowserCode}" Foreground="{ThemeResource TextFillColorSecondaryBrush}" FontWeight="SemiBold" HorizontalAlignment="Center" />
+                            <ItemsControl ItemsSource="{x:Bind Flow.Code, Mode=OneWay}" HorizontalAlignment="Center" IsTabStop="False" AutomationProperties.Name="{x:Bind Flow.CodeName, Mode=OneWay}">
+                                <ItemsControl.ItemsPanel>
+                                    <ItemsPanelTemplate>
+                                        <StackPanel Orientation="Horizontal" Spacing="6" />
+                                    </ItemsPanelTemplate>
+                                </ItemsControl.ItemsPanel>
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate x:DataType="vm:CodeCharacter">
+                                        <Grid VerticalAlignment="Center">
+                                            <Border
+                                                Width="12"
+                                                Height="3"
+                                                CornerRadius="1.5"
+                                                Margin="4,0"
+                                                Background="{ThemeResource TextFillColorTertiaryBrush}"
+                                                Visibility="{x:Bind IsSeparator}" />
+                                            <Border
+                                                Width="40"
+                                                Height="52"
+                                                CornerRadius="8"
+                                                Background="{ThemeResource ControlFillColorSecondaryBrush}"
+                                                BorderBrush="{ThemeResource AccentFillColorDefaultBrush}"
+                                                BorderThickness="1"
+                                                Visibility="{x:Bind IsLetter}">
+                                                <TextBlock
+                                                    Text="{x:Bind Character}"
+                                                    FontFamily="{StaticResource MonoFontFamily}"
+                                                    FontSize="28"
+                                                    FontWeight="SemiBold"
+                                                    HorizontalAlignment="Center"
+                                                    VerticalAlignment="Center" />
+                                            </Border>
+                                        </Grid>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                            <StackPanel Orientation="Horizontal" Spacing="10" HorizontalAlignment="Center">
+                                <Button Content="{x:Bind s:Text.CommonOpenBrowser}" Style="{StaticResource AccentButtonStyle}" Command="{x:Bind Flow.OpenBrowserCommand}" />
+                                <Button Content="{x:Bind s:Text.CommonCopyCode}" Command="{x:Bind Flow.CopyCodeCommand}" />
+                            </StackPanel>
+                            <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Center">
+                                <ProgressRing IsActive="{x:Bind Flow.IsLoginWaiting, Mode=OneWay}" Width="16" Height="16" AutomationProperties.AccessibilityView="Raw" />
+                                <TextBlock Text="{x:Bind s:Text.FlowWaitingForApproval}" Style="{StaticResource SecondaryTextStyle}" VerticalAlignment="Center" />
+                                <HyperlinkButton Content="{x:Bind s:Text.CommonCancel}" FontSize="12" Padding="4,0" Command="{x:Bind Flow.CancelLoginCommand}" />
+                            </StackPanel>
+                        </StackPanel>
+                        <StackPanel Spacing="14" Visibility="{x:Bind Flow.IsLoginFinishing, Mode=OneWay}">
+                            <ProgressRing IsActive="{x:Bind Flow.IsLoginFinishing, Mode=OneWay}" Width="28" Height="28" AutomationProperties.AccessibilityView="Raw" />
+                            <TextBlock Text="{x:Bind s:Text.FlowSettingUpBackup}" Foreground="{ThemeResource TextFillColorSecondaryBrush}" HorizontalAlignment="Center" />
+                        </StackPanel>
+                        <StackPanel Spacing="14" Visibility="{x:Bind Flow.IsLoginFailed, Mode=OneWay}">
+                            <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Center" MaxWidth="420">
+                                <FontIcon Glyph="{x:Bind i:Icons.Warning}" FontSize="16" Foreground="{ThemeResource SystemFillColorCautionBrush}" VerticalAlignment="Top" />
+                                <TextBlock Text="{x:Bind Flow.LoginError, Mode=OneWay}" TextWrapping="Wrap" IsTextSelectionEnabled="True" MaxWidth="390" />
+                            </StackPanel>
+                            <Button Content="{x:Bind s:Text.CommonTryAgain}" Style="{StaticResource AccentButtonStyle}" Padding="32,10" FontSize="16" HorizontalAlignment="Center" Command="{x:Bind Flow.SignInCommand}" />
+                        </StackPanel>
+                    </StackPanel>
+                </StackPanel>
+
+                <StackPanel Spacing="0" Visibility="{x:Bind Flow.ShowsSteps, Mode=OneWay}">
+                    <ItemsControl
+                        ItemsSource="{x:Bind Flow.Steps, Mode=OneWay}"
+                        HorizontalAlignment="Center"
+                        IsTabStop="False"
+                        Margin="0,0,0,30"
+                        Visibility="{x:Bind Flow.ShowsStepIndicator, Mode=OneWay}">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <StackPanel Orientation="Horizontal" Spacing="10" />
+                            </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="vm:StepItem">
+                                <StackPanel Orientation="Horizontal" Spacing="10">
+                                    <Grid Width="36" VerticalAlignment="Center" Visibility="{x:Bind ShowsConnector}">
+                                        <Rectangle Height="2" RadiusX="1" RadiusY="1" Fill="{ThemeResource ControlFillColorSecondaryBrush}" />
+                                        <Rectangle Height="2" RadiusX="1" RadiusY="1" Fill="{ThemeResource AccentFillColorDefaultBrush}" Visibility="{x:Bind IsReached}" />
+                                    </Grid>
+                                    <StackPanel Orientation="Horizontal" Spacing="6">
+                                        <Grid Width="20" Height="20">
+                                            <Ellipse Fill="{ThemeResource ControlFillColorSecondaryBrush}" />
+                                            <Ellipse Fill="{ThemeResource AccentFillColorDefaultBrush}" Visibility="{x:Bind IsReached}" />
+                                            <FontIcon Glyph="{x:Bind i:Icons.CheckMark}" FontSize="10" Foreground="{ThemeResource TextOnAccentFillColorPrimaryBrush}" Visibility="{x:Bind IsDone}" />
+                                            <TextBlock
+                                                Text="{x:Bind Number}"
+                                                FontSize="11"
+                                                FontWeight="Bold"
+                                                Foreground="{ThemeResource TextOnAccentFillColorPrimaryBrush}"
+                                                HorizontalAlignment="Center"
+                                                VerticalAlignment="Center"
+                                                Visibility="{x:Bind IsCurrent}" />
+                                            <TextBlock
+                                                Text="{x:Bind Number}"
+                                                FontSize="11"
+                                                FontWeight="Bold"
+                                                Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                                HorizontalAlignment="Center"
+                                                VerticalAlignment="Center"
+                                                Visibility="{x:Bind IsUpcoming}" />
+                                        </Grid>
+                                        <TextBlock Text="{x:Bind Title}" FontSize="12" FontWeight="SemiBold" VerticalAlignment="Center" Visibility="{x:Bind IsCurrent}" />
+                                        <TextBlock Text="{x:Bind Title}" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" VerticalAlignment="Center" Visibility="{x:Bind IsNotCurrent}" />
+                                    </StackPanel>
+                                </StackPanel>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+
+                    <StackPanel Spacing="18" Visibility="{x:Bind Flow.IsSaveStep, Mode=OneWay}">
+                        <StackPanel Spacing="6">
+                            <TextBlock Text="{x:Bind s:Text.FlowSaveKeyTitle}" Style="{StaticResource StepHeadingStyle}" />
+                            <TextBlock Text="{x:Bind s:Text.FlowSaveKeySubtitle}" Style="{StaticResource StepSubtitleStyle}" />
+                        </StackPanel>
+                        <controls:RecoveryKeyCard Key="{x:Bind Flow.SaveKey, Mode=OneWay}" />
+                        <CheckBox Content="{x:Bind s:Text.FlowSavedKeyCheck}" IsChecked="{x:Bind Flow.Saved, Mode=TwoWay}" />
+                        <Button Content="{x:Bind s:Text.CommonContinue}" Style="{StaticResource AccentButtonStyle}" Padding="20,8" Command="{x:Bind Flow.SaveContinueCommand}" />
+                        <HyperlinkButton Content="{x:Bind s:Text.FlowAlreadyHaveKey}" Padding="0" Command="{x:Bind Flow.ExistingKeyCommand}" />
+                        <TextBlock Text="{x:Bind Flow.SaveError, Mode=OneWay}" Style="{StaticResource ErrorTextStyle}" AutomationProperties.LiveSetting="Assertive" Visibility="{x:Bind Flow.HasSaveError, Mode=OneWay}" />
+                    </StackPanel>
+
+                    <StackPanel Spacing="18" Visibility="{x:Bind Flow.IsConfirmStep, Mode=OneWay}">
+                        <StackPanel Spacing="6">
+                            <TextBlock Text="{x:Bind s:Text.FlowConfirmKeyTitle}" Style="{StaticResource StepHeadingStyle}" />
+                            <TextBlock Text="{x:Bind s:Text.FlowConfirmKeySubtitle}" Style="{StaticResource StepSubtitleStyle}" />
+                        </StackPanel>
+                        <TextBox
+                            Header="{x:Bind s:Text.KeyRecoveryKey}"
+                            Style="{StaticResource KeyBoxStyle}"
+                            Text="{x:Bind Flow.ConfirmDraft, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                        <TextBlock Text="{x:Bind Flow.ConfirmHint, Mode=OneWay}" Style="{StaticResource SecondaryTextStyle}" />
+                        <TextBlock
+                            Text="{x:Bind s:Text.KeyMismatch}"
+                            Style="{StaticResource ErrorTextStyle}"
+                            AutomationProperties.LiveSetting="Assertive"
+                            Visibility="{x:Bind Flow.IsConfirmMismatch, Mode=OneWay}" />
+                        <Button Content="{x:Bind s:Text.CommonConfirm}" Style="{StaticResource AccentButtonStyle}" Padding="20,8" Command="{x:Bind Flow.ConfirmKeyCommand}" />
+                        <HyperlinkButton Content="{x:Bind s:Text.FlowViewKeyAgain}" Padding="0" Command="{x:Bind Flow.ViewKeyAgainCommand}" />
+                    </StackPanel>
+
+                    <StackPanel Spacing="18" Visibility="{x:Bind Flow.IsEntryStep, Mode=OneWay}">
+                        <StackPanel Spacing="6">
+                            <TextBlock Text="{x:Bind Flow.EntryTitle, Mode=OneWay}" Style="{StaticResource StepHeadingStyle}" />
+                            <TextBlock Text="{x:Bind Flow.EntrySubtitle, Mode=OneWay}" Style="{StaticResource StepSubtitleStyle}" />
+                        </StackPanel>
+                        <TextBox
+                            Header="{x:Bind s:Text.KeyRecoveryKey}"
+                            Style="{StaticResource KeyBoxStyle}"
+                            Text="{x:Bind Flow.EntryDraft, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                        <TextBlock Text="{x:Bind Flow.EntryHint, Mode=OneWay}" Style="{StaticResource SecondaryTextStyle}" />
+                        <TextBlock
+                            Text="{x:Bind Flow.EntryError, Mode=OneWay}"
+                            Style="{StaticResource ErrorTextStyle}"
+                            AutomationProperties.LiveSetting="Assertive"
+                            Visibility="{x:Bind Flow.HasEntryError, Mode=OneWay}" />
+                        <Button Content="{x:Bind Flow.EntryActionLabel, Mode=OneWay}" Style="{StaticResource AccentButtonStyle}" Padding="20,8" Command="{x:Bind Flow.EnterKeyCommand}" />
+                        <HyperlinkButton Content="{x:Bind s:Text.CommonBack}" Padding="0" Command="{x:Bind Flow.EntryBackCommand}" Visibility="{x:Bind Flow.ShowsEntryBack, Mode=OneWay}" />
+                    </StackPanel>
+
+                    <StackPanel Spacing="18" Visibility="{x:Bind Flow.IsChooseStep, Mode=OneWay}">
+                        <StackPanel Spacing="6">
+                            <TextBlock Text="{x:Bind s:Text.FlowContinueExistingTitle}" Style="{StaticResource StepHeadingStyle}" />
+                            <TextBlock Text="{x:Bind s:Text.FlowContinueExistingSubtitle}" Style="{StaticResource StepSubtitleStyle}" />
+                        </StackPanel>
+                        <Border Style="{StaticResource CardStyle}" Padding="4">
+                            <ItemsControl ItemsSource="{x:Bind Flow.Repositories, Mode=OneWay}" IsTabStop="False">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate x:DataType="vm:RepositoryItem">
+                                        <Button
+                                            Style="{StaticResource SubtleButtonStyle}"
+                                            HorizontalAlignment="Stretch"
+                                            HorizontalContentAlignment="Stretch"
+                                            Padding="12,10"
+                                            Command="{Binding Flow.ChooseRepositoryCommand, ElementName=Root}"
+                                            CommandParameter="{x:Bind}"
+                                            AutomationProperties.Name="{x:Bind Name}">
+                                            <Grid ColumnSpacing="12">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="Auto" />
+                                                    <ColumnDefinition Width="*" />
+                                                    <ColumnDefinition Width="Auto" />
+                                                </Grid.ColumnDefinitions>
+                                                <FontIcon Glyph="{x:Bind i:Icons.Laptop}" FontSize="24" Foreground="{ThemeResource AccentTextFillColorPrimaryBrush}" />
+                                                <StackPanel Grid.Column="1" Spacing="2">
+                                                    <StackPanel Orientation="Horizontal" Spacing="8">
+                                                        <TextBlock Text="{x:Bind Name}" Style="{StaticResource BodyStrongTextBlockStyle}" />
+                                                        <Border
+                                                            Background="{ThemeResource AccentFillColorDefaultBrush}"
+                                                            CornerRadius="4"
+                                                            Padding="6,0"
+                                                            VerticalAlignment="Center"
+                                                            Visibility="{x:Bind IsThisPc}">
+                                                            <TextBlock Text="{x:Bind s:Text.FlowThisPc}" FontSize="11" FontWeight="SemiBold" Foreground="{ThemeResource TextOnAccentFillColorPrimaryBrush}" />
+                                                        </Border>
+                                                    </StackPanel>
+                                                    <TextBlock Text="{x:Bind Detail}" Style="{StaticResource SecondaryTextStyle}" />
+                                                    <StackPanel Orientation="Horizontal" Spacing="6" Visibility="{x:Bind HasStoredKey}">
+                                                        <FontIcon Glyph="{x:Bind i:Icons.Permissions}" FontSize="11" Foreground="{ThemeResource SystemFillColorSuccessBrush}" />
+                                                        <TextBlock Text="{x:Bind s:Text.FlowKeyStoredLocally}" Style="{StaticResource SecondaryTextStyle}" />
+                                                    </StackPanel>
+                                                    <TextBlock Text="{x:Bind EnteredKeyText}" Style="{StaticResource SecondaryTextStyle}" Visibility="{x:Bind HasEnteredKeyCheck}" />
+                                                </StackPanel>
+                                                <FontIcon Grid.Column="2" Glyph="{x:Bind i:Icons.ChevronRight}" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                            </Grid>
+                                        </Button>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </Border>
+                        <TextBlock Text="{x:Bind Flow.ChooseError, Mode=OneWay}" Style="{StaticResource ErrorTextStyle}" AutomationProperties.LiveSetting="Assertive" Visibility="{x:Bind Flow.HasChooseError, Mode=OneWay}" />
+                        <Button Content="{x:Bind s:Text.FlowStartNewInstead}" Command="{x:Bind Flow.StartNewCommand}" />
+                        <HyperlinkButton Content="{x:Bind s:Text.CommonBack}" Padding="0" Command="{x:Bind Flow.ChooseBackCommand}" />
+                    </StackPanel>
+
+                    <StackPanel Spacing="18" Visibility="{x:Bind Flow.IsFoldersStep, Mode=OneWay}">
+                        <TextBlock Text="{x:Bind s:Text.CommonChooseWhatToBackUp}" Style="{StaticResource StepHeadingStyle}" />
+                        <ItemsRepeater ItemsSource="{x:Bind Flow.Bundles}">
+                            <ItemsRepeater.Layout>
+                                <UniformGridLayout MinItemWidth="150" MinColumnSpacing="10" MinRowSpacing="10" ItemsStretch="Fill" MaximumRowsOrColumns="3" />
+                            </ItemsRepeater.Layout>
+                            <ItemsRepeater.ItemTemplate>
+                                <DataTemplate x:DataType="vm:BundleChoice">
+                                    <RadioButton
+                                        GroupName="Bundles"
+                                        IsChecked="{x:Bind IsChosen, Mode=OneWay}"
+                                        Command="{Binding Flow.ChooseBundleCommand, ElementName=Root}"
+                                        CommandParameter="{x:Bind}"
+                                        HorizontalAlignment="Stretch"
+                                        AutomationProperties.Name="{x:Bind Bundle.Title}">
+                                        <StackPanel Spacing="6" Padding="0,4">
+                                            <FontIcon Glyph="{x:Bind Bundle.Glyph}" HorizontalAlignment="Left" FontSize="20" Foreground="{ThemeResource AccentTextFillColorPrimaryBrush}" />
+                                            <TextBlock Text="{x:Bind Bundle.Title}" Style="{StaticResource BodyStrongTextBlockStyle}" />
+                                            <TextBlock Text="{x:Bind Bundle.Detail}" Style="{StaticResource SecondaryTextStyle}" />
+                                        </StackPanel>
+                                    </RadioButton>
+                                </DataTemplate>
+                            </ItemsRepeater.ItemTemplate>
+                        </ItemsRepeater>
+                        <Border Style="{StaticResource CardStyle}" Padding="0">
+                            <StackPanel>
+                                <ItemsControl ItemsSource="{x:Bind Flow.ChosenFolders, Mode=OneWay}" IsTabStop="False">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate x:DataType="vm:ChosenFolder">
+                                            <Grid Padding="16,10" ColumnSpacing="12" BorderBrush="{ThemeResource DividerStrokeColorDefaultBrush}" BorderThickness="0,0,0,1">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="Auto" />
+                                                    <ColumnDefinition Width="*" />
+                                                    <ColumnDefinition Width="Auto" />
+                                                </Grid.ColumnDefinitions>
+                                                <FontIcon Glyph="{x:Bind i:Icons.Folder}" FontSize="18" Foreground="{ThemeResource AccentTextFillColorPrimaryBrush}" />
+                                                <StackPanel Grid.Column="1" Spacing="1">
+                                                    <TextBlock Text="{x:Bind Name}" />
+                                                    <TextBlock Text="{x:Bind Path}" FontSize="11" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                                </StackPanel>
+                                                <TextBlock Grid.Column="2" Text="{x:Bind SizeText}" Foreground="{ThemeResource TextFillColorSecondaryBrush}" VerticalAlignment="Center" />
+                                            </Grid>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                                <Grid Padding="16,10">
+                                    <TextBlock Text="{x:Bind s:Text.FlowTotal}" FontWeight="SemiBold" />
+                                    <TextBlock Text="{x:Bind Flow.ChoiceTotal, Mode=OneWay}" HorizontalAlignment="Right" FontWeight="SemiBold" />
+                                </Grid>
+                            </StackPanel>
+                        </Border>
+                        <Grid>
+                            <Button Command="{x:Bind Flow.ChooseOtherFoldersCommand}" AutomationProperties.Name="{x:Bind s:Text.FlowChooseOtherFolders}">
+                                <StackPanel Orientation="Horizontal" Spacing="8">
+                                    <FontIcon Glyph="{x:Bind i:Icons.Add}" FontSize="14" />
+                                    <TextBlock Text="{x:Bind s:Text.FlowChooseOtherFolders}" />
+                                </StackPanel>
+                            </Button>
+                            <TextBlock Text="{x:Bind s:Text.FlowAlwaysSkips}" Style="{StaticResource SecondaryTextStyle}" HorizontalAlignment="Right" VerticalAlignment="Center" TextAlignment="Right" />
+                        </Grid>
+                        <TextBlock
+                            Text="{x:Bind s:Text.FlowChooseAtLeastOneFolder}"
+                            Foreground="{ThemeResource SystemFillColorCriticalBrush}"
+                            AutomationProperties.LiveSetting="Assertive"
+                            Visibility="{x:Bind Flow.ShowsFolderError, Mode=OneWay}" />
+                        <Button Content="{x:Bind s:Text.CommonContinue}" Style="{StaticResource AccentButtonStyle}" Padding="20,8" Command="{x:Bind Flow.FoldersContinueCommand}" />
+                    </StackPanel>
+
+                    <StackPanel Spacing="18" Visibility="{x:Bind Flow.IsReadyStep, Mode=OneWay}">
+                        <StackPanel Spacing="6">
+                            <TextBlock Text="{x:Bind s:Text.FlowReadyTitle}" Style="{StaticResource StepHeadingStyle}" />
+                            <TextBlock Text="{x:Bind s:Text.FlowReadySubtitle}" Style="{StaticResource StepSubtitleStyle}" />
+                        </StackPanel>
+                        <Border Style="{StaticResource CardStyle}">
+                            <StackPanel Spacing="14">
+                                <Grid ColumnSpacing="12">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <FontIcon Glyph="{x:Bind i:Icons.Folder}" Style="{StaticResource CardIconStyle}" Foreground="{ThemeResource AccentTextFillColorPrimaryBrush}" />
+                                    <StackPanel Grid.Column="1" Spacing="1">
+                                        <TextBlock Text="{x:Bind s:Text.CommonFolders}" />
+                                        <TextBlock Text="{x:Bind Flow.ReadyFolderList, Mode=OneWay}" Style="{StaticResource SecondaryTextStyle}" />
+                                    </StackPanel>
+                                    <TextBlock Grid.Column="2" Text="{x:Bind Flow.ReadyFolders, Mode=OneWay}" FontWeight="SemiBold" />
+                                </Grid>
+                                <Grid ColumnSpacing="12">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <FontIcon Glyph="{x:Bind i:Icons.HardDrive}" Style="{StaticResource CardIconStyle}" Foreground="{ThemeResource AccentTextFillColorPrimaryBrush}" />
+                                    <TextBlock Grid.Column="1" Text="{x:Bind s:Text.FlowEstimatedSize}" VerticalAlignment="Center" />
+                                    <TextBlock Grid.Column="2" Text="{x:Bind Flow.ChoiceTotal, Mode=OneWay}" FontWeight="SemiBold" />
+                                </Grid>
+                                <Grid ColumnSpacing="12">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <FontIcon Glyph="{x:Bind i:Icons.Calendar}" Style="{StaticResource CardIconStyle}" Foreground="{ThemeResource AccentTextFillColorPrimaryBrush}" />
+                                    <StackPanel Grid.Column="1" Spacing="1">
+                                        <TextBlock Text="{x:Bind s:Text.CommonSchedule}" />
+                                        <TextBlock Text="{x:Bind s:Text.FlowScheduleHint}" Style="{StaticResource SecondaryTextStyle}" />
+                                    </StackPanel>
+                                    <TextBlock Grid.Column="2" Text="{x:Bind Flow.ReadySchedule, Mode=OneWay}" FontWeight="SemiBold" />
+                                </Grid>
+                                <Grid ColumnSpacing="12">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <FontIcon Glyph="{x:Bind i:Icons.History}" Style="{StaticResource CardIconStyle}" Foreground="{ThemeResource AccentTextFillColorPrimaryBrush}" />
+                                    <StackPanel Grid.Column="1" Spacing="1">
+                                        <TextBlock Text="{x:Bind s:Text.FlowKeepSnapshots}" />
+                                        <TextBlock Text="{x:Bind Flow.RetentionEffect, Mode=OneWay}" Style="{StaticResource SecondaryTextStyle}" />
+                                    </StackPanel>
+                                    <ComboBox
+                                        Grid.Column="2"
+                                        ItemsSource="{x:Bind vm:FlowViewModel.RetentionLabels}"
+                                        SelectedIndex="{x:Bind Flow.RetentionIndex, Mode=TwoWay}"
+                                        VerticalAlignment="Center"
+                                        AutomationProperties.Name="{x:Bind s:Text.FlowKeepSnapshots}" />
+                                </Grid>
+                            </StackPanel>
+                        </Border>
+                        <StackPanel>
+                            <CheckBox Content="{x:Bind s:Text.FlowOpenAtLogin}" IsChecked="{x:Bind Flow.OpenAtLogin, Mode=TwoWay}" />
+                            <CheckBox
+                                Content="{x:Bind s:Text.CommonCheckForUpdatesAutomatically}"
+                                IsChecked="{x:Bind Flow.CheckForUpdates, Mode=TwoWay}"
+                                Visibility="{x:Bind Flow.UpdatesAvailable, Mode=OneWay}" />
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal" Spacing="12">
+                            <Button Content="{x:Bind s:Text.CommonBackUpNow}" Style="{StaticResource AccentButtonStyle}" Padding="20,8" Command="{x:Bind Flow.FinishNowCommand}" />
+                            <Button Content="{x:Bind s:Text.FlowNotNow}" Padding="20,8" Command="{x:Bind Flow.FinishLaterCommand}" />
+                        </StackPanel>
+                        <HyperlinkButton Content="{x:Bind s:Text.CommonBack}" Padding="0" Command="{x:Bind Flow.ReadyBackCommand}" />
+                    </StackPanel>
+                </StackPanel>
+            </StackPanel>
+        </ScrollViewer>
+    </Grid>
+</Page>

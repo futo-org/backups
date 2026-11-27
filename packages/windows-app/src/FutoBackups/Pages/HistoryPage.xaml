@@ -1,0 +1,229 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Page
+    x:Class="FutoBackups.Pages.HistoryPage"
+    x:Name="Root"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:s="using:FutoBackups.Core.Strings"
+    xmlns:i="using:FutoBackups"
+    xmlns:controls="using:FutoBackups.Controls"
+    xmlns:vm="using:FutoBackups.ViewModels"
+    NavigationCacheMode="Required">
+    <ScrollViewer>
+        <Grid>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" MaxWidth="1040" />
+            </Grid.ColumnDefinitions>
+        <StackPanel Padding="36,20,36,36" Spacing="12">
+            <controls:PageHeader Title="{x:Bind s:Text.CommonHistory}" Subtitle="{x:Bind ViewModel.RetentionLine, Mode=OneWay}">
+                <controls:PageHeader.Actions>
+                    <Button Command="{x:Bind ViewModel.RefreshCommand}" IsEnabled="{x:Bind ViewModel.CanRefreshSnapshots, Mode=OneWay}" AutomationProperties.Name="{x:Bind s:Text.HistoryRefresh}">
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <FontIcon Glyph="{x:Bind i:Icons.Refresh}" FontSize="14" />
+                            <TextBlock Text="{x:Bind s:Text.HistoryRefresh}" />
+                        </StackPanel>
+                    </Button>
+                </controls:PageHeader.Actions>
+            </controls:PageHeader>
+            <InfoBar
+                x:Name="RestoreInfo"
+                Severity="{x:Bind ViewModel.RestoreResultSeverity, Mode=OneWay}"
+                Title="{x:Bind ViewModel.RestoreResultTitle, Mode=OneWay}"
+                Message="{x:Bind ViewModel.RestoreResultMessage, Mode=OneWay}"
+                IsOpen="{x:Bind ViewModel.IsRestoreResultOpen, Mode=TwoWay}">
+                <InfoBar.ActionButton>
+                    <Button Content="{x:Bind s:Text.CommonShowInFileExplorer}" Command="{x:Bind ViewModel.RevealRestoredCommand}" Visibility="{x:Bind ViewModel.CanRevealRestored, Mode=OneWay}" />
+                </InfoBar.ActionButton>
+            </InfoBar>
+            <InfoBar
+                Severity="Informational"
+                Title="{x:Bind Status.StatusTitle, Mode=OneWay}"
+                Message="{x:Bind Status.StatusSubtitle, Mode=OneWay}"
+                IsClosable="False"
+                IsOpen="{x:Bind ViewModel.IsRestoring, Mode=OneWay}">
+                <InfoBar.ActionButton>
+                    <Button Content="{x:Bind s:Text.CommonCancel}" Command="{x:Bind Status.CancelCommand}" />
+                </InfoBar.ActionButton>
+            </InfoBar>
+
+            <ProgressRing
+                IsActive="True"
+                Width="24"
+                Height="24"
+                Margin="0,60"
+                AutomationProperties.Name="{x:Bind s:Text.HistoryLoadingSnapshots}"
+                Visibility="{x:Bind ViewModel.ShowsSnapshotsLoading, Mode=OneWay}" />
+            <StackPanel Spacing="10" Padding="0,60" HorizontalAlignment="Center" Visibility="{x:Bind ViewModel.ShowsSnapshotsEmpty, Mode=OneWay}">
+                <FontIcon Glyph="{x:Bind i:Icons.History}" FontSize="38" Foreground="{ThemeResource AccentTextFillColorPrimaryBrush}" />
+                <TextBlock Text="{x:Bind s:Text.HistoryNoSnapshots}" Style="{StaticResource SubtitleTextBlockStyle}" HorizontalAlignment="Center" />
+                <TextBlock Text="{x:Bind s:Text.HistoryNoSnapshotsHint}" Foreground="{ThemeResource TextFillColorSecondaryBrush}" HorizontalAlignment="Center" />
+            </StackPanel>
+            <StackPanel Spacing="10" Padding="0,60" HorizontalAlignment="Center" Visibility="{x:Bind ViewModel.ShowsSnapshotsFailed, Mode=OneWay}">
+                <FontIcon Glyph="{x:Bind i:Icons.Warning}" FontSize="38" Foreground="{ThemeResource SystemFillColorCautionBrush}" />
+                <TextBlock Text="{x:Bind s:Text.HistoryCouldNotLoad}" Style="{StaticResource SubtitleTextBlockStyle}" HorizontalAlignment="Center" />
+                <TextBlock
+                    Text="{x:Bind ViewModel.SnapshotsError, Mode=OneWay}"
+                    MaxWidth="420"
+                    TextAlignment="Center"
+                    TextWrapping="Wrap"
+                    IsTextSelectionEnabled="True"
+                    Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                <Button Content="{x:Bind s:Text.CommonTryAgain}" HorizontalAlignment="Center" Margin="0,4,0,0" Command="{x:Bind ViewModel.RefreshCommand}" />
+            </StackPanel>
+
+            <ItemsControl ItemsSource="{x:Bind ViewModel.SnapshotDays, Mode=OneWay}" IsTabStop="False">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate x:DataType="vm:SnapshotDay">
+                        <StackPanel Spacing="6" Margin="0,0,0,18">
+                            <TextBlock Text="{x:Bind Title}" Style="{StaticResource BodyStrongTextBlockStyle}" Margin="2,0,0,0" />
+                            <Border Style="{StaticResource CardStyle}" Padding="0">
+                                <ItemsControl ItemsSource="{x:Bind Snapshots}" IsTabStop="False">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate x:DataType="vm:SnapshotItem">
+                                            <Grid
+                                                Padding="16,12"
+                                                ColumnSpacing="14"
+                                                BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                                                BorderThickness="{x:Bind Divider}">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="Auto" />
+                                                    <ColumnDefinition Width="*" />
+                                                    <ColumnDefinition Width="Auto" />
+                                                    <ColumnDefinition Width="Auto" />
+                                                    <ColumnDefinition Width="Auto" />
+                                                    <ColumnDefinition Width="Auto" />
+                                                </Grid.ColumnDefinitions>
+                                                <Grid Width="32" Height="32">
+                                                    <Ellipse Fill="{ThemeResource AccentFillColorDefaultBrush}" Visibility="{x:Bind IsLatest}" />
+                                                    <FontIcon
+                                                        Glyph="{x:Bind i:Icons.CheckMark}"
+                                                        FontSize="14"
+                                                        Foreground="{ThemeResource TextOnAccentFillColorPrimaryBrush}"
+                                                        Visibility="{x:Bind IsLatest}" />
+                                                    <Ellipse Fill="{ThemeResource ControlFillColorSecondaryBrush}" Visibility="{x:Bind IsOlder}" />
+                                                    <FontIcon
+                                                        Glyph="{x:Bind i:Icons.History}"
+                                                        FontSize="14"
+                                                        Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                                        Visibility="{x:Bind IsOlder}" />
+                                                </Grid>
+                                                <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="1">
+                                                    <StackPanel Orientation="Horizontal" Spacing="8">
+                                                        <TextBlock Text="{x:Bind TimeText}" ToolTipService.ToolTip="{x:Bind TimeTooltip}" Style="{StaticResource BodyStrongTextBlockStyle}" />
+                                                        <Border
+                                                            Background="{ThemeResource AccentFillColorDefaultBrush}"
+                                                            CornerRadius="4"
+                                                            Padding="6,0"
+                                                            VerticalAlignment="Center"
+                                                            Visibility="{x:Bind IsLatest}">
+                                                            <TextBlock
+                                                                Text="{x:Bind s:Text.HistoryLatest}"
+                                                                FontSize="11"
+                                                                FontWeight="SemiBold"
+                                                                Foreground="{ThemeResource TextOnAccentFillColorPrimaryBrush}" />
+                                                        </Border>
+                                                    </StackPanel>
+                                                    <TextBlock Text="{x:Bind Summary}" Style="{StaticResource SecondaryTextStyle}" />
+                                                </StackPanel>
+                                                <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="12" VerticalAlignment="Center">
+                                                    <StackPanel
+                                                        Orientation="Horizontal"
+                                                        Spacing="4"
+                                                        VerticalAlignment="Center"
+                                                        Visibility="{x:Bind HasAdded}"
+                                                        ToolTipService.ToolTip="{x:Bind s:Text.HistoryNewDataUploaded}">
+                                                        <FontIcon Glyph="{x:Bind i:Icons.Up}" FontSize="11" Foreground="{ThemeResource SystemFillColorSuccessBrush}" />
+                                                        <TextBlock Text="{x:Bind AddedText}" Style="{StaticResource SecondaryTextStyle}" />
+                                                    </StackPanel>
+                                                    <Button
+                                                        Style="{StaticResource SubtleButtonStyle}"
+                                                        Padding="8,2"
+                                                        Visibility="{x:Bind HasWarnings}"
+                                                        Command="{Binding ViewModel.ShowWarningsCommand, ElementName=Root}"
+                                                        CommandParameter="{x:Bind}"
+                                                        AutomationProperties.Name="{x:Bind WarningsText}"
+                                                        ToolTipService.ToolTip="{x:Bind s:Text.HistoryCouldNotBackUpSome}">
+                                                        <StackPanel Orientation="Horizontal" Spacing="6">
+                                                            <FontIcon Glyph="{x:Bind i:Icons.Warning}" FontSize="12" Foreground="{ThemeResource SystemFillColorCautionBrush}" />
+                                                            <TextBlock Text="{x:Bind WarningsText}" FontSize="11" FontWeight="SemiBold" />
+                                                        </StackPanel>
+                                                    </Button>
+                                                </StackPanel>
+                                                <TextBlock
+                                                    Grid.Column="3"
+                                                    Text="{x:Bind ShortId}"
+                                                    FontFamily="{StaticResource MonoFontFamily}"
+                                                    FontSize="12"
+                                                    Foreground="{ThemeResource TextFillColorTertiaryBrush}"
+                                                    VerticalAlignment="Center" />
+                                                <Button
+                                                    Grid.Column="4"
+                                                    Content="{x:Bind s:Text.HistoryBrowseFiles}"
+                                                    CommandParameter="{x:Bind}"
+                                                    Command="{Binding ViewModel.BrowseCommand, ElementName=Root}" />
+                                                <Button
+                                                    Grid.Column="5"
+                                                    Content="{x:Bind s:Text.HistoryRestoreAll}"
+                                                    Command="{Binding ViewModel.RestoreCommand, ElementName=Root}"
+                                                    CommandParameter="{x:Bind}"
+                                                    IsEnabled="{x:Bind CanRestore}" />
+                                            </Grid>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </Border>
+                        </StackPanel>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+
+            <Grid ColumnSpacing="8" Margin="0,20,0,0">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="220" />
+                </Grid.ColumnDefinitions>
+                <TextBlock Text="{x:Bind s:Text.HistoryActivity}" Style="{StaticResource SubtitleTextBlockStyle}" VerticalAlignment="Center" />
+                <ComboBox
+                    ItemsSource="{x:Bind vm:HistoryViewModel.RunFilterLabels}"
+                    Grid.Column="1"
+                    MinWidth="160"
+                    SelectedIndex="{x:Bind ViewModel.RunFilterIndex, Mode=TwoWay}"
+                    AutomationProperties.Name="{x:Bind s:Text.HistoryShowResults}" />
+                <TextBox
+                    Grid.Column="2"
+                    PlaceholderText="{x:Bind s:Text.HistorySearchActivity}"
+                    Text="{x:Bind ViewModel.RunQuery, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                    AutomationProperties.Name="{x:Bind s:Text.HistorySearchActivity}" />
+            </Grid>
+            <TextBlock
+                Text="{x:Bind s:Text.HistoryNoMatchingActivity}"
+                Style="{StaticResource SecondaryTextStyle}"
+                Visibility="{x:Bind ViewModel.HasNoRuns, Mode=OneWay}" />
+            <Border Style="{StaticResource CardStyle}" Padding="0" Visibility="{x:Bind ViewModel.HasRuns, Mode=OneWay}">
+                <ItemsControl ItemsSource="{x:Bind ViewModel.Runs, Mode=OneWay}" IsTabStop="False">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate x:DataType="vm:RunItem">
+                            <Grid Padding="16,10" ColumnSpacing="14" BorderBrush="{ThemeResource DividerStrokeColorDefaultBrush}" BorderThickness="0,0,0,1">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                <FontIcon Glyph="{x:Bind Glyph}" FontSize="16" Foreground="{ThemeResource AccentTextFillColorPrimaryBrush}" VerticalAlignment="Center" />
+                                <StackPanel Grid.Column="1" Spacing="1">
+                                    <TextBlock Text="{x:Bind Title}" Style="{StaticResource BodyStrongTextBlockStyle}" />
+                                    <TextBlock Text="{x:Bind Detail}" Style="{StaticResource SecondaryTextStyle}" TextWrapping="Wrap" IsTextSelectionEnabled="True" />
+                                    <StackPanel Orientation="Horizontal" Spacing="12" Visibility="{x:Bind HasSupportLog}">
+                                        <HyperlinkButton Content="{x:Bind s:Text.HistorySaveSupportLog}" Padding="0" Command="{Binding ViewModel.SaveSupportLogCommand, ElementName=Root}" CommandParameter="{x:Bind SupportLog}" />
+                                        <TextBlock Text="{x:Bind SupportCodeText}" Style="{StaticResource SecondaryTextStyle}" VerticalAlignment="Center" IsTextSelectionEnabled="True" Visibility="{x:Bind HasSupportCode}" />
+                                    </StackPanel>
+                                </StackPanel>
+                            </Grid>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </Border>
+        </StackPanel>
+        </Grid>
+    </ScrollViewer>
+</Page>

@@ -1,0 +1,56 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net11.0-windows10.0.26100.0</TargetFramework>
+    <TargetPlatformMinVersion>10.0.19041.0</TargetPlatformMinVersion>
+    <RootNamespace>FutoBackups</RootNamespace>
+    <AssemblyName>FutoBackups</AssemblyName>
+    <AssemblyTitle>FUTO Backups</AssemblyTitle>
+    <Product>FUTO Backups</Product>
+    <Company>FUTO</Company>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <ApplicationIcon>Assets\AppIcon.ico</ApplicationIcon>
+    <Platforms>x64;ARM64</Platforms>
+    <RuntimeIdentifiers>win-arm64;win-x64</RuntimeIdentifiers>
+    <UseWinUI>true</UseWinUI>
+    <WindowsPackageType>None</WindowsPackageType>
+    <EnableMsixTooling>true</EnableMsixTooling>
+    <SelfContained>true</SelfContained>
+    <WindowsAppSDKSelfContained>true</WindowsAppSDKSelfContained>
+    <Nullable>enable</Nullable>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <DefineConstants>$(DefineConstants);DISABLE_XAML_GENERATED_MAIN</DefineConstants>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Content Include="Assets\**" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\FutoBackups.Core\FutoBackups.Core.csproj" />
+  </ItemGroup>
+
+  <ItemGroup Condition="Exists('..\..\packaging\update-public-key.pem')">
+    <EmbeddedResource Include="..\..\packaging\update-public-key.pem" LogicalName="UpdatePublicKey" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <HelperArch Condition="'$(RuntimeIdentifier)' == 'win-arm64'">arm64</HelperArch>
+    <HelperArch Condition="'$(RuntimeIdentifier)' == 'win-x64'">x64</HelperArch>
+  </PropertyGroup>
+
+  <Import Project="..\..\Helpers.targets" />
+
+  <Target Name="IncludeHelpers" AfterTargets="BuildHelpers" Condition="'$(HelperArch)' != ''">
+    <ItemGroup>
+      <HelperExecutable Include="..\..\build\helpers\$(HelperArch)\*.exe" />
+      <Content Include="@(HelperExecutable)" Link="Helpers\%(HelperExecutable.Filename)%(HelperExecutable.Extension)" CopyToOutputDirectory="PreserveNewest" />
+    </ItemGroup>
+  </Target>
+
+  <ItemGroup>
+    <PackageReference Include="H.NotifyIcon.WinUI" Version="2.4.1" />
+    <PackageReference Include="Microsoft.WindowsAppSDK" Version="2.7.0" />
+  </ItemGroup>
+</Project>

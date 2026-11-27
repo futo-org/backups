@@ -1,0 +1,295 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Page
+    x:Class="FutoBackups.Pages.SettingsPage"
+    x:Name="Root"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:controls="using:FutoBackups.Controls"
+    xmlns:s="using:FutoBackups.Core.Strings"
+    xmlns:i="using:FutoBackups"
+    xmlns:vm="using:FutoBackups.ViewModels"
+    NavigationCacheMode="Required">
+    <Page.Resources>
+        <x:Double x:Key="SettingControlWidth">200</x:Double>
+        <Style x:Key="InlineErrorStyle" TargetType="TextBlock" BasedOn="{StaticResource CaptionTextBlockStyle}">
+            <Setter Property="Foreground" Value="{ThemeResource SystemFillColorCriticalBrush}" />
+            <Setter Property="HorizontalAlignment" Value="Right" />
+            <Setter Property="IsTextSelectionEnabled" Value="True" />
+            <Setter Property="Margin" Value="0,2,4,6" />
+        </Style>
+        <Style x:Key="DestructiveButtonStyle" TargetType="Button" BasedOn="{StaticResource DefaultButtonStyle}">
+            <Setter Property="Foreground" Value="{ThemeResource SystemFillColorCriticalBrush}" />
+        </Style>
+        <Style x:Key="CautionButtonStyle" TargetType="Button" BasedOn="{StaticResource DefaultButtonStyle}">
+            <Setter Property="Foreground" Value="{ThemeResource SystemFillColorCautionBrush}" />
+        </Style>
+    </Page.Resources>
+
+    <ScrollViewer>
+        <Grid>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" MaxWidth="1040" />
+            </Grid.ColumnDefinitions>
+            <StackPanel Padding="36,20,36,36" Spacing="4">
+                <controls:PageHeader Title="{x:Bind s:Text.SettingsTitle}" />
+
+                <Border Style="{StaticResource CardStyle}">
+                    <Grid ColumnSpacing="12">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <PersonPicture Width="40" Height="40" Initials="{x:Bind ViewModel.Initials, Mode=OneWay}" AutomationProperties.AccessibilityView="Raw" />
+                        <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="2">
+                            <TextBlock Text="{x:Bind ViewModel.Email, Mode=OneWay}" Style="{StaticResource BodyStrongTextBlockStyle}" />
+                            <TextBlock Text="{x:Bind ViewModel.ServerLine, Mode=OneWay}" Style="{StaticResource SecondaryTextStyle}" />
+                        </StackPanel>
+                        <Button Grid.Column="2" Content="{x:Bind s:Text.CommonSignOut}" Style="{StaticResource DestructiveButtonStyle}" VerticalAlignment="Center" Command="{x:Bind Status.SignOutCommand}" />
+                    </Grid>
+                </Border>
+
+                <controls:SettingRow Glyph="{x:Bind i:Icons.HardDrive}" Header="{x:Bind s:Text.SettingsStorage}" Description="{x:Bind ViewModel.StorageText, Mode=OneWay}">
+                    <Button Content="{x:Bind s:Text.SettingsManageAccount}" Command="{x:Bind ViewModel.OpenAccountCommand}" />
+                </controls:SettingRow>
+                <controls:SettingRow Glyph="{x:Bind i:Icons.Rename}" Header="{x:Bind s:Text.SettingsBackupName}" Description="{x:Bind s:Text.SettingsBackupNameHint}">
+                    <TextBox
+                        Text="{x:Bind ViewModel.Name.Draft, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                        controls:Commit.Command="{x:Bind ViewModel.Name.ApplyCommand}"
+                        Width="{StaticResource SettingControlWidth}"
+                        AutomationProperties.Name="{x:Bind s:Text.SettingsBackupName}" />
+                </controls:SettingRow>
+                <TextBlock Text="{x:Bind ViewModel.Name.Error, Mode=OneWay}" Style="{StaticResource InlineErrorStyle}" AutomationProperties.LiveSetting="Assertive" Visibility="{x:Bind ViewModel.Name.HasError, Mode=OneWay}" />
+                <TextBlock Text="{x:Bind s:Text.CommonSaved}" Style="{StaticResource SecondaryTextStyle}" AutomationProperties.LiveSetting="Polite" Visibility="{x:Bind ViewModel.Name.IsSaved, Mode=OneWay}" />
+
+                <StackPanel Spacing="4" Visibility="{x:Bind ViewModel.HasOtherDevices, Mode=OneWay}">
+                    <TextBlock Text="{x:Bind s:Text.SettingsOtherDevices}" Style="{StaticResource SectionHeaderStyle}" />
+                    <ItemsControl ItemsSource="{x:Bind ViewModel.OtherDevices, Mode=OneWay}" IsTabStop="False">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="vm:RepositoryItem">
+                                <controls:SettingRow Glyph="{x:Bind i:Icons.Laptop}" Header="{x:Bind Name}" Description="{x:Bind Detail}" Margin="0,0,0,4" />
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </StackPanel>
+
+                <TextBlock Text="{x:Bind s:Text.SettingsScheduledBackups}" Style="{StaticResource SectionHeaderStyle}" />
+                <controls:SettingRow Glyph="{x:Bind i:Icons.KeepAwake}" Header="{x:Bind s:Text.SettingsKeepAwake}" Description="{x:Bind s:Text.SettingsKeepAwakeHint}">
+                    <ToggleSwitch IsOn="{x:Bind ViewModel.KeepAwake, Mode=TwoWay}" AutomationProperties.Name="{x:Bind s:Text.SettingsKeepAwake}" />
+                </controls:SettingRow>
+                <controls:SettingRow Glyph="{x:Bind i:Icons.PluggedIn}" Header="{x:Bind s:Text.SettingsOnlyOnPower}" Description="{x:Bind s:Text.SettingsOnlyOnPowerHint}">
+                    <ToggleSwitch IsOn="{x:Bind ViewModel.OnlyOnPower, Mode=TwoWay}" AutomationProperties.Name="{x:Bind s:Text.SettingsOnlyOnPower}" />
+                </controls:SettingRow>
+                <controls:SettingRow Glyph="{x:Bind i:Icons.Ethernet}" Header="{x:Bind s:Text.SettingsOnlyOnEthernet}" Description="{x:Bind s:Text.SettingsOnlyOnEthernetHint}">
+                    <ToggleSwitch IsOn="{x:Bind ViewModel.OnlyOnEthernet, Mode=TwoWay}" AutomationProperties.Name="{x:Bind s:Text.SettingsOnlyOnEthernet}" />
+                </controls:SettingRow>
+                <controls:SettingRow Glyph="{x:Bind i:Icons.Monitor}" Header="{x:Bind s:Text.SettingsOnlyWithDisplay}" Description="{x:Bind s:Text.SettingsOnlyWithDisplayHint}">
+                    <ToggleSwitch IsOn="{x:Bind ViewModel.OnlyWithDisplay, Mode=TwoWay}" AutomationProperties.Name="{x:Bind s:Text.SettingsOnlyWithDisplay}" />
+                </controls:SettingRow>
+                <controls:SettingRow Glyph="{x:Bind i:Icons.Usb}" Header="{x:Bind s:Text.SettingsOnlyWithUsb}" Description="{x:Bind s:Text.SettingsOnlyWithUsbHint}">
+                    <ComboBox ItemsSource="{x:Bind ViewModel.UsbLabels, Mode=OneWay}" SelectedIndex="{x:Bind ViewModel.UsbIndex, Mode=TwoWay}" Width="{StaticResource SettingControlWidth}" AutomationProperties.Name="{x:Bind s:Text.SettingsOnlyWithUsb}" />
+                </controls:SettingRow>
+                <controls:SettingRow Visibility="{x:Bind ViewModel.ShowsRunAnyway, Mode=OneWay}" Glyph="{x:Bind i:Icons.Recent}" Header="{x:Bind s:Text.SettingsBackUpAnyway}" Description="{x:Bind s:Text.SettingsBackUpAnywayHint}">
+                    <ComboBox ItemsSource="{x:Bind vm:SettingsViewModel.RunAnywayLabels}" SelectedIndex="{x:Bind ViewModel.RunAnywayIndex, Mode=TwoWay}" Width="{StaticResource SettingControlWidth}" AutomationProperties.Name="{x:Bind s:Text.SettingsBackUpAnyway}" />
+                </controls:SettingRow>
+                <TextBlock Text="{x:Bind ViewModel.WaitingText, Mode=OneWay}" Style="{StaticResource SecondaryTextStyle}" AutomationProperties.LiveSetting="Polite" Visibility="{x:Bind ViewModel.IsWaiting, Mode=OneWay}" />
+                <TextBlock Text="{x:Bind s:Text.SettingsConditionsFooter}" Style="{StaticResource SecondaryTextStyle}" />
+
+                <TextBlock Text="{x:Bind s:Text.SettingsBandwidth}" Style="{StaticResource SectionHeaderStyle}" />
+                <controls:SettingRow Glyph="{x:Bind i:Icons.Speed}" Header="{x:Bind s:Text.SettingsUploadLimit}" Description="{x:Bind s:Text.SettingsUploadLimitHint}">
+                    <TextBox
+                        Text="{x:Bind ViewModel.Limit.Draft, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                        controls:Commit.Command="{x:Bind ViewModel.Limit.ApplyCommand}"
+                        Width="{StaticResource SettingControlWidth}"
+                        PlaceholderText="{x:Bind s:Text.SettingsUnlimited}"
+                        InputScope="Number"
+                        AutomationProperties.Name="{x:Bind s:Text.SettingsUploadLimit}" />
+                </controls:SettingRow>
+                <TextBlock Text="{x:Bind ViewModel.Limit.Error, Mode=OneWay}" Style="{StaticResource InlineErrorStyle}" AutomationProperties.LiveSetting="Assertive" Visibility="{x:Bind ViewModel.Limit.HasError, Mode=OneWay}" />
+                <TextBlock Text="{x:Bind s:Text.CommonSaved}" Style="{StaticResource SecondaryTextStyle}" AutomationProperties.LiveSetting="Polite" Visibility="{x:Bind ViewModel.Limit.IsSaved, Mode=OneWay}" />
+                <controls:SettingRow Visibility="{x:Bind ViewModel.HasUploadLimit, Mode=OneWay}" Glyph="{x:Bind i:Icons.QuietHours}" Header="{x:Bind s:Text.SettingsFullSpeedAtNight}" Description="{x:Bind s:Text.SettingsFullSpeedAtNightHint}">
+                    <ToggleSwitch IsOn="{x:Bind ViewModel.FullSpeedAtNight, Mode=TwoWay}" AutomationProperties.Name="{x:Bind s:Text.SettingsFullSpeedAtNight}" />
+                </controls:SettingRow>
+                <controls:SettingRow Glyph="{x:Bind i:Icons.Recent}" Header="{x:Bind s:Text.SettingsHours}" Visibility="{x:Bind ViewModel.ShowsQuietHours, Mode=OneWay}">
+                    <StackPanel Orientation="Horizontal" Spacing="6">
+                        <TimePicker Time="{x:Bind ViewModel.QuietStart, Mode=TwoWay}" ClockIdentifier="24HourClock" AutomationProperties.Name="{x:Bind s:Text.SettingsFromLabel}" />
+                        <TextBlock Text="{x:Bind s:Text.SettingsHoursTo}" VerticalAlignment="Center" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                        <TimePicker Time="{x:Bind ViewModel.QuietEnd, Mode=TwoWay}" ClockIdentifier="24HourClock" AutomationProperties.Name="{x:Bind s:Text.SettingsToLabel}" />
+                    </StackPanel>
+                </controls:SettingRow>
+                <TextBlock Text="{x:Bind ViewModel.QuietError, Mode=OneWay}" Style="{StaticResource InlineErrorStyle}" AutomationProperties.LiveSetting="Assertive" Visibility="{x:Bind ViewModel.HasQuietError, Mode=OneWay}" />
+
+                <TextBlock Text="{x:Bind s:Text.SettingsSnapshots}" Style="{StaticResource SectionHeaderStyle}" />
+                <controls:SettingRow Glyph="{x:Bind i:Icons.History}" Header="{x:Bind s:Text.SettingsDeleteOldSnapshots}" Description="{x:Bind ViewModel.RetentionDescription, Mode=OneWay}">
+                    <ComboBox
+                        ItemsSource="{x:Bind vm:SettingsViewModel.RetentionChoices}"
+                        SelectedIndex="{x:Bind ViewModel.RetentionIndex, Mode=TwoWay}"
+                        IsEnabled="{x:Bind ViewModel.CanChangeRetention, Mode=OneWay}"
+                        Width="{StaticResource SettingControlWidth}"
+                        AutomationProperties.Name="{x:Bind s:Text.SettingsDeleteOldSnapshots}" />
+                </controls:SettingRow>
+                <Border Style="{StaticResource CardStyle}" Visibility="{x:Bind ViewModel.IsEditingCustomRetention, Mode=OneWay}">
+                    <StackPanel Spacing="10">
+                        <ItemsControl ItemsSource="{x:Bind ViewModel.Retention.Fields}" IsTabStop="False">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate x:DataType="vm:RetentionFieldItem">
+                                    <StackPanel Spacing="2" Margin="0,0,0,10">
+                                        <Grid ColumnSpacing="16">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="Auto" />
+                                            </Grid.ColumnDefinitions>
+                                            <StackPanel Spacing="1" VerticalAlignment="Center">
+                                                <TextBlock Text="{x:Bind Title}" />
+                                                <TextBlock Text="{x:Bind Detail}" Style="{StaticResource SecondaryTextStyle}" />
+                                            </StackPanel>
+                                            <TextBox
+                                                Grid.Column="1"
+                                                Width="90"
+                                                TextAlignment="Right"
+                                                PlaceholderText="{x:Bind Placeholder}"
+                                                Text="{x:Bind Draft, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                AutomationProperties.Name="{x:Bind Title}"
+                                                controls:Commit.EnterCommand="{Binding ViewModel.Retention.ApplyCommand, ElementName=Root}" />
+                                        </Grid>
+                                        <TextBlock Text="{x:Bind Error, Mode=OneWay}" Style="{StaticResource InlineErrorStyle}" AutomationProperties.LiveSetting="Assertive" Visibility="{x:Bind HasError, Mode=OneWay}" />
+                                    </StackPanel>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                        <Grid ColumnSpacing="12">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock
+                                Text="{x:Bind s:Text.SettingsRetentionDurationsHint}"
+                                Style="{StaticResource SecondaryTextStyle}"
+                                VerticalAlignment="Center" />
+                            <Button Grid.Column="1" Content="{x:Bind s:Text.CommonApply}" Command="{x:Bind ViewModel.Retention.ApplyCommand}" />
+                        </Grid>
+                        <TextBlock Text="{x:Bind ViewModel.Retention.Error, Mode=OneWay}" Style="{StaticResource InlineErrorStyle}" AutomationProperties.LiveSetting="Assertive" Visibility="{x:Bind ViewModel.Retention.HasError, Mode=OneWay}" />
+                        <TextBlock Text="{x:Bind s:Text.CommonSaved}" Style="{StaticResource SecondaryTextStyle}" AutomationProperties.LiveSetting="Polite" Visibility="{x:Bind ViewModel.Retention.IsSaved, Mode=OneWay}" />
+                    </StackPanel>
+                </Border>
+                <TextBlock
+                    Text="{x:Bind s:Text.SettingsRetentionWarning}"
+                    Style="{StaticResource SecondaryTextStyle}"
+                    Margin="2,4,0,0" />
+                <controls:SettingRow Glyph="{x:Bind i:Icons.Lock}" Header="{x:Bind s:Text.SettingsWriteOnce}" Description="{x:Bind s:Text.SettingsWriteOnceHint}">
+                    <ToggleSwitch IsOn="{x:Bind ViewModel.IsWriteOnce, Mode=TwoWay}" AutomationProperties.Name="{x:Bind s:Text.SettingsWriteOnce}" />
+                </controls:SettingRow>
+                <TextBlock Text="{x:Bind ViewModel.WriteOnceText, Mode=OneWay}" Style="{StaticResource SecondaryTextStyle}" TextWrapping="Wrap" AutomationProperties.LiveSetting="Polite" Visibility="{x:Bind ViewModel.HasWriteOnceText, Mode=OneWay}" />
+
+                <TextBlock Text="{x:Bind s:Text.SettingsGeneral}" Style="{StaticResource SectionHeaderStyle}" />
+                <controls:SettingRow Glyph="{x:Bind i:Icons.PowerButton}" Header="{x:Bind s:Text.SettingsOpenAtLogin}" Description="{x:Bind s:Text.SettingsOpenAtLoginHint}">
+                    <ToggleSwitch IsOn="{x:Bind ViewModel.LaunchAtLogin, Mode=TwoWay}" AutomationProperties.Name="{x:Bind s:Text.SettingsOpenAtLogin}" />
+                </controls:SettingRow>
+                <controls:SettingRow
+                    Glyph="{x:Bind i:Icons.Shield}"
+                    Header="{x:Bind s:Text.SettingsNotifyOnFailure}"
+                    Description="{x:Bind s:Text.SettingsNotifyOnFailureHint}">
+                    <ToggleSwitch IsOn="{x:Bind ViewModel.FailureNotifications, Mode=TwoWay}" AutomationProperties.Name="{x:Bind s:Text.SettingsNotifyOnFailure}" />
+                </controls:SettingRow>
+
+                <TextBlock Text="{x:Bind s:Text.SettingsSecurity}" Style="{StaticResource SectionHeaderStyle}" />
+                <Border Style="{StaticResource CardStyle}">
+                    <StackPanel Spacing="12">
+                        <Grid ColumnSpacing="16">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <FontIcon Glyph="{x:Bind i:Icons.Permissions}" Style="{StaticResource CardIconStyle}" />
+                            <StackPanel Grid.Column="1" Spacing="1">
+                                <TextBlock Text="{x:Bind s:Text.KeyRecoveryKey}" />
+                                <TextBlock
+                                    Text="{x:Bind s:Text.SettingsRecoveryKeyHint}"
+                                    Style="{StaticResource SecondaryTextStyle}" />
+                            </StackPanel>
+                        </Grid>
+                        <controls:RecoveryKeyCard Key="{x:Bind ViewModel.RevealedKey, Mode=OneWay}" Visibility="{x:Bind ViewModel.IsKeyRevealed, Mode=OneWay}" />
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <Button Content="{x:Bind s:Text.KeyShowRecoveryKey}" Command="{x:Bind ViewModel.RevealRecoveryKeyCommand}" Visibility="{x:Bind ViewModel.IsKeyHidden, Mode=OneWay}" />
+                            <Button Content="{x:Bind s:Text.KeyChangeRecoveryKey}" Command="{x:Bind ViewModel.ChangeRecoveryKeyCommand}" IsEnabled="{x:Bind ViewModel.CanChangeRecoveryKey, Mode=OneWay}" />
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
+
+                <TextBlock Text="{x:Bind s:Text.SettingsDiagnostics}" Style="{StaticResource SectionHeaderStyle}" />
+                <controls:SettingRow
+                    Glyph="{x:Bind i:Icons.Diagnostic}"
+                    Header="{x:Bind s:Text.SettingsUsageData}"
+                    Description="{x:Bind ViewModel.TelemetryStatus, Mode=OneWay}" />
+                <controls:SettingRow Glyph="{x:Bind i:Icons.Bug}" Header="{x:Bind s:Text.SettingsSupportMode}" Description="{x:Bind s:Text.SettingsSupportModeHint}">
+                    <ComboBox ItemsSource="{x:Bind vm:SettingsViewModel.SupportRunLabels}" SelectedIndex="{x:Bind ViewModel.SupportRunsIndex, Mode=TwoWay}" Width="{StaticResource SettingControlWidth}" AutomationProperties.Name="{x:Bind s:Text.SettingsSupportMode}" />
+                </controls:SettingRow>
+                <controls:SettingRow Visibility="{x:Bind ViewModel.ShowsSupportNames, Mode=OneWay}" Glyph="{x:Bind i:Icons.Document}" Header="{x:Bind s:Text.SettingsSupportIncludeNames}" Description="{x:Bind s:Text.SettingsSupportIncludeNamesHint}">
+                    <ToggleSwitch IsOn="{x:Bind ViewModel.SupportIncludesNames, Mode=TwoWay}" AutomationProperties.Name="{x:Bind s:Text.SettingsSupportIncludeNames}" />
+                </controls:SettingRow>
+                <controls:SettingRow Visibility="{x:Bind ViewModel.ShowsSupportShare, Mode=OneWay}" Glyph="{x:Bind i:Icons.Upload}" Header="{x:Bind s:Text.SettingsSupportShare}" Description="{x:Bind s:Text.SettingsSupportShareHint}">
+                    <ToggleSwitch IsOn="{x:Bind ViewModel.SupportShares, Mode=TwoWay}" AutomationProperties.Name="{x:Bind s:Text.SettingsSupportShare}" />
+                </controls:SettingRow>
+
+                <TextBlock Text="{x:Bind s:Text.SettingsHelp}" Style="{StaticResource SectionHeaderStyle}" />
+                <controls:SettingRow Glyph="{x:Bind i:Icons.Help}" Header="{x:Bind s:Text.CommonAppHelp}" Description="{x:Bind s:Text.SettingsHelpHint}">
+                    <SplitButton Content="{x:Bind s:Text.SettingsOpenHelp}" Command="{x:Bind ViewModel.OpenHelpCommand}">
+                        <SplitButton.Flyout>
+                            <MenuFlyout Placement="BottomEdgeAlignedRight">
+                                <MenuFlyoutItem Text="{x:Bind s:Text.SettingsGetSupport}" Command="{x:Bind ViewModel.GetSupportCommand}" />
+                                <MenuFlyoutItem Text="{x:Bind s:Text.SettingsReportIssue}" Command="{x:Bind ViewModel.ReportIssueCommand}" />
+                            </MenuFlyout>
+                        </SplitButton.Flyout>
+                    </SplitButton>
+                </controls:SettingRow>
+
+                <TextBlock Text="{x:Bind s:Text.SettingsUpdates}" Style="{StaticResource SectionHeaderStyle}" />
+                <controls:SettingRow
+                    Glyph="{x:Bind i:Icons.Sync}"
+                    Header="{x:Bind s:Text.CommonCheckForUpdatesAutomatically}"
+                    Description="{x:Bind ViewModel.VersionText, Mode=OneWay}"
+                    Visibility="{x:Bind ViewModel.UpdatesAvailable}">
+                    <StackPanel Orientation="Horizontal" Spacing="12">
+                        <Button Content="{x:Bind s:Text.SettingsCheckNow}" IsEnabled="{x:Bind ViewModel.CanCheckForUpdates, Mode=OneWay}" Command="{x:Bind ViewModel.CheckForUpdatesCommand}" />
+                        <ToggleSwitch
+                            IsOn="{x:Bind ViewModel.AutomaticUpdateChecks, Mode=TwoWay}"
+                            AutomationProperties.Name="{x:Bind s:Text.CommonCheckForUpdatesAutomatically}" />
+                    </StackPanel>
+                </controls:SettingRow>
+                <controls:SettingRow
+                    Glyph="{x:Bind i:Icons.Sync}"
+                    Header="{x:Bind s:Text.SettingsUpdates}"
+                    Description="{x:Bind ViewModel.VersionText}"
+                    Visibility="{x:Bind ViewModel.UpdatesUnavailable}" />
+
+
+                <TextBlock Text="{x:Bind s:Text.SettingsAdvanced}" Style="{StaticResource SectionHeaderStyle}" />
+                <Expander Header="{x:Bind s:Text.SettingsPerformance}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch">
+                    <StackPanel Spacing="4">
+                        <controls:SettingRow Glyph="{x:Bind i:Icons.Sort}" Header="{x:Bind s:Text.SettingsSimultaneousUploads}" Description="{x:Bind s:Text.SettingsSimultaneousUploadsHint}">
+                            <ComboBox ItemsSource="{x:Bind ViewModel.UploadLabels, Mode=OneWay}" SelectedIndex="{x:Bind ViewModel.UploadConnectionsIndex, Mode=TwoWay}" Width="{StaticResource SettingControlWidth}" AutomationProperties.Name="{x:Bind s:Text.SettingsSimultaneousUploads}" />
+                        </controls:SettingRow>
+                        <controls:SettingRow Glyph="{x:Bind i:Icons.NewFolder}" Header="{x:Bind s:Text.SettingsFilesReadAtOnce}" Description="{x:Bind s:Text.SettingsFilesReadAtOnceHint}">
+                            <ComboBox ItemsSource="{x:Bind vm:SettingsViewModel.ParallelismLabels}" SelectedIndex="{x:Bind ViewModel.ReadConcurrencyIndex, Mode=TwoWay}" Width="{StaticResource SettingControlWidth}" AutomationProperties.Name="{x:Bind s:Text.SettingsFilesReadAtOnce}" />
+                        </controls:SettingRow>
+                        <TextBlock Text="{x:Bind s:Text.SettingsChangesApply}" Style="{StaticResource SecondaryTextStyle}" />
+                    </StackPanel>
+                </Expander>
+                <controls:ServerEditor Visibility="{x:Bind ViewModel.AllowsServerSelection}" Margin="0,8,0,0" />
+                <TextBlock Text="{x:Bind s:Text.SettingsRemoveThisPc}" Style="{StaticResource SectionHeaderStyle}" />
+                <controls:SettingRow
+                    Glyph="{x:Bind i:Icons.Undo}"
+                    Header="{x:Bind s:Text.SettingsUnlinkTitle}"
+                    Description="{x:Bind s:Text.SettingsUnlinkHint}">
+                    <Button Content="{x:Bind s:Text.SettingsUnlinkButton}" Style="{StaticResource CautionButtonStyle}" Command="{x:Bind ViewModel.UnlinkCommand}" />
+                </controls:SettingRow>
+                <controls:SettingRow
+                    Glyph="{x:Bind i:Icons.Delete}"
+                    Header="{x:Bind s:Text.SettingsDeleteBackupTitle}"
+                    Description="{x:Bind s:Text.SettingsDeleteBackupHint}">
+                    <Button Content="{x:Bind s:Text.SettingsDeleteBackupButton}" Style="{StaticResource DestructiveButtonStyle}" Command="{x:Bind ViewModel.DeleteBackupCommand}" />
+                </controls:SettingRow>
+            </StackPanel>
+        </Grid>
+    </ScrollViewer>
+</Page>

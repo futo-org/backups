@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ContentDialog
+    x:Class="FutoBackups.Pages.Settings.ChangeRecoveryKeyDialog"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:s="using:FutoBackups.Core.Strings"
+    xmlns:i="using:FutoBackups"
+    xmlns:controls="using:FutoBackups.Controls"
+    DefaultButton="Primary"
+    Title="{x:Bind ViewModel.Title, Mode=OneWay}"
+    PrimaryButtonText="{x:Bind ViewModel.PrimaryText, Mode=OneWay}"
+    IsPrimaryButtonEnabled="{x:Bind ViewModel.CanUsePrimary, Mode=OneWay}"
+    SecondaryButtonText="{x:Bind ViewModel.SecondaryText, Mode=OneWay}"
+    CloseButtonText="{x:Bind ViewModel.CloseText, Mode=OneWay}"
+    PrimaryButtonCommand="{x:Bind ViewModel.PrimaryCommand}"
+    SecondaryButtonCommand="{x:Bind ViewModel.ViewAgainCommand}"
+    PrimaryButtonClick="Primary_Click"
+    SecondaryButtonClick="KeepOpen">
+    <Grid Width="460">
+        <StackPanel Spacing="14" Visibility="{x:Bind ViewModel.IsExplaining, Mode=OneWay}">
+            <TextBlock Text="{x:Bind s:Text.SettingsChangeKeyExplain}" Style="{StaticResource BodySecondaryTextStyle}" />
+            <Grid ColumnSpacing="12" RowSpacing="14">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+                <FontIcon Glyph="{x:Bind i:Icons.Laptop}" FontSize="18" VerticalAlignment="Top" />
+                <TextBlock Grid.Column="1" Text="{x:Bind s:Text.SettingsChangeKeyOnlyThisPc}" TextWrapping="Wrap" />
+                <FontIcon Grid.Row="1" Glyph="{x:Bind i:Icons.Permissions}" FontSize="18" VerticalAlignment="Top" />
+                <TextBlock Grid.Row="1" Grid.Column="1" Text="{x:Bind s:Text.SettingsChangeKeyCurrentStops}" TextWrapping="Wrap" />
+                <FontIcon Grid.Row="2" Glyph="{x:Bind i:Icons.Warning}" FontSize="18" VerticalAlignment="Top" />
+                <TextBlock Grid.Row="2" Grid.Column="1" Text="{x:Bind s:Text.SettingsChangeKeyNoReencrypt}" TextWrapping="Wrap" />
+            </Grid>
+        </StackPanel>
+        <StackPanel Spacing="14" Visibility="{x:Bind ViewModel.IsSaving, Mode=OneWay}">
+            <TextBlock Text="{x:Bind s:Text.SettingsChangeKeySaveSubtitle}" Style="{StaticResource BodySecondaryTextStyle}" />
+            <controls:RecoveryKeyCard Key="{x:Bind ViewModel.NewKey}" />
+            <CheckBox Content="{x:Bind s:Text.SettingsChangeKeySavedCheck}" IsChecked="{x:Bind ViewModel.Saved, Mode=TwoWay}" />
+        </StackPanel>
+        <StackPanel Spacing="14" Visibility="{x:Bind ViewModel.IsConfirming, Mode=OneWay}">
+            <TextBlock Text="{x:Bind s:Text.SettingsChangeKeyConfirmSubtitle}" Style="{StaticResource BodySecondaryTextStyle}" />
+            <TextBox
+                FontFamily="{StaticResource MonoFontFamily}"
+                Text="{x:Bind ViewModel.Typed, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                AutomationProperties.Name="{x:Bind s:Text.SettingsChangeKeyNewKey}" />
+            <TextBlock
+                Text="{x:Bind s:Text.KeyMismatch}"
+                TextWrapping="Wrap"
+                Foreground="{ThemeResource SystemFillColorCriticalBrush}"
+                AutomationProperties.LiveSetting="Assertive"
+                Visibility="{x:Bind ViewModel.IsMismatched, Mode=OneWay}" />
+        </StackPanel>
+        <StackPanel Spacing="14" HorizontalAlignment="Center" Visibility="{x:Bind ViewModel.IsApplying, Mode=OneWay}">
+            <ProgressRing IsActive="{x:Bind ViewModel.IsApplying, Mode=OneWay}" Width="40" Height="40" />
+            <TextBlock Text="{x:Bind s:Text.SettingsChangeKeyChanging}" Style="{StaticResource SubtitleTextBlockStyle}" HorizontalAlignment="Center" />
+            <TextBlock Text="{x:Bind s:Text.SettingsChangeKeyKeepOpen}" Style="{StaticResource BodySecondaryTextStyle}" />
+        </StackPanel>
+        <TextBlock Text="{x:Bind ViewModel.ResultText, Mode=OneWay}" Style="{StaticResource BodySecondaryTextStyle}" Visibility="{x:Bind ViewModel.IsFinished, Mode=OneWay}" />
+    </Grid>
+</ContentDialog>
