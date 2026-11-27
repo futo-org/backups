@@ -1,17 +1,18 @@
 ---
 title: FUTO Backups
-description: Encrypted, off-site backups for your Immich library, your Mac or any machine you run, hosted by FUTO
+description: Encrypted, off-site backups for your Immich library, your Mac, your Windows PC or any machine you run, hosted by FUTO
 ---
 
 FUTO Backups keeps a copy of your data on storage that FUTO runs, so it survives the disk, the machine and the building it normally lives in.
 
 Everything is encrypted on your own machine before it is uploaded, with a key that never leaves you. We store your backups. We cannot read them.
 
-## Three ways to use it
+## Four ways to use it
 
 - **In Immich.** Back up your photo library, its database and, if you want, its thumbnails and encoded videos. Managed from the Immich admin interface. See [set up in Immich](/getting-started/immich).
 - **As a standalone container.** Back up any folders on any machine that runs Docker, with or without Immich. See [set up the standalone container](/getting-started/standalone).
 - **On a Mac.** Back up the folders on your Mac from a native app in the menu bar. See [set up on a Mac](/getting-started/mac).
+- **On Windows.** Back up the folders on your PC from a native app in the system tray. See [set up on Windows](/getting-started/windows).
 
 You can use any mix of them against the same account.
 
@@ -29,7 +30,7 @@ Please tell us what you find. [Getting help](/help/support) explains how to open
 ## Start here
 
 1. [Join the beta](/getting-started/beta) and sign in to your account.
-2. Set up [Immich](/getting-started/immich), the [standalone container](/getting-started/standalone) or the [Mac app](/getting-started/mac).
+2. Set up [Immich](/getting-started/immich), the [standalone container](/getting-started/standalone), the [Mac app](/getting-started/mac) or the [Windows app](/getting-started/windows).
 3. Follow [your first backup](/getting-started/first-backup) from end to end.
 4. Set a [schedule](/guides/schedules) so it keeps happening.
 

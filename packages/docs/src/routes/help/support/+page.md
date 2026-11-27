@@ -29,7 +29,7 @@ Keep the conversation in that thread. It stays private to you and the team.
 
 The more of this you can give, the faster a ticket moves:
 
-- Whether you are using **Immich**, the **standalone container** or the **Mac app**, and which version or image tag.
+- Whether you are using **Immich**, the **standalone container**, the **Mac app** or the **Windows app**, and which version or image tag.
 - What you expected to happen and what happened instead.
 - The name of the backup involved, and roughly when it ran.
 - Anything from the backup's own log. In the app, open the backup and look under **Recent backup attempts** for the failed run.
