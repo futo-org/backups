@@ -23,13 +23,14 @@ reader would otherwise miss; these are rare. Re-read your diff and delete every 
 
 ```
 src/FutoBackups.Core/       library, all logic, fully unit-tested, no UI
-  Api/                      yucca-api client, discovery, device login
+  Api/                      the account and repository calls the app makes, over the generated client
   Restic/                   restic commands, output parsing, restic-proxy over a named pipe
   State/                    config, secrets (Credential Manager), keys, schedule, retention, exclusions, run history
   Engine/                   backup, restore, key rotation, deletion and reset orchestration
   Status/                   the status summary every surface shows
   Models/                   AppModel: app state and flows, the port of the macOS AppModel
 src/FutoBackups.ResticWrapper/ builders for the restic commands the app runs, the process runner and restic's JSON output
+src/FutoBackups.YuccaApi/      yucca-api client generated from the OpenAPI spec (mise run win:api), server discovery, device sign-in polling
 src/FutoBackups/            WinUI app (thin; logic stays in Core)
   ViewModels/               one view model per page, built on AppModel
   Pages/, Controls/         XAML views
@@ -41,6 +42,8 @@ Helpers.targets             builds restic.exe (root restic:install task) and res
 
 ## Rules
 
+- `YuccaApiClient.g.cs` is generated: never edit it. After a yucca-api contract change, run `mise run win:api` (after
+  `mise //packages/yucca-api:sync-openapi`) and commit the result.
 - Interface text matches the macOS app word for word, with only platform nouns changed (Mac to PC, Finder to File
   Explorer, menu bar to system tray) and British spelling.
 - Inject time, sleep, transports, process launchers and file locations; tests never hit the network or the real

@@ -1,5 +1,10 @@
 [tools]
 dotnet = "11.0.100"
+"dotnet:NSwag.ConsoleCore" = "14.8.0"
+
+[tasks."win:api"]
+description = "Regenerate the yucca-api client from the OpenAPI spec in packages/yucca-api-client"
+run = "bash scripts/generate-api.sh"
 
 [tasks."win:format"]
 description = "Fix formatting and the analyzer findings dotnet format can fix; the build checks them"
