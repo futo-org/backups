@@ -20,8 +20,8 @@ config_roots = [
 
 [tools]
 node = "26.12.1"
-pnpm = "10.28.1"
-wrangler = "4.127.0"
+pnpm = "10.34.9"
+wrangler = "4.166.0"
 go = "1.27.3"
 golangci-lint = "2.14.0"
 # restic is FUTO's build from futo-org/restic, the one the images ship (parallel directory walk).
